@@ -1,11 +1,13 @@
+// [PP] mod:22 · autor:Rune · 2026-07-17 UTC-6
+// TKT-202607-032 (REQ-202607-004) AC-2: banner .du-vencido-banner/-icon/-msg (entregable Nova,
+// locus-docs.css mod:5) integrado en renderDocUpdatesPending() — un banner por entrada
+// vencida, antepuesto a la lista, texto literal __BR-Ecosystem §5. Opción B — sin selector de
+// rol. AC-4 retirado (Cael, patch previo) — sin selector de rol no hay "quién no es dueño".
+// contract_update: n/a — firma sin cambio.
 // [PP] mod:21 · autor:Rune · 2026-07-17 UTC-6
 // TKT-202607-032 (REQ-202607-004) AC-1: renderDocUpdatesPending() ordena keys — entradas con
 // vencido:true primero (sort estable, sin alterar orden relativo dentro de cada grupo). Cierra
-// el gap que dejó TKT-CAEL-0717-02 (renderizaba el badge pero no reordenaba). AC-2/AC-4
-// reescritos por Cael (Opción B, founder confirmó): sin selector de rol — banner de bloqueo
-// pendiente de entregable de Nova (nuevo tratamiento visual amber, sin clase reutilizable
-// existente — ver CHECKPOINT de esta entrega, Bloqueo UI declarado). contract_update: n/a —
-// firma de renderDocUpdatesPending() sin cambio.
+// el gap que dejó TKT-CAEL-0717-02 (renderizaba el badge pero no reordenaba).
 // [PP] mod:20 · autor:Rune · 2026-07-17 UTC-6
 // TKT-CAEL-0717-02 (REQ-CAEL-0717-01): renderDocUpdatesPending() consume entries[].vencido
 // (ya calculado por _scmExecuteClose() — locus-backlog-sprints.js, fix TKT-202607-031) y
@@ -908,6 +910,10 @@ export function renderDocUpdatesPending() {
   }
 
   let conflictCount = 0;
+  // TKT-202607-032 AC-2: un banner de bloqueo por entrada vencida — texto literal de
+  // __BR-Ecosystem §5, sin selector de rol (Opción B confirmada por founder). Se antepone
+  // a la lista, no reemplaza el badge por-entrada (.du-meta-vencido) ya existente.
+  const vencidoBanners = [];
   const html = keys.map(key => {
     const entries = index[key];
     const hasConflict = entries.some(e => e.conflicto);
@@ -920,6 +926,13 @@ export function renderDocUpdatesPending() {
     // cerrados del proyecto desde createdAt. No se recalcula aquí, solo se lee.
     const isVencido = entries.some(e => e.vencido === true);
     const vencidoBadgeHtml = isVencido ? '<span class="du-meta-vencido">Vencido</span>' : '';
+    if (isVencido) {
+      vencidoBanners.push(`
+        <div class="du-vencido-banner">
+          <span class="du-vencido-icon">⚠</span>
+          <span class="du-vencido-msg">Bloqueo: DOC-UPDATE ${esc(doc)}§${esc(seccion)} vencido — resolver antes de continuar.</span>
+        </div>`);
+    }
 
     if (hasConflict) {
       // AC-1 + AC-2: bandera visual con mensaje canónico y títulos de los CHECKPOINTs
@@ -979,7 +992,7 @@ export function renderDocUpdatesPending() {
       </div>`;
   }).join('');
 
-  container.innerHTML = html;
+  container.innerHTML = vencidoBanners.join('') + html;
   _updateDocUpdatesBadge(keys.length, conflictCount);
 }
 

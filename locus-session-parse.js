@@ -1,3 +1,14 @@
+// [PP] mod:127 · autor:Rune · 2026-07-17 21:15 UTC-6
+// TKT-202607-033 (REQ-202607-005 AC3): agregada const _INFRA_DOC_NAMES (br-core/br-ecosystem/
+//   br-execution/ob-strategy, ver __OB-Strategy §5) y detección dentro del forEach de
+//   ckpt._rawDocUpdates en parsePaste — cada entrada con doc normalizado (toLowerCase) presente
+//   en el set dispara _blogLog('doc-update-infra-detectado', '[doc]::[section]', mensaje canónico
+//   __BR-Ecosystem §11, 'backlog'). No bloquea el ingest — se ejecuta junto al processDocUpdate
+//   ya existente, sin alterar su resultado (conflicto/msg). doc ausente o vacío → _duDocNorm
+//   falsy → sin alerta (AC4). no_incluye: no toca _parseBatchBlock — mismo criterio de deuda
+//   preexistente ya documentado en mod:126 (doc_updates no llega a processDocUpdate en el flujo
+//   batch; esta detección hereda esa misma ausencia, consistente con el scope declarado del TKT
+//   sobre este archivo). No modifica processDocUpdate ni locus-docs.js (no adjunto en esta sesión).
 // [PP] mod:126 · autor:Rune · 2026-07-17 12:40 UTC-6
 // TKT2 (REQ CAEL-0717-01 · AC1-4, parte 2/2 — ver locus-backlog-merge.js mod:53 para la parte
 //   de render): propagado finn_release desde el CHECKPOINT JSON parseado. parseCheckpoint()
@@ -682,6 +693,12 @@ function _parseInlineFixes(text) {
   }
   return fixes;
 }
+
+// TKT-202607-033 (REQ-202607-005 AC3 — Vigencia y bloqueo de DOC-UPDATEs vencidos):
+// docs de infraestructura (dueño Vera) nunca pasan por la cola doc_updates de Locus —
+// ver __BR-Ecosystem §11 y __BR-Core OWNERSHIP DE DOCUMENTOS. Comparación normalizada
+// a minúsculas — 'BR-Core' y 'br-core' matchean igual.
+const _INFRA_DOC_NAMES = new Set(['br-core', 'br-ecosystem', 'br-execution', 'ob-strategy']);
 
 // T-202606-005: parseCheckpoint — path único JSON puro (fence sin especificador de lenguaje)
 // Path único: bloque ``` { ... } ``` sin especificador de lenguaje con schema completo
@@ -1476,6 +1493,17 @@ export function parsePaste(id) {
           ckpt._rawDocUpdates.forEach(du => {
             const { conflicto, msg } = processDocUpdate(du, _ckptTitleForDu);
             if (conflicto && msg) showToast('warn', msg);
+            // TKT-202607-033 (REQ-202607-005 AC3): doc_updates dirigido a doc de infraestructura —
+            // alerta en DocLog, no bloquea el ingest. AC4: doc ausente o vacío → sin alerta.
+            const _duDocNorm = (du.doc || '').toLowerCase().trim();
+            if (_duDocNorm && _INFRA_DOC_NAMES.has(_duDocNorm)) {
+              _blogLog(
+                'doc-update-infra-detectado',
+                `${_duDocNorm}::${du.section || ''}`,
+                'DOC-UPDATE dirigido a doc de infraestructura — nunca pasa por esta cola, ver __BR-Ecosystem §11',
+                'backlog'
+              );
+            }
           });
         }
       }

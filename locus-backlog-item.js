@@ -1,3 +1,19 @@
+// [PP] mod:113 · autor:Rune · 2026-07-18 UTC-6
+// DISC cerrada (auditoría triggeredBy/origenDisc/dependsOn en patches — triggered_by INC-202607
+// parentId): confirmado mismo gap en los tres campos dentro de applyPatchesFromTG — sin
+// normalización de {ref_id,title} NI resolución de slugMap (parentId al menos tenía la segunda).
+// Refactor: helper único _resolvePatchRefValue() reemplaza el bloque ad-hoc que solo cubría
+// parentId — ahora parentId/triggeredBy/origenDisc (escalares) + dependsOn (array) resuelven
+// ref_id y slugMap con el mismo criterio de guardrail de title. DocLog key
+// 'patch-parent-slug-no-resuelto' renombrado a 'patch-ref-slug-no-resuelto' (genérico, sin otros
+// consumidores verificado por grep) — sin regresión.
+// [PP] mod:112 · autor:Rune · 2026-07-18 UTC-6
+// INC-202607-XXX (triggered_by TKT-202607-029/030): applyPatchesFromTG() — parentId llegando
+// como objeto {ref_id,title} ahora se normaliza a '[tmp:REF_ID]' antes de la resolución de
+// slugMap existente, mismo guardrail ya usado en patch.code y promovida_a. Sin esto, un patch
+// de reparenteo vía ref_id (ej. Cael reparentando un TKT a un REQ recién creado en el mismo
+// bloque) dejaba parentId con el objeto crudo sin resolver — "Sin parent" o valor ilegible en
+// IDP/DIFF pese a ref_id/title correctos. Ver __BR-Ecosystem §4.
 // [PP] mod:111 · autor:Rune · 2026-07-18 08:15 UTC-6
 // INC-[pendiente-ID] (triggered_by REQ-202607-003/004/005): _assignPendingIds no seedeaba
 // slugMap con [tmp:REF_ID] al asignar código real a un ítem con refId — causa raíz de
@@ -2822,6 +2838,45 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
   });
   if (_hasItilPatch) _undoSnapshotIncidents();
 
+  // DISC cerrada (auditoría de triggeredBy/origenDisc/dependsOn en patches, triggered_by
+  // INC-202607 parentId): confirmado el mismo gap en los tres campos — ninguno tenía
+  // normalización de {ref_id,title} NI resolución de slugMap dentro de applyPatchesFromTG (a
+  // diferencia de parentId, que sí tenía resolución de slugMap para strings, solo le faltaba el
+  // guardrail de objeto). Helper único — reemplaza el bloque ad-hoc que solo cubría parentId,
+  // mismo criterio de guardrail que _normalizeRefIdValue en mergeBacklogFromTG (L2100): title
+  // debe coincidir exactamente con el declarante o se bloquea con null + DocLog. Retorna
+  // `undefined` cuando el valor debe descartarse (sin declarante, title-mismatch, o placeholder
+  // sin entrada en slugMap) — el caller decide si eso implica `delete` del campo en el patch.
+  function _resolvePatchRefValue(val, fieldLabel, patchCode) {
+    if (val && typeof val === 'object' && !Array.isArray(val) && val.ref_id) {
+      const _refId = val.ref_id;
+      const _declaredTitle = _refIdTitleMap ? _refIdTitleMap.get(_refId) : undefined;
+      if (_declaredTitle === undefined) {
+        _blogLog('ref-id-sin-declarante', patchCode || '[sin-código]',
+          `ref_id ${_refId} referenciado en ${fieldLabel} de patch sin ítem declarante en este bloque — pegar el bloque completo.`,
+          'backlog');
+        return undefined;
+      }
+      if (_declaredTitle !== (val.title || '')) {
+        _blogLog('ref-id-title-mismatch', patchCode || '[sin-código]',
+          `ref_id ${_refId} en ${fieldLabel} de patch no coincide con title declarado — resolución bloqueada.`,
+          'backlog');
+        return undefined;
+      }
+      val = `[tmp:${_refId}]`;
+    }
+    if (_slugMap && val && _isPlaceholderCode(val)) {
+      const resolved = _slugMap.get(val);
+      if (resolved && !_isPlaceholderCode(resolved)) return resolved;
+      if (!resolved) {
+        _blogLog('patch-ref-slug-no-resuelto', patchCode || '[sin-código]',
+          fieldLabel + ': ' + val + ' no encontrado en slugMap — campo ignorado', 'backlog');
+        return undefined;
+      }
+    }
+    return val;
+  }
+
   patches.forEach(patch => {
     // B-202605-016: normalizar campo parent (schema CHECKPOINT) → parentId (campo interno)
     // T-[pendiente-ID] (REQ-unify-parent TKT2): eliminar patch.parent tras normalizar — el campo
@@ -2831,16 +2886,21 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
     // obligatorio bajo el modelo nuevo, no solo higiene de campo legacy.
     if (patch.parent) { if (!patch.parentId) patch.parentId = patch.parent; delete patch.parent; }
 
-    // B-202606-022: resolver [tmp:slug] en parentId usando slugMap post-mergeBacklogFromTG
-    if (_slugMap && patch.parentId && _isPlaceholderCode(patch.parentId)) {
-      const resolved = _slugMap.get(patch.parentId);
-      if (resolved && !_isPlaceholderCode(resolved)) {
-        patch.parentId = resolved;
-      } else if (!resolved) {
-        _blogLog('patch-parent-slug-no-resuelto', patch.code || '[sin-código]',
-          'parentId: ' + patch.parentId + ' no encontrado en slugMap — campo ignorado', 'backlog');
-        delete patch.parentId;
+    // INC-202607-XXX (triggered_by TKT-202607-029/030) + DISC de auditoría cerrada: parentId,
+    // triggeredBy, origenDisc y dependsOn (array) resueltos con el mismo helper — antes solo
+    // parentId tenía resolución parcial (slugMap para strings, sin guardrail de objeto); los
+    // otros tres no tenían ninguna de las dos. Un patch de reparenteo o de trazabilidad
+    // (triggered_by/origen_disc) usando ref_id ahora resuelve igual que parentId/code/promovida_a.
+    ['parentId', 'triggeredBy', 'origenDisc'].forEach(_f => {
+      if (patch[_f] !== undefined) {
+        const _resolved = _resolvePatchRefValue(patch[_f], _f, patch.code);
+        if (_resolved === undefined) delete patch[_f]; else patch[_f] = _resolved;
       }
+    });
+    if (Array.isArray(patch.dependsOn)) {
+      patch.dependsOn = patch.dependsOn
+        .map(v => _resolvePatchRefValue(v, 'dependsOn', patch.code))
+        .filter(v => v !== undefined);
     }
 
     // TKT1 (REQ-[pendiente-ID] · CAEL-04): resolver patch.code cuando llega como {ref_id,title}
