@@ -1,4 +1,4 @@
-/* [PP] mod:60 · autor:Nova · 2026-07-17 UTC-6 */
+/* [PP] mod:62 · autor:Nova · 2026-07-17 UTC-6 */
 /* TKT2 (REQ-[pendiente-ID] · footer DOC-UPDATE vencido): .gf-ckpt--alert-docupdate agregada —
    var(--blue-text), mismo patrón que las 3 variantes existentes (--red/--amber/--purple).
    Sin tokens nuevos — --blue-text ya validado WCAG AA como texto (mod:54 de css-ref). */
@@ -1965,12 +1965,16 @@
    de z-index de locus-base.css — no hay hueco definido entre --z-overlay (900) y
    --z-toast (1000) para "elementos sobre overlay base", mismo patrón semántico que
    --z-modal-plus ya usa para "elementos sobre modal base". ── */
+/* Full-viewport (REQ[CAEL-0716-02]): mismo offset vertical que .modal-overlay.modal-split
+   (locus-modals-base.css) — header real + split-header-h. padding-left ya no lleva
+   término de centrado — la columna ingest arranca en left:0, este panel arranca donde
+   esa columna termina (0.333 * total-w + gap). */
 #merge-diff-overlay.mdiff-overlay--docked {
   background: transparent;
   justify-content: flex-start;
   align-items: flex-start;
-  padding-top: calc((100vh - var(--split-total-h)) / 2 + var(--split-header-h));
-  padding-left: calc((100vw - var(--split-total-w)) / 2 + var(--split-total-w) * 0.333 + var(--split-gap));
+  padding-top: calc(var(--header-h) + 1.95rem + 1px + var(--split-header-h));
+  padding-left: calc(var(--split-total-w) * 0.333 + var(--split-gap) / 2);
   z-index: calc(var(--z-overlay) + 1);
 }
 

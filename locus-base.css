@@ -1,4 +1,4 @@
-/* [PP] mod:9 · autor:Rune · 2026-07-13 00:47 UTC-6 */
+/* [PP] mod:10 · autor:Nova · 2026-07-17 UTC-6 */
 /* locus-base.css */
 
 
@@ -122,6 +122,9 @@
   /* ── Layout global ── */
   /* .header-inner: 52px + border-bottom 1px = 53px total */
   --header-h: 53px;
+  /* #global-footer (locus-backlog-item.css): height:28px, border-top:1px incluido
+     por box-sizing:border-box global (locus-layout.css L22) — no suma aparte */
+  --footer-h: 28px;
 
   /* ── A3: Tokens de espaciado — independientes de tema ── */
   --spacing-sm: 8px;

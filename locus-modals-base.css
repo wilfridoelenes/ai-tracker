@@ -1,4 +1,4 @@
-/* [PP] mod:9 · autor:Nova · 2026-07-17 13:10 UTC-6 */
+/* [PP] mod:10 · autor:Nova · 2026-07-17 UTC-6 */
 /* locus-modals-base.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
 /* Restaurado (CAEL-06 · TKT1 CAEL-07): .modal--ingest y clases relacionadas — no persistieron en
    la entrega anterior (ver _PP-session-handoff-2026-07-13.md §1). Reconstruido contra el HTML real
@@ -402,21 +402,39 @@
    va sin backdrop propio. BR-Execution §5 — shell estático en HTML, contenido
    dinámico vía JS (Rune, TKT2/TKT3). ══ */
 
+/* Full-viewport (REQ[CAEL-0716-02], wireframe aprobado por founder) — sin bandas
+   vacías: el split ocupa exactamente el área entre header, sidebar derecha y
+   footer. --split-total-h resta el offset real del header (--header-h mide solo
+   .header-inner — el <header> real suma 1.95rem + 1px de padding/border encima,
+   ver locus-layout.css L554-558, mismo cálculo ya usado en .tab-panel.active L1132)
+   y --footer-h (locus-base.css). --split-total-w se recalcula completo bajo
+   body.radar-sb-open/-collapsed más abajo — mismo mecanismo reactivo que ya usa
+   #global-footer (locus-radar.css L782-801), sin JS nuevo: todo calc() que
+   consume --split-total-w en este archivo y en locus-backlog-item.css hereda el
+   valor nuevo automáticamente. */
 :root {
-  --split-total-w: min(1800px, 92vw);
-  --split-total-h: min(960px, 88vh);
+  --split-total-w: 100vw;
+  --split-total-h: calc(100vh - var(--header-h) - 1.95rem - 1px - var(--footer-h));
   --split-gap: 18px;
   --split-header-h: 60px;
 }
 
-/* Aplicada a #ingest-modal-overlay. Ancla el diálogo al tercio izquierdo del
-   área total en vez de centrarlo solo — dos diálogos fixed comparten la misma
-   franja horizontal/vertical centrada, calculada desde el mismo --split-total-w/-h. */
+body.radar-sb-open {
+  --split-total-w: calc(100vw - var(--rsb-width, 340px));
+}
+
+body.radar-sb-collapsed {
+  --split-total-w: calc(100vw - var(--rsb-strip, 14px));
+}
+
+/* Aplicada a #ingest-modal-overlay. Ancla el diálogo al borde superior-izquierdo
+   real del área disponible — ya no centrado, dos diálogos fixed comparten la
+   misma franja calculada desde el mismo --split-total-w/-h. */
 .modal-overlay.modal-split {
   justify-content: flex-start;
   align-items: flex-start;
-  padding-top: calc((100vh - var(--split-total-h)) / 2 + var(--split-header-h));
-  padding-left: calc((100vw - var(--split-total-w)) / 2);
+  padding-top: calc(var(--header-h) + 1.95rem + 1px + var(--split-header-h));
+  padding-left: 0;
 }
 
 .modal-split__dialog {
