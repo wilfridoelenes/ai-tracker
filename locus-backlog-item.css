@@ -1,4 +1,4 @@
-/* [PP] mod:59 · autor:Nova · 2026-07-17 UTC-6 */
+/* [PP] mod:60 · autor:Nova · 2026-07-17 UTC-6 */
 /* TKT2 (REQ-[pendiente-ID] · footer DOC-UPDATE vencido): .gf-ckpt--alert-docupdate agregada —
    var(--blue-text), mismo patrón que las 3 variantes existentes (--red/--amber/--purple).
    Sin tokens nuevos — --blue-text ya validado WCAG AA como texto (mod:54 de css-ref). */
@@ -2116,7 +2116,7 @@
 .mdiff-summary-title {
   font-size: var(--text-2xs-plus);
   font-weight: 700;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text2);
 }
@@ -3681,7 +3681,7 @@ body {
   font-weight: 600;
   color: var(--text2);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   padding: 0.5rem 0 0.375rem;
   border-bottom: 1px solid var(--border);
   margin-bottom: 0.5rem;
@@ -3804,17 +3804,10 @@ body {
   color: var(--text);
 }
 
-/* Panel derecho — título de sección */
-.mdiff-right-section-title {
-  font-size: var(--text-xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text2);
-  padding: 6px 0 4px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 6px;
-}
+/* [PP] mod:82 — .mdiff-right-section-title retirado de este archivo: colisión de selector-base con locus-modals-misc.css.
+   locus-modals-misc.css carga después en index.html — esa era la declaración vigente en cascada.
+   Ver _Locus-css-ref mod:82 / _Locus-ux-ref A-08 (mod:24). */
+
 
 /* Panel derecho — fila de retroceso */
 .mdiff-right-retro-row {

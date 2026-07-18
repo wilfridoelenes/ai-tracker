@@ -303,7 +303,7 @@
 .ckpt-section-header {
   display: flex; align-items: center; gap: 6px;
   padding: 6px 10px; font-size: var(--text-2xs-plus); font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.07em;
+  text-transform: uppercase; letter-spacing: 0.06em;
 }
 
 .ckpt-section.created .ckpt-section-header {

@@ -1155,7 +1155,7 @@
   font-weight: 600;
   color: var(--text3);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
 }
 
 .closed-sprints-count {
@@ -5014,7 +5014,7 @@
   font-weight: 600;
   color: var(--text3);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 .bl-vl-orphans-body {
@@ -5524,14 +5524,10 @@
   color: var(--text);
 }
 
-/* Título como línea dominante — sin el código encima ya no compite visualmente */
-.bitem-title {
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--text);
-  line-height: 1.4;
-  display: block;
-}
+/* [PP] mod:82 — .bitem-title retirado de este archivo: colisión de selector-base con locus-backlog-item.css.
+   locus-backlog-item.css carga después en index.html — esa era la declaración vigente en cascada.
+   Ver _Locus-css-ref mod:82 / _Locus-ux-ref A-08 (mod:24). */
+
 
 /* Subline con código + metadatos en segunda línea */
 .bitem-subline {
@@ -5843,7 +5839,7 @@
   font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 .qdisc-status-count {
@@ -6162,7 +6158,7 @@
   font-size: var(--text-xs);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   color: var(--text2);
   padding: 4px 0;
   border-bottom: 1px solid var(--border);
@@ -6370,7 +6366,7 @@
   font-weight: 600;
   color: var(--text2);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   flex: 1;
 }
 
