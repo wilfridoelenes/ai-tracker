@@ -1,4 +1,4 @@
-/* [PP] mod:58 · autor:Nova · 2026-07-17 UTC-6 */
+/* [PP] mod:59 · autor:Nova · 2026-07-17 UTC-6 */
 /* TKT2 (REQ-[pendiente-ID] · footer DOC-UPDATE vencido): .gf-ckpt--alert-docupdate agregada —
    var(--blue-text), mismo patrón que las 3 variantes existentes (--red/--amber/--purple).
    Sin tokens nuevos — --blue-text ya validado WCAG AA como texto (mod:54 de css-ref). */
@@ -1954,14 +1954,24 @@
    dejando el panel centrado con backdrop propio en vez de dockeado. Selector calificado
    con #merge-diff-overlay eleva la especificidad de esta regla (1,1,0) por encima de
    .modal-overlay (0,1,0) de forma explícita — ya no depende del orden de <link>, mismo
-   criterio de raíz que z-index, aplicado ahora a las cuatro propiedades. ── */
+   criterio de raíz que z-index, aplicado ahora a las cuatro propiedades.
+   Fix 2 (Hallazgo Finn, mismo ciclo): con la especificidad ya corregida, z-index dejó
+   de heredar el 900 "accidental" que el empate previo producía — var(--z-modal-plus)
+   (600) es el valor real declarado, y #ingest-modal-overlay (.modal-overlay.modal-split,
+   locus-modals-base.css L415-420, sin override propio de z-index) hereda var(--z-overlay)
+   (900) de .modal-overlay base. Sin corregir, el backdrop full-viewport del ingest
+   (900) pinta sobre el panel dockeado (600). calc(var(--z-overlay) + 1) garantiza que
+   el docked queda por encima del ingest sin introducir un token nuevo en la escalera
+   de z-index de locus-base.css — no hay hueco definido entre --z-overlay (900) y
+   --z-toast (1000) para "elementos sobre overlay base", mismo patrón semántico que
+   --z-modal-plus ya usa para "elementos sobre modal base". ── */
 #merge-diff-overlay.mdiff-overlay--docked {
   background: transparent;
   justify-content: flex-start;
   align-items: flex-start;
   padding-top: calc((100vh - var(--split-total-h)) / 2 + var(--split-header-h));
   padding-left: calc((100vw - var(--split-total-w)) / 2 + var(--split-total-w) * 0.333 + var(--split-gap));
-  z-index: var(--z-modal-plus);
+  z-index: calc(var(--z-overlay) + 1);
 }
 
 #merge-diff-overlay.mdiff-overlay--docked .mdiff-dialog {
