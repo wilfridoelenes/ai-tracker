@@ -1,3 +1,9 @@
+// [PP] mod:20 · autor:Rune · 2026-07-17 UTC-6
+// TKT-CAEL-0717-02 (REQ-CAEL-0717-01): renderDocUpdatesPending() consume entries[].vencido
+// (ya calculado por _scmExecuteClose() — locus-backlog-sprints.js, fix TKT-202607-031) y
+// renderiza .du-meta-vencido en ambas ramas (con y sin conflicto). Sin nueva función — solo
+// lectura del campo existente. No toca _docUpdateStaleness() (locus-sesiones-stats.js) — ese
+// criterio de 14d es intencionalmente distinto, ver comentario en CSS.
 // [PP] mod:19 · autor:Rune · 2026-07-15 UTC-6
 // TKT-[pendiente-ID] (REQ-[pendiente-ID] · createdAt en docUpdateIndex): processDocUpdate()
 //   agrega createdAt:Date.now() a toda entrada nueva (primera entrada de una key y entradas
@@ -894,6 +900,11 @@ export function renderDocUpdatesPending() {
 
     const [doc, seccion] = key.split('::');
     const keyAttr = esc(key);
+    // TKT-CAEL-0717-02 (REQ-CAEL-0717-01): vencido ya viene calculado por
+    // _scmExecuteClose() (locus-backlog-sprints.js, fix TKT-202607-031) — 2+ sprints
+    // cerrados del proyecto desde createdAt. No se recalcula aquí, solo se lee.
+    const isVencido = entries.some(e => e.vencido === true);
+    const vencidoBadgeHtml = isVencido ? '<span class="du-meta-vencido">Vencido</span>' : '';
 
     if (hasConflict) {
       // AC-1 + AC-2: bandera visual con mensaje canónico y títulos de los CHECKPOINTs
@@ -916,6 +927,7 @@ export function renderDocUpdatesPending() {
             <span class="du-meta-doc">${esc(doc)}</span>
             <span class="du-meta-sep">·</span>
             <span class="du-meta-section">${esc(seccion)}</span>
+            ${vencidoBadgeHtml}
           </div>
           <div class="du-transitorio-note">Regla transitoria activa — verificar que el MD actualizado está adjunto al CHECKPOINT de origen.</div>
           <div class="du-conflict-options" role="group" aria-label="Elegir propuesta">
@@ -941,6 +953,7 @@ export function renderDocUpdatesPending() {
           <span class="du-meta-section">${esc(seccion)}</span>
           <span class="du-meta-sep">·</span>
           <span class="du-meta-titulo">${esc(entry.titulo || '—')}</span>
+          ${vencidoBadgeHtml}
         </div>
         ${_duTransitorioHtml}
         <div class="du-content-preview">${esc((entry.contenido || '').slice(0, 200))}${(entry.contenido || '').length > 200 ? '…' : ''}</div>

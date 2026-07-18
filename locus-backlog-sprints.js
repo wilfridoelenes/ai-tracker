@@ -1,3 +1,12 @@
+// [PP] mod:52 · autor:Rune · 2026-07-17 UTC-6
+// TKT-202607-031: _scmExecuteClose() ya no vacía docUpdateIndex al cerrar sprint
+//   (_setDocUpdateIndex({}) + log 'descartado · sprint cerrado' eliminados — violaba
+//   __BR-Ecosystem §3, vencimiento no es descarte por inacción). En su lugar, cada entrada
+//   sobreviviente con createdAt conocido gana vencido:true cuando 2+ sprints del proyecto
+//   cerraron con closedAt posterior a ese createdAt (getActiveSprints().filter(status===
+//   'closed')). Entradas sin createdAt no se marcan — antigüedad desconocida. Persistido vía
+//   _setDocUpdateIndex(_duIndex) (mutación in-place, no reemplazo por {}). contract_update: sí
+//   — ver CHECKPOINT de esta entrega, docUpdateIndex[key][].vencido es campo nuevo compartido.
 // [PP] mod:50 · autor:Rune · 2026-07-13 UTC-6
 // TKT1 (REQ CAEL-04): navigateToItem() extraída a locus-item-navigator.js — no gestionaba
 // ningún dato de sprints (__BR-Ecosystem §7). Re-importada para los 2 call sites internos.
@@ -1459,25 +1468,43 @@ async function _scmExecuteClose() {
   if (sp) {
     sp.retroNotes = retroNotes || '';
     sp.retroDoc   = _generateSprintRetroMd(id, retroNotes || '');
-    // T-202606-010 AC-8 / AC-8b: limpiar índice de doc_updates después de _generateSprintRetroMd
-    // y antes del save() final — nota en DocLog por cada entrada pendiente antes de vaciar.
-    // AC-8b: este bloque se ejecuta aquí — después de retroDoc y antes de deliveryMetrics + save().
+    // TKT-202607-031: bloque T-202606-010 AC-8/AC-8b (auto-descarte silencioso vía
+    // _setDocUpdateIndex({}) + log 'descartado · sprint cerrado' para toda entrada
+    // sobreviviente, sin importar antigüedad) eliminado — violaba __BR-Ecosystem §3
+    // ("DOC-UPDATE vencido... se presenta como bloqueante explícito... no se aplica ni
+    // se descarta por inacción"). Reemplazado por cómputo de vencido: cada entrada con
+    // createdAt conocido gana vencido:true cuando 2+ sprints del proyecto tienen closedAt
+    // posterior a ese createdAt — mismo criterio de "2 sprints sin resolución" de
+    // __BR-Ecosystem §3. El sprint que se está cerrando en este ciclo ya cuenta — su
+    // status/closedAt se mutan de forma síncrona en setSprintStatus() (línea ~1427, antes
+    // de este bloque) sobre la misma referencia que retorna getActiveSprints(). Entradas
+    // sin createdAt (persistidas antes de TKT-[pendiente-ID] · createdAt en docUpdateIndex)
+    // no se marcan — antigüedad desconocida, mismo criterio de _docUpdateStaleness()
+    // (locus-sesiones-stats.js). Entradas ya aplicadas/descartadas nunca llegan aquí — se
+    // eliminan del índice en el momento de resolución (processDocUpdate/resolveDocUpdate/
+    // _initDocUpdatesListeners, locus-docs.js) — solo entradas sin resolver sobreviven al cierre.
     {
       const _duIndex = _getDocUpdateIndex();
       const _duKeys  = Object.keys(_duIndex);
       if (_duKeys.length > 0) {
+        // TKT-202607-031 · fix bug de implementación (hallazgo Finn en QA): getActiveSprints()
+        // sin filtrar contaba sprints cerrados de TODOS los proyectos — docUpdateIndex es por
+        // proyecto activo (locus-docs.js processDocUpdate(), línea ~810: "índice del proyecto
+        // activo"). Contradecía el propio comentario de este bloque ("2+ sprints DEL PROYECTO",
+        // arriba). Se filtra ahora con _sprintsForProject() al proyecto del sprint que se cierra.
+        const _projIdForDu = sp.projId || sp.projectId || null;
+        const _closedSprintTs = _sprintsForProject(_projIdForDu)
+          .filter(s => s.status === 'closed' && typeof s.closedAt === 'number')
+          .map(s => s.closedAt);
         _duKeys.forEach(k => {
           const entries = _duIndex[k] || [];
           entries.forEach(e => {
-            _blogLog(
-              'descartado · sprint cerrado',
-              k,
-              `DOC-UPDATE pendiente descartado al cerrar ${id}: ${e.titulo || '(sin título)'}`,
-              'backlog'
-            );
+            if (typeof e.createdAt !== 'number') return;
+            const _sprintsSince = _closedSprintTs.filter(ts => ts >= e.createdAt).length;
+            e.vencido = _sprintsSince >= 2;
           });
         });
-        _setDocUpdateIndex({});
+        _setDocUpdateIndex(_duIndex);
       }
     }
     // R-202605-125: métricas de entrega para Analytics (Nivel 2)

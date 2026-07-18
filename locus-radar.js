@@ -1,4 +1,4 @@
-// [PP] mod:11 · autor:Rune · 2026-07-01 00:30 UTC-6
+// [PP] mod:12 · autor:Rune · 2026-07-17 14:35 UTC-6
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -15,6 +15,10 @@
 
 import { _NOTIF_DEFAULTS, _computeNotifications, _notifConfig, _notifConfigReset, _notifConfigSetEnabled, _notifConfigSetThreshold, _notifGoto, _notifReadSet, _registerNotifActions, markAllNotifsRead, markNotifRead, updateTabNotifBadges } from './locus-notifications.js';
 import { openQuickCapture } from './locus-sesiones-capture.js';
+// TKT2 (CAEL-0717-01): import circular controlado con locus-sesiones.js (que ya importa
+// de este módulo, línea de arriba en ese archivo) — seguro porque _openIngestModal solo
+// se invoca dentro del click handler, nunca en tiempo de evaluación del módulo.
+import { _openIngestModal } from './locus-sesiones.js';
 import { navigateToCard } from './locus-sesiones-stats.js';
 import { getAISessions, getState, _isInSession } from './locus-storage.js';
 import { esc } from './locus-ui-shell.js';
@@ -230,14 +234,17 @@ function _buildSessionCard(ai, isInterrupted, sessions) {
   const pill = _projPill(ai, sessions);
 
   const cls = isInterrupted ? 'rsb-card interrupted-state' : 'rsb-card in-session-state';
-  const badge = isInterrupted
+  // TKT2 (CAEL-0717-01): interrupted-state conserva el badge — no_incluye. in-session-state
+  // reemplaza el badge "● sesión" por + (registrar CHKPT) y ⚡ (sesión rápida).
+  const meta = isInterrupted
     ? `<span class="rsb-status-badge rsb-status-interrupted">⚡ en curso</span>`
-    : `<span class="rsb-status-badge rsb-status-session">● sesión</span>`;
+    : `<button class="rsb-card-quick" data-action="open-ingest" data-ai-id="${ai.id}" title="Pegar CHECKPOINT" aria-label="Pegar CHECKPOINT"><i class="ti ti-plus" aria-hidden="true"></i></button>
+       <button class="rsb-card-quick" data-action="openQuickCapture" data-ai-id="${ai.id}" title="Sesión rápida" aria-label="Sesión rápida">⚡</button>`;
 
   return `<div class="${cls}" data-action="navigateToCard" data-ai-id="${ai.id}" id="rsb-card-${ai.id}">
     <div class="rsb-card-row">
       <div class="rsb-card-name" title="${esc(ai.name)}">${esc(ai.name)}</div>
-      <div class="rsb-card-meta">${badge}</div>
+      <div class="rsb-card-meta">${meta}</div>
     </div>
     ${pill ? `<div class="rsb-card-proj">${pill}</div>` : ''}
   </div>`;
@@ -267,8 +274,8 @@ function _buildAvailableCard(ai, sessions) {
       <div class="rsb-card-name" title="${esc(ai.name)}">${esc(ai.name)}</div>
       <div class="rsb-card-meta">
         ${tsSpan}
-        <span class="rsb-status-badge rsb-status-available">🟢</span>
-        <button class="rsb-card-quick" data-action="openQuickCapture" data-ai-id="${ai.id}" title="Sesión rápida">⚡</button>
+        <button class="rsb-card-quick" data-action="open-ingest" data-ai-id="${ai.id}" title="Pegar CHECKPOINT" aria-label="Pegar CHECKPOINT"><i class="ti ti-plus" aria-hidden="true"></i></button>
+        <button class="rsb-card-quick" data-action="openQuickCapture" data-ai-id="${ai.id}" title="Sesión rápida" aria-label="Sesión rápida">⚡</button>
       </div>
     </div>
     ${pill ? `<div class="rsb-card-proj">${pill}</div>` : ''}
@@ -678,6 +685,9 @@ document.addEventListener('DOMContentLoaded', function () {
     } else if (action === 'openQuickCapture') {
       e.stopPropagation();
       openQuickCapture(el.dataset.aiId);
+    } else if (action === 'open-ingest') {
+      e.stopPropagation();
+      _openIngestModal(el.dataset.aiId);
     } else if (action === 'notifGoto') {
       e.stopPropagation();
       try { _notifGoto(JSON.parse(el.dataset.notifId)); } catch(_) {}

@@ -1,4 +1,16 @@
-// [PP] mod:43 · autor:Rune · 2026-07-10 18:05 UTC-6
+// [PP] mod:45 · autor:Rune · 2026-07-18 01:10 UTC-6
+// INC-[pendiente-ID] (contador Últimos IDs desincronizado), 2º fix del mismo INC:
+//   exportBacklogMd() no calentaba el cache de historico antes del path sync — verificado en
+//   locus-ui-shell.js que btn-export-backlog dispara 'shell:export-backlog' sin warm-up previo,
+//   a diferencia de exportFullHistoryMd()/exportSprintsMd() en este mismo archivo. Sin visitar
+//   antes el sub-tab Historico en la sesión, el mismo fix de mod:44 leía un cache vacío. Ahora
+//   exportBacklogMd() es async y hace await refreshHistoricoCache() antes de generar, mismo
+//   patrón ya usado por las otras dos funciones de export de este archivo.
+// [PP] mod:44 · autor:Rune · 2026-07-18 00:36 UTC-6
+// INC-[pendiente-ID] (contador Últimos IDs desincronizado): _computeBacklogCounters() escaneaba
+//   solo getItems() para maxId — excluye 'historico' desde T-202606-106, subestimando el
+//   consecutivo real por tipo cuando había REQ/TKT ya archivados tras cierre de sprint. Ahora usa
+//   _allItemsWithHistorico() (mismo universo que ya consume itemC/exportItems en este archivo).
 // TKT-202607-INC-NAMING (INC-[pendiente-ID]): _buildQIncMd() — columna SLA Priority del
 //   backlog exportado leía solo sla_priority (snake), sin fallback a slaPriority (camel).
 //   Un INC recién creado en la sesión activa (aún no hidratado desde Supabase) mostraba '—'
@@ -119,7 +131,7 @@ function _sprintHasIncompleteFields() {
 // [tmp:tkt-include-historico] TKT2 — opts.includeHistorico (default false) forwarded a
 // _generateBacklogMd/_generateBacklogContent. No agrega UI para activarlo — mecanismo de
 // invocación (evento shell con detail, llamada directa, etc.) queda a criterio de quien invoque.
-export function exportBacklogMd(opts = {}) {
+export async function exportBacklogMd(opts = {}) {
   // TKT1 AC-1: backlog vacío ya no bloquea el export — _ob-DocStandards §3 v1.10
   // exige declarar el vacío explícito en el .md, no omitir el archivo.
   const pfx = _docPrefix();
@@ -127,6 +139,14 @@ export function exportBacklogMd(opts = {}) {
   // T-202606-069: separador canónico punto — reemplazar _ por . en segmento de versión
   // [tmp:tkt-backlog-gen-housekeeping] AC-5: naming canónico _[PREFIJO]-backlog-v[X].[Y].[Z].md
   const _canonVer = ver => ver.replace(/_/g, '.');
+  // INC-[pendiente-ID] (2026-07-18): _generateBacklogContent() lee _allItemsWithHistorico() →
+  //   getHistoricoItemsSync() de forma sync. Verificado en locus-ui-shell.js que btn-export-backlog
+  //   dispara 'shell:export-backlog' sin ningún warm-up previo del cache — a diferencia de
+  //   exportFullHistoryMd()/exportSprintsMd() (mismo archivo), esta función no tenía su propio
+  //   await refreshHistoricoCache(). Si el founder exporta backlog sin haber visitado antes el
+  //   sub-tab Historico en la sesión, el cache arranca vacío y tanto el conteo de ítems done por
+  //   sprint como maxId (fix anterior de este mismo INC) leen historico como si no existiera.
+  await refreshHistoricoCache(); // fix INC — cache poblado antes de que el generador sync lea getHistoricoItemsSync(), mismo patrón que exportFullHistoryMd/exportSprintsMd
   const _doExport = () => _showExportConfirmModal('Backlog', `_${pfx}-backlog-${_canonVer(ver)}.md`, () => _generateBacklogMd(ver, opts));
   // T-202606-108: AC-1/AC-2 — advertir si sprint activo tiene campos incompletos
   if (_sprintHasIncompleteFields()) {
@@ -814,12 +834,15 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   // T-202606-068: _computeBacklogCounters — fuente única para itemCounters y counters (max-ID).
   // Los tres bloques (Estado actual · Índice · Estadísticas) derivan de esta misma llamada.
   // B-202606-005: itemC cuenta desde exportItems para que el índice refleje solo los ítems
-  // efectivamente renderizados en ## Ítems. maxId sigue usando getItems() completo para
-  // preservar los contadores máximos de ID sin importar el status del ítem.
+  // efectivamente renderizados en ## Ítems. maxId usa _allItemsWithHistorico() para preservar
+  // los contadores máximos de ID sin importar el status del ítem — INC-[pendiente-ID] (2026-07-18):
+  // getItems() excluye 'historico' desde T-202606-106, así que un TKT/REQ archivado tras cierre
+  // de sprint quedaba fuera del escaneo y "Últimos IDs" subestimaba el consecutivo real por tipo
+  // (ver REQ-202607-015 — TKT-202607-044/045/046/056/057 historico no contaban para maxId.TKT/REQ).
   // [tmp:tkt1-itemtype-fn] AC-2/AC-5: claves Gen 2 — REQ/TKT/INC/DISC/PRB/KE/CHG.
   // Regex de extracción de NNN migrado a /-(\\d{3})$/ para soportar prefijos multi-char Gen 2.
   const _computeBacklogCounters = () => {
-    const allForCount = getItems();
+    const allForCount = _allItemsWithHistorico();
     const itemC = { REQ:0, TKT:0, INC:0, DISC:0, PRB:0, KE:0, CHG:0 };
     const maxId  = { REQ:0, TKT:0, INC:0, DISC:0, PRB:0, KE:0, CHG:0 };
     exportItems.forEach(i => {
