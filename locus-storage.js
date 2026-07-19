@@ -1,4 +1,4 @@
-// [PP] mod:121 · autor:Rune · 2026-07-18 UTC-6
+// [PP] mod:125 · autor:Rune · 2026-07-18 UTC-6
 // INC-[pendiente-ID]: isSupabaseAuthed() agregada — expone estado de auth (_supabase &&
 // _supabaseUser) sin exponer el cliente ni el user object. Consumida por loadBacklog()
 // en locus-backlog-core.js — antes typeof-guard muerto sobre variables module-privadas
@@ -119,6 +119,23 @@ function _dispatch(event, detail) {
   window.dispatchEvent(detail !== undefined
     ? new CustomEvent(event, { detail })
     : new CustomEvent(event));
+}
+
+// INC-CAEL-0718-04 (Opción A confirmada por founder): timeout defensivo para los upserts de
+// Supabase dentro de saveBacklog(). Sin esto, un fetch colgado por degradación de red deja
+// syncState.withSaveLock() con el lock tomado indefinidamente — _saveInFlight nunca baja a 0
+// porque el `finally` de withSaveLock solo corre cuando la promesa envuelta se asienta
+// (resuelve o rechaza), nunca por timeout propio. _SAVE_UPSERT_TIMEOUT_MS es conservador —
+// mayor que cualquier latencia normal de upsert, corto frente a la duración de una sesión.
+const _SAVE_UPSERT_TIMEOUT_MS = 15000;
+function _withTimeout(promise, ms, label) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(label + ': timeout tras ' + ms + 'ms sin respuesta')), ms);
+    promise.then(
+      val => { clearTimeout(timer); resolve(val); },
+      err => { clearTimeout(timer); reject(err); }
+    );
+  });
 }
 
 function showToast(type, msg, body, duration) {
@@ -260,6 +277,13 @@ let _supabase           = null;   // cliente Supabase
 var _supabaseUser       = null;   // sesión activa del founder — ESM-B: var para evitar TDZ
 let _supabaseReady      = null;   // promesa: resuelve cuando onAuthStateChange dispara
 let _realtimeChannels   = [];     // T-202606-002: canales Realtime — tracker_state, tracker_sessions
+// CHG-CAEL-0718-05 (INC-CAEL-0718-05): estado del retry con backoff exponencial tras
+// CHANNEL_ERROR/TIMED_OUT/CLOSED — ver _scheduleRealtimeReconnect() en _subscribeRealtime().
+// _realtimeReconnectTimer no nulo = ya hay un intento programado, evita duplicar el timer
+// cuando los tres canales fallan casi simultáneamente (mismo evento de red). _realtimeReconnectAttempts
+// se resetea a 0 en 'SUBSCRIBED' — cada nuevo ciclo de fallo empieza el backoff desde 1s.
+let _realtimeReconnectTimer     = null;
+let _realtimeReconnectAttempts  = 0;
 // INC-[pendiente-ID] (triggered_by hallazgo fuera de scope, cierre INC-202607-009): user_id
 // para el cual _realtimeChannels está activo. Permite que _subscribeRealtime() sea idempotente
 // ante llamadas repetidas del mismo usuario — ver comentario completo en _subscribeRealtime().
@@ -1690,9 +1714,12 @@ export async function saveBacklog() {
     // Upsert multi-fila en un único request — onConflict:code garantiza que una fila
     // existente se actualiza en lugar de duplicarse (AC-2).
     // DDL: tabla se llama tracker_items (no items) — T-202606-007.
-    const { error } = await _supabase
-      .from('tracker_items')
-      .upsert(dedupedRows, { onConflict: 'code' });
+    // INC-CAEL-0718-04: envuelto en _withTimeout — ver declaración arriba.
+    const { error } = await _withTimeout(
+      _supabase.from('tracker_items').upsert(dedupedRows, { onConflict: 'code' }),
+      _SAVE_UPSERT_TIMEOUT_MS,
+      'saveBacklog tracker_items upsert'
+    );
     if (error) throw error;
 
     // Upsert exitoso → estampar _updatedAtMs en los objetos vivos de ITEMS.
@@ -1736,9 +1763,16 @@ export async function saveBacklog() {
       console.warn('[AI Tracker] saveBacklog: duplicados en INCIDENTS eliminados antes de upsert:', incidentRows.length - dedupedIncidentRows.length);
     }
     if (dedupedIncidentRows.length > 0) {
-      const { error: incError } = await _supabase
-        .from('tracker_incidents')
-        .upsert(dedupedIncidentRows, { onConflict: 'code' });
+      // INC-CAEL-0718-04: envuelto en _withTimeout — mismo motivo que el upsert de tracker_items
+      // arriba. Sin este wrap, un fetch colgado aquí no afecta el lock de ITEMS (tablas
+      // independientes, ver nota AC-1 arriba) pero sí deja este upsert de incidentes sin
+      // resolver ni rechazar nunca — el catch de abajo nunca corre y el founder no ve el toast
+      // de "no sincronizado".
+      const { error: incError } = await _withTimeout(
+        _supabase.from('tracker_incidents').upsert(dedupedIncidentRows, { onConflict: 'code' }),
+        _SAVE_UPSERT_TIMEOUT_MS,
+        'saveBacklog tracker_incidents upsert'
+      );
       if (incError) throw incError;
     }
   } catch (incErr) {
@@ -2346,15 +2380,41 @@ export function _subscribeRealtime() {
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         if (handled) return;
         handled = true;
-        console.warn('[AI Tracker] Realtime: error en canal ' + channelName + ' — app sigue funcional vía fallback, reintentando en próximo evento de auth');
+        console.warn('[AI Tracker] Realtime: error en canal ' + channelName + ' — app sigue funcional vía fallback, reconexión programada');
         const ch = getCh();
         _realtimeChannels = _realtimeChannels.filter((c) => c !== ch);
         syncState.unsubscribe();
         if (ch) {
           setTimeout(() => { try { _supabase.removeChannel(ch); } catch(e) {} }, 0);
         }
+        // CHG-CAEL-0718-05: antes de este fix, el canal quedaba caído hasta el próximo
+        // INITIAL_SESSION/SIGNED_IN (visibilitychange/foco de pestaña) — sin límite de tiempo
+        // en una pestaña que permanece activa en segundo plano. _scheduleRealtimeReconnect()
+        // programa un reintento activo sin esperar ese evento.
+        _scheduleRealtimeReconnect();
+      } else if (status === 'SUBSCRIBED') {
+        // CHG-CAEL-0718-05: ciclo de fallo resuelto — backoff vuelve a 1s para el próximo.
+        _realtimeReconnectAttempts = 0;
       }
     };
+  }
+
+  // CHG-CAEL-0718-05: reconexión activa con backoff exponencial (1s/2s/4s/.../cap 30s).
+  // Guard `_realtimeReconnectTimer` evita duplicar el timer cuando los tres canales
+  // (tracker_state, tracker_sessions, tracker_items) fallan casi al mismo tiempo — mismo
+  // evento de red suele tumbar los tres, y cada uno llama a este helper independientemente.
+  // _subscribeRealtime() es idempotente y seguro de llamar aunque el usuario ya no exista
+  // (guard `if (!_supabase || !_supabaseUser) return;` al inicio de la función) o ya se haya
+  // reconectado por otra vía (guard de `_realtimeChannels.length > 0 && isSubscribedFor`).
+  function _scheduleRealtimeReconnect() {
+    if (_realtimeReconnectTimer) return;
+    const attempt = _realtimeReconnectAttempts;
+    const delayMs = Math.min(30000, 1000 * Math.pow(2, attempt));
+    _realtimeReconnectAttempts = attempt + 1;
+    _realtimeReconnectTimer = setTimeout(() => {
+      _realtimeReconnectTimer = null;
+      if (_supabaseUser) _subscribeRealtime();
+    }, delayMs);
   }
 
   // Canal 1 — tracker_state (existente)
@@ -2404,6 +2464,12 @@ export function _unsubscribeRealtime() {
   }
   _realtimeChannels = [];
   syncState.unsubscribe();
+  // CHG-CAEL-0718-05: cancelar reconexión programada — sin esto, un timer pendiente de un
+  // ciclo de error anterior podía disparar _subscribeRealtime() después de un logout
+  // explícito (SIGNED_OUT llama a esta función). El guard `if (_supabaseUser)` dentro del
+  // timeout ya lo neutralizaba funcionalmente, pero dejaba un timer huérfano corriendo.
+  if (_realtimeReconnectTimer) { clearTimeout(_realtimeReconnectTimer); _realtimeReconnectTimer = null; }
+  _realtimeReconnectAttempts = 0;
 }
 
 // _resetExpiredInternal — uso exclusivo de locus-storage.js.
@@ -2466,6 +2532,255 @@ let _appReady = false;
 const _LOAD_RETRY_MAX = 50; // 50 × 200ms = 10 segundos de espera máxima
 let _loadRetryCount = 0;
 
+// CAEL-0718-07 (TKT1 · REQ modularización): extraído de _loadFromSupabase() sin cambio de
+// comportamiento — mismo bloque que antes vivía inline como "── 1. Cargar state/main ──".
+// Recibe la fila ya consultada (stateRows) en vez de hacer el fetch — la query en sí queda
+// en _loadFromSupabase() porque es secuencial y popula state.projects antes del batch
+// paralelo siguiente (comentario original preservado abajo).
+async function _applyStateRow(stateRows) {
+  if (!(stateRows && stateRows.value)) return;
+  const remote = stateRows.value;
+  _applyStateData(remote);
+  // TKT1 · REQ-sprints-migration: carga cross-proyecto en una sola query — ya no depende
+  // de que el proyecto activo esté disponible primero.
+  await _loadAllProjectsSprintsFromSupabase();
+  let _resetChanged = false;
+  (state?.ais || []).forEach(ai => {
+    if (ai.status === 'exhausted' && ai.resetTime && _resetExpiredInternal(ai.resetTime, ai.resetEpoch)) {
+      _resetWorker(ai);
+      _resetChanged = true;
+    }
+  });
+  // Persistir availableSince escrito por _resetWorker — sin esto se pierde en el próximo sync
+  if (_resetChanged) save();
+}
+
+// CAEL-0718-07 (TKT1 · REQ modularización): extraído de _loadFromSupabase() sin cambio de
+// comportamiento — mismo bloque que antes vivía inline como "── 4. Procesar sesiones ──".
+// Recibe sessResult (resultado ya resuelto del Promise.allSettled del batch paralelo) — el
+// batch en sí queda en _loadFromSupabase(), junto con items/incidents/docs/drafts, porque
+// separarlo en fetches independientes perdería el paralelismo de red (AC-4/AC-5 originales).
+function _mergeSessionsFromRemote(sessResult) {
+  try {
+    if (sessResult.status === 'fulfilled' && !sessResult.value.error) {
+      const sessRows = sessResult.value.data;
+      if (sessRows && sessRows.length) {
+        const remoteSessMap = {};
+        sessRows.forEach(row => {
+          if (!remoteSessMap[row.project_id]) remoteSessMap[row.project_id] = [];
+          remoteSessMap[row.project_id].push(row.data);
+        });
+        state.projects.forEach(proj => {
+          const remoteSessions = remoteSessMap[proj.id] || [];
+          if (!remoteSessions.length) return;
+          if (!proj.sessions) proj.sessions = [];
+          const localIds = new Set(proj.sessions.map(s => s.id));
+          // TKT1 · REQ-sessions-mutator AC-5: hidratación de sesiones remotas — push directo,
+          // NUNCA via _mutateSessions(). Estas sesiones ya existen en Supabase; marcarlas
+          // dirty causaría un loop de re-subida de lo que acaba de llegar del servidor.
+          remoteSessions.forEach(s => { if (!localIds.has(s.id)) { _normalizeSessionFields(s); proj.sessions.push(s); localIds.add(s.id); } });
+        });
+        try { localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state)); } catch {}
+      }
+    } else {
+      console.warn('[AI Tracker] Error cargando sesiones desde Supabase:', sessResult.reason || sessResult.value?.error);
+    }
+  } catch (sessErr) {
+    console.warn('[AI Tracker] Error procesando sesiones:', sessErr);
+  }
+}
+
+// CAEL-0718-08 (TKT2 · REQ modularización): extraído de _loadFromSupabase() sin cambio de
+// comportamiento — mismo bloque que antes vivía inline como "── 5. Procesar items
+// relacionales ──". Recibe itemsResult (ya resuelto del batch) y _itemsRef (mutado in-place,
+// mismo patrón que el código original — _itemsRef.length=0 + push, no reasignación).
+// Los 3 guards documentados en el bloque original se preservan íntegros:
+// (1) syncState.isSaveInFlight() — salta el merge si hay upsert en vuelo (B-[pendiente-ID])
+// (2) TKT-fix-merge-gate — remoteActiveCount !== localCount detecta deletes ciegos a remoteMaxTs
+// (3) exclusión ITIL — filas INC/PRB/KE/CHG remanentes en tracker_items nunca se mergean aquí
+function _mergeItemsFromRemote(itemsResult, _itemsRef) {
+  if (syncState.isSaveInFlight()) {
+    console.log('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + syncState.getSaveInFlightCount() + ') — merge de tracker_items omitido en esta pasada.');
+    return;
+  }
+  try {
+    if (itemsResult.status === 'fulfilled' && !itemsResult.value.error) {
+      const remoteRows = itemsResult.value.data || [];
+      // AC-4: tabla vacía → inicializar ITEMS como array vacío.
+      // Determinar si vale la pena evaluar merge: ITEMS local vacío → siempre.
+      // ITEMS local con datos → solo si hay al menos una fila remota más reciente
+      // que su contraparte local (ver merge por fila más abajo — B-202606-094).
+      const localItemsRaw = localStorage.getItem(_tplKey('backlog-items'));
+      const localItems    = (() => { try { return JSON.parse(localItemsRaw || '[]'); } catch { return []; } })();
+      const localByCode   = new Map(localItems.map(it => [it.code, it]));
+      const remoteMaxTs   = remoteRows.reduce((m, row) => {
+        const ts = row.updated_at || 0; // BIGINT epoch ms desde DDL
+        return ts > m ? ts : m;
+      }, 0);
+      const localMaxTs    = localItems.reduce((m, it) => {
+        const ts = it._updatedAtMs || 0;
+        return ts > m ? ts : m;
+      }, 0);
+      // TKT-fix-merge-gate: remoteMaxTs es ciego a un DELETE que borra justo la fila con
+      // mayor updated_at — el máximo remoto baja y remoteMaxTs > localMaxTs nunca se
+      // cumple, saltando el bloque de merge completo (incluida la detección de deletes
+      // de líneas ~1958-1972) y dejando el ítem borrado remotamente en caché indefinidamente.
+      // remoteActiveCount !== localCount es una señal barata y segura de alta/baja de filas
+      // — se excluye 'historico' del conteo remoto porque el forEach de abajo también lo excluye.
+      const remoteActiveCount = remoteRows.filter(row => row.status !== 'historico').length;
+      const localCount        = localItems.length;
+      const shouldEvaluate = _itemsRef !== null && (
+        _itemsRef.length === 0 ||
+        !localItemsRaw     ||
+        remoteMaxTs > localMaxTs ||
+        remoteActiveCount !== localCount
+      );
+      // B-202606-094 fix: el reemplazo completo de _itemsRef permitía que un
+      // read-after-write race (la fila recién upserteada todavía no visible en el
+      // SELECT, pero otra fila cualquiera con timestamp reciente) revirtiera ítems
+      // que no cambiaron remotamente — ej: un parent vinculado segundos antes.
+      // Merge por fila: cada fila remota solo sobrescribe su contraparte local si
+      // su propio updated_at es estrictamente más nuevo. Una fila local sin
+      // contraparte remota más nueva se conserva intacta.
+      if (shouldEvaluate && _itemsRef) {
+        const merged = [];
+        // T-202606-106: excluir status:historico — solo lectura, vive en storage dedicado.
+        // depends_on: text[] → PostgREST lo entrega como array JS — no requiere parse (AC-1).
+        // ac: jsonb → PostgREST lo entrega como array JS — no requiere parse (AC-2).
+        remoteRows.forEach(row => {
+          if (row.status === 'historico') return;
+          // INC-202607-009: tracker_items conserva filas remanentes de tipo ITIL
+          // (INC/PRB/KE/CHG) de antes de TKT-202607-005 — nunca tuvieron sla_priority
+          // en esta tabla porque no es su columna. Sin este gate, cada carga las
+          // volvía a mergear en ITEMS, _migrateItemTypes() las reenrutaba a INCIDENTS
+          // pisando la fila correcta ya persistida en tracker_incidents (con
+          // sla_priority) con esta copia obsoleta sin el campo — loop de saveBacklog().
+          // ITIL no vive en tracker_items — se excluye del merge, nunca se escribe aquí.
+          if (['INC', 'PRB', 'KE', 'CHG'].includes(row.type)) {
+            console.warn(`[AI Tracker] _loadFromSupabase: fila remanente tipo ITIL en tracker_items excluida del merge — ${row.code || '[sin code]'} (type:${row.type}). Vive en tracker_incidents, no aquí.`);
+            return;
+          }
+          const localMatch  = localByCode.get(row.code);
+          const localRowTs  = localMatch?._updatedAtMs || 0;
+          const remoteRowTs = row.updated_at || 0;
+          // AC: si el local es igual o más nuevo que esta fila remota específica,
+          // conservar el local — esta fila remota es la causa del read-after-write
+          // race, no una actualización genuina de este ítem.
+          if (localMatch && localRowTs >= remoteRowTs) {
+            merged.push(localMatch);
+            localByCode.delete(row.code);
+            return;
+          }
+          // Mapear nombres de columna DDL → nombres de campo JS del schema de ítems.
+          // INC-[pendiente-ID] TKT-fix: extraído a _mapRowToItem() — única fuente del
+          // mapeo DDL→JS, reusada también por getHistoricoItems(). Antes de este fix,
+          // getHistoricoItems() retornaba filas crudas de Supabase sin este mapeo: los
+          // ítems historico nunca tenían parentId poblado (solo row.parent snake_case),
+          // por lo que _buildChildMap() no podía agruparlos bajo su REQ — historico
+          // renderizaba como lista plana.
+          const item = _mapRowToItem(row);
+          merged.push(item);
+          localByCode.delete(row.code);
+        });
+        // Ítems locales sin fila remota (code no presente en remoteRows).
+        // B-202606-094 follow-up: _updatedAtMs solo se setea en este mismo bloque de
+        // hidratación (línea ~1732) — ningún otro path de escritura local lo popula.
+        // Por lo tanto _updatedAtMs poblado es prueba de que el ítem fue confirmado
+        // contra una fila remota en una carga anterior. Dos casos posibles para un
+        // leftover:
+        //   (a) _updatedAtMs ausente → nunca confirmado remoto → creado offline,
+        //       upsert pendiente (ver _offlineQueuePush tipo 'backlog'). Conservar.
+        //   (b) _updatedAtMs presente → fue confirmado remoto antes y ya no aparece
+        //       en remoteRows → eliminado remotamente (DELETE en tracker_items).
+        //       Descartar — restaura el AC-1 original de T-202606-009 ("ITEMS
+        //       contiene exactamente las filas remotas") para el caso de deletion.
+        for (const leftover of localByCode.values()) {
+          if (leftover._updatedAtMs == null) merged.push(leftover);
+        }
+
+        _itemsRef.length = 0;
+        merged.forEach(it => _itemsRef.push(it));
+        _migrateItemTypes();
+        try { localStorage.setItem(_tplKey('backlog-items'), JSON.stringify(_itemsRef)); } catch {}
+      }
+    } else {
+      // AC-3: fallo de red → silencioso, no tocar _itemsRef. Fallback a localStorage ya cargado.
+      console.warn('[AI Tracker] Error cargando items relacionales desde Supabase:', itemsResult.reason || itemsResult.value?.error);
+    }
+  } catch (itemsErr) {
+    // AC-3: cualquier error en el procesamiento → silencioso, no tocar _itemsRef.
+    console.warn('[AI Tracker] Error procesando items relacionales:', itemsErr);
+  }
+}
+
+// CAEL-0718-08 (TKT2 · REQ modularización): extraído de _loadFromSupabase() sin cambio de
+// comportamiento — mismo bloque que antes vivía inline como "── 5b. Procesar incidentes
+// relacionales ──". Mismos 2 guards preservados: (1) saveInFlight, (2) merge-por-fila
+// read-after-write (B-202606-094), aplicados a tracker_incidents en vez de tracker_items.
+function _mergeIncidentsFromRemote(incidentsResult, _incidentsRef) {
+  if (syncState.isSaveInFlight()) {
+    console.log('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + syncState.getSaveInFlightCount() + ') — merge de tracker_incidents omitido en esta pasada.');
+    return;
+  }
+  try {
+    if (incidentsResult.status === 'fulfilled' && !incidentsResult.value.error) {
+      const remoteIncRows = incidentsResult.value.data || [];
+      const incidentsKey     = _tplKey('backlog-incidents');
+      const localIncidentsRaw = localStorage.getItem(incidentsKey);
+      const localIncidents    = (() => { try { return JSON.parse(localIncidentsRaw || '[]'); } catch { return []; } })();
+      const localIncByCode    = new Map(localIncidents.map(inc => [inc.code, inc]));
+      const remoteIncMaxTs    = remoteIncRows.reduce((m, row) => {
+        const ts = row.updated_at || 0;
+        return ts > m ? ts : m;
+      }, 0);
+      const localIncMaxTs     = localIncidents.reduce((m, inc) => {
+        const ts = inc._updatedAtMs || 0;
+        return ts > m ? ts : m;
+      }, 0);
+      // incident_status:historico se excluye del conteo remoto — mismo criterio que
+      // remoteActiveCount para ITEMS, para detectar altas/bajas de filas de forma barata.
+      const remoteActiveIncCount = remoteIncRows.filter(row => row.incident_status !== 'historico').length;
+      const localIncCount        = localIncidents.length;
+      const shouldEvaluateInc = _incidentsRef !== null && (
+        _incidentsRef.length === 0 ||
+        !localIncidentsRaw ||
+        remoteIncMaxTs > localIncMaxTs ||
+        remoteActiveIncCount !== localIncCount
+      );
+      if (shouldEvaluateInc && _incidentsRef) {
+        const mergedInc = [];
+        remoteIncRows.forEach(row => {
+          if (row.incident_status === 'historico') return;
+          const localMatch  = localIncByCode.get(row.code);
+          const localRowTs  = localMatch?._updatedAtMs || 0;
+          const remoteRowTs = row.updated_at || 0;
+          if (localMatch && localRowTs >= remoteRowTs) {
+            mergedInc.push(localMatch);
+            localIncByCode.delete(row.code);
+            return;
+          }
+          const inc = _mapRowToIncident(row);
+          mergedInc.push(inc);
+          localIncByCode.delete(row.code);
+        });
+        // Incidentes locales sin fila remota — mismo criterio que ITEMS: sin _updatedAtMs
+        // → creado offline, upsert pendiente, conservar. Con _updatedAtMs → confirmado
+        // remoto antes y ya no aparece → eliminado remotamente, descartar.
+        for (const leftover of localIncByCode.values()) {
+          if (leftover._updatedAtMs == null) mergedInc.push(leftover);
+        }
+        _incidentsRef.length = 0;
+        mergedInc.forEach(inc => _incidentsRef.push(inc));
+        try { localStorage.setItem(incidentsKey, JSON.stringify(_incidentsRef)); } catch {}
+      }
+    } else {
+      console.warn('[AI Tracker] Error cargando incidentes relacionales desde Supabase:', incidentsResult.reason || incidentsResult.value?.error);
+    }
+  } catch (incidentsErr) {
+    console.warn('[AI Tracker] Error procesando incidentes relacionales:', incidentsErr);
+  }
+}
+
 export async function _loadFromSupabase() {
   // AC-9 R-C2: si hay un write local pendiente en debounce, el state local es más reciente
   // que Supabase — cancelar la carga para evitar rollback silencioso del estado volátil.
@@ -2523,20 +2838,8 @@ export async function _loadFromSupabase() {
     if (stateErr) throw stateErr;
 
     if (stateRows && stateRows.value) {
-      const remote = stateRows.value;
-      _applyStateData(remote);
-      // TKT1 · REQ-sprints-migration: carga cross-proyecto en una sola query — ya no depende
-      // de que el proyecto activo esté disponible primero.
-      await _loadAllProjectsSprintsFromSupabase();
-      let _resetChanged = false;
-      (state?.ais || []).forEach(ai => {
-        if (ai.status === 'exhausted' && ai.resetTime && _resetExpiredInternal(ai.resetTime, ai.resetEpoch)) {
-          _resetWorker(ai);
-          _resetChanged = true;
-        }
-      });
-      // Persistir availableSince escrito por _resetWorker — sin esto se pierde en el próximo sync
-      if (_resetChanged) save();
+      // CAEL-0718-07: lógica extraída a _applyStateRow() — mismo comportamiento, ver definición arriba.
+      await _applyStateRow(stateRows);
     }
 
     // ── 2. Batch paralelo: sesiones + items relacional + docs + drafts ──
@@ -2604,228 +2907,17 @@ export async function _loadFromSupabase() {
     ]);
 
     // ── 4. Procesar sesiones ─────────────────────────────────────────────
-    try {
-      if (sessResult.status === 'fulfilled' && !sessResult.value.error) {
-        const sessRows = sessResult.value.data;
-        if (sessRows && sessRows.length) {
-          const remoteSessMap = {};
-          sessRows.forEach(row => {
-            if (!remoteSessMap[row.project_id]) remoteSessMap[row.project_id] = [];
-            remoteSessMap[row.project_id].push(row.data);
-          });
-          state.projects.forEach(proj => {
-            const remoteSessions = remoteSessMap[proj.id] || [];
-            if (!remoteSessions.length) return;
-            if (!proj.sessions) proj.sessions = [];
-            const localIds = new Set(proj.sessions.map(s => s.id));
-            // TKT1 · REQ-sessions-mutator AC-5: hidratación de sesiones remotas — push directo,
-            // NUNCA via _mutateSessions(). Estas sesiones ya existen en Supabase; marcarlas
-            // dirty causaría un loop de re-subida de lo que acaba de llegar del servidor.
-            remoteSessions.forEach(s => { if (!localIds.has(s.id)) { _normalizeSessionFields(s); proj.sessions.push(s); localIds.add(s.id); } });
-          });
-          try { localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state)); } catch {}
-        }
-      } else {
-        console.warn('[AI Tracker] Error cargando sesiones desde Supabase:', sessResult.reason || sessResult.value?.error);
-      }
-    } catch (sessErr) {
-      console.warn('[AI Tracker] Error procesando sesiones:', sessErr);
-    }
+    // CAEL-0718-07: lógica extraída a _mergeSessionsFromRemote() — mismo comportamiento, ver definición arriba.
+    _mergeSessionsFromRemote(sessResult);
 
     // ── 5. Procesar items relacionales — T-202606-009 ────────────────────
-    // Fuente primaria de hidratación de ITEMS: tabla tracker_items (relacional).
-    // AC-1: 5 filas remotas con project_id='PP' → ITEMS contiene exactamente esos 5 objetos,
-    //        depends_on reconstruido como array JS desde text[] (PostgREST lo entrega ya como array).
-    // AC-2: columna ac tipo jsonb → array JS nativo (PostgREST deserializa jsonb automáticamente).
-    // AC-3: fallo de red en SELECT → console.warn + no tocar _itemsRef (fallback a localStorage).
-    // AC-4: tabla vacía para project_id='PP' → _itemsRef.length = 0 (array vacío, nunca undefined).
-    // B-[pendiente-ID]: si saveBacklog() tiene un upsert de tracker_items en vuelo, saltar el
-    // merge por completo — el guard de timestamp (B-202606-094) compara contra localStorage,
-    // que todavía no refleja el cambio reciente mientras el upsert no confirma. Sin este guard,
-    // un _loadFromSupabase() disparado por OTRO canal (tracker_state/tracker_sessions
-    // — no hay canal Realtime dedicado a tracker_items) puede pisar el cambio local en esa ventana.
-    if (syncState.isSaveInFlight()) {
-      console.log('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + syncState.getSaveInFlightCount() + ') — merge de tracker_items omitido en esta pasada.');
-    } else {
-    try {
-      if (itemsResult.status === 'fulfilled' && !itemsResult.value.error) {
-        const remoteRows = itemsResult.value.data || [];
-        // AC-4: tabla vacía → inicializar ITEMS como array vacío.
-        // Determinar si vale la pena evaluar merge: ITEMS local vacío → siempre.
-        // ITEMS local con datos → solo si hay al menos una fila remota más reciente
-        // que su contraparte local (ver merge por fila más abajo — B-202606-094).
-        const localItemsRaw = localStorage.getItem(_tplKey('backlog-items'));
-        const localItems    = (() => { try { return JSON.parse(localItemsRaw || '[]'); } catch { return []; } })();
-        const localByCode   = new Map(localItems.map(it => [it.code, it]));
-        const remoteMaxTs   = remoteRows.reduce((m, row) => {
-          const ts = row.updated_at || 0; // BIGINT epoch ms desde DDL
-          return ts > m ? ts : m;
-        }, 0);
-        const localMaxTs    = localItems.reduce((m, it) => {
-          const ts = it._updatedAtMs || 0;
-          return ts > m ? ts : m;
-        }, 0);
-        // TKT-fix-merge-gate: remoteMaxTs es ciego a un DELETE que borra justo la fila con
-        // mayor updated_at — el máximo remoto baja y remoteMaxTs > localMaxTs nunca se
-        // cumple, saltando el bloque de merge completo (incluida la detección de deletes
-        // de líneas ~1958-1972) y dejando el ítem borrado remotamente en caché indefinidamente.
-        // remoteActiveCount !== localCount es una señal barata y segura de alta/baja de filas
-        // — se excluye 'historico' del conteo remoto porque el forEach de abajo también lo excluye.
-        const remoteActiveCount = remoteRows.filter(row => row.status !== 'historico').length;
-        const localCount        = localItems.length;
-        const shouldEvaluate = _itemsRef !== null && (
-          _itemsRef.length === 0 ||
-          !localItemsRaw     ||
-          remoteMaxTs > localMaxTs ||
-          remoteActiveCount !== localCount
-        );
-        // B-202606-094 fix: el reemplazo completo de _itemsRef permitía que un
-        // read-after-write race (la fila recién upserteada todavía no visible en el
-        // SELECT, pero otra fila cualquiera con timestamp reciente) revirtiera ítems
-        // que no cambiaron remotamente — ej: un parent vinculado segundos antes.
-        // Merge por fila: cada fila remota solo sobrescribe su contraparte local si
-        // su propio updated_at es estrictamente más nuevo. Una fila local sin
-        // contraparte remota más nueva se conserva intacta.
-        if (shouldEvaluate && _itemsRef) {
-          const merged = [];
-          // T-202606-106: excluir status:historico — solo lectura, vive en storage dedicado.
-          // depends_on: text[] → PostgREST lo entrega como array JS — no requiere parse (AC-1).
-          // ac: jsonb → PostgREST lo entrega como array JS — no requiere parse (AC-2).
-          remoteRows.forEach(row => {
-            if (row.status === 'historico') return;
-            // INC-202607-009: tracker_items conserva filas remanentes de tipo ITIL
-            // (INC/PRB/KE/CHG) de antes de TKT-202607-005 — nunca tuvieron sla_priority
-            // en esta tabla porque no es su columna. Sin este gate, cada carga las
-            // volvía a mergear en ITEMS, _migrateItemTypes() las reenrutaba a INCIDENTS
-            // pisando la fila correcta ya persistida en tracker_incidents (con
-            // sla_priority) con esta copia obsoleta sin el campo — loop de saveBacklog().
-            // ITIL no vive en tracker_items — se excluye del merge, nunca se escribe aquí.
-            if (['INC', 'PRB', 'KE', 'CHG'].includes(row.type)) {
-              console.warn(`[AI Tracker] _loadFromSupabase: fila remanente tipo ITIL en tracker_items excluida del merge — ${row.code || '[sin code]'} (type:${row.type}). Vive en tracker_incidents, no aquí.`);
-              return;
-            }
-            const localMatch  = localByCode.get(row.code);
-            const localRowTs  = localMatch?._updatedAtMs || 0;
-            const remoteRowTs = row.updated_at || 0;
-            // AC: si el local es igual o más nuevo que esta fila remota específica,
-            // conservar el local — esta fila remota es la causa del read-after-write
-            // race, no una actualización genuina de este ítem.
-            if (localMatch && localRowTs >= remoteRowTs) {
-              merged.push(localMatch);
-              localByCode.delete(row.code);
-              return;
-            }
-            // Mapear nombres de columna DDL → nombres de campo JS del schema de ítems.
-            // INC-[pendiente-ID] TKT-fix: extraído a _mapRowToItem() — única fuente del
-            // mapeo DDL→JS, reusada también por getHistoricoItems(). Antes de este fix,
-            // getHistoricoItems() retornaba filas crudas de Supabase sin este mapeo: los
-            // ítems historico nunca tenían parentId poblado (solo row.parent snake_case),
-            // por lo que _buildChildMap() no podía agruparlos bajo su REQ — historico
-            // renderizaba como lista plana.
-            const item = _mapRowToItem(row);
-            merged.push(item);
-            localByCode.delete(row.code);
-          });
-          // Ítems locales sin fila remota (code no presente en remoteRows).
-          // B-202606-094 follow-up: _updatedAtMs solo se setea en este mismo bloque de
-          // hidratación (línea ~1732) — ningún otro path de escritura local lo popula.
-          // Por lo tanto _updatedAtMs poblado es prueba de que el ítem fue confirmado
-          // contra una fila remota en una carga anterior. Dos casos posibles para un
-          // leftover:
-          //   (a) _updatedAtMs ausente → nunca confirmado remoto → creado offline,
-          //       upsert pendiente (ver _offlineQueuePush tipo 'backlog'). Conservar.
-          //   (b) _updatedAtMs presente → fue confirmado remoto antes y ya no aparece
-          //       en remoteRows → eliminado remotamente (DELETE en tracker_items).
-          //       Descartar — restaura el AC-1 original de T-202606-009 ("ITEMS
-          //       contiene exactamente las filas remotas") para el caso de deletion.
-          for (const leftover of localByCode.values()) {
-            if (leftover._updatedAtMs == null) merged.push(leftover);
-          }
-
-          _itemsRef.length = 0;
-          merged.forEach(it => _itemsRef.push(it));
-          _migrateItemTypes();
-          try { localStorage.setItem(_tplKey('backlog-items'), JSON.stringify(_itemsRef)); } catch {}
-        }
-      } else {
-        // AC-3: fallo de red → silencioso, no tocar _itemsRef. Fallback a localStorage ya cargado.
-        console.warn('[AI Tracker] Error cargando items relacionales desde Supabase:', itemsResult.reason || itemsResult.value?.error);
-      }
-    } catch (itemsErr) {
-      // AC-3: cualquier error en el procesamiento → silencioso, no tocar _itemsRef.
-      console.warn('[AI Tracker] Error procesando items relacionales:', itemsErr);
-    }
-    } // B-[pendiente-ID]: cierre del else del guard _saveBacklogInFlightCount
+    // CAEL-0718-08: lógica extraída a _mergeItemsFromRemote() — mismo comportamiento,
+    // guards (saveInFlight, TKT-fix-merge-gate, exclusión ITIL) preservados íntegros.
+    _mergeItemsFromRemote(itemsResult, _itemsRef);
 
     // ── 5b. Procesar incidentes relacionales — TKT-202607-044 (REQ-202607-015) ──────────
-    // INCIDENTS (INC/PRB/KE/CHG) vive en tracker_incidents — tabla separada de tracker_items
-    // desde TKT-202607-005. Mismo guard de saveBacklog-en-vuelo y mismo merge-por-fila que
-    // ITEMS (B-202606-094): una fila remota solo sobrescribe su contraparte local si su
-    // propio updated_at es estrictamente más nuevo — evita que un read-after-write race
-    // revierta un incidente que no cambió remotamente.
-    // AC-2 (TKT-202607-044): 9 incidentes remotos con project_id activo → INCIDENTS
-    // contiene exactamente esos 9 objetos tras la carga.
-    if (syncState.isSaveInFlight()) {
-      console.log('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + syncState.getSaveInFlightCount() + ') — merge de tracker_incidents omitido en esta pasada.');
-    } else {
-    try {
-      if (incidentsResult.status === 'fulfilled' && !incidentsResult.value.error) {
-        const remoteIncRows = incidentsResult.value.data || [];
-        const incidentsKey     = _tplKey('backlog-incidents');
-        const localIncidentsRaw = localStorage.getItem(incidentsKey);
-        const localIncidents    = (() => { try { return JSON.parse(localIncidentsRaw || '[]'); } catch { return []; } })();
-        const localIncByCode    = new Map(localIncidents.map(inc => [inc.code, inc]));
-        const remoteIncMaxTs    = remoteIncRows.reduce((m, row) => {
-          const ts = row.updated_at || 0;
-          return ts > m ? ts : m;
-        }, 0);
-        const localIncMaxTs     = localIncidents.reduce((m, inc) => {
-          const ts = inc._updatedAtMs || 0;
-          return ts > m ? ts : m;
-        }, 0);
-        // incident_status:historico se excluye del conteo remoto — mismo criterio que
-        // remoteActiveCount para ITEMS, para detectar altas/bajas de filas de forma barata.
-        const remoteActiveIncCount = remoteIncRows.filter(row => row.incident_status !== 'historico').length;
-        const localIncCount        = localIncidents.length;
-        const shouldEvaluateInc = _incidentsRef !== null && (
-          _incidentsRef.length === 0 ||
-          !localIncidentsRaw ||
-          remoteIncMaxTs > localIncMaxTs ||
-          remoteActiveIncCount !== localIncCount
-        );
-        if (shouldEvaluateInc && _incidentsRef) {
-          const mergedInc = [];
-          remoteIncRows.forEach(row => {
-            if (row.incident_status === 'historico') return;
-            const localMatch  = localIncByCode.get(row.code);
-            const localRowTs  = localMatch?._updatedAtMs || 0;
-            const remoteRowTs = row.updated_at || 0;
-            if (localMatch && localRowTs >= remoteRowTs) {
-              mergedInc.push(localMatch);
-              localIncByCode.delete(row.code);
-              return;
-            }
-            const inc = _mapRowToIncident(row);
-            mergedInc.push(inc);
-            localIncByCode.delete(row.code);
-          });
-          // Incidentes locales sin fila remota — mismo criterio que ITEMS: sin _updatedAtMs
-          // → creado offline, upsert pendiente, conservar. Con _updatedAtMs → confirmado
-          // remoto antes y ya no aparece → eliminado remotamente, descartar.
-          for (const leftover of localIncByCode.values()) {
-            if (leftover._updatedAtMs == null) mergedInc.push(leftover);
-          }
-          _incidentsRef.length = 0;
-          mergedInc.forEach(inc => _incidentsRef.push(inc));
-          try { localStorage.setItem(incidentsKey, JSON.stringify(_incidentsRef)); } catch {}
-        }
-      } else {
-        console.warn('[AI Tracker] Error cargando incidentes relacionales desde Supabase:', incidentsResult.reason || incidentsResult.value?.error);
-      }
-    } catch (incidentsErr) {
-      console.warn('[AI Tracker] Error procesando incidentes relacionales:', incidentsErr);
-    }
-    }
+    // CAEL-0718-08: lógica extraída a _mergeIncidentsFromRemote() — mismo comportamiento.
+    _mergeIncidentsFromRemote(incidentsResult, _incidentsRef);
 
     // ── 6. Procesar docs vivos (context, htmlmap, plan, tmp-id-map, notes, user-prefs) ──
     try {
