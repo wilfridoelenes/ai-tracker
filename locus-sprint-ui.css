@@ -1,3 +1,10 @@
+/* [PP] mod:10 · autor:Nova · 2026-07-18 UTC-6 */
+/* TKT2 (REQ corregir-css-purity): adopción retroactiva de mod:8/mod:9 — founder decidió
+   adoptar tal cual el CSS entregado por Rune (.bl-plan-card--done, .bl-plan-done-group/
+   header/body), sin reescritura. Correcta contra tokens vigentes (--surface2, --border2) y
+   sin colisión con el sistema de diseño — solo se corrige atribución de autoría, mod:8/9
+   quedan como registro histórico sin alterar. Cierra el gap declarado en _Locus-css-ref
+   (Hallazgo — CSS Purity violado, 3 archivos). */
 /* [PP] mod:9 · autor:Rune · 2026-07-17 UTC-6 */
 /* TKT2 (REQ CAEL-0717-01): .bl-plan-done-header con background: var(--surface2) — distinción
    de contraste contra #bl-plan-left-body. .bl-plan-done-group border-top var(--border) →

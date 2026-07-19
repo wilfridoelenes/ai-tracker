@@ -1,4 +1,4 @@
-// [PP] mod:120 · autor:Rune · 2026-07-18 UTC-6
+// [PP] mod:121 · autor:Rune · 2026-07-18 UTC-6
 // INC-[pendiente-ID]: isSupabaseAuthed() agregada — expone estado de auth (_supabase &&
 // _supabaseUser) sin exponer el cliente ni el user object. Consumida por loadBacklog()
 // en locus-backlog-core.js — antes typeof-guard muerto sobre variables module-privadas
@@ -2439,6 +2439,22 @@ export function _resetWorker(ai) {
 // el segundo disparo detecta el flag activo y sale como no-op.
 let _loadFromSupabaseInFlight = false;
 
+// INC-CAEL-0718-03: coalescing de 'shell:backlog-render-dirty' tras merge remoto.
+// _handleRemoteChange() no tiene throttle propio — una ráfaga de eventos postgres_changes
+// dispara _loadFromSupabase() N veces en segundos. Sin este guard, el dispatch de TKT1
+// (REQ CAEL-0718-02) re-renderiza Q-Backlog/Discoveries/Histórico/IDP una vez por cada
+// llamada de la ráfaga, en vez de una sola vez al asentarse. Ventana de 400ms — igual
+// patrón de coalescing que _markBacklogListDirty ya usa para #backlog-list, aplicado aquí
+// al resto de zonas para no multiplicar el costo de render por evento remoto.
+let _backlogDirtyCoalesceTimer = null;
+function _dispatchBacklogRenderDirtyCoalesced() {
+  if (_backlogDirtyCoalesceTimer) clearTimeout(_backlogDirtyCoalesceTimer);
+  _backlogDirtyCoalesceTimer = setTimeout(() => {
+    _backlogDirtyCoalesceTimer = null;
+    _dispatch('shell:backlog-render-dirty');
+  }, 400);
+}
+
 // B-202606-028: flag que indica que _initApp() completó la inyección de referencias.
 // _loadFromSupabase puede dispararse via onAuthStateChange antes de _initApp —
 // en ese caso _getItems aún es el fallback [] y emitiría un warn incorrecto.
@@ -2965,7 +2981,8 @@ export async function _loadFromSupabase() {
     // (locus-backlog-render.js) ya escuchan con guard de panel activo — _loadFromSupabase()
     // nunca lo disparaba, dejando esas 4 zonas con DOM desalineado de ITEMS tras un merge
     // remoto en segundo plano. shell:render-backlog-list (arriba) solo cubre #backlog-list.
-    _dispatch('shell:backlog-render-dirty');
+    // INC-CAEL-0718-03: coalescido (400ms) — ver _dispatchBacklogRenderDirtyCoalesced arriba.
+    _dispatchBacklogRenderDirtyCoalesced();
     // B: re-render tab Sprint tras carga Supabase — evita empty state en refresh
     _renderSprintTabFn();
     setSyncStatus('synced', '✓ sincronizado');
