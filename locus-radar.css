@@ -1,4 +1,4 @@
-/* [PP] mod:7 · autor:Nova · 2026-07-18 UTC-6 */
+/* [PP] mod:8 · autor:Nova · 2026-07-19 UTC-6 */
 /* CAEL-0717-0X: swap semántico insession↔interrupted — decisión founder. Semáforo
    verde/naranja/rojo para available/insession/exhausted; interrupted hereda el morado
    que insession libera. Selectores migrados: .rsb-card.interrupted-state ·
@@ -13,12 +13,17 @@
 /* CAEL-0718-0X (mod:7): ajuste posterior sobre .rsb-hdr-session — el swap de mod:6
    llevó el pill de conteo "X en sesión" a ámbar en dark theme, dejando el light
    theme con el púrpura anterior sin migrar (inconsistencia entre temas). Decisión
-   founder: el pill NO sigue el ámbar de la card/CTA — vuelve a púrpura (var(--purple))
-   en ambos temas, consistente entre sí. El dot dentro del pill se desacopla del color
-   del pill — pasa a var(--text3) (gris terciario) en vez de heredar ámbar/púrpura,
-   evitando doble señal de color dentro de un mismo pill. Sin cambio en
-   .rsb-card.in-session-state ni .rsb-ckpt-direct-btn — la card y el CTA de sesión
-   activa siguen ámbar, sin relación con este ajuste. */
+   founder de esa sesión: el pill NO sigue el ámbar de la card/CTA — vuelve a púrpura
+   (var(--purple)) en ambos temas. El dot se desacopla del color del pill — pasa a
+   var(--text3) (gris terciario). REVERTIDO EN MOD:8 — ver nota siguiente. */
+/* CAEL-0719-0X (mod:8): reversión explícita de CAEL-0718-0X — decisión founder.
+   .rsb-hdr-session (+dot) vuelve a ámbar en ambos temas, coherente con el resto de
+   "en sesión" en toda la app (card, CTA, avatar, badge, worker-header — los 3
+   archivos reales ya ámbar desde CAEL-0717-0X). Dot vuelve a heredar el color del
+   pill (var(--amber)) en vez de var(--text3) — mismo patrón que
+   .rsb-hdr-available/.rsb-hdr-exhausted, cuyos dots ya heredaban el color del pill
+   sin desacople. Sin cambio en .rsb-card.in-session-state ni .rsb-ckpt-direct-btn —
+   ya estaban ámbar, sin relación con este ajuste. */
 /* locus-radar.css */
 /* Versión: 1.3 | Última actualización: 2026-05-13 | B1 fondo explícito sidebar · B2 auto-init JS (ver nota) · B3 pin icon dual SVG */
 
@@ -663,27 +668,29 @@
   background: var(--red);
 }
 
-/* en sesión — pill púrpura (CAEL-0718-0X, mod:7). Dot desacoplado del color del
-   pill — gris terciario, no repite el acento del pill ni el ámbar de la card. */
+/* en sesión — pill ámbar (CAEL-0719-0X, mod:8). Revierte CAEL-0718-0X: decisión
+   founder — coherencia total con card/CTA/avatar/badge/worker-header, todos ya
+   ámbar desde CAEL-0717-0X. Dot vuelve a heredar el color del pill, mismo patrón
+   que .rsb-hdr-available/.rsb-hdr-exhausted. */
 .rsb-hdr-session {
-  background: color-mix(in srgb, var(--purple) 10%, transparent);
-  color: var(--purple);
+  background: rgb(245 158 11 / 12%);
+  color: var(--amber);
 }
 
 .rsb-hdr-session .rsb-hdr-dot {
-  background: var(--text3);
+  background: var(--amber);
   animation: rsb-dot-pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes rsb-dot-pulse {
   0%, 100% {
     opacity: 1;
-    box-shadow: 0 0 0 0   rgb(134 139 184 / 50%);
+    box-shadow: 0 0 0 0   rgb(245 158 11 / 50%);
   }
 
   50% {
     opacity: 0.7;
-    box-shadow: 0 0 0 3px rgb(134 139 184 / 0%);
+    box-shadow: 0 0 0 3px rgb(245 158 11 / 0%);
   }
 }
 
@@ -697,24 +704,24 @@
 }
 
 :root[data-theme="light"] .rsb-hdr-session {
-  background: color-mix(in srgb, var(--purple) 8%, transparent);
-  color: var(--purple);
+  background: rgb(212 146 14 / 10%);
+  color: var(--amber);
 }
 
 :root[data-theme="light"] .rsb-hdr-session .rsb-hdr-dot {
-  background: var(--text3);
+  background: var(--amber);
   animation: rsb-dot-pulse-light 1.5s ease-in-out infinite;
 }
 
 @keyframes rsb-dot-pulse-light {
   0%, 100% {
     opacity: 1;
-    box-shadow: 0 0 0 0   rgb(90 97 146 / 40%);
+    box-shadow: 0 0 0 0   rgb(212 146 14 / 40%);
   }
 
   50% {
     opacity: 0.7;
-    box-shadow: 0 0 0 3px rgb(90 97 146 / 0%);
+    box-shadow: 0 0 0 3px rgb(212 146 14 / 0%);
   }
 }
 
