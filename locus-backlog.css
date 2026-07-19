@@ -1,4 +1,4 @@
-/* [PP] mod:103 · autor:Nova · 2026-07-18 UTC-6 */
+/* [PP] mod:104 · autor:Nova · 2026-07-19 UTC-6 */
 /* TKT (REQ-CAEL-0718-01 · paridad IDP Q-INC): .qinc-item-header gana cursor:pointer, hover
    (var(--surface3), mismo par ya validado en el sistema) y :focus-visible (outline 2px
    var(--accent), mismo patrón que .rsb-card-quick). Sin tokens nuevos. Header ya recibió
@@ -188,7 +188,7 @@
 
 /* TKT-[tmp:tkt-status-confirm-title] — mismo patrón que .tag-modal-title (box de tamaño equivalente, 340px) */
 .status-confirm-title {
-  font-size: var(--text-base);
+  font-size: var(--text-md);
   font-weight: 600;
   color: var(--text);
   margin-bottom: 10px;
@@ -3585,7 +3585,7 @@
 .promote-modal {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-lg-plus);
   padding: 20px;
   max-width: 360px;
   width: 90%;
@@ -3594,7 +3594,7 @@
 
 .promote-modal-title {
   font-size: var(--text-md);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text);
   margin-bottom: 6px;
 }

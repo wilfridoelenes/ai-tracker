@@ -1,3 +1,9 @@
+// [PP] mod:129 · autor:Rune · 2026-07-18 UTC-6
+// Fix inline (triggered_by: TKT2 CAEL-0718-03): header de identidad no se había incrementado en
+//   la entrega anterior — el cambio de TKT2 (retiro del pre-chequeo JSON.parse redundante en
+//   _processIngestBatch, ver comentario en línea junto a esa función) ya estaba en el archivo
+//   pegado por el founder, pero el header seguía declarando mod:128 (mismo valor que TKT1).
+//   Mismo archivo, sin scope nuevo — solo corrección de metadata de identidad (BR-Core §7).
 // [PP] mod:128 · autor:Rune · 2026-07-18 UTC-6
 // TKT1 (REQ CAEL-0718-01 · AC1-3): agregada _extractCkptMeta(ckpt) — función pura compartida
 //   que extrae resumen/aprendizaje/bloqueantes/decision/proximoPaso/docUpdates/
@@ -1988,16 +1994,13 @@ export async function _processIngestBatch() {
     return;
   }
 
-  // AC3 — bloque malformado bloquea el batch completo antes de invocar _resolveCheckpointBatch.
-  // Mismo criterio que la implementación previa a este TKT.
-  for (let i = 0; i < rawBlocks.length; i++) {
-    try {
-      JSON.parse(rawBlocks[i]);
-    } catch (e) {
-      showToast('warning', `⚠ Bloque ${i + 1} de ${rawBlocks.length} no es JSON válido — corregilo antes de procesar el batch.`);
-      return;
-    }
-  }
+  // TKT2 (REQ CAEL-0718-01): pre-chequeo JSON.parse(rawBlocks[i]) retirado — abortaba el batch
+  //   completo ante cualquier bloque inválido, pese a que _resolveCheckpointBatch (vía
+  //   _parseBatchBlock → parseCheckpoint) ya tolera bloques inválidos por diseño desde TKT3/TKT4
+  //   del REQ CAEL-0716-01: un bloque con JSON malformado se marca en `skipped` con su `reason`
+  //   (mismo _blogLog de siempre) y el resto del batch se resuelve igual. El pre-chequeo era
+  //   redundante y más estricto que el motor real — bloqueaba casos que _resolveCheckpointBatch
+  //   sabe resolver.
 
   const syntheticSessId = 'ingest-batch-' + Date.now();
   const { tgItems, patchItems, skipped } = _resolveCheckpointBatch(rawBlocks, syntheticSessId);

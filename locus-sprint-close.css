@@ -1,4 +1,4 @@
-/* [PP] mod:2 · autor:Nova · 2026-06-26 UTC-6 */
+/* [PP] mod:3 · autor:Nova · 2026-07-19 UTC-6 */
 /* locus-sprint-close.css
  * Módulo: estilos del flujo de cierre de sprint (modal + retro)
  * Extraído de: locus-modals.css
@@ -90,6 +90,7 @@
 .modal.modal--retro {
   max-width: 640px;
   width: 100%;
+  border-radius: var(--radius-2xl); /* CAEL-0718-03: shell grande (640px) — override de --radius-lg-plus heredado de .modal */
 }
 
 /* sprint-retro-body: pre con MD — visible solo en modo vista */
@@ -501,7 +502,7 @@
 .sprint-close-dialog {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-2xl);
   box-shadow: var(--card-shadow-hover, 0 8px 40px rgb(0 0 0 / 28%));
   width: 100%;
   max-width: 560px;

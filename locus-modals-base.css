@@ -1,4 +1,4 @@
-/* [PP] mod:12 · autor:Nova · 2026-07-17 UTC-6 */
+/* [PP] mod:13 · autor:Nova · 2026-07-19 UTC-6 */
 /* locus-modals-base.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
 /* Restaurado (CAEL-06 · TKT1 CAEL-07): .modal--ingest y clases relacionadas — no persistieron en
    la entrega anterior (ver _PP-session-handoff-2026-07-13.md §1). Reconstruido contra el HTML real
@@ -1022,7 +1022,7 @@ body.radar-sb-collapsed {
   max-width: 560px;
   max-height: min(92vh, 800px);
   padding: 0;
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-2xl);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1050,7 +1050,7 @@ body.radar-sb-collapsed {
 
 /* .avatar-modal-title */
 .avatar-modal-title {
-  font-size: var(--text-xs);
+  font-size: var(--text-md);
   margin-bottom: 1rem;
   font-weight: 600;
   color: var(--text);
