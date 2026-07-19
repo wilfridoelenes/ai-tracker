@@ -1,3 +1,9 @@
+/* [PP] mod:103 · autor:Nova · 2026-07-18 UTC-6 */
+/* TKT (REQ-CAEL-0718-01 · paridad IDP Q-INC): .qinc-item-header gana cursor:pointer, hover
+   (var(--surface3), mismo par ya validado en el sistema) y :focus-visible (outline 2px
+   var(--accent), mismo patrón que .rsb-card-quick). Sin tokens nuevos. Header ya recibió
+   role="button"/tabindex="0"/data-qi-action en locus-backlog-item.js mod:115 (Rune) — faltaba
+   el tratamiento visual del trigger, gap detectado por Finn en Momento 1 contra código real. */
 /* [PP] mod:102 · autor:Nova · 2026-07-18 UTC-6 */
 /* Ad-hoc (sin REQ/TKT vía Cael, ítem directo de founder): rediseño de fila DISC en Q-DISC —
    de card boxeada (wash 4 caras, borde punteado, glow) a fila flat tipo inbox (Linear/Things).
@@ -6191,6 +6197,17 @@
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.qinc-item-header:hover {
+  background: var(--surface3);
+}
+
+.qinc-item-header:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .qinc-item-title {

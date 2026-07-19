@@ -1,3 +1,11 @@
+// [PP] mod:115 · autor:Rune · 2026-07-18 UTC-6
+// TKT (REQ-CAEL-0718-01 · paridad IDP Q-INC): .qinc-item-header en buildQIncItem() gana
+//   data-qi-action="qi-open-panel" · role="button" · tabindex="0" · aria-label — atributos
+//   que _attachQIncDelegation() (locus-backlog-render.js mod:91) ya esperaba desde su propia
+//   entrega, sin que este archivo los hubiera aplicado. Gap detectado por Finn en Momento 1
+//   contra código real — la referencia "ver buildQIncItem() mod:115" en los comentarios de
+//   render.js mod:91 anticipaba este mod antes de que existiera. Sin cambio de firma.
+// contract_update: no.
 // [PP] mod:114 · autor:Rune · 2026-07-18 UTC-6
 // DISC cerrada (auditoría triggeredBy/origenDisc/dependsOn en patches — triggered_by INC-202607
 // parentId): confirmado mismo gap en los tres campos dentro de applyPatchesFromTG — sin
@@ -3345,7 +3353,7 @@ export function buildQIncItem(item) {
 
   return `
 <div class="qinc-item ${slaClass}" data-code="${esc(code)}" data-type="${esc(type)}">
-  <div class="qinc-item-header">
+  <div class="qinc-item-header" data-qi-action="qi-open-panel" role="button" tabindex="0" aria-label="Abrir detalle de ${esc(code)}">
     <span class="qinc-type-badge qinc-type-badge--${type.toLowerCase()}" title="${esc(typeLabel)}">${esc(type)}</span>
     ${copyCodeHtml}
     <span class="qinc-item-title">${esc(item.title || '(sin título)')}</span>
