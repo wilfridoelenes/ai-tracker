@@ -1,4 +1,8 @@
-// [PP] mod:128 · autor:Rune · 2026-07-18 UTC-6
+// [PP] mod:129 · autor:Rune · 2026-07-18 22:45 UTC-6
+// CAEL-0718-18 (TKT2 · REQ CAEL-0718-16): los 82 console.log/warn/error de código real
+// reemplazados por logger.debug/warn/error (locus-logger.js) — 6 menciones dentro de
+// comentarios preservadas sin tocar. console.log → logger.debug (gateable por flag),
+// console.warn/error → logger.warn/error (siempre visibles, sin cambio de comportamiento).
 // CHG-CAEL-0718-15: los dos logs de "saveBacklog en vuelo" en _mergeItemsFromRemote/
 // _mergeIncidentsFromRemote ahora incluyen la edad del lock (syncState.getSaveLockAgeMs())
 // — distingue transitorio de huérfano sin depender de reporte manual de timing. Ver
@@ -68,7 +72,9 @@
 //   camelCase (slaPriority, comportamientoActual, originModule, derivedItems) — se excluía
 //   en silencio del upsert a Supabase (console.warn no visible al founder), violando el SLA
 //   de reloj de __BR-Core §6. Fallback bidireccional agregado en ambos puntos.
+import { debug as _dbg, warn as _wrn, error as _err } from './locus-logger.js';
 import * as syncState from './locus-sync-state.js';
+const logger = { debug: _dbg, warn: _wrn, error: _err };
 import { incSlaPriority, incComportamientoActual, incOriginModule, incDerivedItems, incIncidentStatus, incResolutionType } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil
 // TKT2 (REQ-202607-018): _realtimeLastTs, _realtimeSubscribedFor y _saveBacklogInFlightCount
 //   migrados a locus-sync-state.js (TKT-202607-082) — ver detalle de cada call site en los
@@ -167,13 +173,13 @@ let exportBacklogMd = function() {};
 // _purgeStaleBacklogCache inyectados via _initApp — ciclo storage ↔ backlog-core eliminado.
 // Fallback seguro: _getItems devuelve [] (sin acceso a window); las demás son no-ops.
 let _getItems = function() {
-  console.warn('[AI Tracker] _getItems: getItems no disponible — usando fallback []');
+  logger.warn('[AI Tracker] _getItems: getItems no disponible — usando fallback []');
   return [];
 };
 // TKT-202607-044 (REQ-202607-015): mismo patrón lazy ref que _getItems — rompe el ciclo
 // storage ↔ backlog-core para el array INCIDENTS (separado de ITEMS desde TKT-202607-005).
 let _getIncidents = function() {
-  console.warn('[AI Tracker] _getIncidents: getIncidents no disponible — usando fallback []');
+  logger.warn('[AI Tracker] _getIncidents: getIncidents no disponible — usando fallback []');
   return [];
 };
 let _localStorageUsageRatio = function() { return 0; };
@@ -422,7 +428,7 @@ if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
       }
     });
   } catch(e) {
-    console.warn('Supabase init error:', e);
+    logger.warn('Supabase init error:', e);
     _supabaseReady = Promise.resolve(null);
   }
 } else {
@@ -550,7 +556,7 @@ function _saveTmpIdMap(map) {
       { onConflict: 'user_id,key' }
     ).then(({ error }) => {
       if (error) {
-        console.warn('[AI Tracker] _saveTmpIdMap Supabase error:', error);
+        logger.warn('[AI Tracker] _saveTmpIdMap Supabase error:', error);
         _offlineQueuePush({ type: 'tmp-id-map' });
       }
     });
@@ -662,7 +668,7 @@ async function _offlineQueueFlush() {
         await _saveUserPrefs();
       }
     } catch(e) {
-      console.warn('[AI Tracker] Offline queue flush error:', e);
+      logger.warn('[AI Tracker] Offline queue flush error:', e);
       _offlineQueue.push(entry);
       failed = true;
     }
@@ -719,7 +725,7 @@ function signInWithSupabase() {
         if (!popup) showToast('error', 'Permite popups para iniciar sesión');
       }
     }).catch(err => {
-      console.warn('Supabase Google sign-in error:', err);
+      logger.warn('Supabase Google sign-in error:', err);
       showToast('error', 'Error al conectar: ' + (err.message || err));
     });
   } else {
@@ -731,7 +737,7 @@ function signInWithSupabase() {
         skipBrowserRedirect: false
       }
     }).catch(err => {
-      console.warn('Supabase Google sign-in error:', err);
+      logger.warn('Supabase Google sign-in error:', err);
       showToast('error', 'Error al conectar: ' + (err.message || err));
     });
   }
@@ -766,7 +772,7 @@ async function signInWithMagicLink(resend = false) {
   });
   if (btn) { btn.disabled = false; btn.textContent = 'Enviar enlace de acceso'; }
   if (error) {
-    console.warn('Magic link error:', error);
+    logger.warn('Magic link error:', error);
     showToast('error', 'Error al enviar: ' + (error.message || error));
     return;
   }
@@ -874,22 +880,22 @@ async function _fetchTableConstraints(tabla) {
     const { data, error } = await _supabase.rpc('get_table_constraints', { p_table_name: tabla });
     if (error) {
       if (error.code === '42883') {
-        console.warn('[Locus] verifyConstraintsSync: RPC get_table_constraints no existe — ¿TKT1a aplicado?');
+        logger.warn('[Locus] verifyConstraintsSync: RPC get_table_constraints no existe — ¿TKT1a aplicado?');
       } else {
-        console.warn(`[Locus] verifyConstraintsSync: error consultando constraints de ${tabla} —`, error.message || error);
+        logger.warn(`[Locus] verifyConstraintsSync: error consultando constraints de ${tabla} —`, error.message || error);
       }
       return null;
     }
     return data || [];
   } catch (e) {
-    console.warn(`[Locus] verifyConstraintsSync: error inesperado invocando la RPC para ${tabla} —`, e?.message || e);
+    logger.warn(`[Locus] verifyConstraintsSync: error inesperado invocando la RPC para ${tabla} —`, e?.message || e);
     return null;
   }
 }
 
 export async function verifyConstraintsSync() {
   if (!_supabase || !_supabaseUser) {
-    console.warn('[Locus] verifyConstraintsSync: sin auth — verificación no disponible');
+    logger.warn('[Locus] verifyConstraintsSync: sin auth — verificación no disponible');
     return null;
   }
 
@@ -942,17 +948,17 @@ export async function verifyConstraintsSync() {
   }
 
   if (mismatches.length === 0) {
-    console.log('[Locus] verifyConstraintsSync — OK: constraints sincronizados con BR-Ecosystem y onConflict verificado contra UNIQUE/PK reales (5 tablas).');
+    logger.debug('[Locus] verifyConstraintsSync — OK: constraints sincronizados con BR-Ecosystem y onConflict verificado contra UNIQUE/PK reales (5 tablas).');
     return { ok: true, mismatches: [], uniquePkCheck: 'active' };
   }
 
   for (const d of mismatches) {
     if (d.constraints_check) {
-      console.warn(`[Locus] verifyConstraintsSync — ${d.tabla}: constraints_check unavailable.`);
+      logger.warn(`[Locus] verifyConstraintsSync — ${d.tabla}: constraints_check unavailable.`);
     } else if (d.onConflictDeclarado) {
-      console.warn(`[Locus] verifyConstraintsSync — DESINCRONÍA onConflict en ${d.tabla}. Declarado:`, d.onConflictDeclarado, 'Constraint real:', d.constraintReal);
+      logger.warn(`[Locus] verifyConstraintsSync — DESINCRONÍA onConflict en ${d.tabla}. Declarado:`, d.onConflictDeclarado, 'Constraint real:', d.constraintReal);
     } else {
-      console.warn(`[Locus] verifyConstraintsSync — DESINCRONÍA en ${d.constraint}. Esperado:`, d.esperado, 'Real:', d.real);
+      logger.warn(`[Locus] verifyConstraintsSync — DESINCRONÍA en ${d.constraint}. Esperado:`, d.esperado, 'Real:', d.real);
     }
   }
   return { ok: false, mismatches, uniquePkCheck: 'active' };
@@ -1049,13 +1055,13 @@ async function _saveFlush() {
         localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state));
       } catch (lsErr) {
         if (lsErr.name === 'QuotaExceededError') {
-          console.error('[AI Tracker] localStorage quota exceeded in _saveFlush(), attempting cleanup...');
+          logger.error('[AI Tracker] localStorage quota exceeded in _saveFlush(), attempting cleanup...');
           try {
             localStorage.removeItem(LOCUS_KEYS.CHANGELOG);
             localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state));
             // R-202605-055: showToast eliminado de _saveFlush — ruido silencioso en flujo de guardado
           } catch (lsErr2) {
-            console.error('[AI Tracker] _saveFlush() localStorage cache failed after cleanup:', lsErr2);
+            logger.error('[AI Tracker] _saveFlush() localStorage cache failed after cleanup:', lsErr2);
             // R-202605-055: showToast eliminado de _saveFlush — ruido silencioso en flujo de guardado
           }
         } else { throw lsErr; }
@@ -1064,7 +1070,7 @@ async function _saveFlush() {
       setSyncStatus('synced', '✓ sincronizado');
     } catch (err) {
       // AC-5 R-C1: upsert Supabase falla → localStorage como fallback + encolar + toast
-      console.error('[AI Tracker] Supabase save() failed:', err);
+      logger.error('[AI Tracker] Supabase save() failed:', err);
       _stateDirty = true;
       // B-202606-005 AC-3: upsert falló — el timestamp registrado antes del await no llegó
       // a Supabase. Resetear a null para que la próxima notificación Realtime no sea ignorada
@@ -1074,7 +1080,7 @@ async function _saveFlush() {
       try {
         localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state));
       } catch (lsErr) {
-        console.error('[AI Tracker] _saveFlush() fallback localStorage also failed:', lsErr);
+        logger.error('[AI Tracker] _saveFlush() fallback localStorage also failed:', lsErr);
       }
       // R-202605-055: showToast eliminado de _saveFlush — ruido silencioso en flujo de guardado
       _offlineQueuePush({ type: 'state' });
@@ -1109,13 +1115,13 @@ export function save() {
       localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state));
     } catch (err) {
       if (err.name === 'QuotaExceededError') {
-        console.error('[AI Tracker] localStorage quota exceeded in save(), attempting cleanup...');
+        logger.error('[AI Tracker] localStorage quota exceeded in save(), attempting cleanup...');
         try {
           localStorage.removeItem(LOCUS_KEYS.CHANGELOG);
           localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state));
           showToast('warning', '⚠️ Cuota crítica — se limpió historial automáticamente');
         } catch (err2) {
-          console.error('[AI Tracker] save() failed after cleanup:', err2);
+          logger.error('[AI Tracker] save() failed after cleanup:', err2);
           showToast('error', '❌ Almacenamiento lleno. Limpia sesiones archivadas.');
         }
       } else { throw err; }
@@ -1132,13 +1138,13 @@ export function save() {
       localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state));
     } catch (err) {
       if (err.name === 'QuotaExceededError') {
-        console.error('[AI Tracker] localStorage quota exceeded in save() offline, attempting cleanup...');
+        logger.error('[AI Tracker] localStorage quota exceeded in save() offline, attempting cleanup...');
         try {
           localStorage.removeItem(LOCUS_KEYS.CHANGELOG);
           localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state));
           showToast('warning', '⚠️ Cuota crítica — se limpió historial automáticamente');
         } catch (err2) {
-          console.error('[AI Tracker] save() offline failed after cleanup:', err2);
+          logger.error('[AI Tracker] save() offline failed after cleanup:', err2);
           showToast('error', '❌ Almacenamiento lleno. Limpia sesiones archivadas.');
         }
       } else { throw err; }
@@ -1182,7 +1188,7 @@ async function _saveSessions(proj) {
   try {
     localStorage.setItem(LOCUS_KEYS.SESSIONS_PREFIX + proj.id, JSON.stringify(sessions));
   } catch (lsErr) {
-    console.warn('[AI Tracker] _saveSessions: fallo al escribir respaldo local pre-upsert', lsErr);
+    logger.warn('[AI Tracker] _saveSessions: fallo al escribir respaldo local pre-upsert', lsErr);
   }
 
   // Supabase — upsert por lotes de 400, solo de sesiones dirty (TKT1) + DELETE real de
@@ -1201,7 +1207,7 @@ async function _saveSessions(proj) {
         .in('session_id', idsToDelete);
       if (delError) {
         // AC-3 (TKT2): no limpiar removals en error — reintenta en el próximo _saveFlush().
-        console.error('[AI Tracker] Supabase _saveSessions DELETE failed:', delError);
+        logger.error('[AI Tracker] Supabase _saveSessions DELETE failed:', delError);
       } else {
         idsToDelete.forEach(id => removalsPending.delete(id));
       }
@@ -1237,7 +1243,7 @@ async function _saveSessions(proj) {
       if (error) {
         // T-202606-097: upsert falló — resetear para no bloquear próximo cambio remoto legítimo.
         syncState.clearEcho();
-        console.error('[AI Tracker] Supabase _saveSessions failed:', error);
+        logger.error('[AI Tracker] Supabase _saveSessions failed:', error);
         // AC-2: localStorage ya tiene la copia completa desde el bloque de arriba —
         // sin escritura adicional aquí.
         _offlineQueuePush({ type: 'sessions', projId: proj.id });
@@ -1341,7 +1347,7 @@ function _filterValidItemsForUpsert(_rawItems) {
 
   return _rawItems.filter(it => {
     if (it.status === 'historico') {
-      console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido — status:historico es de solo lectura, asignado por Locus al cerrar sprint`);
+      logger.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido — status:historico es de solo lectura, asignado por Locus al cerrar sprint`);
       _dispatch('storage:item-excluded', { code: it.code || '[pendiente-ID]', type: it.type, reason: 'status:historico es de solo lectura' });
       return false;
     }
@@ -1354,11 +1360,11 @@ function _filterValidItemsForUpsert(_rawItems) {
     // dato corrupto — desde que _VALID_ITEM_TYPES se acotó a BACKLOG_TYPES. Se distingue del
     // resto para no alarmar al founder con un toast de "dato corrupto" ante algo por diseño.
     if (['INC', 'PRB', 'KE', 'CHG'].includes(it.type)) {
-      console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido de tracker_items — type:${it.type} es ITIL, vive exclusivamente en tracker_incidents.`);
+      logger.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido de tracker_items — type:${it.type} es ITIL, vive exclusivamente en tracker_incidents.`);
       return false;
     }
     if (!_VALID_ITEM_TYPES.has(it.type)) {
-      console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido del upsert — type:"${it.type}" no es un tipo canónico de tracker_items (REQ/TKT/DISC). Viola tracker_items_type_check.`);
+      logger.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido del upsert — type:"${it.type}" no es un tipo canónico de tracker_items (REQ/TKT/DISC). Viola tracker_items_type_check.`);
       _dispatch('storage:item-excluded', { code: it.code || '[sin code]', type: it.type, reason: `type:"${it.type}" no es canónico — viola tracker_items_type_check` });
       setTimeout(() => showToast('error', `${it.code || '[sin code]'} no se guardó — type:"${it.type}" inválido (no canónico). Revisar con Rune — dato corrupto en memoria.`, null, 8000), 0);
       return false;
@@ -1370,7 +1376,7 @@ function _filterValidItemsForUpsert(_rawItems) {
     // tras el patch R→done de Finn en B-202606-100.
     const _validStatuses = _VALID_STATUS_BY_TYPE[it.type];
     if (_validStatuses && !_validStatuses.has(it.status)) {
-      console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido del upsert — type:${it.type} no puede tener status:${it.status} (viola chk_status_by_type)`);
+      logger.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido del upsert — type:${it.type} no puede tener status:${it.status} (viola chk_status_by_type)`);
       _dispatch('storage:item-excluded', { code: it.code || '[pendiente-ID]', type: it.type, reason: `type:${it.type} no puede tener status:${it.status} — viola chk_status_by_type` });
       setTimeout(() => showToast('warning', `${it.code || '[sin code]'} no se guardó — combinación type:${it.type}/status:${it.status} inválida (chk_status_by_type). Revisar con Rune.`, null, 8000), 0);
       return false;
@@ -1397,16 +1403,16 @@ function _filterValidIncidentsForUpsert(_rawIncidents) {
   return _rawIncidents.filter(inc => {
     const _incStatusRaw = incIncidentStatus(inc);
     if (_incStatusRaw === 'historico') {
-      console.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido — incident_status:historico es de solo lectura, asignado por Locus al cerrar sprint`);
+      logger.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido — incident_status:historico es de solo lectura, asignado por Locus al cerrar sprint`);
       return false;
     }
     if (!_VALID_INCIDENT_TYPES.has(inc.type)) {
-      console.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido del upsert — type:"${inc.type}" no es un tipo canónico de incidente (INC/PRB/KE/CHG).`);
+      logger.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido del upsert — type:"${inc.type}" no es un tipo canónico de incidente (INC/PRB/KE/CHG).`);
       return false;
     }
     const _validIncStatuses = _VALID_INCIDENT_STATUS_BY_TYPE[inc.type];
     if (_validIncStatuses && _incStatusRaw && !_validIncStatuses.has(_incStatusRaw)) {
-      console.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido del upsert — type:${inc.type} no puede tener incident_status:${_incStatusRaw} (viola chk_incident_status_by_type)`);
+      logger.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido del upsert — type:${inc.type} no puede tener incident_status:${_incStatusRaw} (viola chk_incident_status_by_type)`);
       return false;
     }
     // INC-202607-[pendiente-ID]: sla_priority es NOT NULL en tracker_incidents y obligatorio
@@ -1421,7 +1427,7 @@ function _filterValidIncidentsForUpsert(_rawIncidents) {
     // teniendo sla_priority válido. Mismo patrón de fallback ya usado en incident_status/
     // resolution_type unas líneas más abajo en este mismo archivo.
     if (!incSlaPriority(inc)) {
-      console.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido del upsert — sla_priority ausente (viola NOT NULL de tracker_incidents). Requiere sla_priority declarado por Cael/Finn.`);
+      logger.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido del upsert — sla_priority ausente (viola NOT NULL de tracker_incidents). Requiere sla_priority declarado por Cael/Finn.`);
       return false;
     }
     return true;
@@ -1616,7 +1622,7 @@ export async function saveBacklog() {
     if (it.type === 'INC') {
       const _incStatus = incIncidentStatus(it);
       if (_incStatus && it.status !== _incStatus) {
-        console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} — status:'${it.status}' desincronizado de incidentStatus:'${_incStatus}'. Sincronizando status antes de validar chk_status_by_type.`);
+        logger.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} — status:'${it.status}' desincronizado de incidentStatus:'${_incStatus}'. Sincronizando status antes de validar chk_status_by_type.`);
         it.status = _incStatus;
       }
     }
@@ -1646,21 +1652,21 @@ export async function saveBacklog() {
     try {
       localStorage.setItem(incidentsKey, JSON.stringify(incidents));
     } catch (incLsErr) {
-      console.warn('[AI Tracker] saveBacklog: fallo al escribir respaldo local de incidentes (offline)', incLsErr);
+      logger.warn('[AI Tracker] saveBacklog: fallo al escribir respaldo local de incidentes (offline)', incLsErr);
     }
     try {
       localStorage.setItem(key, JSON.stringify(items));
       localStorage.setItem(metaKey, JSON.stringify(meta));
     } catch (err) {
       if (err.name === 'QuotaExceededError') {
-        console.error('[AI Tracker] localStorage quota exceeded, attempting cleanup...');
+        logger.error('[AI Tracker] localStorage quota exceeded, attempting cleanup...');
         try {
           localStorage.removeItem(LOCUS_KEYS.CHANGELOG);
           localStorage.setItem(key, JSON.stringify(items));
           localStorage.setItem(metaKey, JSON.stringify(meta));
           showToast('warning', '⚠️ Cuota de almacenamiento crítica — se limpió historial');
         } catch (err2) {
-          console.error('[AI Tracker] saveBacklog failed after cleanup:', err2);
+          logger.error('[AI Tracker] saveBacklog failed after cleanup:', err2);
           const _quotaBody =
             `<span class="toast-quota-actions">` +
               `<button class="toast-quota-btn" id="toast-quota-export">Exportar backlog</button>` +
@@ -1684,7 +1690,7 @@ export async function saveBacklog() {
           return;
         }
       } else {
-        console.error('[AI Tracker] saveBacklog error:', err);
+        logger.error('[AI Tracker] saveBacklog error:', err);
         throw err;
       }
     }
@@ -1725,7 +1731,7 @@ export async function saveBacklog() {
     localStorage.setItem(key, JSON.stringify(items));
     localStorage.setItem(metaKey, JSON.stringify(meta));
   } catch (lsErr) {
-    console.warn('[AI Tracker] saveBacklog: fallo al escribir respaldo local pre-upsert', lsErr);
+    logger.warn('[AI Tracker] saveBacklog: fallo al escribir respaldo local pre-upsert', lsErr);
   }
 
   // TKT-202607-044 / AC-3: respaldo local optimista de INCIDENTS — ANTES del upsert a
@@ -1734,7 +1740,7 @@ export async function saveBacklog() {
   try {
     localStorage.setItem(incidentsKey, JSON.stringify(incidents));
   } catch (incLsErr) {
-    console.warn('[AI Tracker] saveBacklog: fallo al escribir respaldo local de incidentes pre-upsert', incLsErr);
+    logger.warn('[AI Tracker] saveBacklog: fallo al escribir respaldo local de incidentes pre-upsert', incLsErr);
   }
 
   // TKT2 (REQ-202607-018): el bloque de upsert a tracker_items (antes: incremento manual +
@@ -1755,7 +1761,7 @@ export async function saveBacklog() {
     for (const row of rows) _rowsMap.set(row.code, row);
     const dedupedRows = Array.from(_rowsMap.values());
     if (dedupedRows.length < rows.length) {
-      console.warn('[AI Tracker] saveBacklog: duplicados en ITEMS eliminados antes de upsert:', rows.length - dedupedRows.length);
+      logger.warn('[AI Tracker] saveBacklog: duplicados en ITEMS eliminados antes de upsert:', rows.length - dedupedRows.length);
     }
 
     // Upsert multi-fila en un único request — onConflict:code garantiza que una fila
@@ -1785,7 +1791,7 @@ export async function saveBacklog() {
   } catch (err) {
     // T-202606-097: resetear el eco — el timestamp no llegó a Supabase.
     syncState.clearEcho();
-    console.error('[AI Tracker] Supabase saveBacklog() failed:', err);
+    logger.error('[AI Tracker] Supabase saveBacklog() failed:', err);
     setSyncStatus('offline', '✕ sin conexión');
     // REQ-PERSIST-OPT TKT2 / AC-3: localStorage ya tiene el respaldo desde antes del upsert
     // (ver bloque pre-upsert arriba) — sin escritura duplicada aquí.
@@ -1807,7 +1813,7 @@ export async function saveBacklog() {
     for (const row of incidentRows) _incRowsMap.set(row.code, row);
     const dedupedIncidentRows = Array.from(_incRowsMap.values());
     if (dedupedIncidentRows.length < incidentRows.length) {
-      console.warn('[AI Tracker] saveBacklog: duplicados en INCIDENTS eliminados antes de upsert:', incidentRows.length - dedupedIncidentRows.length);
+      logger.warn('[AI Tracker] saveBacklog: duplicados en INCIDENTS eliminados antes de upsert:', incidentRows.length - dedupedIncidentRows.length);
     }
     if (dedupedIncidentRows.length > 0) {
       // INC-CAEL-0718-04: envuelto en _withTimeout — mismo motivo que el upsert de tracker_items
@@ -1823,7 +1829,7 @@ export async function saveBacklog() {
       if (incError) throw incError;
     }
   } catch (incErr) {
-    console.error('[AI Tracker] Supabase saveBacklog() — upsert de tracker_incidents falló:', incErr);
+    logger.error('[AI Tracker] Supabase saveBacklog() — upsert de tracker_incidents falló:', incErr);
     showToast('warning', '⚠️ Incidentes no sincronizados con Supabase — guardado localmente');
   }
 }
@@ -1924,7 +1930,7 @@ export async function backfillSprintFields() {
     result.updated++;
   }
 
-  console.log(`[AI Tracker] backfillSprintFields: ${result.updated} actualizadas, ${result.skipped} ya migradas (skip), ${result.errors.length} errores`);
+  logger.debug(`[AI Tracker] backfillSprintFields: ${result.updated} actualizadas, ${result.skipped} ya migradas (skip), ${result.errors.length} errores`);
   return result;
 }
 
@@ -2113,7 +2119,7 @@ export async function saveHistoricoItems(items) {
   for (const it of _raw) _dedupMap.set(it.code, it);
   const payload = Array.from(_dedupMap.values());
   if (payload.length < _raw.length) {
-    console.warn(`[AI Tracker] saveHistoricoItems: duplicados eliminados antes de upsert: ${_raw.length - payload.length}`);
+    logger.warn(`[AI Tracker] saveHistoricoItems: duplicados eliminados antes de upsert: ${_raw.length - payload.length}`);
   }
 
   // Sin Supabase o sin auth → localStorage como único destino.
@@ -2121,7 +2127,7 @@ export async function saveHistoricoItems(items) {
     try {
       localStorage.setItem(key, JSON.stringify(payload));
     } catch (lsErr) {
-      console.warn('[AI Tracker] saveHistoricoItems: fallo al escribir en localStorage (sin auth)', lsErr);
+      logger.warn('[AI Tracker] saveHistoricoItems: fallo al escribir en localStorage (sin auth)', lsErr);
     }
     return;
   }
@@ -2130,7 +2136,7 @@ export async function saveHistoricoItems(items) {
   try {
     localStorage.setItem(key, JSON.stringify(payload));
   } catch (lsErr) {
-    console.warn('[AI Tracker] saveHistoricoItems: fallo al escribir respaldo local pre-upsert', lsErr);
+    logger.warn('[AI Tracker] saveHistoricoItems: fallo al escribir respaldo local pre-upsert', lsErr);
   }
 
   try {
@@ -2201,7 +2207,7 @@ export async function saveHistoricoItems(items) {
     if (error) throw error;
   } catch (err) {
     syncState.clearEcho();
-    console.error('[AI Tracker] Supabase saveHistoricoItems() failed:', err);
+    logger.error('[AI Tracker] Supabase saveHistoricoItems() failed:', err);
     showToast('warning', '⚠️ Histórico no sincronizado con Supabase — guardado localmente');
     _offlineQueuePush({ type: 'historico', projId: projId || null });
   }
@@ -2244,7 +2250,7 @@ export async function getHistoricoItems(projId) {
       _historicoCache.set(_effProjId || '__global__', result);
       return result;
     } catch (err) {
-      console.warn('[AI Tracker] getHistoricoItems: fallo Supabase, usando localStorage', err);
+      logger.warn('[AI Tracker] getHistoricoItems: fallo Supabase, usando localStorage', err);
     }
   }
 
@@ -2311,7 +2317,7 @@ export async function saveContextDocs() {
       localStorage.setItem(LOCUS_KEYS.CTX_DOCS_PREFIX + suffix, JSON.stringify(ctxPayload));
       localStorage.setItem(LOCUS_KEYS.HM_DOCS_PREFIX  + suffix, JSON.stringify(hmPayload));
     } catch (lsErr) {
-      console.warn('[AI Tracker] saveContextDocs: fallo al escribir en localStorage (sin auth)', lsErr);
+      logger.warn('[AI Tracker] saveContextDocs: fallo al escribir en localStorage (sin auth)', lsErr);
     }
     return;
   }
@@ -2321,7 +2327,7 @@ export async function saveContextDocs() {
     localStorage.setItem(LOCUS_KEYS.CTX_DOCS_PREFIX + suffix, JSON.stringify(ctxPayload));
     localStorage.setItem(LOCUS_KEYS.HM_DOCS_PREFIX  + suffix, JSON.stringify(hmPayload));
   } catch (lsErr) {
-    console.warn('[AI Tracker] saveContextDocs: fallo al escribir respaldo local pre-upsert', lsErr);
+    logger.warn('[AI Tracker] saveContextDocs: fallo al escribir respaldo local pre-upsert', lsErr);
   }
 
   try {
@@ -2334,7 +2340,7 @@ export async function saveContextDocs() {
     // sin escritura duplicada aquí.
   } catch (err) {
     // AC-7 R-C1: upsert falla → encolar + toast. Respaldo local ya existe desde antes del upsert.
-    console.error('[AI Tracker] Supabase saveContextDocs() failed:', err);
+    logger.error('[AI Tracker] Supabase saveContextDocs() failed:', err);
     setSyncStatus('offline', '✕ sin conexión');
     // REQ-PERSIST-OPT TKT3 / AC-3: localStorage ya tiene el respaldo desde antes del upsert —
     // sin escritura duplicada aquí.
@@ -2400,7 +2406,7 @@ export function _subscribeRealtime() {
       }
     }
 
-    console.log('[AI Tracker] Realtime: cambio remoto detectado —', payload.table || '', remoteTs);
+    logger.debug('[AI Tracker] Realtime: cambio remoto detectado —', payload.table || '', remoteTs);
     _loadFromSupabase();
   }
 
@@ -2427,7 +2433,7 @@ export function _subscribeRealtime() {
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         if (handled) return;
         handled = true;
-        console.warn('[AI Tracker] Realtime: error en canal ' + channelName + ' — app sigue funcional vía fallback, reconexión programada');
+        logger.warn('[AI Tracker] Realtime: error en canal ' + channelName + ' — app sigue funcional vía fallback, reconexión programada');
         const ch = getCh();
         _realtimeChannels = _realtimeChannels.filter((c) => c !== ch);
         syncState.unsubscribe();
@@ -2630,10 +2636,10 @@ function _mergeSessionsFromRemote(sessResult) {
         try { localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state)); } catch {}
       }
     } else {
-      console.warn('[AI Tracker] Error cargando sesiones desde Supabase:', sessResult.reason || sessResult.value?.error);
+      logger.warn('[AI Tracker] Error cargando sesiones desde Supabase:', sessResult.reason || sessResult.value?.error);
     }
   } catch (sessErr) {
-    console.warn('[AI Tracker] Error procesando sesiones:', sessErr);
+    logger.warn('[AI Tracker] Error procesando sesiones:', sessErr);
   }
 }
 
@@ -2647,7 +2653,7 @@ function _mergeSessionsFromRemote(sessResult) {
 // (3) exclusión ITIL — filas INC/PRB/KE/CHG remanentes en tracker_items nunca se mergean aquí
 function _mergeItemsFromRemote(itemsResult, _itemsRef) {
   if (syncState.isSaveInFlight()) {
-    console.log('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + syncState.getSaveInFlightCount() + ') hace ' + syncState.getSaveLockAgeMs() + 'ms — merge de tracker_items omitido en esta pasada.');
+    logger.debug('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + syncState.getSaveInFlightCount() + ') hace ' + syncState.getSaveLockAgeMs() + 'ms — merge de tracker_items omitido en esta pasada.');
     return;
   }
   try {
@@ -2704,7 +2710,7 @@ function _mergeItemsFromRemote(itemsResult, _itemsRef) {
           // sla_priority) con esta copia obsoleta sin el campo — loop de saveBacklog().
           // ITIL no vive en tracker_items — se excluye del merge, nunca se escribe aquí.
           if (['INC', 'PRB', 'KE', 'CHG'].includes(row.type)) {
-            console.warn(`[AI Tracker] _loadFromSupabase: fila remanente tipo ITIL en tracker_items excluida del merge — ${row.code || '[sin code]'} (type:${row.type}). Vive en tracker_incidents, no aquí.`);
+            logger.warn(`[AI Tracker] _loadFromSupabase: fila remanente tipo ITIL en tracker_items excluida del merge — ${row.code || '[sin code]'} (type:${row.type}). Vive en tracker_incidents, no aquí.`);
             return;
           }
           const localMatch  = localByCode.get(row.code);
@@ -2752,11 +2758,11 @@ function _mergeItemsFromRemote(itemsResult, _itemsRef) {
       }
     } else {
       // AC-3: fallo de red → silencioso, no tocar _itemsRef. Fallback a localStorage ya cargado.
-      console.warn('[AI Tracker] Error cargando items relacionales desde Supabase:', itemsResult.reason || itemsResult.value?.error);
+      logger.warn('[AI Tracker] Error cargando items relacionales desde Supabase:', itemsResult.reason || itemsResult.value?.error);
     }
   } catch (itemsErr) {
     // AC-3: cualquier error en el procesamiento → silencioso, no tocar _itemsRef.
-    console.warn('[AI Tracker] Error procesando items relacionales:', itemsErr);
+    logger.warn('[AI Tracker] Error procesando items relacionales:', itemsErr);
   }
 }
 
@@ -2766,7 +2772,7 @@ function _mergeItemsFromRemote(itemsResult, _itemsRef) {
 // read-after-write (B-202606-094), aplicados a tracker_incidents en vez de tracker_items.
 function _mergeIncidentsFromRemote(incidentsResult, _incidentsRef) {
   if (syncState.isSaveInFlight()) {
-    console.log('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + syncState.getSaveInFlightCount() + ') hace ' + syncState.getSaveLockAgeMs() + 'ms — merge de tracker_incidents omitido en esta pasada.');
+    logger.debug('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + syncState.getSaveInFlightCount() + ') hace ' + syncState.getSaveLockAgeMs() + 'ms — merge de tracker_incidents omitido en esta pasada.');
     return;
   }
   try {
@@ -2821,10 +2827,10 @@ function _mergeIncidentsFromRemote(incidentsResult, _incidentsRef) {
         try { localStorage.setItem(incidentsKey, JSON.stringify(_incidentsRef)); } catch {}
       }
     } else {
-      console.warn('[AI Tracker] Error cargando incidentes relacionales desde Supabase:', incidentsResult.reason || incidentsResult.value?.error);
+      logger.warn('[AI Tracker] Error cargando incidentes relacionales desde Supabase:', incidentsResult.reason || incidentsResult.value?.error);
     }
   } catch (incidentsErr) {
-    console.warn('[AI Tracker] Error procesando incidentes relacionales:', incidentsErr);
+    logger.warn('[AI Tracker] Error procesando incidentes relacionales:', incidentsErr);
   }
 }
 
@@ -2839,7 +2845,7 @@ export async function _loadFromSupabase() {
   // evitar acumulación indefinida de setTimeouts cuando _appReady nunca se activa.
   if (!_appReady) {
     if (_loadRetryCount >= _LOAD_RETRY_MAX) {
-      console.error('[AI Tracker] _loadFromSupabase: _appReady no se activó tras ' + _LOAD_RETRY_MAX + ' intentos — retries detenidos.');
+      logger.error('[AI Tracker] _loadFromSupabase: _appReady no se activó tras ' + _LOAD_RETRY_MAX + ' intentos — retries detenidos.');
       _loadRetryCount = 0;
       return;
     }
@@ -3061,10 +3067,10 @@ export async function _loadFromSupabase() {
           }
         }
       } else {
-        console.warn('[AI Tracker] Error cargando docs desde Supabase:', docsResult.reason || docsResult.value?.error);
+        logger.warn('[AI Tracker] Error cargando docs desde Supabase:', docsResult.reason || docsResult.value?.error);
       }
     } catch (docsErr) {
-      console.warn('[AI Tracker] Error procesando docs:', docsErr);
+      logger.warn('[AI Tracker] Error procesando docs:', docsErr);
     }
 
     // ── 6d. Procesar drafts ──────────────────────────────────────────────
@@ -3097,10 +3103,10 @@ export async function _loadFromSupabase() {
           }
         }
       } else {
-        console.warn('[AI Tracker] Error cargando borradores desde Supabase:', draftsResult.reason || draftsResult.value?.error);
+        logger.warn('[AI Tracker] Error cargando borradores desde Supabase:', draftsResult.reason || draftsResult.value?.error);
       }
     } catch (draftErr) {
-      console.warn('[AI Tracker] Error procesando borradores:', draftErr);
+      logger.warn('[AI Tracker] Error procesando borradores:', draftErr);
     }
 
     // (a) event dispatch — locus-sesiones.js escucha 'shell:mark-tracker-dirty' + 'shell:render-tracker'
@@ -3131,7 +3137,7 @@ export async function _loadFromSupabase() {
     _initLoadComplete = true;
 
   } catch (err) {
-    console.error('[AI Tracker] _loadFromSupabase() failed:', err);
+    logger.error('[AI Tracker] _loadFromSupabase() failed:', err);
     setSyncStatus('offline', '✕ sin conexión');
 
     // R-202605-022 Fase 3 AC-1: rollback — restaurar getItems() y state al snapshot pre-carga
@@ -3289,7 +3295,7 @@ function load() {
   if (s) {
     try { _applyStateData(JSON.parse(s)); }
     catch (e) {
-      console.error('[AI Tracker] Estado corrupto en localStorage — restaurando defaults:', e);
+      logger.error('[AI Tracker] Estado corrupto en localStorage — restaurando defaults:', e);
       _applyStateData({ais: clone(DEFAULT_AIS), theme:'dark', tags:[]});
     }
   } else {
@@ -3314,17 +3320,17 @@ export function _initApp(opts = {}) {
   if (opts.exportBacklogMd) exportBacklogMd = opts.exportBacklogMd;
   // T-202606-003: inyectar las cuatro referencias de backlog-core para eliminar el import directo
   if (opts.getItems) _getItems = opts.getItems;
-  else console.warn('[AI Tracker] _initApp: getItems no recibido en opts — usando fallback []');
+  else logger.warn('[AI Tracker] _initApp: getItems no recibido en opts — usando fallback []');
   if (opts.localStorageUsageRatio) _localStorageUsageRatio = opts.localStorageUsageRatio;
-  else console.warn('[AI Tracker] _initApp: localStorageUsageRatio no recibido en opts — usando fallback 0');
+  else logger.warn('[AI Tracker] _initApp: localStorageUsageRatio no recibido en opts — usando fallback 0');
   if (opts.migrateItemTypes) _migrateItemTypes = opts.migrateItemTypes;
-  else console.warn('[AI Tracker] _initApp: migrateItemTypes no recibido en opts — usando no-op');
+  else logger.warn('[AI Tracker] _initApp: migrateItemTypes no recibido en opts — usando no-op');
   if (opts.purgeStaleBacklogCache) _purgeStaleBacklogCache = opts.purgeStaleBacklogCache;
-  else console.warn('[AI Tracker] _initApp: purgeStaleBacklogCache no recibido en opts — usando fallback 0');
+  else logger.warn('[AI Tracker] _initApp: purgeStaleBacklogCache no recibido en opts — usando fallback 0');
   // TKT-202607-044 (REQ-202607-015): inyectar getIncidents — mismo patrón que getItems,
   // rompe el ciclo storage ↔ backlog-core para el array INCIDENTS.
   if (opts.getIncidents) _getIncidents = opts.getIncidents;
-  else console.warn('[AI Tracker] _initApp: getIncidents no recibido en opts — usando fallback []');
+  else logger.warn('[AI Tracker] _initApp: getIncidents no recibido en opts — usando fallback []');
   // T-202606-006 T3: renderSprintTab inyectado para eliminar window.renderSprintTab
   if (opts.renderSprintTab) _renderSprintTabFn = opts.renderSprintTab;
   // B-202606-028: marcar referencias inyectadas — _loadFromSupabase puede reintentar ahora.
@@ -3407,7 +3413,7 @@ export function getAllSessions() {
   // Guardia: detectar sesiones corruptas en ai.sessions (nunca debería ocurrir en v3)
   (state?.ais || []).forEach(ai => {
     if (ai.sessions && ai.sessions.length > 0) {
-      console.warn(`[AI Tracker] ATENCIÓN: ai "${ai.name}" tiene ${ai.sessions.length} sesión(es) en ai.sessions — debería estar vacío en v3. Recarga la app para normalizar.`);
+      logger.warn(`[AI Tracker] ATENCIÓN: ai "${ai.name}" tiene ${ai.sessions.length} sesión(es) en ai.sessions — debería estar vacío en v3. Recarga la app para normalizar.`);
     }
   });
   return (state?.projects || []).flatMap(p => (p.sessions || []).map(s => ({ ...s, projectId: p.id })));
@@ -3513,7 +3519,7 @@ export async function _loadAllProjectsSprintsFromSupabase() {
     });
   } catch(err) {
     // AC — error de Supabase: cache se mantiene en su último valor conocido, no se vacía
-    console.error('[Locus] TKT1 · REQ-sprints-migration: error al cargar tracker_sprints', err);
+    logger.error('[Locus] TKT1 · REQ-sprints-migration: error al cargar tracker_sprints', err);
     showToast('warning', 'No se pudieron cargar los sprints — reintentando al reconectar');
   }
 }
@@ -3568,7 +3574,7 @@ export async function _upsertSprint(sprintObj, projId) {
     .from('tracker_sprints')
     .upsert(row, { onConflict: 'user_id,sprint_id' });
   if (error) {
-    console.error('[Locus] T-202606-005: upsert a tracker_sprints falló', error);
+    logger.error('[Locus] T-202606-005: upsert a tracker_sprints falló', error);
   } else {
     // Actualizar localStorage como caché post-write
     try { localStorage.setItem(lsKey, JSON.stringify(list)); } catch(e) {}
@@ -3697,7 +3703,7 @@ export async function _saveUserPrefs() {
       if (error) throw error;
       try { localStorage.setItem(_USER_PREFS_TS_KEY, updatedAt); } catch(_) {}
     } catch(err) {
-      console.warn('[AI Tracker] _saveUserPrefs Supabase error:', err);
+      logger.warn('[AI Tracker] _saveUserPrefs Supabase error:', err);
       _offlineQueuePush({ type: 'user-prefs' });
     }
   }
