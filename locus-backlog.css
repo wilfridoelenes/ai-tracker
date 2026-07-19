@@ -1,4 +1,4 @@
-/* [PP] mod:101 · autor:Nova · 2026-07-18 UTC-6 */
+/* [PP] mod:102 · autor:Nova · 2026-07-18 UTC-6 */
 /* Ad-hoc (sin REQ/TKT vía Cael, ítem directo de founder): rediseño de fila DISC en Q-DISC —
    de card boxeada (wash 4 caras, borde punteado, glow) a fila flat tipo inbox (Linear/Things).
    Reemplaza el bloque .bitem--idea completo (mod:95, L3698-3816: card base, ::before muerto
@@ -5668,12 +5668,49 @@
   }
 }
 
-/* ── Comportamiento actual — .qinc-item-comportamiento ── */
+/* ── Comportamiento actual — .qinc-item-comportamiento ──
+   Fix INC (Q-INC render audit, 2026-07-18): el contenido ya no es su propio
+   trigger — un elemento display:none no puede recibir click ni foco.
+   .qinc-item-comportamiento-toggle es el trigger, siempre visible, mismo
+   patrón que .idp-section-toggle/.idp-toggle-arrow (locus-backlog-item.css),
+   adaptado a escala de card compacta. */
+.qinc-item-comportamiento-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-2xs-plus);
+  color: var(--text3);
+  background: none;
+  border: none;
+  padding: 2px 0;
+  margin-top: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.qinc-item-comportamiento-toggle:hover {
+  color: var(--text2);
+}
+
+.qinc-item-comportamiento-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.qinc-toggle-arrow {
+  font-size: var(--text-2xs-plus);
+  transition: transform 0.15s;
+}
+
+.qinc-item-comportamiento-toggle[aria-expanded="true"] .qinc-toggle-arrow {
+  transform: rotate(90deg);
+}
+
 .qinc-item-comportamiento {
   font-size: var(--text-sm);
   color: var(--text2);
   display: none;
-  margin-top: 4px;
+  margin-top: 2px;
   line-height: 1.45;
 }
 

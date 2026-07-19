@@ -1,4 +1,4 @@
-// [PP] mod:113 · autor:Rune · 2026-07-18 UTC-6
+// [PP] mod:114 · autor:Rune · 2026-07-18 UTC-6
 // DISC cerrada (auditoría triggeredBy/origenDisc/dependsOn en patches — triggered_by INC-202607
 // parentId): confirmado mismo gap en los tres campos dentro de applyPatchesFromTG — sin
 // normalización de {ref_id,title} NI resolución de slugMap (parentId al menos tenía la segunda).
@@ -3324,9 +3324,20 @@ export function buildQIncItem(item) {
   }
 
   // comportamientoActual expandible — togglable vía data-qi-action (AC TKT-B2a AC5)
+  // Fix INC (Q-INC render audit, 2026-07-18): antes el contenido era su propio trigger,
+  // pero CSS le aplicaba display:none por defecto — un elemento no renderizado no puede
+  // recibir click ni foco, comportamiento_actual nunca era alcanzable. Ahora el trigger es
+  // un <button> real y separado (activación por teclado nativa, sin keydown propio) que
+  // controla el contenido vía aria-expanded/aria-controls — mismo patrón semántico que
+  // .idp-section-toggle (locus-backlog-panel.js), CSS entregado por Nova (mod:102 de
+  // locus-backlog.css).
   const comportamiento = incComportamientoActual(item) || '';
+  const comportId = `qinc-comport-${esc(code)}`;
   const comportamientoHtml = comportamiento
-    ? `<div class="qinc-item-comportamiento" data-qi-action="qi-toggle-comportamiento">${esc(comportamiento)}</div>`
+    ? `<button type="button" class="qinc-item-comportamiento-toggle" data-qi-action="qi-toggle-comportamiento" aria-expanded="false" aria-controls="${comportId}">
+    <span class="qinc-toggle-arrow">▸</span> Comportamiento actual
+  </button>
+  <div class="qinc-item-comportamiento" id="${comportId}">${esc(comportamiento)}</div>`
     : '';
 
   // Copy-code badge — patrón idéntico al Backlog principal (AC TKT-B2a AC2)

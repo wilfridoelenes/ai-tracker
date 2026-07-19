@@ -1,4 +1,4 @@
-// [PP] mod:89 · autor:Rune · 2026-07-18 UTC-6
+// [PP] mod:90 · autor:Rune · 2026-07-18 UTC-6
 // TKT1 (REQ-[pendiente-ID] Import huérfano _renderPlanningView, ref CAEL-0717-03): import de
 // _renderPlanningView retirado (línea 184) — sin call site en este archivo, confirmado con
 // grep contra el repo completo (52 archivos). Call site real intacto en locus-sprint.js
@@ -1203,9 +1203,16 @@ function _attachQIncDelegation(container) {
     }
 
     // --- qi-toggle-comportamiento: expandir/colapsar comportamientoActual ---
+    // Fix INC (Q-INC render audit, 2026-07-18): comportEl ahora es el <button> trigger
+    // (data-qi-action vive en el botón, no en el contenido — ver buildQIncItem() mod:114
+    // de locus-backlog-item.js). El contenido real se resuelve vía aria-controls.
     const comportEl = e.target.closest('[data-qi-action="qi-toggle-comportamiento"]');
     if (comportEl) {
-      comportEl.classList.toggle('expanded');
+      const targetId = comportEl.getAttribute('aria-controls');
+      const target = targetId ? document.getElementById(targetId) : null;
+      if (!target) return;
+      const nowExpanded = target.classList.toggle('expanded');
+      comportEl.setAttribute('aria-expanded', String(nowExpanded));
       return;
     }
 
