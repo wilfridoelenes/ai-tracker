@@ -1,4 +1,8 @@
-// [PP] mod:1 · autor:Rune · 2026-07-09 UTC-6
+// [PP] mod:2 · autor:Rune · 2026-07-18 UTC-6
+// CHG-CAEL-0718-15: agregado getSaveLockAgeMs() — edad en ms del lock de saveBacklog en
+// vuelo, para distinguir transitorio de huérfano en el log de _loadFromSupabase() (ver
+// INC-ref:CAEL-0718-14). Sin cambio de comportamiento en withSaveLock/isSaveInFlight/
+// getSaveInFlightCount — mismo contrato, solo se agrega un timestamp de acompañamiento.
 // TKT-202607-082 (REQ-202607-018): módulo de estado de sync/realtime — máquina de estados
 // que reemplaza las 3 variables globales sueltas de locus-storage.js (_realtimeLastTs,
 // _realtimeSubscribedFor, _saveBacklogInFlightCount). Ningún consumidor externo lee o
@@ -29,6 +33,10 @@
 let _echoTs = null;          // equivalente a _realtimeLastTs
 let _subscribedFor = null;   // equivalente a _realtimeSubscribedFor
 let _saveInFlight = 0;       // equivalente a _saveBacklogInFlightCount
+let _saveLockTakenAt = null; // CHG-CAEL-0718-15: timestamp de la primera adquisición del
+                              // lock desde que el contador estaba en 0 — permite distinguir
+                              // un save transitorio de uno huérfano sin depender de reportes
+                              // manuales de timing (ver INC-ref:CAEL-0718-14)
 
 // ---------------------------------------------------------------------------
 // Estados nombrados — AC2
@@ -151,12 +159,28 @@ export function getSubscriptionState() {
  *   await syncState.withSaveLock(async () => { ...cuerpo actual de saveBacklog()... });
  */
 export async function withSaveLock(fn) {
+  // CHG-CAEL-0718-15: solo se re-arma el timestamp cuando el contador parte de 0 — si hay
+  // saves concurrentes superpuestos, la edad reportada es la del primero en tomar el lock,
+  // no la de cada adquisición individual (mismo criterio que el propio contador, que mide
+  // "hay al menos uno en vuelo", no cada operación por separado).
+  if (_saveInFlight === 0) _saveLockTakenAt = Date.now();
   _saveInFlight++;
   try {
     return await fn();
   } finally {
     _saveInFlight = Math.max(0, _saveInFlight - 1);
+    if (_saveInFlight === 0) _saveLockTakenAt = null;
   }
+}
+
+/**
+ * CHG-CAEL-0718-15: edad en ms del lock actualmente en vuelo — null si no hay ninguno.
+ * Existe para que el log de _loadFromSupabase() distinga un save transitorio (unos pocos
+ * cientos de ms, normal) de uno huérfano (por encima de _SAVE_UPSERT_TIMEOUT_MS sin liberar,
+ * señal real de bug) sin depender de que alguien esté mirando la consola en el momento exacto.
+ */
+export function getSaveLockAgeMs() {
+  return _saveLockTakenAt != null ? Date.now() - _saveLockTakenAt : null;
 }
 
 /** Getter de solo lectura (AC4) — valor crudo, mismo contrato booleano que el guard original. */

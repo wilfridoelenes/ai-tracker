@@ -1,4 +1,12 @@
-// [PP] mod:126 · autor:Rune · 2026-07-18 UTC-6
+// [PP] mod:128 · autor:Rune · 2026-07-18 UTC-6
+// CHG-CAEL-0718-15: los dos logs de "saveBacklog en vuelo" en _mergeItemsFromRemote/
+// _mergeIncidentsFromRemote ahora incluyen la edad del lock (syncState.getSaveLockAgeMs())
+// — distingue transitorio de huérfano sin depender de reporte manual de timing. Ver
+// INC-ref:CAEL-0718-14.
+// CAEL-0718-13 (TKT1 · REQ CAEL-0718-12): _toItemRow/_toIncidentRow extraídas de
+// saveBacklog() a funciones de módulo puras — antes anidadas con clausura sobre
+// projId/_supabaseUser/_updatedAtMs, ahora reciben {projId, userId, updatedAtMs}
+// explícito. saveBacklog() baja de ~415 a 247 líneas. Sin cambio de comportamiento.
 // CAEL-0718-11 (TKT2 · REQ CAEL-0718-09): saveBacklog() pasa a llamar
 // _filterValidItemsForUpsert()/_filterValidIncidentsForUpsert() (extraídas en TKT1) en vez
 // de mantener el bloque de gates duplicado inline. Sin cambio de comportamiento — gates
@@ -1420,6 +1428,158 @@ function _filterValidIncidentsForUpsert(_rawIncidents) {
   });
 }
 
+// CAEL-0718-13 (TKT1 · REQ CAEL-0718-12): _toItemRow/_toIncidentRow extraídas de
+// saveBacklog() a nivel de módulo — antes funciones anidadas con clausura sobre
+// projId/_supabaseUser/_updatedAtMs. Ahora reciben esos tres valores explícitos vía
+// el segundo parámetro {projId, userId, updatedAtMs}. Mismo mapeo de columnas exacto,
+// sin cambio de comportamiento — comparación línea a línea confirmada antes del reemplazo.
+// Construir filas para el upsert relacional. Los campos que Postgres espera como columnas
+// tipadas se mapean explícitamente; el resto se serializa en el campo jsonb `extra` si la
+// tabla lo tuviera (DDL de T1 no incluye `extra` — solo columnas declaradas).
+// T-202606-008 fix: columnas alineadas con DDL de tracker_items (T-202606-007).
+// Correcciones vs entrega inicial:
+//   · tabla: 'items' → 'tracker_items'
+//   · parent_id → parent   (nombre real de columna en DDL)
+//   · origen_p  → origin_p (naming DDL Gen1) → origen_disc (DDL Gen2)
+//   · verificado_por → verified_by (naming DDL)
+//   · contract_update eliminado — columna no existe en DDL
+//   · updated_at: ISO string → BIGINT epoch ms (tipo DDL: BIGINT)
+function _toItemRow(it, { projId, userId, updatedAtMs }) {
+  return {
+    // T-202606-026: user_id obligatorio en cada fila — RLS de tracker_items (T-202606-024)
+    // filtra por user_id = auth.uid(). _supabaseUser está garantizado no-null en este punto
+    // por el gate `if (!_supabase || !_supabaseUser) { ...; return; }` anterior en saveBacklog().
+    user_id:              userId,
+    project_id:           projId || null,
+    code:                 it.code             || null,
+    type:                 it.type             || null,
+    title:                it.title            || null,
+    status:               it.status           || null,
+    priority:             it.priority         || null,
+    effort:               it.effort != null ? Number(it.effort) : null,
+    area:                 it.area             || null,
+    // TKT2 (REQ-202607-026): columna `sprint` (texto compuesto) eliminada del outgoing —
+    // sprint_id/sprint_name son la única fuente persistida desde este TKT. DDL requerido:
+    // sí — ALTER TABLE tracker_items DROP COLUMN sprint; — no ejecutado desde el TKT,
+    // deuda registrada con escalate_to: Vera (mismo patrón que TKT2/contract-rename).
+    // TKT-202607-096 (REQ-202607-025): sprint_id/sprint_name como columnas propias —
+    // NUNCA usar `|| null`: '' es valor legítimo post-migración (ítem sin sprint,
+    // Q-Backlog) y debe preservarse tal cual, sin colapsar junto con undefined a null.
+    sprint_id:            it.sprint_id !== undefined ? it.sprint_id : null,
+    sprint_name:          it.sprint_name !== undefined ? it.sprint_name : null,
+    role:                 it.role             || null,
+    // DDL: columna 'parent' TEXT (no 'parent_id') · T-[pendiente-ID]: parentId es el único
+    // campo canónico en JS — fallback it.parent eliminado (REQ-unify-parent TKT2)
+    parent:               it.parentId         || null,
+    // depends_on: array JS → text[] Postgres · campo canónico en JS es dependsOn (camelCase)
+    // INC triggered_by TKT-202607-063: leía it.depends_on — siempre undefined, persistía [] sin importar el dato real.
+    depends_on:           Array.isArray(it.dependsOn) ? it.dependsOn : [],
+    triggered_by:         it.triggered_by     || null,
+    no_incluye:           it.no_incluye != null ? it.no_incluye : null,
+    kill_criteria:        it.kill_criteria    || null,
+    promovida_a:          it.promovida_a      || null,
+    // DDL: columna renombrada origen_disc (Gen2) — era origin_p en Gen1
+    origen_disc:          it.origenDisc       || null,
+    // INC-[pendiente-ID]: fallback a camelCase — item.discardReason es el campo que
+    // escribe la lógica de negocio (locus-backlog-core.js, sanitize-doneat-mismatch);
+    // sin este fallback un ítem con status:'descartado' llegaba con discard_reason:null
+    // y violaba tracker_items_discard_reason_check. Mismo motivo que el fallback ya
+    // aplicado a comportamiento_actual/origin_module en _toIncidentRow (TKT-202607-INC-NAMING).
+    discard_reason:       it.discard_reason   || it.discardReason || null,
+    comportamiento_actual: it.comportamiento_actual || null,
+    origin_module:        it.origin_module    || null,
+    // DDL: columna 'verified_by' TEXT (no 'verificado_por')
+    verified_by:          it.verificado_por   || null,
+    schema_version:       it.schema_version != null ? Number(it.schema_version) : 2,
+    // ac: array JS → jsonb Postgres
+    ac:                   Array.isArray(it.ac) ? it.ac : [],
+    // intencion, contract_detail: objetos → jsonb Postgres
+    // T-[pendiente-ID] (REQ-contract-rename, TKT2): contract_detail reemplaza a contract —
+    // alineado a BR-Execution §2. Sin retrocompatibilidad — it.contract ya no se lee.
+    intencion:            it.intencion        || null,
+    contract_detail:      it.contract_detail  || null,
+    // Campos Gen2 agregados en ALTER TABLE (T-[pendiente-ID])
+    next_role:            it.nextRole          || null,
+    design_intent:        it.designIntent      || null,
+    blocked_at:           it.blockedAt         || null,
+    contract_update:      it.contract_update   || null,
+    archivos:             Array.isArray(it.archivos) ? it.archivos : null,
+    sla_priority:         it.sla_priority      || null,
+    sla_deadline:         it.slaDeadline       != null ? it.slaDeadline : null,
+    incident_status:      incIncidentStatus(it),
+    resolution_type:      incResolutionType(it),
+    derived_items:        Array.isArray(it.derived_items) ? it.derived_items : null,
+    queue:                it.queue             || null,
+    // INC-[pendiente-ID] fix: archived_at/done_at no estaban mapeadas en ningún punto de
+    // _toItemRow() — el cierre de sprint (migrateClosedItemsToHistorico, locus-backlog-historico.js)
+    // setea item.archivedAt en memoria pero nunca se persistía en Supabase. done_at no tenía
+    // ningún productor de escritura hacia la fila — se persiste aquí desde item.doneAt
+    // (locus-backlog-core.js ya lo popula al transicionar a status:done). Ambos epoch ms,
+    // mismo criterio != null que sla_deadline — 0 no es valor legítimo para estos campos,
+    // pero se preserva por consistencia con el resto del mapeo.
+    archived_at:          it.archivedAt != null ? it.archivedAt : null,
+    done_at:              it.doneAt     != null ? it.doneAt     : null,
+    // DDL: updated_at BIGINT (epoch ms) — no ISO string
+    // updatedAtMs calculado una vez fuera de _toItemRow — todas las filas comparten el mismo valor (AC-3)
+    updated_at:           updatedAtMs
+  };
+}
+
+// TKT-202607-044 (REQ-202607-015): _toIncidentRow() — mapeo hacia las columnas reales
+// de tracker_incidents (verificadas vía information_schema — 18 columnas, schema propio
+// y más angosto que tracker_items: sin status/priority/effort/area/sprint/parent/
+// depends_on, que no existen en esta tabla). onConflict:code — mismo target que _toItemRow().
+// TKT4 (REQ CAEL-01 · PP-S-02): ALTER TABLE aplicado por el founder — role, next_role, ac,
+// queue y verificado_por agregados a tracker_incidents (BR-Ecosystem §5/§8 los declara
+// parte del schema de INC/PRB/KE/CHG; antes se perdían al persistir). ac se envía siempre
+// como array — nunca null ni ausente (AC-3 de TKT4: `ac:[]` si el ítem no lo declara).
+function _toIncidentRow(inc, { projId, userId, updatedAtMs }) {
+  return {
+    user_id:               userId,
+    project_id:            projId || null,
+    code:                  inc.code               || null,
+    type:                  inc.type               || null,
+    title:                 inc.title              || null,
+    triggered_by:          inc.triggered_by       || null,
+    // TKT-202607-INC-NAMING: fallback a camelCase — mismo motivo que el gate de exclusión
+    // arriba en esta función. inc.originModule/inc.comportamientoActual son los nombres
+    // reales que trae un INC recién parseado (locus-session-parse.js); sin fallback, un
+    // incidente nuevo llegaba con estos campos en null incluso siendo obligatorios.
+    comportamiento_actual: incComportamientoActual(inc),
+    origin_module:         incOriginModule(inc),
+    archivos:              Array.isArray(inc.archivos) ? inc.archivos : null,
+    derived_items:         incDerivedItems(inc),
+    sla_priority:          incSlaPriority(inc),
+    incident_status:       incIncidentStatus(inc),
+    resolution_type:       incResolutionType(inc),
+    // INC-[pendiente-ID]: mismo fallback camelCase que _toItemRow() — ver nota ahí.
+    discard_reason:        inc.discard_reason     || inc.discardReason || null,
+    // TKT4 (REQ CAEL-01): role/next_role sin transformación de nombre — mismo campo en
+    // memoria y en columna. verificado_por (snake_case en columna, sin contraparte
+    // camelCase en el modelo — BR-Core §6 Variante ligera de INC usa el literal
+    // 'verificado_por', no 'verifiedPor').
+    role:                  inc.role               || null,
+    next_role:             inc.next_role          || inc.nextRole || null,
+    // AC-3: ac se guarda como array siempre — [] si el incidente no lo declara, nunca null.
+    ac:                    Array.isArray(inc.ac) ? inc.ac : [],
+    queue:                 inc.queue              || null,
+    verificado_por:        inc.verificado_por     || inc.verificadoPor || null,
+    // Fix QA (Finn) — TKT-202607-044: sla_deadline es timestamptz en tracker_incidents
+    // (confirmado vía information_schema.columns), no bigint. inc.slaDeadline vive en
+    // memoria como epoch ms (ver _mapRowToIncident) — convertir a ISO string antes de
+    // escribir o Postgres rechaza el upsert completo (invalid input syntax for type
+    // timestamp with time zone). Defensivo ante string ya-ISO por si el ítem no pasó
+    // aún por hidratación (creado client-side, sla_deadline sin normalizar todavía).
+    sla_deadline: (() => {
+      if (inc.slaDeadline == null) return null;
+      if (typeof inc.slaDeadline === 'number') return new Date(inc.slaDeadline).toISOString();
+      return inc.slaDeadline;
+    })(),
+    // Mismo updatedAtMs que _toItemRow — un único timestamp de escritura para todo el CHECKPOINT.
+    updated_at:            updatedAtMs
+  };
+}
+
 export async function saveBacklog() {
   _markUserAction();
   // T-[pendiente-ID]: purga inteligente — si localStorage supera el 80% de capacidad,
@@ -1542,152 +1702,6 @@ export async function saveBacklog() {
   // AC-4 (edge case icebox/P): project_id se deriva de projId — sprint:'icebox' sigue en columna sprint.
   // AC-5 (contrato): saveBacklog() → void — ningún call site requiere cambio.
 
-  // Construir filas para el upsert relacional. Los campos que Postgres espera como columnas
-  // tipadas se mapean explícitamente; el resto se serializa en el campo jsonb `extra` si la
-  // tabla lo tuviera (DDL de T1 no incluye `extra` — solo columnas declaradas).
-  // T-202606-008 fix: columnas alineadas con DDL de tracker_items (T-202606-007).
-  // Correcciones vs entrega inicial:
-  //   · tabla: 'items' → 'tracker_items'
-  //   · parent_id → parent   (nombre real de columna en DDL)
-  //   · origen_p  → origin_p (naming DDL Gen1) → origen_disc (DDL Gen2)
-  //   · verificado_por → verified_by (naming DDL)
-  //   · contract_update eliminado — columna no existe en DDL
-  //   · updated_at: ISO string → BIGINT epoch ms (tipo DDL: BIGINT)
-  function _toItemRow(it) {
-    return {
-      // T-202606-026: user_id obligatorio en cada fila — RLS de tracker_items (T-202606-024)
-      // filtra por user_id = auth.uid(). _supabaseUser está garantizado no-null en este punto
-      // por el gate `if (!_supabase || !_supabaseUser) { ...; return; }` anterior en saveBacklog().
-      user_id:              _supabaseUser.id,
-      project_id:           projId || null,
-      code:                 it.code             || null,
-      type:                 it.type             || null,
-      title:                it.title            || null,
-      status:               it.status           || null,
-      priority:             it.priority         || null,
-      effort:               it.effort != null ? Number(it.effort) : null,
-      area:                 it.area             || null,
-      // TKT2 (REQ-202607-026): columna `sprint` (texto compuesto) eliminada del outgoing —
-      // sprint_id/sprint_name son la única fuente persistida desde este TKT. DDL requerido:
-      // sí — ALTER TABLE tracker_items DROP COLUMN sprint; — no ejecutado desde el TKT,
-      // deuda registrada con escalate_to: Vera (mismo patrón que TKT2/contract-rename).
-      // TKT-202607-096 (REQ-202607-025): sprint_id/sprint_name como columnas propias —
-      // NUNCA usar `|| null`: '' es valor legítimo post-migración (ítem sin sprint,
-      // Q-Backlog) y debe preservarse tal cual, sin colapsar junto con undefined a null.
-      sprint_id:            it.sprint_id !== undefined ? it.sprint_id : null,
-      sprint_name:          it.sprint_name !== undefined ? it.sprint_name : null,
-      role:                 it.role             || null,
-      // DDL: columna 'parent' TEXT (no 'parent_id') · T-[pendiente-ID]: parentId es el único
-      // campo canónico en JS — fallback it.parent eliminado (REQ-unify-parent TKT2)
-      parent:               it.parentId         || null,
-      // depends_on: array JS → text[] Postgres · campo canónico en JS es dependsOn (camelCase)
-      // INC triggered_by TKT-202607-063: leía it.depends_on — siempre undefined, persistía [] sin importar el dato real.
-      depends_on:           Array.isArray(it.dependsOn) ? it.dependsOn : [],
-      triggered_by:         it.triggered_by     || null,
-      no_incluye:           it.no_incluye != null ? it.no_incluye : null,
-      kill_criteria:        it.kill_criteria    || null,
-      promovida_a:          it.promovida_a      || null,
-      // DDL: columna renombrada origen_disc (Gen2) — era origin_p en Gen1
-      origen_disc:          it.origenDisc       || null,
-      // INC-[pendiente-ID]: fallback a camelCase — item.discardReason es el campo que
-      // escribe la lógica de negocio (locus-backlog-core.js, sanitize-doneat-mismatch);
-      // sin este fallback un ítem con status:'descartado' llegaba con discard_reason:null
-      // y violaba tracker_items_discard_reason_check. Mismo motivo que el fallback ya
-      // aplicado a comportamiento_actual/origin_module en _toIncidentRow (TKT-202607-INC-NAMING).
-      discard_reason:       it.discard_reason   || it.discardReason || null,
-      comportamiento_actual: it.comportamiento_actual || null,
-      origin_module:        it.origin_module    || null,
-      // DDL: columna 'verified_by' TEXT (no 'verificado_por')
-      verified_by:          it.verificado_por   || null,
-      schema_version:       it.schema_version != null ? Number(it.schema_version) : 2,
-      // ac: array JS → jsonb Postgres
-      ac:                   Array.isArray(it.ac) ? it.ac : [],
-      // intencion, contract_detail: objetos → jsonb Postgres
-      // T-[pendiente-ID] (REQ-contract-rename, TKT2): contract_detail reemplaza a contract —
-      // alineado a BR-Execution §2. Sin retrocompatibilidad — it.contract ya no se lee.
-      intencion:            it.intencion        || null,
-      contract_detail:      it.contract_detail  || null,
-      // Campos Gen2 agregados en ALTER TABLE (T-[pendiente-ID])
-      next_role:            it.nextRole          || null,
-      design_intent:        it.designIntent      || null,
-      blocked_at:           it.blockedAt         || null,
-      contract_update:      it.contract_update   || null,
-      archivos:             Array.isArray(it.archivos) ? it.archivos : null,
-      sla_priority:         it.sla_priority      || null,
-      sla_deadline:         it.slaDeadline       != null ? it.slaDeadline : null,
-      incident_status:      incIncidentStatus(it),
-      resolution_type:      incResolutionType(it),
-      derived_items:        Array.isArray(it.derived_items) ? it.derived_items : null,
-      queue:                it.queue             || null,
-      // INC-[pendiente-ID] fix: archived_at/done_at no estaban mapeadas en ningún punto de
-      // _toItemRow() — el cierre de sprint (migrateClosedItemsToHistorico, locus-backlog-historico.js)
-      // setea item.archivedAt en memoria pero nunca se persistía en Supabase. done_at no tenía
-      // ningún productor de escritura hacia la fila — se persiste aquí desde item.doneAt
-      // (locus-backlog-core.js ya lo popula al transicionar a status:done). Ambos epoch ms,
-      // mismo criterio != null que sla_deadline — 0 no es valor legítimo para estos campos,
-      // pero se preserva por consistencia con el resto del mapeo.
-      archived_at:          it.archivedAt != null ? it.archivedAt : null,
-      done_at:              it.doneAt     != null ? it.doneAt     : null,
-      // DDL: updated_at BIGINT (epoch ms) — no ISO string
-      // _updatedAtMs calculado una vez fuera de _toItemRow — todas las filas comparten el mismo valor (AC-3)
-      updated_at:           _updatedAtMs
-    };
-  }
-
-  // TKT-202607-044 (REQ-202607-015): _toIncidentRow() — mapeo hacia las columnas reales
-  // de tracker_incidents (verificadas vía information_schema — 18 columnas, schema propio
-  // y más angosto que tracker_items: sin status/priority/effort/area/sprint/parent/
-  // depends_on, que no existen en esta tabla). onConflict:code — mismo target que _toItemRow().
-  // TKT4 (REQ CAEL-01 · PP-S-02): ALTER TABLE aplicado por el founder — role, next_role, ac,
-  // queue y verificado_por agregados a tracker_incidents (BR-Ecosystem §5/§8 los declara
-  // parte del schema de INC/PRB/KE/CHG; antes se perdían al persistir). ac se envía siempre
-  // como array — nunca null ni ausente (AC-3 de TKT4: `ac:[]` si el ítem no lo declara).
-  function _toIncidentRow(inc) {
-    return {
-      user_id:               _supabaseUser.id,
-      project_id:            projId || null,
-      code:                  inc.code               || null,
-      type:                  inc.type               || null,
-      title:                 inc.title              || null,
-      triggered_by:          inc.triggered_by       || null,
-      // TKT-202607-INC-NAMING: fallback a camelCase — mismo motivo que el gate de exclusión
-      // arriba en esta función. inc.originModule/inc.comportamientoActual son los nombres
-      // reales que trae un INC recién parseado (locus-session-parse.js); sin fallback, un
-      // incidente nuevo llegaba con estos campos en null incluso siendo obligatorios.
-      comportamiento_actual: incComportamientoActual(inc),
-      origin_module:         incOriginModule(inc),
-      archivos:              Array.isArray(inc.archivos) ? inc.archivos : null,
-      derived_items:         incDerivedItems(inc),
-      sla_priority:          incSlaPriority(inc),
-      incident_status:       incIncidentStatus(inc),
-      resolution_type:       incResolutionType(inc),
-      // INC-[pendiente-ID]: mismo fallback camelCase que _toItemRow() — ver nota ahí.
-      discard_reason:        inc.discard_reason     || inc.discardReason || null,
-      // TKT4 (REQ CAEL-01): role/next_role sin transformación de nombre — mismo campo en
-      // memoria y en columna. verificado_por (snake_case en columna, sin contraparte
-      // camelCase en el modelo — BR-Core §6 Variante ligera de INC usa el literal
-      // 'verificado_por', no 'verifiedPor').
-      role:                  inc.role               || null,
-      next_role:             inc.next_role          || inc.nextRole || null,
-      // AC-3: ac se guarda como array siempre — [] si el incidente no lo declara, nunca null.
-      ac:                    Array.isArray(inc.ac) ? inc.ac : [],
-      queue:                 inc.queue              || null,
-      verificado_por:        inc.verificado_por     || inc.verificadoPor || null,
-      // Fix QA (Finn) — TKT-202607-044: sla_deadline es timestamptz en tracker_incidents
-      // (confirmado vía information_schema.columns), no bigint. inc.slaDeadline vive en
-      // memoria como epoch ms (ver _mapRowToIncident) — convertir a ISO string antes de
-      // escribir o Postgres rechaza el upsert completo (invalid input syntax for type
-      // timestamp with time zone). Defensivo ante string ya-ISO por si el ítem no pasó
-      // aún por hidratación (creado client-side, sla_deadline sin normalizar todavía).
-      sla_deadline: (() => {
-        if (inc.slaDeadline == null) return null;
-        if (typeof inc.slaDeadline === 'number') return new Date(inc.slaDeadline).toISOString();
-        return inc.slaDeadline;
-      })(),
-      // Mismo _updatedAtMs que _toItemRow — un único timestamp de escritura para todo el CHECKPOINT.
-      updated_at:            _updatedAtMs
-    };
-  }
 
   // AC-3: un único timestamp epoch para todas las filas del batch — calculado antes de map().
   // DDL: updated_at BIGINT (epoch ms) — usado tal cual en cada fila del upsert a tracker_items.
@@ -1731,7 +1745,7 @@ export async function saveBacklog() {
   // respecto al contrato original (AC6/AC7 del TKT).
   await syncState.withSaveLock(async () => {
   try {
-    const rows = items.map(_toItemRow);
+    const rows = items.map(it => _toItemRow(it, { projId, userId: _supabaseUser.id, updatedAtMs: _updatedAtMs }));
 
     // B-202606-093: deduplicar por code antes del upsert — Postgres rechaza un batch con
     // el mismo code dos veces aunque onConflict esté declarado (viola unique constraint
@@ -1788,7 +1802,7 @@ export async function saveBacklog() {
   // arriba (pre-upsert) es la única garantía de no pérdida de dato hasta el siguiente
   // saveBacklog() exitoso.
   try {
-    const incidentRows = incidents.map(_toIncidentRow);
+    const incidentRows = incidents.map(inc => _toIncidentRow(inc, { projId, userId: _supabaseUser.id, updatedAtMs: _updatedAtMs }));
     const _incRowsMap = new Map();
     for (const row of incidentRows) _incRowsMap.set(row.code, row);
     const dedupedIncidentRows = Array.from(_incRowsMap.values());
@@ -2633,7 +2647,7 @@ function _mergeSessionsFromRemote(sessResult) {
 // (3) exclusión ITIL — filas INC/PRB/KE/CHG remanentes en tracker_items nunca se mergean aquí
 function _mergeItemsFromRemote(itemsResult, _itemsRef) {
   if (syncState.isSaveInFlight()) {
-    console.log('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + syncState.getSaveInFlightCount() + ') — merge de tracker_items omitido en esta pasada.');
+    console.log('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + syncState.getSaveInFlightCount() + ') hace ' + syncState.getSaveLockAgeMs() + 'ms — merge de tracker_items omitido en esta pasada.');
     return;
   }
   try {
@@ -2752,7 +2766,7 @@ function _mergeItemsFromRemote(itemsResult, _itemsRef) {
 // read-after-write (B-202606-094), aplicados a tracker_incidents en vez de tracker_items.
 function _mergeIncidentsFromRemote(incidentsResult, _incidentsRef) {
   if (syncState.isSaveInFlight()) {
-    console.log('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + syncState.getSaveInFlightCount() + ') — merge de tracker_incidents omitido en esta pasada.');
+    console.log('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + syncState.getSaveInFlightCount() + ') hace ' + syncState.getSaveLockAgeMs() + 'ms — merge de tracker_incidents omitido en esta pasada.');
     return;
   }
   try {
