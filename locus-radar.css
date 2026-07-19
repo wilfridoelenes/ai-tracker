@@ -1,4 +1,4 @@
-/* [PP] mod:6 · autor:Nova · 2026-07-17 UTC-6 */
+/* [PP] mod:7 · autor:Nova · 2026-07-18 UTC-6 */
 /* CAEL-0717-0X: swap semántico insession↔interrupted — decisión founder. Semáforo
    verde/naranja/rojo para available/insession/exhausted; interrupted hereda el morado
    que insession libera. Selectores migrados: .rsb-card.interrupted-state ·
@@ -10,6 +10,15 @@
    insession ahora ámbar, el warning de sesión larga necesitaba un tercer tono para
    seguir comunicando escalada de urgencia sin fundirse con el estado base. Ver
    comentario inline en el selector + doc-update en _Locus-css-ref/_Locus-ux-ref. */
+/* CAEL-0718-0X (mod:7): ajuste posterior sobre .rsb-hdr-session — el swap de mod:6
+   llevó el pill de conteo "X en sesión" a ámbar en dark theme, dejando el light
+   theme con el púrpura anterior sin migrar (inconsistencia entre temas). Decisión
+   founder: el pill NO sigue el ámbar de la card/CTA — vuelve a púrpura (var(--purple))
+   en ambos temas, consistente entre sí. El dot dentro del pill se desacopla del color
+   del pill — pasa a var(--text3) (gris terciario) en vez de heredar ámbar/púrpura,
+   evitando doble señal de color dentro de un mismo pill. Sin cambio en
+   .rsb-card.in-session-state ni .rsb-ckpt-direct-btn — la card y el CTA de sesión
+   activa siguen ámbar, sin relación con este ajuste. */
 /* locus-radar.css */
 /* Versión: 1.3 | Última actualización: 2026-05-13 | B1 fondo explícito sidebar · B2 auto-init JS (ver nota) · B3 pin icon dual SVG */
 
@@ -654,26 +663,27 @@
   background: var(--red);
 }
 
-/* en sesión — pulse. Ámbar tras CAEL-0717-0X. */
+/* en sesión — pill púrpura (CAEL-0718-0X, mod:7). Dot desacoplado del color del
+   pill — gris terciario, no repite el acento del pill ni el ámbar de la card. */
 .rsb-hdr-session {
-  background: rgb(245 158 11 / 12%);
-  color: var(--amber);
+  background: color-mix(in srgb, var(--purple) 10%, transparent);
+  color: var(--purple);
 }
 
 .rsb-hdr-session .rsb-hdr-dot {
-  background: var(--amber);
+  background: var(--text3);
   animation: rsb-dot-pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes rsb-dot-pulse {
   0%, 100% {
     opacity: 1;
-    box-shadow: 0 0 0 0   rgb(167 139 250 / 50%);
+    box-shadow: 0 0 0 0   rgb(134 139 184 / 50%);
   }
 
   50% {
     opacity: 0.7;
-    box-shadow: 0 0 0 3px rgb(167 139 250 / 0%);
+    box-shadow: 0 0 0 3px rgb(134 139 184 / 0%);
   }
 }
 
@@ -687,24 +697,24 @@
 }
 
 :root[data-theme="light"] .rsb-hdr-session {
-  background: rgb(124 58 237 / 8%);
-  color: #7c3aed;
+  background: color-mix(in srgb, var(--purple) 8%, transparent);
+  color: var(--purple);
 }
 
 :root[data-theme="light"] .rsb-hdr-session .rsb-hdr-dot {
-  background: #7c3aed;
+  background: var(--text3);
   animation: rsb-dot-pulse-light 1.5s ease-in-out infinite;
 }
 
 @keyframes rsb-dot-pulse-light {
   0%, 100% {
     opacity: 1;
-    box-shadow: 0 0 0 0   rgb(124 58 237 / 40%);
+    box-shadow: 0 0 0 0   rgb(90 97 146 / 40%);
   }
 
   50% {
     opacity: 0.7;
-    box-shadow: 0 0 0 3px rgb(124 58 237 / 0%);
+    box-shadow: 0 0 0 3px rgb(90 97 146 / 0%);
   }
 }
 

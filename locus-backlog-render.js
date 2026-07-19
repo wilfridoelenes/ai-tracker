@@ -1,3 +1,15 @@
+// [PP] mod:91 · autor:Rune · 2026-07-18 UTC-6
+// TKT (REQ-[pendiente-ID] Paridad IDP Q-INC — Opción A, founder confirmó "vamos con opcion A
+//   pure" sobre hallazgo #2 de la auditoría de render): _attachQIncDelegation gana wiring
+//   completo para abrir el IDP desde .qinc-item-header — mismo patrón que .bitem-header
+//   (locus-backlog-item.js). Import dinámico de openItemPanel (locus-backlog-panel.js) evita
+//   ciclo ESM ya documentado en locus-ui-shell.js. Orden de checks corregido: copy-code se
+//   evalúa antes que qi-open-panel (copy-code vive anidado dentro de .qinc-item-header — un
+//   orden inverso habría capturado el click de copiado con el header ancestro). Keydown
+//   Enter/Espacio agregado para qi-open-panel (header es role="button" div, no <button>
+//   nativo) — mismo criterio que _blListKeydown para .bitem-header. qi-toggle-comportamiento
+//   no requiere keydown propio — ya es <button> nativo tras el fix del hallazgo #1. Sin
+//   cambio de firma exportada. contract_update: no.
 // [PP] mod:90 · autor:Rune · 2026-07-18 UTC-6
 // TKT1 (REQ-[pendiente-ID] Import huérfano _renderPlanningView, ref CAEL-0717-03): import de
 // _renderPlanningView retirado (línea 184) — sin call site en este archivo, confirmado con
@@ -1190,6 +1202,10 @@ function _attachQIncDelegation(container) {
 
   container.addEventListener('click', function _qiClick(e) {
     // --- copy-code: patrón idéntico al Backlog principal ---
+    // Orden crítico: debe evaluarse ANTES que qi-open-panel — el botón copy-code vive anidado
+    // dentro de .qinc-item-header, que ahora también lleva data-qi-action="qi-open-panel"
+    // (ver buildQIncItem() mod:115). Si qi-open-panel se evaluara primero, closest() del click
+    // en copy-code también matchearía el header ancestro y el copiado nunca se ejecutaría.
     const copyBtn = e.target.closest('[data-action="copy-code"]');
     if (copyBtn) {
       e.stopPropagation();
@@ -1199,6 +1215,18 @@ function _attachQIncDelegation(container) {
         copyBtn.classList.add('is-copied');
         setTimeout(() => copyBtn.classList.remove('is-copied'), 1500);
       }
+      return;
+    }
+
+    // --- qi-open-panel: paridad con .bitem-header — abre el IDP (Item Detail Panel) ---
+    // TKT (paridad IDP Q-INC, 2026-07-18): import dinámico — locus-backlog-panel.js ya importa
+    // renderBacklogList de este archivo; un import estático de openItemPanel aquí crearía un
+    // ciclo ESM. Mismo patrón ya documentado en locus-ui-shell.js (navigateToItem dinámico).
+    const openPanelTrigger = e.target.closest('[data-qi-action="qi-open-panel"]');
+    if (openPanelTrigger) {
+      const card = openPanelTrigger.closest('.qinc-item[data-code]');
+      const code = card ? card.dataset.code : null;
+      if (code) import('./locus-backlog-panel.js').then(m => m.openItemPanel(code));
       return;
     }
 
@@ -1241,6 +1269,18 @@ function _attachQIncDelegation(container) {
       _nsSetQuery('qinc', input.value);
       renderQIncPanel();
     }, 200);
+  });
+
+  // Enter/Espacio sobre .qinc-item-header (role="button" tabindex="0", div no nativo) — mismo
+  // criterio que _blListKeydown para .bitem-header (locus-backlog-item.js L378-386). El botón
+  // qi-toggle-comportamiento no necesita esto: es un <button> nativo, activación por teclado ya
+  // viene del navegador.
+  container.addEventListener('keydown', function _qiKeydown(e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const trigger = e.target.closest('[data-qi-action="qi-open-panel"]');
+    if (!trigger) return;
+    e.preventDefault();
+    trigger.click();
   });
 }
 

@@ -1272,6 +1272,148 @@ export function _relTs(ts) {
 // código. locus-session-parse y locus-session-save no invocan saveBacklog() directamente —
 // corregido tras auditoría T-[pendiente-ID], el comentario original los listaba por error.
 // localStorage se mantiene como caché/fallback (sin auth).
+// CAEL-0718-10 (TKT1 · REQ CAEL-0718-09): extraído de saveBacklog() sin cambio de
+// comportamiento — mismo bloque que antes vivía inline antes de "const items = ...filter".
+// _VALID_STATUS_BY_TYPE / _VALID_ITEM_TYPES se mueven de local-a-saveBacklog a
+// local-a-esta-función — nota de deuda en línea ~796 (duplicación con _CANONICAL_TYPES/
+// _CANONICAL_STATUS_BY_TYPE) sigue vigente, solo cambia dónde vive el scope.
+// Gates preservados íntegros: chk_type_canonico (ITIL excluido + tipo no canónico) y
+// chk_status_by_type (combinación type+status inválida) — mismos console.warn, mismo
+// _dispatch('storage:item-excluded'), mismo toast.
+function _filterValidItemsForUpsert(_rawItems) {
+  // Gate de validación estructural — un ítem con status:'historico' nunca llega
+  // a Supabase ni a localStorage. status:'historico' es de solo lectura,
+  // asignado únicamente por Locus al cerrar sprint.
+  //
+  // B-202606-097: gate chk_status_by_type — reflejo client-side del CHECK constraint de
+  // Postgres (T-202606-007 DDL). Un ítem con combinación type+status inválida se excluye
+  // del upsert hasta que su status sea corregido. No se elimina de ITEMS en memoria.
+  // TKT-B5b: Estados válidos por tipo — alineados con DDL real Gen2 (ALTER aplicado
+  // 2026-06-27, ver tracking REQ-B5b) y con VALID_TRANSITIONS en locus-session-save.js —
+  // misma fuente de verdad, sin contradicción entre los dos archivos:
+  //   REQ:  pendiente · en-proceso · en-revision · done · bloqueado · orphaned · descartado
+  //   TKT:  pendiente · en-revision · done · descartado
+  //   INC:  detected · assigned · in_progress · resolved · closed · escalated_to_prb · escalated_to_chg · descartado
+  //   PRB:  detected · in_progress · resolved · closed · descartado
+  //   KE:   active · resolved · descartado
+  //   CHG:  pendiente · en-revision · done · descartado
+  //   DISC: discovery · promoted · descartado
+  // Nota: historico se excluye antes de llegar aquí por el gate `it.status === 'historico'`
+  // arriba — ningún tipo lo declara en su propio Set porque es asignado exclusivamente
+  // por Locus al cerrar sprint (__BR-Ecosystem §5), no un status nativo del ciclo de vida.
+  const _VALID_STATUS_BY_TYPE = {
+    REQ:  new Set(['pendiente', 'en-proceso', 'en-revision', 'done', 'bloqueado', 'orphaned', 'descartado']),
+    TKT:  new Set(['pendiente', 'en-revision', 'done', 'descartado']),
+    INC:  new Set(['detected', 'assigned', 'in_progress', 'resolved', 'closed', 'escalated_to_prb', 'escalated_to_chg', 'descartado']),
+    PRB:  new Set(['detected', 'in_progress', 'resolved', 'closed', 'descartado']),
+    KE:   new Set(['active', 'resolved', 'descartado']),
+    CHG:  new Set(['pendiente', 'en-revision', 'done', 'descartado']),
+    DISC: new Set(['discovery', 'promoted', 'descartado']),
+  };
+
+  // INC-[pendiente-ID]: gate chk_type_canonico — reflejo client-side de tracker_items_type_check
+  // (Postgres). Un ítem cuyo .type no es uno de los 7 tipos canónicos del ecosistema nunca debe
+  // llegar al upsert — 'patch' es instrucción de operación del parser, no un tipo de ítem, y no
+  // debe persistir como valor de columna type bajo ninguna circunstancia, sin importar cómo llegó
+  // a getItems(). Sin este gate, una sola fila corrupta en memoria bloquea TODO el batch de
+  // saveBacklog() — incluyendo ítems legítimos no relacionados — porque Postgres rechaza el INSERT
+  // completo, no solo la fila inválida.
+  // INC-202607-009: tracker_items es exclusivamente para BACKLOG_TYPES (REQ/TKT/DISC) desde
+  // TKT-202607-005 — ITIL (INC/PRB/KE/CHG) vive solo en tracker_incidents. El set anterior
+  // incluía los 7 tipos canónicos del ecosistema, no los 3 válidos para ESTA tabla — permitía
+  // que filas ITIL se escribieran aquí sin sla_priority (columna que no existe en tracker_items),
+  // dejando remanentes que el merge de _loadFromSupabase volvía a traer a memoria en cada carga.
+  const _VALID_ITEM_TYPES = new Set(['REQ', 'TKT', 'DISC']);
+
+  return _rawItems.filter(it => {
+    if (it.status === 'historico') {
+      console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido — status:historico es de solo lectura, asignado por Locus al cerrar sprint`);
+      _dispatch('storage:item-excluded', { code: it.code || '[pendiente-ID]', type: it.type, reason: 'status:historico es de solo lectura' });
+      return false;
+    }
+    // INC-[pendiente-ID]: excluir cualquier ítem con type no canónico — incluye el caso 'patch'
+    // que originó el INC (tracker_items_type_check, 23514). Se excluye ANTES del gate de
+    // status+type porque _VALID_STATUS_BY_TYPE[it.type] sería undefined para un type inválido,
+    // y `if (_validStatuses && ...)` con _validStatuses undefined NO filtra — dejaba pasar
+    // silenciosamente cualquier type corrupto. Este gate cierra ese hueco.
+    // INC-202607-009: ITIL (INC/PRB/KE/CHG) es una exclusión esperada de esta tabla — no un
+    // dato corrupto — desde que _VALID_ITEM_TYPES se acotó a BACKLOG_TYPES. Se distingue del
+    // resto para no alarmar al founder con un toast de "dato corrupto" ante algo por diseño.
+    if (['INC', 'PRB', 'KE', 'CHG'].includes(it.type)) {
+      console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido de tracker_items — type:${it.type} es ITIL, vive exclusivamente en tracker_incidents.`);
+      return false;
+    }
+    if (!_VALID_ITEM_TYPES.has(it.type)) {
+      console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido del upsert — type:"${it.type}" no es un tipo canónico de tracker_items (REQ/TKT/DISC). Viola tracker_items_type_check.`);
+      _dispatch('storage:item-excluded', { code: it.code || '[sin code]', type: it.type, reason: `type:"${it.type}" no es canónico — viola tracker_items_type_check` });
+      setTimeout(() => showToast('error', `${it.code || '[sin code]'} no se guardó — type:"${it.type}" inválido (no canónico). Revisar con Rune — dato corrupto en memoria.`, null, 8000), 0);
+      return false;
+    }
+    // B-202606-097: excluir combinaciones type+status que violarían chk_status_by_type en Postgres.
+    // El ítem permanece en ITEMS en memoria — solo se bloquea del upsert hasta corrección.
+    // B-[pendiente-ID]: toast visible agregado — antes esta exclusión era silenciosa para el
+    // founder (solo console.warn + evento), lo que hizo invisible el fallo de persistencia
+    // tras el patch R→done de Finn en B-202606-100.
+    const _validStatuses = _VALID_STATUS_BY_TYPE[it.type];
+    if (_validStatuses && !_validStatuses.has(it.status)) {
+      console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido del upsert — type:${it.type} no puede tener status:${it.status} (viola chk_status_by_type)`);
+      _dispatch('storage:item-excluded', { code: it.code || '[pendiente-ID]', type: it.type, reason: `type:${it.type} no puede tener status:${it.status} — viola chk_status_by_type` });
+      setTimeout(() => showToast('warning', `${it.code || '[sin code]'} no se guardó — combinación type:${it.type}/status:${it.status} inválida (chk_status_by_type). Revisar con Rune.`, null, 8000), 0);
+      return false;
+    }
+    return true;
+  });
+}
+
+// CAEL-0718-10 (TKT1 · REQ CAEL-0718-09): extraído de saveBacklog() sin cambio de
+// comportamiento — mismo bloque que antes vivía inline antes de "const incidents = ...filter".
+// Gates preservados íntegros: tipo canónico ITIL, chk_incident_status_by_type, sla_priority NOT NULL.
+function _filterValidIncidentsForUpsert(_rawIncidents) {
+  // TKT-202607-044 (REQ-202607-015): INCIDENTS — array separado de ITEMS desde
+  // TKT-202607-005, persiste en tabla propia tracker_incidents (no tracker_items).
+  // Mismo criterio de gate que ITEMS — una fila de tipo o incident_status inválido
+  // haría rechazar el batch completo en Postgres (chk_incident_status_by_type).
+  const _VALID_INCIDENT_TYPES = new Set(['INC', 'PRB', 'KE', 'CHG']);
+  const _VALID_INCIDENT_STATUS_BY_TYPE = {
+    INC: new Set(['detected', 'assigned', 'in_progress', 'resolved', 'closed', 'escalated_to_prb', 'escalated_to_chg', 'descartado']),
+    PRB: new Set(['detected', 'in_progress', 'resolved', 'closed', 'descartado']),
+    KE:  new Set(['active', 'resolved', 'descartado']),
+    CHG: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
+  };
+  return _rawIncidents.filter(inc => {
+    const _incStatusRaw = incIncidentStatus(inc);
+    if (_incStatusRaw === 'historico') {
+      console.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido — incident_status:historico es de solo lectura, asignado por Locus al cerrar sprint`);
+      return false;
+    }
+    if (!_VALID_INCIDENT_TYPES.has(inc.type)) {
+      console.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido del upsert — type:"${inc.type}" no es un tipo canónico de incidente (INC/PRB/KE/CHG).`);
+      return false;
+    }
+    const _validIncStatuses = _VALID_INCIDENT_STATUS_BY_TYPE[inc.type];
+    if (_validIncStatuses && _incStatusRaw && !_validIncStatuses.has(_incStatusRaw)) {
+      console.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido del upsert — type:${inc.type} no puede tener incident_status:${_incStatusRaw} (viola chk_incident_status_by_type)`);
+      return false;
+    }
+    // INC-202607-[pendiente-ID]: sla_priority es NOT NULL en tracker_incidents y obligatorio
+    // en todo INC/PRB/KE/CHG (__BR-Ecosystem §5). Sin este gate, _toIncidentRow() enviaba
+    // sla_priority:null y Postgres rechazaba el batch completo (23502) en cada upsert —
+    // loop de error en cada evento Realtime. Se excluye la fila (mismo tratamiento que type/
+    // incident_status inválidos) en vez de asignar un default de negocio no solicitado.
+    // TKT-202607-INC-NAMING: inc.sla_priority (snake) es el nombre de columna en Postgres,
+    // pero locus-session-parse.js entrega el campo en camelCase (slaPriority) para un INC
+    // recién creado en la sesión activa — sin este fallback, saveBacklog() excluía en
+    // silencio (solo console.warn) todo incidente nuevo del upsert a Supabase, incluso
+    // teniendo sla_priority válido. Mismo patrón de fallback ya usado en incident_status/
+    // resolution_type unas líneas más abajo en este mismo archivo.
+    if (!incSlaPriority(inc)) {
+      console.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido del upsert — sla_priority ausente (viola NOT NULL de tracker_incidents). Requiere sla_priority declarado por Cael/Finn.`);
+      return false;
+    }
+    return true;
+  });
+}
+
 export async function saveBacklog() {
   _markUserAction();
   // T-[pendiente-ID]: purga inteligente — si localStorage supera el 80% de capacidad,
