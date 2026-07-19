@@ -1,3 +1,18 @@
+// [PP] mod:128 · autor:Rune · 2026-07-18 UTC-6
+// TKT1 (REQ CAEL-0718-01 · AC1-3): agregada _extractCkptMeta(ckpt) — función pura compartida
+//   que extrae resumen/aprendizaje/bloqueantes/decision/proximoPaso/docUpdates/
+//   finnObservations/finnRelease/draft/draftRaw/rol/titulo de un ckpt ya parseado, sin
+//   sprintProposal (AC3 — retirado por diseño, ver TKT4). Consumida en dos puntos: (1) parsePaste
+//   reemplaza los ternarios inline que construían docUpdates/finnObservations/finnRelease/draft/
+//   draftRaw/rol dentro de ai._parsed por _ckptMetaShared — mismos valores producidos, cero
+//   regresión (AC1); sprintProposal sigue construyéndose inline, fuera del contrato de esta
+//   función. (2) _resolveCheckpointBatch gana campo `metas` — un _extractCkptMeta por bloque
+//   válido del batch, empujado en el mismo forEach que combina tgItems/patchItems (Paso 3), por
+//   lo que metas[i] corresponde siempre al bloque i-ésimo válido en el mismo orden (AC1). Bloque
+//   sin resumen → metas[i].resumen es '' sin excepción (AC2). _parseBatchBlock propaga `ckpt` en
+//   su return (ya lo tenía, solo no llegaba hasta _resolveCheckpointBatch — ahora capturado en
+//   Paso 1 junto a tgItems/patchItems). no_incluye: no modifica showMergeDiffPanel (TKT3, otro
+//   archivo) ni retira sprint_proposal de este flujo (TKT4).
 // [PP] mod:127 · autor:Rune · 2026-07-17 21:15 UTC-6
 // TKT-202607-033 (REQ-202607-005 AC3): agregada const _INFRA_DOC_NAMES (br-core/br-ecosystem/
 //   br-execution/ob-strategy, ver __OB-Strategy §5) y detección dentro del forEach de
@@ -867,6 +882,42 @@ export function parseCheckpoint(text) {
   return null;
 }
 
+// TKT1 (REQ CAEL-0718-01 · AC1-3, parte 1/2 — extracción): función pura compartida que extrae
+//   los campos narrativos de un ckpt ya parseado (parseCheckpoint). Antes de este TKT existían
+//   dos construcciones independientes del mismo tipo de dato: inline en ai._parsed (parsePaste,
+//   flujo embebido) y ausente por completo en el flujo batch (ckptMeta:{} hardcodeado en
+//   _processIngestBatch — deuda declarada en mod:126/mod:127). Este TKT unifica la extracción;
+//   la propagación por bloque en el flujo batch (campo `metas` de _resolveCheckpointBatch) y el
+//   consumo en showMergeDiffPanel quedan en el mismo TKT (parte 2/2, más abajo en este archivo)
+//   y en TKT3 (locus-backlog-merge.js) respectivamente.
+// Invariants: función pura — nunca muta `ckpt`. No incluye sprintProposal — retirado por diseño
+//   del REQ (ver TKT4, Opción B aprobada por el founder: la única ruta de creación de sprint
+//   queda en locus-sprint.js). No incluye duration/docsVerified/tensionsResolved/archivos — esos
+//   campos no forman parte del contrato de tarjeta narrativa (TKT3); siguen viviendo solo en
+//   ai._parsed para el flujo embebido, sin cambio en este TKT.
+// AC1: dos ckpt con resumen distinto → cada llamada retorna el resumen de su propio ckpt, sin
+//   mezcla entre llamadas (función pura, sin estado compartido).
+// AC2: ckpt sin resumen (o ckpt null) → resumen: '' — nunca undefined, sin excepción lanzada.
+// AC3: ckpt._rawSprintProposal presente (no-null) → el objeto retornado no declara ninguna clave
+//   sprintProposal, ni siquiera undefined.
+function _extractCkptMeta(ckpt) {
+  const _c = ckpt || {};
+  return {
+    resumen:          _c.resumen     || '',
+    aprendizaje:      _c.aprendizaje || '',
+    bloqueantes:      _c.bloqueantes || '',
+    decision:         _c.decision    || '',
+    proximoPaso:      _c.proximoPaso || '',
+    docUpdates:       _c._isJsonFormat ? (_c._rawDocUpdates || [])        : [],
+    finnObservations: _c._isJsonFormat ? (_c._rawFinnObservations || null) : null,
+    finnRelease:      _c._isJsonFormat ? (_c._rawFinnRelease || null)      : null,
+    draft:            _c.draft === true,
+    draftRaw:         _c.draftRaw,
+    rol:              _c.rol    || '',
+    titulo:           _c.titulo || ''
+  };
+}
+
 // T-202604-200: actualiza la mini barra de progreso 3 fases del card
 // phase: 1=Pegar (inicial), 2=Confirmar (CHECKPOINT válido), 3=Guardar (sesión persistida)
 export function _setPhase(id, phase) {
@@ -1518,32 +1569,39 @@ export function parsePaste(id) {
 
   const _pendingPatches = window[`_patchItems_${id}`] || [];
   delete window[`_patchItems_${id}`];
+  // TKT1 (REQ CAEL-0718-01 · no_incluye): docUpdates/finnObservations/finnRelease/draft/draftRaw/
+  //   rol se leían antes vía ternarios inline repetidos aquí — ahora vienen de _extractCkptMeta,
+  //   misma función que alimenta `metas` en el flujo batch (_resolveCheckpointBatch, más abajo).
+  //   Valores producidos idénticos a los ternarios previos — ver equivalencia en el CHECKPOINT de
+  //   entrega. sprintProposal queda fuera del contrato de _extractCkptMeta (AC3) — sigue
+  //   construyéndose inline aquí sin cambio, retiro completo pendiente de TKT4.
+  const _ckptMetaShared = _extractCkptMeta(ckpt);
   ai._parsed = { title, summary, files, tgItems, patchItems: _pendingPatches, isCheckpoint, nextStep, ckptProyecto: ckpt ? (ckpt.proyecto || '') : '', inlineFixes: _inlineFixes,
     // T-202606-016: campos informativos adicionales
     duration:         ckpt ? (ckpt.duration         || '') : '',
     docsVerified:     ckpt ? (ckpt.docsVerified      || '') : '',
     tensionsResolved: ckpt ? (ckpt.tensionsResolved  || '') : '',
     // T-202606-017: doc_updates y sprint_proposal — path JSON puro
-    docUpdates:       (ckpt && ckpt._isJsonFormat) ? (ckpt._rawDocUpdates   || []) : [],
+    docUpdates:       _ckptMetaShared.docUpdates,
     sprintProposal:   (ckpt && ckpt._isJsonFormat) ? (ckpt._rawSprintProposal || null) : null,
     // T-202606-018: finn_observations — path JSON puro
-    finnObservations: (ckpt && ckpt._isJsonFormat) ? (ckpt._rawFinnObservations || null) : null,
+    finnObservations: _ckptMetaShared.finnObservations,
     // TKT2 (REQ CAEL-0717-01): finn_release — path JSON puro. Propagado hasta aquí; el punto
     //   donde este flujo llama a showMergeDiffPanel vive en locus-session-save.js (no adjunto
     //   en esta sesión, no declarado en el campo `archivos` del TKT) — ver bloqueo declarado
     //   en el CHECKPOINT de entrega.
-    finnRelease: (ckpt && ckpt._isJsonFormat) ? (ckpt._rawFinnRelease || null) : null,
+    finnRelease: _ckptMetaShared.finnRelease,
     // T-202606-070: persistir rol y archivos del CHECKPOINT — ambos paths JSON y legacy
-    rol:      ckpt ? (ckpt.rol      || '') : '',
+    rol:      _ckptMetaShared.rol,
     archivos: ckpt ? (ckpt.archivos || '') : '',
     // T-202606-013: propagar draft a ai._parsed. El guard "secundario" en _doApplyMergeAndFinish
     //   que motivó esta propagación fue eliminado por huérfano (INC-202607-001, locus-session-save.js).
     //   La propagación sigue siendo necesaria por otros consumidores: draftPending (locus-session-save.js:551)
     //   y _baseMsg (locus-session-save.js:863) — DISC-202607-009.
-    draft: ckpt ? (ckpt.draft === true) : false,
+    draft: _ckptMetaShared.draft,
     // TKT-202606-014: propagar valor crudo (undefined/true/false) — ckpt.draftRaw es undefined
     // cuando ckpt es el fallback de parseCheckpoint nulo (línea ~700), igual que ausencia real del campo.
-    draftRaw: ckpt ? ckpt.draftRaw : undefined,
+    draftRaw: _ckptMetaShared.draftRaw,
     // T-202606-072: detectar devolución Finn→Cael — presente solo cuando rol comienza con 'QA' y texto contiene patrón
     ...(() => {
       const _rol = ckpt ? (ckpt.rol || '') : '';
@@ -2327,7 +2385,11 @@ function _parseBatchBlock(blockText) {
 //     mismo comportamiento que TKT2 tenía, ahora emitido desde la resolución en vez de la
 //     persistencia.
 export function _resolveCheckpointBatch(blocks, sessionId) {
-  const _result = { tgItems: [], patchItems: [], skipped: [] }; // TKT2 (REQ-[pendiente-ID] · CAEL-05): patchItems agregado — antes se descartaba por completo, ningún patch se aplicaba jamás en el flujo batch
+  // TKT1 (REQ CAEL-0718-01 · AC1, parte 2/2 — propagación): campo `metas` agregado — un
+  //   _extractCkptMeta por bloque válido, ver Paso 3 abajo. Antes de este TKT no existía en el
+  //   shape de retorno — el flujo batch (_processIngestBatch) no tenía forma de mostrar narrativa
+  //   por bloque, deuda declarada en mod:126/mod:127 (ckptMeta:{} hardcodeado).
+  const _result = { tgItems: [], patchItems: [], skipped: [], metas: [] }; // TKT2 (REQ-[pendiente-ID] · CAEL-05): patchItems agregado — antes se descartaba por completo, ningún patch se aplicaba jamás en el flujo batch
   if (!blocks || !blocks.length) return _result;
 
   // Paso 1 (AC2 heredado de TKT3): parsear cada bloque — inválido se marca, no aborta el resto.
@@ -2338,7 +2400,9 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
       _result.skipped.push({ idx, type: 'invalid', reason: r.error });
       return { idx, valid: false };
     }
-    return { idx, valid: true, tgItems: r.tgItems, patchItems: r.patchItems || [] }; // TKT2: patchItems capturado de _parseBatchBlock — ya lo retornaba (línea 1946), solo se descartaba aquí
+    // TKT1: r.ckpt capturado — fuente de _extractCkptMeta en Paso 3. _parseBatchBlock ya lo
+    //   retornaba (línea del `return { ok: true, ckpt, ... }`), solo no se propagaba hasta aquí.
+    return { idx, valid: true, tgItems: r.tgItems, patchItems: r.patchItems || [], ckpt: r.ckpt }; // TKT2: patchItems capturado de _parseBatchBlock — ya lo retornaba (línea 1946), solo se descartaba aquí
   });
 
   // Paso 2: gate de duplicados — [tmp:slug] como code de más de un ítem nuevo en el batch
@@ -2373,6 +2437,11 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
     if (b.valid) {
       _result.tgItems.push(...b.tgItems);
       _result.patchItems.push(...b.patchItems); // TKT2: mismo criterio de orden que tgItems
+      // TKT1 (REQ CAEL-0718-01 · AC1): un _extractCkptMeta por bloque válido, mismo índice que
+      //   su posición en _parsedBlocks — b.ckpt es el CHECKPOINT completo de ese bloque, no el
+      //   tgItems combinado, por lo que metas[i] siempre corresponde 1:1 al bloque i-ésimo válido
+      //   independiente de cuántos tgItems aporte ese bloque.
+      _result.metas.push(_extractCkptMeta(b.ckpt));
     }
   });
 
