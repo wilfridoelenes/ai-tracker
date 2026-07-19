@@ -1,4 +1,4 @@
-// [PP] mod:129 · autor:Rune · 2026-07-18 22:45 UTC-6
+// [PP] mod:130 · autor:Rune · 2026-07-18 UTC-6
 // CAEL-0718-18 (TKT2 · REQ CAEL-0718-16): los 82 console.log/warn/error de código real
 // reemplazados por logger.debug/warn/error (locus-logger.js) — 6 menciones dentro de
 // comentarios preservadas sin tocar. console.log → logger.debug (gateable por flag),
@@ -1401,7 +1401,18 @@ function _filterValidIncidentsForUpsert(_rawIncidents) {
     CHG: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
   };
   return _rawIncidents.filter(inc => {
-    const _incStatusRaw = incIncidentStatus(inc);
+    // INC-202607-012 (TKT1): CHG declara su ciclo de vida en `status`, no en
+    // `incident_status` (__BR-Ecosystem §4b — excepción de vocabulario, CHG es
+    // el único tipo de la rama Reactiva sin incident_status propio en el modelo
+    // de ítems). El schema físico de tracker_incidents, sin embargo, no tiene
+    // columna `status` — chk_incident_status_by_type valida el vocabulario de
+    // CHG (pendiente/en-revision/done/descartado) directo sobre la columna
+    // incident_status (confirmado vía pg_get_constraintdef). incIncidentStatus()
+    // no mira `status` — por diseño, ver locus-inc-fields.js y su único otro
+    // consumidor documentado en locus-backlog-panel.js:656, que depende de este
+    // `null` para su propio fallback de render. Fallback acotado aquí, no en
+    // incIncidentStatus(), para no alterar ese contrato con 6 call sites.
+    const _incStatusRaw = incIncidentStatus(inc) || (inc.type === 'CHG' ? (inc.status || null) : null);
     if (_incStatusRaw === 'historico') {
       logger.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido — incident_status:historico es de solo lectura, asignado por Locus al cerrar sprint`);
       return false;
@@ -1411,7 +1422,11 @@ function _filterValidIncidentsForUpsert(_rawIncidents) {
       return false;
     }
     const _validIncStatuses = _VALID_INCIDENT_STATUS_BY_TYPE[inc.type];
-    if (_validIncStatuses && _incStatusRaw && !_validIncStatuses.has(_incStatusRaw)) {
+    // INC-202607-012: antes `_incStatusRaw &&` cortaba el chequeo en null — un CHG
+    // sin incident_status ni status pasaba el gate sin validar nada y reventaba
+    // el NOT NULL real de la columna (23502) en Postgres, tumbando el batch
+    // completo. Ahora null también se evalúa como inválido explícitamente.
+    if (_validIncStatuses && !_validIncStatuses.has(_incStatusRaw)) {
       logger.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido del upsert — type:${inc.type} no puede tener incident_status:${_incStatusRaw} (viola chk_incident_status_by_type)`);
       return false;
     }
@@ -1556,7 +1571,13 @@ function _toIncidentRow(inc, { projId, userId, updatedAtMs }) {
     archivos:              Array.isArray(inc.archivos) ? inc.archivos : null,
     derived_items:         incDerivedItems(inc),
     sla_priority:          incSlaPriority(inc),
-    incident_status:       incIncidentStatus(inc),
+    // INC-202607-012: CHG no declara incident_status en el modelo de ítems
+    // (__BR-Ecosystem §4b) — declara status con vocabulario Planeada. La
+    // columna física no distingue: chk_incident_status_by_type valida el
+    // vocabulario CHG directo sobre incident_status. Sin este fallback,
+    // incIncidentStatus(inc) devolvía null para todo CHG y el NOT NULL de
+    // la columna rechazaba la fila — tumbando el batch completo (23502).
+    incident_status:       incIncidentStatus(inc) || (inc.type === 'CHG' ? (inc.status || null) : null),
     resolution_type:       incResolutionType(inc),
     // INC-[pendiente-ID]: mismo fallback camelCase que _toItemRow() — ver nota ahí.
     discard_reason:        inc.discard_reason     || inc.discardReason || null,
