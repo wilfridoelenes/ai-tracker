@@ -1,4 +1,4 @@
-/* [PP] mod:3 · autor:Nova · 2026-07-19 UTC-6 */
+/* [PP] mod:4 · autor:Nova · 2026-07-19 UTC-6 */
 /* locus-sprint-close.css
  * Módulo: estilos del flujo de cierre de sprint (modal + retro)
  * Extraído de: locus-modals.css
@@ -284,7 +284,7 @@
 /* Effort inline */
 .scm-retro3-effort-done {
   font-weight: 700;
-  color: var(--green);
+  color: var(--green-text);
 }
 
 .scm-retro3-effort-sep {
@@ -310,7 +310,7 @@
 }
 
 .scm-retro3-pct--good {
-  color: var(--green);
+  color: var(--green-text);
   background: var(--green-dim);
 }
 
@@ -350,7 +350,7 @@
 }
 
 .scm-retro3-delta--up {
-  color: var(--green);
+  color: var(--green-text);
   background: var(--green-dim);
 }
 
@@ -831,7 +831,7 @@
 }
 
 .scm-effort-val--done {
-  color: var(--green);
+  color: var(--green-text);
 }
 
 /* T-202606-118: valor de campo faltante en tabla de gate */

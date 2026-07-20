@@ -1,4 +1,4 @@
-/* [PP] mod:8 · autor:Nova · 2026-07-19 UTC-6 */
+/* [PP] mod:9 · autor:Nova · 2026-07-19 UTC-6 */
 /* CAEL-0717-0X: swap semántico insession↔interrupted — decisión founder. Semáforo
    verde/naranja/rojo para available/insession/exhausted; interrupted hereda el morado
    que insession libera. Selectores migrados: .rsb-card.interrupted-state ·
@@ -651,7 +651,7 @@
 /* disponible */
 .rsb-hdr-available {
   background: rgb(57 232 124 / 12%);
-  color: var(--green);
+  color: var(--green-text);
 }
 
 .rsb-hdr-available .rsb-hdr-dot {

@@ -1,3 +1,8 @@
+/* [PP] mod:14 · autor:Nova · 2026-07-20 UTC-6 */
+/* TKT4 (REQ CAEL-0720-01): reglas .status-confirm-* retiradas de todos los selectores
+   compartidos (contenedores de acciones, botones, hover, focus-visible, prefers-reduced-motion)
+   y de los 2 bloques dedicados (display default + variante ámbar/danger de .status-confirm-ok).
+   No se tocó .item-status-confirmed — clase distinta, fuera de scope. */
 /* [PP] mod:13 · autor:Nova · 2026-07-19 UTC-6 */
 /* locus-modals-base.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
 /* Restaurado (CAEL-06 · TKT1 CAEL-07): .modal--ingest y clases relacionadas — no persistieron en
@@ -99,14 +104,6 @@
 }
 
 /* --- Estado closing: animación de salida --- */
-/* T-202605-126: status-confirm-overlay — ocultamiento por defecto + estado .open */
-.status-confirm-overlay {
-  display: none;
-}
-.status-confirm-overlay.open {
-  display: flex;
-}
-/* END T-202605-126 */
 
 .modal-overlay.closing,
 .gconfirm-overlay.closing,
@@ -116,7 +113,6 @@
 .avatar-modal.closing,
 .popup-overlay.closing,
 .proj-modal-overlay.closing,
-.status-confirm-overlay.closing,
 .item-viz-overlay.closing,
 .clean-project-overlay.closing {
   animation: overlay-out 0.2s ease forwards;
@@ -132,7 +128,6 @@
 .avatar-modal.closing .avatar-modal-box,
 .popup-overlay.closing .popup,
 .proj-modal-overlay.closing .proj-modal,
-.status-confirm-overlay.closing .status-confirm-box,
 .item-viz-overlay.closing .item-viz-panel,
 .clean-project-overlay.closing .clean-project-panel {
   animation: modal-out 0.18s var(--ease-standard) forwards;
@@ -148,7 +143,6 @@
 .add-modal-actions,
 .tag-modal-actions,
 .avatar-modal-actions,
-.status-confirm-actions,
 .proj-modal-footer,
 .ie-footer {
   display: flex;
@@ -163,7 +157,6 @@
 .add-modal-actions button,
 .tag-modal-actions button,
 .avatar-modal-actions button,
-.status-confirm-actions button,
 .proj-modal-footer button {
   font-size: var(--text-sm);
   font-weight: 500;
@@ -182,7 +175,6 @@
 .add-modal-actions button:active,
 .tag-modal-actions button:active,
 .avatar-modal-actions button:active,
-.status-confirm-actions button:active,
 .proj-modal-footer button:active {
   transform: scale(0.97);
 }
@@ -193,8 +185,6 @@
 .add-modal-actions .btn-cancel,
 .tag-modal-actions .btn-cancel,
 .avatar-modal-actions .btn-cancel,
-.status-confirm-actions .btn-ghost,
-.status-confirm-actions .status-confirm-cancel,
 .proj-modal-footer .btn-ghost {
   background: transparent;
   border-color: transparent;
@@ -206,8 +196,6 @@
 .add-modal-actions .btn-cancel:hover,
 .tag-modal-actions .btn-cancel:hover,
 .avatar-modal-actions .btn-cancel:hover,
-.status-confirm-actions .btn-ghost:hover,
-.status-confirm-actions .status-confirm-cancel:hover,
 .proj-modal-footer .btn-ghost:hover {
   background: var(--surface2);
   border-color: var(--border);
@@ -244,29 +232,6 @@
   opacity: 1;
 }
 
-/* Status confirm ok — variante ámbar semántica (no primario, no danger) */
-.status-confirm-actions .status-confirm-ok {
-  background: var(--amber);
-  border-color: var(--amber);
-  color: var(--text-on-accent);
-}
-
-.status-confirm-actions .status-confirm-ok:hover {
-  opacity: 0.88;
-}
-
-.status-confirm-actions .status-confirm-ok.danger {
-  background: var(--red);
-  border-color: var(--red);
-  color: var(--text-on-danger);
-}
-
-.status-confirm-actions .status-confirm-ok.danger:hover {
-  background: color-mix(in srgb, var(--red) 80%, black);
-  border-color: color-mix(in srgb, var(--red) 80%, black);
-  opacity: 1;
-}
-
 /* Danger variant */
 
 .gconfirm-actions .btn-primary.danger:hover {
@@ -278,7 +243,6 @@
 /* Ghost focus */
 .modal-actions .btn-ghost:focus-visible,
 .gconfirm-actions .btn-ghost:focus-visible,
-.status-confirm-actions .btn-ghost:focus-visible,
 .proj-modal-footer .btn-ghost:focus-visible {
   outline: 2px solid var(--border2);
   outline-offset: 2px;
@@ -1171,7 +1135,6 @@ body.radar-sb-collapsed {
   .avatar-modal-box,
   .popup,
   .proj-modal,
-  .status-confirm-box,
   .item-viz-panel {
     animation: none;
     opacity: 1;
@@ -1186,7 +1149,6 @@ body.radar-sb-collapsed {
   .avatar-modal.closing,
   .popup-overlay.closing,
   .proj-modal-overlay.closing,
-  .status-confirm-overlay.closing,
   .item-viz-overlay.closing,
   .clean-project-overlay.closing {
     animation: overlay-out 0.15s ease forwards;
@@ -1200,7 +1162,6 @@ body.radar-sb-collapsed {
   .avatar-modal.closing .avatar-modal-box,
   .popup-overlay.closing .popup,
   .proj-modal-overlay.closing .proj-modal,
-  .status-confirm-overlay.closing .status-confirm-box,
   .item-viz-overlay.closing .item-viz-panel,
   .clean-project-overlay.closing .clean-project-panel {
     animation: none;

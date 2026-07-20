@@ -1,4 +1,4 @@
-// [PP] mod:115 · autor:Rune · 2026-07-18 UTC-6
+// [PP] mod:116 · autor:Rune · 2026-07-19 UTC-6
 // TKT (REQ-CAEL-0718-01 · paridad IDP Q-INC): .qinc-item-header en buildQIncItem() gana
 //   data-qi-action="qi-open-panel" · role="button" · tabindex="0" · aria-label — atributos
 //   que _attachQIncDelegation() (locus-backlog-render.js mod:91) ya esperaba desde su propia
@@ -302,7 +302,7 @@ import { _normalizeSprint, _VALID_INCIDENT_STATUS, _VALID_PRB_STATUS, _VALID_KE_
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
 
 
-import { _buildItemMentionedIn, _buildItemMigratedBlock, openItemPanel, _openMigrateItem, _acvToggle, _acvStartEdit, _acvConfirm } from './locus-backlog-panel.js'; // T-202606-089 AC-3
+import { _buildItemMentionedIn, _buildItemMigratedBlock, openItemPanel, _openMigrateItem, _confirmMigrateItem, _acvToggle, _acvStartEdit, _acvConfirm } from './locus-backlog-panel.js'; // T-202606-089 AC-3 · TKT1 REQ CAEL-0719-01
 
 import { _getActiveSprint, openSprintRetroView, _inheritSprintToChildren } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · [tmp:tkt-unify-sprint-inherit]: _inheritSprintToChildren añadido · [tmp:tkt-card-readonly]: setItemSprint retirado — sin caller tras remover select de sprint del card
 import { navigateToItem } from './locus-item-navigator.js'; // TKT1 (REQ CAEL-04): reubicado — antes en locus-backlog-sprints.js
@@ -504,24 +504,11 @@ export function _attachBacklogListDelegation(containerId = 'backlog-list') {
       _openMigrateItem(action.dataset.code);
       return;
     }
-    if (act === 'promote-modal-cancel') {
-      const overlay = document.getElementById('promote-modal-overlay');
-      if (overlay) overlay.classList.remove('open');
-      return;
-    }
-    if (act === 'promote-confirm') {
-      await _promoteConfirm(action.dataset.code);
-      return;
-    }
-    if (act === 'promote-tkt-to-req-cancel') {
-      const overlay = document.getElementById('promote-modal-overlay');
-      if (overlay) overlay.classList.remove('open');
-      return;
-    }
-    if (act === 'promote-tkt-to-req-confirm') {
-      await _promoteTktToReqConfirm(action.dataset.code);
-      return;
-    }
+    // inline_fix (triggered_by TKT1 REQ CAEL-0719-01): promote-modal-cancel/promote-confirm/
+    // promote-tkt-to-req-cancel/promote-tkt-to-req-confirm removidos de este listener —
+    // #promote-modal-overlay nunca estuvo anidado dentro de #backlog-list, estos cases eran
+    // inalcanzables por clic real. Su delegación real vive en _attachPromoteModalDelegation()
+    // (listener atado directamente a #promote-modal-overlay), expandida más abajo.
     if (act === 'acv-toggle') {
       e.stopPropagation();
       _acvToggle(action.dataset.panelId);
@@ -631,15 +618,46 @@ export function _attachBacklogListDelegation(containerId = 'backlog-list') {
 
 // _attachBacklogListDelegation: llamado al final de renderBacklogList (ver locus-backlog-render.js)
 
-// Promote modal delegation — #promote-modal-overlay es DOM estático, attachment único
+// Promote modal delegation — #promote-modal-overlay es DOM estático, attachment único.
+// TKT1 REQ CAEL-0719-01: único listener real de este overlay — expandido para cubrir los 7
+// data-action de los tres flujos que comparten el shell (Promover idea, Promover T→R, Mover
+// entre proyectos). inline_fix: antes solo cubría promote-select-type; promote-modal-cancel/
+// promote-confirm/promote-tkt-to-req-cancel/promote-tkt-to-req-confirm vivían inalcanzables
+// en el listener de #backlog-list (ver _blListClick).
 (function _attachPromoteModalDelegation() {
   document.addEventListener('DOMContentLoaded', function() {
     const overlay = document.getElementById('promote-modal-overlay');
     if (!overlay) return;
-    overlay.addEventListener('click', function(e) {
-      const action = e.target.closest('[data-action="promote-select-type"]');
+    overlay.addEventListener('click', async function(e) {
+      const action = e.target.closest('[data-action]');
       if (!action) return;
-      _promoteSelectType(action.dataset.type);
+      const act = action.dataset.action;
+      if (act === 'promote-select-type') {
+        _promoteSelectType(action.dataset.type);
+        return;
+      }
+      if (act === 'promote-modal-cancel' || act === 'promote-tkt-to-req-cancel') {
+        overlay.classList.remove('open');
+        return;
+      }
+      if (act === 'promote-confirm') {
+        await _promoteConfirm(action.dataset.code);
+        return;
+      }
+      if (act === 'promote-tkt-to-req-confirm') {
+        await _promoteTktToReqConfirm(action.dataset.code);
+        return;
+      }
+      if (act === 'migrate-cancel') {
+        overlay.classList.remove('open');
+        const body = document.getElementById('promote-modal-body');
+        if (body) body.classList.remove('migrate-modal');
+        return;
+      }
+      if (act === 'migrate-confirm') {
+        _confirmMigrateItem(action.dataset.itemCode);
+        return;
+      }
     });
   });
 })();
@@ -1326,6 +1344,7 @@ function _promoteItem(code) {
   if (!overlay) return;
   const body = document.getElementById('promote-modal-body');
   if (body) {
+    body.classList.remove('migrate-modal'); // TKT1 REQ CAEL-0719-01: shell compartido con migrate
     body.innerHTML = `
       <div class="promote-modal-title" id="promote-modal-title-el">⬆ Promover idea</div>
       <div class="promote-modal-sub">${esc(code)} · ${esc(item.title)}</div>
@@ -1433,6 +1452,7 @@ function _promoteTktToReq(code) {
   if (!overlay) return;
   const body = document.getElementById('promote-modal-body');
   if (body) {
+    body.classList.remove('migrate-modal'); // TKT1 REQ CAEL-0719-01: shell compartido con migrate
     body.innerHTML = `
       <div class="promote-modal-title" id="promote-modal-title-el">⬆ Promover Ticket a Requerimiento</div>
       <div class="promote-modal-sub">${esc(code)} · ${esc(item.title)}</div>

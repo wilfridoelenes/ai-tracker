@@ -1,4 +1,6 @@
-// [PP] mod:17 · autor:Rune · 2026-07-07 UTC-6
+// [PP] mod:18 · autor:Rune · 2026-07-20 11:35 UTC-6
+// TKT2 (REQ CAEL-0720-01): import _generateIncidentsMd + integración en generateDocuments()/
+// _mgShowPreview()/_doConfirmGenerate() — sin versión en el archivo de incidents, ver AC-3.
 // TKT-202607-045 (REQ-202607-015): _mgSessionInSprint() usa getAnyItem() en vez de
 //   getItems().find() — trackerRefs puede referenciar código ITIL (vive en INCIDENTS).
 // TKT-202607-052: eliminado _mgBuildPlan(), planChecked, fileDefs.push de PLAN.md y entrada
@@ -33,6 +35,7 @@ import { _getMapContent, _importContextMdFromText, exportHtmlMapMd, importHtmlMa
 import { buildBacklogMd } from './locus-session-save.js';
 import { getProjContext } from './locus-proj-core.js';
 import { _generateFullHistoryContent, exportBacklogMd, exportContextMd, exportFullHistoryMd } from './locus-backlog-generator.js';
+import { _generateIncidentsMd } from './locus-incidents-generator.js'; // TKT2 (REQ CAEL-0720-01): rama Reactiva, generador dedicado — no genera contenido aquí
 import { _docPrefix, _effectiveVersion, _tplKey, getAISessions, getActiveProject, getActiveSprints, save } from './locus-storage.js';
 import { showToast, showToastInline, toast } from './locus-toast.js';
 import { render } from './locus-sesiones.js';
@@ -534,8 +537,9 @@ function generateDocuments() {
   const contextChecked = document.getElementById('mg-out-context')?.checked;
   const backlogChecked = document.getElementById('mg-out-backlog')?.checked;
   const reviewChecked  = document.getElementById('mg-out-review')?.checked;
+  const incidentsChecked = document.getElementById('mg-out-incidents')?.checked; // TKT2
 
-  if (!mapChecked && !contextChecked && !backlogChecked && !reviewChecked) {
+  if (!mapChecked && !contextChecked && !backlogChecked && !reviewChecked && !incidentsChecked) {
     showToast('warning', 'Selecciona al menos un documento a generar.');
     return;
   }
@@ -605,6 +609,9 @@ function generateDocuments() {
   if (contextCheckedFinal) _mapGen.generatedDocs.context  = _generateContext(bumpedVer);
   if (backlogChecked) _mapGen.generatedDocs.backlog   = _generateBacklog(bumpedVer);
   if (reviewChecked)  _mapGen.generatedDocs.review    = _generateSprintReview(bumpedVer);
+  // TKT2 (REQ CAEL-0720-01): _generateIncidentsMd() nunca acepta versión — invariant declarado
+  // en contract_detail de TKT1. No se ve afectado por bumpedVer.
+  if (incidentsChecked) _mapGen.generatedDocs.incidents = _generateIncidentsMd();
 
   // Compatibilidad: _mapGen.previewMd = MAP si se generó
   if (_mapGen.generatedDocs.map) _mapGen.previewMd = _mapGen.generatedDocs.map;
@@ -1446,6 +1453,8 @@ function _mgShowPreview(docs) {
     { key: 'context', label: 'CONTEXT',       filename: `${prefix}-CONTEXT_${version}.md` },
     { key: 'backlog', label: 'BACKLOG',        filename: `${prefix}-BACKLOG_${version}.md` },
     { key: 'review',  label: 'Sprint Review', filename: `${prefix}-SPRINT-REVIEW_${version}.md` },
+    // TKT2 (REQ CAEL-0720-01): sin versión en el filename — _[PREFIJO]-incidents.md no versiona
+    { key: 'incidents', label: 'Incidentes (Q-INC)', filename: `_${prefix}-incidents.md` },
   ].filter(i => docs[i.key]);
 
   let html = `<div class="mg-preview-header"><span class="mg-preview-badge">✓ ${items.length} documento${items.length !== 1 ? 's' : ''} generado${items.length !== 1 ? 's' : ''}</span><span class="mg-preview-version">Versión: ${version}</span></div>`;
@@ -1608,6 +1617,12 @@ async function _doConfirmGenerate() {
   }
   if (docs.review) {
     fileDefs.push({ filename: `${prefix}-SPRINT-REVIEW_${sprintId}_${bumpedVer}.md`, content: docs.review });
+  }
+  if (docs.incidents) {
+    // TKT2 (REQ CAEL-0720-01) AC-3: nunca incluye version/bumpedVer — queda excluido del
+    // renombrado que este mismo bloque aplica a map/context/backlog/review. Sin apply — no
+    // se re-importa, mismo patrón que backlog (round-trip MD→parse fuera de scope).
+    fileDefs.push({ filename: `_${prefix}-incidents.md`, content: docs.incidents });
   }
   // B-202605-275: efectos DOM (importContextMd, importHtmlMap) se aplican DESPUÉS de confirmar generación exitosa
   // B-202605-493: _mgApplyBumpedVersion y migrateClosedItemsToHistorico también se difieren — sin mutación de estado si ZIP falla

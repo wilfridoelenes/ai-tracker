@@ -1,4 +1,10 @@
-/* [PP] mod:2 · autor:Nova · 2026-06-26 UTC-6 */
+/* [PP] mod:4 · autor:Nova · 2026-07-19 22:10 UTC-6 */
+/* mod:3 — --mg-radius-lg wireado a --radius-2xl (era var(--border-radius-lg, 12px), token
+   inexistente en el sistema del proyecto — fallback hardcoded). Unico consumidor: .mg-panel--docgen
+   (linea 35), agrupado por tamaño (820px) con item-editor-overlay/sprint-close-overlay/
+   sprint-retro-overlay/clean-project-overlay. --mg-radius (uso interno de botones/inputs, 10 usos)
+   no se toca — fuera de scope, es radius de componente, no del panel. Ver _Locus-ui-Inventory
+   mod:27 — Hallazgo 4. */
 /* locus-document-generator.css */
 /* Versión: 1.0 | Última actualización: 2026-05-24 18:00 UTC-6 | Estilos del Document Generator (map generator overlay) — extraído de locus-proyectos.css (R-202605-036) */
 
@@ -8,7 +14,7 @@
   --mg-accent:        #4F46E5;
   --mg-accent-bg:     rgb(79 70 229 / 8%);
   --mg-radius:        var(--border-radius-md, 8px);
-  --mg-radius-lg:     var(--border-radius-lg, 12px);
+  --mg-radius-lg:     var(--radius-2xl);
   --mg-transition:    0.15s ease;
 
   position: fixed;
@@ -267,6 +273,24 @@
   accent-color: var(--mg-accent);
   width: 14px;
   height: 14px;
+}
+
+/* TKT2 (REQ Incidents export — CAEL-0720-01) AC6: tratamiento pasivo — es un toggle
+   entre iguales (map/context/backlog/review/incidents), no una acción. Pill sutil con
+   --surface3/--text3, mismo criterio que .stat-type-chip--all (locus-backlog.css) para
+   distinguir la rama Reactiva (Q-INC) del resto sin competir visualmente por atención.
+   Requiere class="mg-output-check mg-output-check--incidents" en el <label> de
+   #mg-out-incidents — Rune agrega el modifier al integrar (ver CSS dependencies block). */
+.mg-output-check--incidents {
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface3);
+  border: 0.5px solid var(--color-border-tertiary, var(--border));
+  color: var(--text3);
+}
+
+.mg-output-check--incidents input[type="checkbox"] {
+  accent-color: var(--text3);
 }
 
 .mg-section--review {

@@ -1,3 +1,36 @@
+// [PP] mod:57 · autor:Rune · 2026-07-20 UTC-6
+// TKT3 (REQ CAEL-0720-01 · AC1-6, AC8): _showStatusConfirmModal retirada — _confirmRetroceso y
+//   _confirmDiscard ahora llaman _openStatusConfirm (wrapper delgado sobre _gconfirmOpen con
+//   bodyHtml, mismo patrón que TKT2). Corrección sobre el intento anterior en esta misma sesión:
+//   el primer edit dejó código huérfano (cola de la función retirada — 5 líneas con `overlay`
+//   fuera de scope y una llave/paréntesis sin apertura correspondiente) que rompía la sintaxis del
+//   módulo — node --check fallaba con "Unexpected token '}'" en la línea del bloque huérfano; los
+//   2 call sites tampoco habían sido retargeteados, seguían invocando la función ya inexistente.
+//   Verificado con node --check (modo ESM real) tras el fix — 0 errores. AC7 (nodo HTML
+//   #status-confirm-overlay eliminado de index.html) sigue sin verificar — index.html no está
+//   adjunto en esta sesión, ver bloqueo en el CHECKPOINT de entrega.
+// [PP] mod:56 · autor:Rune · 2026-07-18 UTC-6
+// TKT6 (REQ CAEL-0718-01): docUpdates/finnObservations ahora se renderizan — agregados de todos
+//   los meta de _allMetasForAggregation (batch N o single 1), en orden. Cierra gap detectado por
+//   Finn en cierre de REQ: ambos campos se extraían desde TKT1 pero ningún consumidor los leía,
+//   en ninguno de los dos flujos. finnObservations mapea severidad por type (regresion→danger,
+//   observacion/gap_contrato→warning) y texto por el campo más descriptivo de cada schema
+//   (comportamiento_actual/hallazgo/funcion_afectada). no_incluye: solo lectura, sin acción de
+//   aplicar/descartar. Clases nuevas (.mdiff-docupdate-*, .mdiff-finnobs-*) pendientes de CSS —
+//   TKT7 (Nova).
+// [PP] mod:55 · autor:Rune · 2026-07-18 UTC-6
+// TKT3 (REQ CAEL-0718-01 · AC1-3): showMergeDiffPanel soporta ckptMeta.metas (array) — batch de
+//   N CHECKPOINTs con tarjeta atribuida por bloque (rol izq. / título der., reusa 100%
+//   .mdiff-narrative-row/-label/-value y .mdiff-finnrelease-* — cero CSS nuevo, eso es TKT5).
+//   _singleMeta deriva de metas[0] cuando metas.length===1 — el flujo existente (_metaResumen,
+//   _buildNarrativeSection, _buildFinnReleaseSection) queda intacto y sin regresión (AC2/AC3).
+//   Header step-label condicional: "Guardar sesión" (0-1 entrada) vs "Revisión de batch · N
+//   CHECKPOINTs" (2+, AC3). no_incluye: NO retira el gate de exclusividad sprint_proposal (línea
+//   ~185, __BR-Ecosystem §12) pese a que el contract_detail de este TKT lo declara — ver
+//   impacto lateral en el CHECKPOINT de entrega: TKT3 y TKT4 no declaran depends_on entre sí, y
+//   retirar el gate aquí antes de que TKT4 retire la lectura de sprintProposal en
+//   locus-session-parse.js abriría una ventana real de regresión contra una HARD RULE. Devuelto
+//   a Cael para depends_on explícito antes de tocar esa parte del contrato.
 // [PP] mod:54 · autor:Rune · 2026-07-17 11:20 UTC-6
 // TKT2 (REQ CAEL-0717-01 · AC1-4): agregada _buildFinnReleaseSection() — tarjeta de liberación
 //   de Finn (schema finn_release, BR-Ecosystem §8), leída directo de _ckptMeta.finnRelease sin
@@ -99,6 +132,7 @@ import { _getSprintById } from './locus-backlog-sprints.js';
 import { _blogLog, getActiveProject, getActiveSprints, saveBacklog, _sprintDisplay } from './locus-storage.js'; // TKT5-[pendiente-ID]: _sprintDisplay para opción de sprint nuevo en DIFF
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
+import { _gconfirmOpen } from './locus-modals.js'; // CAEL-0720-01 TKT3
 
 import { applyPatchesFromTG, mergeBacklogFromTG, _checkAndOrphanParentR } from './locus-backlog-item.js';
 
@@ -158,11 +192,20 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // T-202606-037 AC-1: early-return sin ítems eliminado — el panel siempre abre cuando hay CHECKPOINT válido.
   // AC-5: ckptMeta null/undefined normalizado a objeto vacío.
   const _ckptMeta = (ckptMeta && typeof ckptMeta === 'object') ? ckptMeta : {};
-  const _metaResumen     = _ckptMeta.resumen      || '';
-  const _metaAprendizaje = _ckptMeta.aprendizaje  || '';
-  const _metaBloqueantes = _ckptMeta.bloqueantes  || '';
-  const _metaDecision    = _ckptMeta.decision     || '';
-  const _metaProxPaso    = _ckptMeta.proximoPaso  || '';
+
+  // TKT3 (REQ CAEL-0718-01 · AC1-3): ckptMeta.metas (array, flujo batch) vs ckptMeta plano
+  // (flujo single/A) — mutuamente excluyentes (contract_detail invariant). Con 1 sola entrada de
+  // batch, _singleMeta apunta a metas[0] y el resto del panel se comporta exactamente igual que
+  // el flujo single (AC3 — sin atribución, header "Guardar sesión"). Sin campo metas, _singleMeta
+  // es _ckptMeta mismo — cero regresión sobre el flujo A existente (AC2).
+  const _ckptMetas  = Array.isArray(_ckptMeta.metas) ? _ckptMeta.metas : null;
+  const _singleMeta = (_ckptMetas && _ckptMetas.length === 1) ? _ckptMetas[0] : _ckptMeta;
+
+  const _metaResumen     = _singleMeta.resumen      || '';
+  const _metaAprendizaje = _singleMeta.aprendizaje  || '';
+  const _metaBloqueantes = _singleMeta.bloqueantes  || '';
+  const _metaDecision    = _singleMeta.decision     || '';
+  const _metaProxPaso    = _singleMeta.proximoPaso  || '';
 
   // B-202606-001: separar type:patch antes del dry-run — no deben pasar por mergeBacklogFromTG.
   // Los patches actualizan campos de ítems existentes via applyPatchesFromTG y no generan diff visual.
@@ -669,7 +712,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // Fuente: _ckptMeta.finnRelease (schema finn_release, BR-Ecosystem §8) — null si el
   // CHECKPOINT no lo declara (AC3 del TKT: sin finn_release, sin tarjeta, sin hueco visual).
   const _buildFinnReleaseSection = () => {
-    const _fr = _ckptMeta.finnRelease;
+    const _fr = _singleMeta.finnRelease; // TKT3 (CAEL-0718-01): antes _ckptMeta.finnRelease directo — ver _singleMeta arriba
     if (!_fr || typeof _fr !== 'object') return '';
 
     // AC4: cada check lleva texto accesible "Verificado: [AC]" junto al símbolo — no solo color/ícono.
@@ -710,6 +753,151 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         <span class="mdiff-narrative-value">${esc(_fr.listo_para || '')}</span>
       </div>
       ${_docsHtml}
+    </div>`;
+  };
+
+  // TKT3 (REQ CAEL-0718-01 · AC1): tarjetas atribuidas por bloque cuando ckptMeta.metas trae 2+
+  // entradas — una tarjeta por bloque, orden de aparición del batch (garantizado por TKT1:
+  // metas[i] corresponde al bloque i-ésimo válido). Reusa 100% clases existentes — cero CSS
+  // nuevo (no_incluye de este TKT; layout fino es TKT5). Header del atributo: fila
+  // .mdiff-narrative-row con rol como label (izquierda) y título como value (derecha) — mismo
+  // patrón label/value que el resto del panel, sin clase nueva. Badge "liberado": se logra
+  // incluyendo el bloque .mdiff-finnrelease-header ("Liberado: ...") ya existente — su token de
+  // color success ya comunica el estado, sin necesidad de una clase de badge dedicada.
+  const _buildAttributedNarrativeRows = (meta) => {
+    const _rows = [
+      { label: 'Resumen',     value: meta.resumen      || '' },
+      { label: 'Aprendizaje', value: meta.aprendizaje  || '' },
+      { label: 'Bloqueantes', value: meta.bloqueantes  || '' },
+      { label: 'Decisión',    value: meta.decision     || '' },
+    ].filter(r => r.value).map(r =>
+      `<div class="mdiff-narrative-row">
+        <span class="mdiff-narrative-label">${esc(r.label)}</span>
+        <span class="mdiff-narrative-value">${esc(r.value)}</span>
+      </div>`
+    ).join('');
+
+    const _proxPasoHtml = meta.proximoPaso
+      ? `<div class="mdiff-narrative-proxpaso-wrap">
+          <div class="mdiff-narrative-proxpaso">
+            <span class="mdiff-narrative-label">Próximo paso</span>
+            <span class="mdiff-narrative-value">${esc(meta.proximoPaso)}</span>
+          </div>
+        </div>`
+      : '';
+
+    return _rows + _proxPasoHtml;
+  };
+
+  // Mismo orden fijo AC1 del TKT2 (liberado → que_hace → que_no_hace → probado → listo_para →
+  // docs) parametrizado sobre un meta puntual del batch en vez del _singleMeta del closure.
+  const _buildAttributedFinnReleaseHtml = (meta) => {
+    const _fr = meta.finnRelease;
+    if (!_fr || typeof _fr !== 'object') return { html: '', hasRelease: false };
+    const _probadoHtml = (Array.isArray(_fr.probado) && _fr.probado.length)
+      ? `<div class="mdiff-finnrelease-probado">${
+          _fr.probado.map(p => {
+            const _label = String(p).split(' — ')[0].trim();
+            return `<span class="mdiff-finnrelease-check"><span class="mdiff-finnrelease-check-icon" aria-hidden="true">✓</span>Verificado: ${esc(_label)}</span>`;
+          }).join('')
+        }</div>`
+      : '';
+    const _docsHtml = (Array.isArray(_fr.docs_pendientes) && _fr.docs_pendientes.length)
+      ? `<div class="mdiff-finnrelease-docs-wrap">
+          <div class="mdiff-finnrelease-docs-label">Docs pendientes</div>
+          <div class="mdiff-finnrelease-docs-list">${
+            _fr.docs_pendientes.map(d => `<div class="mdiff-pending-item">${esc(d)}</div>`).join('')
+          }</div>
+        </div>`
+      : '';
+    const html = `<div class="mdiff-finnrelease-header">Liberado: ${esc(_fr.liberado || '')}</div>
+      <div class="mdiff-narrative-row">
+        <span class="mdiff-narrative-label">Qué hace</span>
+        <span class="mdiff-narrative-value">${esc(_fr.que_hace || '')}</span>
+      </div>
+      <div class="mdiff-narrative-row">
+        <span class="mdiff-narrative-label">Qué no hace</span>
+        <span class="mdiff-narrative-value">${esc(_fr.que_no_hace || '')}</span>
+      </div>
+      ${_probadoHtml}
+      <div class="mdiff-narrative-row">
+        <span class="mdiff-narrative-label">Listo para</span>
+        <span class="mdiff-narrative-value">${esc(_fr.listo_para || '')}</span>
+      </div>
+      ${_docsHtml}`;
+    return { html, hasRelease: true };
+  };
+
+  const _buildAttributedCardsBlock = () => {
+    if (!_ckptMetas || _ckptMetas.length < 2) return '';
+
+    return _ckptMetas.map(meta => {
+      const _narrativeHtml = _buildAttributedNarrativeRows(meta);
+      const _releaseInfo   = _buildAttributedFinnReleaseHtml(meta);
+
+      // Bloque sin ningún campo narrativo ni finn_release → no genera tarjeta (mismo criterio
+      // que hoy: ausencia total, sin hueco visual).
+      if (!_narrativeHtml && !_releaseInfo.hasRelease) return '';
+
+      const _attrRow = `<div class="mdiff-narrative-row">
+        <span class="mdiff-narrative-label">${esc(meta.rol || '')}</span>
+        <span class="mdiff-narrative-value">${esc(meta.titulo || '')}</span>
+      </div>`;
+
+      return `<div class="mdiff-narrative-section">
+        ${_attrRow}
+        ${_releaseInfo.html}
+        ${_narrativeHtml}
+      </div>`;
+    }).join('');
+  };
+
+  // TKT6 (REQ CAEL-0718-01): Docs pendientes y Observaciones de Finn — agregados de TODOS los
+  // bloques del batch (o el único meta del flujo single), en orden de aparición. Cierra el gap
+  // detectado en la sesión de cierre del REQ: docUpdates/finnObservations se extraían desde TKT1
+  // pero ningún consumidor los leía en este archivo — código muerto en ambos flujos (A y B) por
+  // igual, no una regresión introducida por el trabajo de batch. no_incluye: solo lectura, sin
+  // acción de aplicar/descartar — eso sigue siendo de Cael/Vera (BR-Ecosystem §11).
+  const _allMetasForAggregation = (_ckptMetas && _ckptMetas.length) ? _ckptMetas : [_singleMeta];
+
+  const _buildDocUpdatesBlock = () => {
+    const _rows = [];
+    _allMetasForAggregation.forEach(m => {
+      (Array.isArray(m.docUpdates) ? m.docUpdates : []).forEach(d => {
+        if (!d || typeof d !== 'object') return;
+        _rows.push(`<div class="mdiff-docupdate-row">
+          <span class="mdiff-docupdate-doc">${esc(d.doc || '')}</span>
+          <span class="mdiff-docupdate-section">${esc(d.section || '')}</span>
+          <span class="mdiff-docupdate-action">${esc(d.action || '')}</span>
+        </div>`);
+      });
+    });
+    if (!_rows.length) return ''; // AC error: sin docUpdates en ningún meta → sin hueco visual
+    return `<div class="mdiff-docupdate-section-wrap">
+      <div class="mdiff-docupdate-header">Docs pendientes</div>
+      ${_rows.join('')}
+    </div>`;
+  };
+
+  const _buildFinnObservationsBlock = () => {
+    const _rows = [];
+    _allMetasForAggregation.forEach(m => {
+      (Array.isArray(m.finnObservations) ? m.finnObservations : []).forEach(o => {
+        if (!o || typeof o !== 'object') return;
+        const _severity = o.type === 'regresion' ? 'danger' : 'warning';
+        const _texto = o.type === 'regresion' ? (o.comportamiento_actual || '')
+          : o.type === 'gap_contrato' ? (o.funcion_afectada || '')
+          : (o.hallazgo || '');
+        _rows.push(`<div class="mdiff-finnobs-row mdiff-finnobs-row--${_severity}">
+          <span class="mdiff-finnobs-type">${esc(o.type || '')}</span>
+          <span class="mdiff-finnobs-texto">${esc(_texto)}</span>
+        </div>`);
+      });
+    });
+    if (!_rows.length) return '';
+    return `<div class="mdiff-finnobs-section-wrap">
+      <div class="mdiff-finnobs-header">Observaciones de Finn</div>
+      ${_rows.join('')}
     </div>`;
   };
 
@@ -791,10 +979,16 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     const _headerChipTones = chipTonesFromDiff(diff);
     const _headerChipsHtml = _headerChipTones.length
       ? `<div class="mdiff-header-chips">${_renderChipTones(_headerChipTones)}</div>` : '';
+    // TKT3 (REQ CAEL-0718-01 · AC3): con 2+ entradas en ckptMeta.metas, el step-label pasa de
+    // "Guardar sesión" a "Revisión de batch · N CHECKPOINTs". Con 1 entrada o sin metas —
+    // comportamiento idéntico al actual (AC2/AC3 edge case).
+    const _stepLabel = (_ckptMetas && _ckptMetas.length >= 2)
+      ? `Revisión de batch · ${_ckptMetas.length} CHECKPOINTs`
+      : 'Guardar sesión';
     header.innerHTML = `
       <div class="mdiff-header-inner">
         <div class="mdiff-header-left">
-          <div class="mdiff-step-label">Guardar sesión</div>
+          <div class="mdiff-step-label">${esc(_stepLabel)}</div>
           <div class="mdiff-header-title">Revisión de cambios${projName ? ` · <span class="mdiff-proj-name">${esc(projName)}</span>` : ''}</div>
           ${_headerChipsHtml}
         </div>
@@ -810,7 +1004,12 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   if (body) {
     // TKT2 (REQ CAEL-0717-01): finn_release precede a la narrativa de sesión — es el resultado
     // liberado, no el contexto de cómo se produjo. Orden: finnRelease → narrative → chips → secciones.
-    body.innerHTML = _buildFinnReleaseSection() + _buildNarrativeSection() + _buildSummaryChipsBlock() + sectionsHtml;
+    // TKT3 (REQ CAEL-0718-01 · AC1/AC2): 2+ bloques → tarjetas atribuidas por bloque. 1 bloque
+    // o sin metas → mismo orden de siempre (finnRelease → narrative), cero regresión sobre A.
+    const _narrativeBlockHtml = (_ckptMetas && _ckptMetas.length >= 2)
+      ? _buildAttributedCardsBlock()
+      : _buildFinnReleaseSection() + _buildNarrativeSection();
+    body.innerHTML = _narrativeBlockHtml + _buildDocUpdatesBlock() + _buildFinnObservationsBlock() + _buildSummaryChipsBlock() + sectionsHtml;
     _renderTriggeredBySuggestion();
     _renderDraftPendingBanner();
   }
@@ -1397,43 +1596,25 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   document.addEventListener('keydown', _mdiffKeyHandler);
 }
 
-// T-202604-059: Confirmación de retroceso de status
-function _showStatusConfirmModal({ title, body, okLabel, okClass, onConfirm }) {
-  // R-202604-047: shell estático en index.html — inject content + classList
-  const overlay = document.getElementById('status-confirm-overlay');
-  if (!overlay) return;
-  const titleEl = document.getElementById('status-confirm-title');
-  const bodyEl = document.getElementById('status-confirm-body-text');
-  const cancelBtn = document.getElementById('status-confirm-cancel-btn');
-  const okBtn = document.getElementById('status-confirm-ok-btn');
-  if (titleEl) titleEl.innerHTML = title;
-  if (bodyEl) bodyEl.innerHTML = body;
-  if (okBtn) {
-    okBtn.textContent = okLabel;
-    okBtn.className = `status-confirm-ok ${okClass || ''}`;
-    // Reemplazar para limpiar handlers acumulados
-    const newOkBtn = okBtn.cloneNode(true);
-    okBtn.parentNode.replaceChild(newOkBtn, okBtn);
-    newOkBtn.addEventListener('click', () => {
-      overlay.classList.remove('open');
-      onConfirm();
-    });
-  }
-  if (cancelBtn) {
-    const newCancelBtn = cancelBtn.cloneNode(true);
-    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
-    newCancelBtn.addEventListener('click', () => {
-      overlay.classList.remove('open');
-    });
-  }
-  overlay.classList.add('open');
+// CAEL-0720-01 TKT3: shell legacy de confirmación de status retirado — reemplazado
+// por _gconfirmOpen con bodyHtml. El shell dedicado ya no existe en index.html.
+// _openStatusConfirm conserva la misma interfaz de llamada que la función retirada
+// para minimizar el diff en _confirmRetroceso/_confirmDiscard.
+function _openStatusConfirm({ title, body, okLabel, okClass, onConfirm }) {
+  _gconfirmOpen({
+    title,
+    msg: '',
+    okLabel,
+    danger: okClass === 'danger',
+    bodyHtml: `<div>${body}</div>`
+  }, () => { onConfirm(); });
 }
 
 export function _confirmRetroceso(code, toStatus) {
   const item = getItems().find(i => i.code === code);
   if (!item) return;
   const from = item.status;
-  _showStatusConfirmModal({
+  _openStatusConfirm({
     title: '⚠ Retroceso de status',
     body: `<strong>${esc(code)}</strong> pasará de <strong>${from}</strong> → <strong>${toStatus}</strong>.<br><br>¿Confirmas el retroceso?`,
     okLabel: 'Sí, retroceder',
@@ -1496,7 +1677,7 @@ export function _confirmDiscard(code, reason, ref) {
        <div class="discard-modal-hint">El ítem se conserva para trazabilidad pero no contará en métricas.</div>`
     : `<strong>${esc(code)}</strong> será marcado como <strong>descartado</strong>.<br>Razón: <strong>${esc(reason)}</strong>${ref ? '<br>Reemplazado por: <strong>' + esc(ref) + '</strong>' : ''}<br><br>El ítem se conserva para trazabilidad pero no contará en métricas.`;
 
-  _showStatusConfirmModal({
+  _openStatusConfirm({
     title: '🗑 Descartar ítem',
     body: bodyHtml,
     okLabel: 'Descartar',

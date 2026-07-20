@@ -1,4 +1,4 @@
-// [PP] mod:30 · autor:Rune · 2026-07-18 UTC-6
+// [PP] mod:31 · autor:Rune · 2026-07-19 UTC-6
 // INC-CAEL-0718-01: agregado window.addEventListener('shell:close-item-panel', closeItemPanel)
 // — el evento que switchTab()/switchSubTab() (locus-ui-shell.js) despachan desde mod:44 nunca
 // tuvo consumidor real. Ver detalle completo junto a closeItemPanel(). Sin cambio de firma,
@@ -156,11 +156,15 @@ export function _openMigrateItem(code) {
     `<label class="migrate-modal-option"><input type="radio" name="migrate-dest" value="${esc(p.id)}"> ${esc(p.name)}</label>`
   ).join('');
 
-  // R-202604-047: shell estático en index.html — inject content + classList
-  const overlay = document.getElementById('migrate-item-overlay');
+  // TKT1 REQ CAEL-0719-01: shell unificado con promote (DUP-02 completado) —
+  // #migrate-item-overlay eliminado, reutiliza #promote-modal-overlay/#promote-modal-body.
+  // .migrate-modal es modificador de ancho — se agrega aquí y se remueve en _promoteItem/
+  // _promoteTktToReq para que no persista sobre los otros dos flujos que comparten el shell.
+  const overlay = document.getElementById('promote-modal-overlay');
   if (!overlay) return;
-  const body = document.getElementById('migrate-modal-body');
+  const body = document.getElementById('promote-modal-body');
   if (body) {
+    body.classList.add('migrate-modal');
     body.innerHTML = `
       <div class="promote-modal-title">&#x21C4; Mover item a otro proyecto</div>
       <div class="migrate-modal-item">Item: <strong>${esc(item.code)}</strong> &mdash; ${esc(item.title || '')}</div>
@@ -185,8 +189,10 @@ export function _openMigrateItem(code) {
 }
 
 // T-202604-242: ejecutar migración — AC-1 conservar ref, AC-2 flag destino, AC-3 sin duplicado en origen
-function _confirmMigrateItem(code) {
-  const overlay = document.getElementById('migrate-item-overlay');
+// TKT1 REQ CAEL-0719-01: exportada — su delegación (migrate-confirm) ahora vive en el
+// listener unificado de #promote-modal-overlay en locus-backlog-item.js, no en este módulo.
+export function _confirmMigrateItem(code) {
+  const overlay = document.getElementById('promote-modal-overlay');
   const selected = overlay ? overlay.querySelector('input[name="migrate-dest"]:checked') : null;
   if (!selected) return;
   const targetProjId = selected.value;
@@ -229,6 +235,8 @@ function _confirmMigrateItem(code) {
   saveImmediate();
 
   if (overlay) overlay.classList.remove('open');
+  const _mgBody = document.getElementById('promote-modal-body');
+  if (_mgBody) _mgBody.classList.remove('migrate-modal');
   renderBacklogList();
   renderStats();
   showToast('success', '&#x21C4; ' + code + ' movido a "' + targetProj.name + '"');
@@ -1443,7 +1451,7 @@ function _toggleIdpSection(el) {
 
 // Exposición global — funciones llamadas desde inline handlers HTML generados dinámicamente
 
-// ── T8: Delegation — #item-detail-panel + #migrate-item-overlay + toast-stack ──
+// ── T8: Delegation — #item-detail-panel + toast-stack ──
 document.addEventListener('DOMContentLoaded', () => {
   // Item Detail Panel (IDP)
   const idpPanel = document.getElementById('item-detail-panel');
@@ -1483,17 +1491,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Migrate item overlay
-  const migrateOverlay = document.getElementById('migrate-item-overlay');
-  if (migrateOverlay) migrateOverlay.addEventListener('click', e => {
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    if (btn.dataset.action === 'migrate-cancel') {
-      migrateOverlay.classList.remove('open');
-    } else if (btn.dataset.action === 'migrate-confirm') {
-      _confirmMigrateItem(btn.dataset.itemCode);
-    }
-  });
+  // TKT1 REQ CAEL-0719-01: delegación de migrate-cancel/migrate-confirm movida al listener
+  // unificado de #promote-modal-overlay en locus-backlog-item.js (_attachPromoteModalDelegation)
+  // — el nodo #migrate-item-overlay ya no existe.
 
   // Toast stack — undo backlog
   const toastStack = document.getElementById('toast-stack');

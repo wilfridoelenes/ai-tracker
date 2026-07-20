@@ -1,4 +1,4 @@
-/* [PP] mod:10 · autor:Nova · 2026-07-17 UTC-6 */
+/* [PP] mod:11 · autor:Nova · 2026-07-19 UTC-6 */
 /* CAEL-0717-0X: swap semántico insession↔interrupted (decisión founder — semáforo
    verde/naranja/rojo para available/insession/exhausted; interrupted confirmado sin uso
    frecuente, hereda el morado liberado por insession). --purple↔--amber invertidos en
@@ -73,7 +73,7 @@
    en CAEL-0717-0X — insession ahora ámbar (semáforo verde/naranja/rojo), interrupted
    hereda el morado liberado, mismo tono que .card-status-pill.insession histórico. */
 .sc-avatar--available {
-  color: var(--green);
+  color: var(--green-text);
   box-shadow: 0 0 0 2px var(--green);
 }
 
@@ -169,7 +169,7 @@
 
 .sc-badge--avail {
   background: var(--green-dim);
-  color: var(--green);
+  color: var(--green-text);
   border-color: var(--green-border);
 }
 

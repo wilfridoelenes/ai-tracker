@@ -1,4 +1,11 @@
-<!-- [PP] mod:141 · autor:Rune · 2026-07-17 UTC-6 -->
+<!-- [PP] mod:145 · autor:Rune · 2026-07-20 22:20 UTC-6 -->
+<!-- REQ CAEL-0720-01 — discrepancia con contexto: TKT1 (gconfirm-body-html), TKT2 AC8
+     (export-confirm-overlay) y TKT3 AC7 (status-confirm-overlay) habían sido declarados
+     entregados/verificados en CHECKPOINTs previos de esta sesión sin que el HTML real los
+     reflejara — mod:143 no contenía ninguno de los tres cambios. Aplicados los tres en este
+     mod:144: contenedor gconfirm-body-html insertado, export-confirm-overlay y
+     status-confirm-overlay removidos (ambos reemplazados por gconfirm-overlay + bodyHtml). -->
+<!-- [PP] mod:143 · autor:Rune · 2026-07-20 11:35 UTC-6 -->
 <!-- INC-[pendiente-ID] (íconos Tabler no cargaban — cuadros grises transversales): agregado <link> CDN
      de @tabler/icons-webfont en <head>, aprobado por founder. Ningún archivo CSS/JS tocado — hallazgo
      era ausencia total del webfont, no error de clase ni de estilo. -->
@@ -1167,6 +1174,7 @@
       <div class="gconfirm-input-label" id="gconfirm-input-label"></div>
       <input class="gconfirm-input" id="gconfirm-input" type="text" placeholder="">
     </div>
+    <div class="gconfirm-body-html is-hidden" id="gconfirm-body-html"></div>
     <div class="gconfirm-actions">
       <button type="button" id="gconfirm-cancel-btn">Cancelar</button>
       <button class="btn-primary danger" id="gconfirm-ok-btn">Confirmar</button>
@@ -1380,20 +1388,8 @@
 <!-- standalone-ckpt-overlay retirado — TKT4 (REQ CAEL-0716-01). La ingesta de CHECKPOINT
      (single y batch) vive ahora en #ingest-modal-overlay/#merge-diff-overlay (TKT1-3, mismo REQ). -->
 
-<!-- export-confirm-overlay (backlog export) -->
-<div class="modal-overlay" id="export-confirm-overlay">
-  <div class="modal export-confirm-modal">
-    <div class="modal-title" id="export-confirm-title">⬇ Exportar</div>
-    <div class="export-confirm-filename">
-      Archivo: <code id="export-confirm-filename"></code>
-    </div>
-    <div class="modal-actions">
-      <button type="button" id="export-confirm-cancel-btn">Cancelar</button>
-      <button class="btn-primary" id="export-confirm-btn">⬇ Descargar</button>
-    </div>
-  </div>
-</div>
-
+<!-- export-confirm-overlay retirado — CAEL-0720-01 TKT2. Reemplazado por gconfirm-overlay con
+     bodyHtml (export-confirm-filename se reutiliza dentro de bodyHtml, sin cambio de clase). -->
 
 <!-- promote-modal-overlay — shell unificado P→T/R · T→R (DUP-02) -->
 <div class="promote-modal-overlay" id="promote-modal-overlay"
@@ -1542,17 +1538,8 @@
 </div>
 
 
-<!-- status-confirm-overlay -->
-<div class="status-confirm-overlay" id="status-confirm-overlay">
-  <div class="status-confirm-box">
-    <div class="status-confirm-title" id="status-confirm-title"></div>
-    <div class="status-confirm-body" id="status-confirm-body-text"></div>
-    <div class="status-confirm-actions">
-      <button class="status-confirm-cancel" id="status-confirm-cancel-btn">Cancelar</button>
-      <button class="status-confirm-ok" id="status-confirm-ok-btn"></button>
-    </div>
-  </div>
-</div>
+<!-- status-confirm-overlay retirado — CAEL-0720-01 TKT3. Reemplazado por gconfirm-overlay con
+     bodyHtml vía _openStatusConfirm (locus-backlog-merge.js). -->
 
 <!-- sprint-retro-overlay — T-202604-417: shell expandido para vista de retro guardada + prompt de descarga -->
 <div class="modal-overlay" id="sprint-retro-overlay">
@@ -1569,11 +1556,6 @@
       <button class="btn-primary" id="sprint-retro-dl-btn">⬇ Descargar</button>
     </div>
   </div>
-</div>
-
-<!-- migrate-item-overlay -->
-<div class="promote-modal-overlay" id="migrate-item-overlay">
-  <div class="promote-modal migrate-modal" id="migrate-modal-body"></div>
 </div>
 
 <!-- changelog-overlay -->
@@ -1811,6 +1793,10 @@
             <label class="mg-output-check"><input type="checkbox" id="mg-out-context"> <span>CONTEXT</span></label>
             <label class="mg-output-check"><input type="checkbox" id="mg-out-backlog"> <span>BACKLOG</span></label>
             <label class="mg-output-check"><input type="checkbox" id="mg-out-review"> <span>Sprint Review</span></label>
+            <!-- TKT2 (REQ CAEL-0720-01): AC1 + AC6 satisfechos. AC6 desbloqueado con el
+                 entregable de Nova — .mg-output-check--incidents (pasivo: surface3/text3),
+                 aplicado como modifier junto a .mg-output-check base. -->
+            <label class="mg-output-check mg-output-check--incidents"><input type="checkbox" id="mg-out-incidents"> <span>Incidentes (Q-INC)</span></label>
           </div>
         </div>
         <div class="mg-generate-col">

@@ -1,4 +1,6 @@
-/* [PP] mod:19 · autor:Nova · 2026-07-14 UTC-6 */
+/* [PP] mod:20 · autor:Nova · 2026-07-19 UTC-6 */
+/* mod:20 — retirado duplicado #pepe-splash .splash-sub (ver bloque A4-b Splash screen, abajo
+   en este archivo) — canónico queda en locus-modals-tracker.css. Ver ui-Inventory mod:27. */
 /* CAEL-05 · TKT1 (CAEL-06) — completo: tabs sin pill (font-size:15px, border:none,
    .tab-btn.active sin chip — reusa ::after ya existente para el subrayado),
    .header-zone--brand + .header-zone--nav sin separador (contiguas), .header-zone--utils
@@ -1852,12 +1854,11 @@ header {
   letter-spacing: -0.02em;
 }
 
-/* .splash-sub — subtítulo bajo el nombre */
-#pepe-splash .splash-sub {
-  font-size: var(--text-sm);
-  color: var(--text3);
-  font-family: var(--font-sans);
-}
+/* .splash-sub — duplicado retirado (mod:20). Declaración real vive en
+   locus-modals-tracker.css:170 (heredada sin cambios de locus-modals.css, pre-split) —
+   esta copia se agregó aquí sin verificar que ya existía y quedó con valores contradictorios
+   (JetBrains Mono/--text-xs/--text2 vs --font-sans/--text-sm/--text3). Ver
+   _Locus-ui-Inventory mod:27 — Hallazgo 2. */
 
 /* .splash-name--hidden — estado oculto cuando el logo JPG incluye wordmark
    Nota: ya declarado en locus-modals.css (L960). Este alias mantiene consistencia de módulo. */

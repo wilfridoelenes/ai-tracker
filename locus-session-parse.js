@@ -1,3 +1,15 @@
+// [PP] mod:130 · autor:Rune · 2026-07-18 UTC-6
+// TKT4 (REQ CAEL-0718-01 · AC1): bloque de solo sprint_proposal en el modal batch ahora se
+//   marca skipped:{type:'sprint_proposal'} (distinto de 'invalid') — _processIngestBatch muestra
+//   aviso "se procesa en Tab Sprint" en vez de silenciarlo. AC2 verificado sin cambio de código:
+//   locus-sprint.js ya hereda el gate §12 vía parseCheckpoint()._jsonParseError (línea ~809,
+//   sin tocar en este TKT). Gap cerrado fuera del contrato original de este TKT: _processIngestBatch
+//   pasaba ckptMeta:{} hardcodeado a showMergeDiffPanel — metas (TKT1) nunca llegaba a TKT3.
+//   Sin este wire-up, la paridad batch/single del REQ no se cumplía pese a TKT1/TKT3 done — ver
+//   CHECKPOINT de entrega. no_incluye: ai._parsed.sprintProposal (flujo A, línea ~1592) NO se
+//   retira — su único consumidor conocido es locus-session-save.js, no adjunto en esta sesión ni
+//   declarado en `archivos` del TKT — mismo bloqueo ya señalado por TKT2 (finn_release) en el
+//   comentario adyacente a ese campo.
 // [PP] mod:129 · autor:Rune · 2026-07-18 UTC-6
 // Fix inline (triggered_by: TKT2 CAEL-0718-03): header de identidad no se había incrementado en
 //   la entrega anterior — el cambio de TKT2 (retiro del pre-chequeo JSON.parse redundante en
@@ -2003,7 +2015,20 @@ export async function _processIngestBatch() {
   //   sabe resolver.
 
   const syntheticSessId = 'ingest-batch-' + Date.now();
-  const { tgItems, patchItems, skipped } = _resolveCheckpointBatch(rawBlocks, syntheticSessId);
+  const { tgItems, patchItems, skipped, metas } = _resolveCheckpointBatch(rawBlocks, syntheticSessId);
+
+  // TKT4 (REQ CAEL-0718-01 · AC1): aviso distinto de error — no bloquea el resto del batch,
+  // solo informa que ese bloque puntual se ignoró aquí porque su único destino es Tab Sprint.
+  const _sprintProposalSkips = skipped.filter(s => s.type === 'sprint_proposal');
+  if (_sprintProposalSkips.length) {
+    showToast('warning', _sprintProposalSkips.length === 1
+      ? 'Esta propuesta se procesa en Tab Sprint — usa el panel "+ Sprint nuevo".'
+      : `${_sprintProposalSkips.length} sprint_proposal detectados — se procesan en Tab Sprint, no en este modal.`);
+    // AC1: batch compuesto solo por sprint_proposal → aviso ya mostrado, no hay nada más que
+    // procesar. Salir aquí evita el segundo toast genérico "Sin ítems para procesar" (abajo),
+    // que sería redundante y menos claro que el aviso específico ya mostrado.
+    if (!tgItems.length && !(patchItems && patchItems.length)) return;
+  }
 
   const _rejectedEntry = skipped.find(s => s.type === 'rejected');
   if (_rejectedEntry) {
@@ -2056,7 +2081,14 @@ export async function _processIngestBatch() {
   };
 
   // AC1 — DIFF real (no resumen de chips) para el batch.
-  showMergeDiffPanel(tgItems, syntheticSessId, activeProj.id, _onApplyBatch, {});
+  // Gap descubierto durante TKT4 (REQ CAEL-0718-01) — no declarado por ningún no_incluye de
+  // TKT1/TKT2/TKT3: metas (agregado por TKT1, consumido por TKT3) nunca llegaba a este call
+  // site — seguía hardcodeado a {}. Sin este wire-up, la paridad batch/single (AC1 del REQ) no
+  // se cumplía pese a que TKT1 y TKT3 estaban individualmente done. Mismo archivo que TKT4, sin
+  // scope nuevo (es la conexión ya prevista por el contrato de ambos TKTs) — cerrado aquí en
+  // vez de abrir un TKT6 separado para una línea. Señalado explícitamente en el CHECKPOINT de
+  // entrega para que Cael y Finn lo tengan en el radar en la sesión de cierre del REQ.
+  showMergeDiffPanel(tgItems, syntheticSessId, activeProj.id, _onApplyBatch, { metas });
 }
 
 
@@ -2345,16 +2377,25 @@ function _parseBatchBlock(blockText) {
   // ckpt.draftRaw sigue disponible para quien consuma el resultado del batch si necesita
   // distinguir el estado por bloque.
   const parsedJSON = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
+
+  // TKT4 (REQ CAEL-0718-01 · AC1): bloque con sprint_proposal y sin ítems — caso válido y
+  // esperado (§12 exige sprint_proposal en CHECKPOINT independiente, sin items). Antes de este
+  // TKT, este bloque se resolvía en silencio: 0 tgItems, sprintProposal descartado por
+  // _extractCkptMeta (TKT1 AC3), sin ninguna señal al founder de que su propuesta fue ignorada
+  // por este modal. La única ruta real de sprint_proposal es Tab Sprint (panel "+ Sprint nuevo",
+  // locus-sprint.js) — este bloque se marca aquí, no como error de parseo, para que el caller
+  // (_resolveCheckpointBatch → _processIngestBatch) muestre un aviso de redirección explícito.
+  if (ckpt._rawSprintProposal && !parsedJSON.length) {
+    return {
+      ok: false,
+      isSprintProposalOnly: true,
+      error: 'sprint_proposal detectado — se procesa desde Tab Sprint (panel "+ Sprint nuevo"), no desde este modal.'
+    };
+  }
   // TKT-202607-011 (BR-Ecosystem §8 regla dura): gate de draft obligatorio — mismo criterio
-  // que parsePaste (~L1098-1120), replicado aquí porque _buildTgItemsFromParsed (compartida
-  // entre parsePasteStandalone y este path) no lo aplica — el gate vive en el flujo inline de
-  // parsePaste, no en el helper extraído. Sin draft declarado explícitamente (true o false) en
-  // un bloque con al menos un ítem REQ/TKT nuevo o con cambio de status, el bloque se trata
-  // como inválido — mismo tratamiento que JSON malformado o título ausente (AC2 heredado de
-  // TKT3): no aborta el resto del batch, se registra en DocLog vía el caller
-  // (_resolveCheckpointBatch, Paso 1) y queda en skipped con type:'invalid'.
-  // no_incluye: no aplica a INC/PRB/KE/CHG — rama Reactiva sin Fase 5 (§4b), mismo criterio que
-  // parsePaste tras TKT-202607-003.
+  // que parsePaste (~L1098-1120). Sin draft declarado explícitamente (true o false) en un
+  // bloque con al menos un ítem REQ/TKT nuevo o con cambio de status, el bloque se trata como
+  // inválido — mismo tratamiento que JSON malformado o título ausente.
   const _draftGateTypes = ['REQ', 'TKT'];
   const _hasDraftGatedItem = parsedJSON.some(_di => _di && _di.type !== 'patch' && _draftGateTypes.includes(_di.type));
   if (_hasDraftGatedItem && ckpt.draftRaw === undefined) {
@@ -2399,6 +2440,14 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
   const _parsedBlocks = blocks.map((blockText, idx) => {
     const r = _parseBatchBlock(blockText);
     if (!r.ok) {
+      // TKT4 (REQ CAEL-0718-01 · AC1): bloque de solo sprint_proposal — type distinto de
+      // 'invalid' para que el caller lo distinga de un error real de parseo (AC1: "sin error de
+      // parseo"). No genera entrada de DocLog como 'checkpoint-batch-invalido' — no es deuda ni
+      // bloque roto, es uso correcto de sprint_proposal en el modal equivocado.
+      if (r.isSprintProposalOnly) {
+        _result.skipped.push({ idx, type: 'sprint_proposal', reason: r.error });
+        return { idx, valid: false };
+      }
       _blogLog('checkpoint-batch-invalido', '', `CHECKPOINT ${idx + 1} del batch inválido — ${r.error}. Omitido, resto del batch resuelto.`, 'backlog');
       _result.skipped.push({ idx, type: 'invalid', reason: r.error });
       return { idx, valid: false };

@@ -1,4 +1,4 @@
-/* [PP] mod:11 · autor:Nova · 2026-07-17 UTC-6 */
+/* [PP] mod:12 · autor:Nova · 2026-07-19 UTC-6 */
 /* TKT2 (CAEL-09 — REQ DISC-REQ-color-swap, CAEL-07): swap .ct-pill-req ↔ .ct-pill-disc,
    par con TKT1 (locus-backlog.css, mod:95) — .item-type-pill.REQ/.DISC. .ct-pill-req toma
    los valores que tenía .ct-pill-disc (--purple) y viceversa (--blue), mismo formato de
@@ -1106,7 +1106,7 @@
 }
 
 .card-avatar.available .card-avatar-initial {
-  color: var(--green);
+  color: var(--green-text);
 }
 
 .card-avatar.exhausted .card-avatar-initial {

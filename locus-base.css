@@ -1,4 +1,4 @@
-/* [PP] mod:11 · autor:Nova · 2026-07-17 UTC-6 */
+/* [PP] mod:12 · autor:Nova · 2026-07-19 22:10 UTC-6 */
 /* locus-base.css */
 
 
@@ -164,6 +164,7 @@
   --accent-glow:   rgb(166 226 46 / 12%);
   --accent-dim:    rgb(166 226 46 / 8%);
   --accent-border: rgb(166 226 46 / 25%);
+  --accent-text:   var(--accent);   /* dark: 11.0:1 vs --surface2 (WCAG AA >=4.5:1) — mismo criterio que --green-text */
   --blue:          #4fc3f7;
   --blue-dim:      rgb(79 195 247 / 8%);   /* Cluster A: fondo sutil --blue */
   --blue-border:   rgb(79 195 247 / 25%);  /* Cluster A: borde sutil --blue */
@@ -334,6 +335,7 @@
   --accent-glow:   rgb(109 184 33 / 10%);
   --accent-dim:    rgb(109 184 33 / 7%);
   --accent-border: rgb(109 184 33 / 22%);
+  --accent-text:   #45700f;   /* light: token propio, no alias — var(--accent) directo da 2.32:1 vs --surface2, bajo WCAG AA. 5.53:1 vs --surface2, 5.11:1 vs --surface (blanco). Mismo criterio que --green-text (#137a40) sobre --green light */
   --blue:          #0288d1;
   --blue-dim:      rgb(2 136 209 / 7%);    /* Cluster A: fondo sutil --blue */
   --blue-border:   rgb(2 136 209 / 18%);   /* Cluster A: borde sutil --blue */

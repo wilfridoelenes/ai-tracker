@@ -1,4 +1,4 @@
-// [PP] mod:91 · autor:Rune · 2026-07-18 UTC-6
+// [PP] mod:92 · autor:Rune · 2026-07-20 22:35 UTC-6
 // TKT (REQ-[pendiente-ID] Paridad IDP Q-INC — Opción A, founder confirmó "vamos con opcion A
 //   pure" sobre hallazgo #2 de la auditoría de render): _attachQIncDelegation gana wiring
 //   completo para abrir el IDP desde .qinc-item-header — mismo patrón que .bitem-header
@@ -193,7 +193,9 @@ import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } 
 
 import { _setBacklogModified } from './locus-docs.js';
 
-import { _getActiveProjectFilter, getActiveSprints, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync, state } from './locus-storage.js'; // INC-fix: 'state' faltaba en este import — renderBacklogList() lo usa (state.projects) desde antes de mod:82/83 sin que nunca se importara, ReferenceError en runtime
+import { _getActiveProjectFilter, getActiveSprints, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync, state, _docPrefix } from './locus-storage.js'; // INC-fix: 'state' faltaba en este import — renderBacklogList() lo usa (state.projects) desde antes de mod:82/83 sin que nunca se importara, ReferenceError en runtime · TKT3 (REQ CAEL-0720-01): _docPrefix agregado — mismo helper que locus-map-generator.js usa para `_${prefix}-incidents.md`
+
+import { _generateIncidentsMd } from './locus-incidents-generator.js'; // TKT3 (REQ CAEL-0720-01): mismo generador que TKT2 — AC1 del REQ exige cero lógica de contenido duplicada entre los dos puntos de entrada
 
 import { showToast } from './locus-toast.js';
 
@@ -1135,6 +1137,10 @@ export function renderQIncPanel() {
         <button class="stat-pri-chip pri-low${_qiPriority.has('low') ? ' active' : ''}" data-qi-action="qi-priority" data-qi-priority="low" title="Filtrar SLA baja"><span class="spc-n">${_countByPri.low}</span> Bajo</button>
       </div>
       <input class="qinc-search-input" type="search" placeholder="Buscar en Q-INC…" value="${_qiQuery.replace(/"/g,'&quot;')}" data-qi-action="qi-search" aria-label="Buscar en Q-INC">
+      <button class="qinc-export-btn" data-qi-action="qi-export-incidents" aria-label="Exportar incidents.md" title="Exportar incidents.md">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span class="qinc-export-btn-label">Exportar incidents.md</span>
+      </button>
     </div>`;
 
   const _matchesQiSearch = _qiQuery
@@ -1241,6 +1247,24 @@ function _attachQIncDelegation(container) {
       if (!target) return;
       const nowExpanded = target.classList.toggle('expanded');
       comportEl.setAttribute('aria-expanded', String(nowExpanded));
+      return;
+    }
+
+    // --- qi-export-incidents: descarga directa de _${prefix}-incidents.md, sin overlay ---
+    // TKT3 (REQ CAEL-0720-01) AC2: mismo generador (_generateIncidentsMd, TKT1) y mismo helper
+    // de prefijo (_docPrefix) que usa locus-map-generator.js — evaluado antes que el bloque
+    // genérico de stats-bar porque no comparte su lógica de re-render.
+    const exportBtn = e.target.closest('[data-qi-action="qi-export-incidents"]');
+    if (exportBtn) {
+      const content = _generateIncidentsMd();
+      const filename = `_${_docPrefix()}-incidents.md`;
+      const blob = new Blob([content], { type: 'text/markdown' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
       return;
     }
 
