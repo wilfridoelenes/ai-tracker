@@ -1,3 +1,15 @@
+// [PP] mod:104 · autor:Rune · 2026-07-20 19:40 UTC-6
+// INC-[pendiente-ID] (fix — gate "mover ítems Q-Backlog" tras aprobar sprint_proposal):
+// _spnpHandlePanelClick() leía `created.id` sobre el retorno de
+// _tryIngestSprintProposalFromParsed() — esa función retorna un string (id corto del
+// sprint), no un objeto, por contrato ya documentado en su propio comentario en
+// locus-session-parse.js. `created.id` era undefined; el toast lo neutralizaba con
+// `|| ''`, pero _spnpRenderGate(created.id, ...) lo pasaba sin guard — _escHtml(undefined)
+// serializa a la string literal "undefined" en data-spnp-gate-sprint, y al click en
+// "Mover seleccionados" cada ítem quedaba con item.sprint = "undefined" (string), sin
+// coincidir con ningún sprint real. Fix: ambos call sites usan `created` directo — sin
+// cambio de firma en _tryIngestSprintProposalFromParsed ni en _spnpRenderGate/
+// _spnpHandleGateAction. contract_update: no.
 // [PP] mod:103 · autor:Rune · 2026-07-13 20:38 UTC-6
 // Hallazgo resuelto en sesión: _renderSpsCerrados() rama vacía sin
 // .sps-section-label — agregado junto con .sps-section-count en '0'.
@@ -378,7 +390,13 @@ function _spnpHandlePanelClick(e) {
     }
 
     clearPendingSprintProposal(proj.id);
-    showToast('success', 'Sprint ' + (created.id || '') + ' creado.');
+    // INC-[pendiente-ID]: `created` es un string (contrato documentado de
+    // _tryIngestSprintProposalFromParsed — "Retorna el id del sprint creado (string) o false"),
+    // no un objeto. `created.id` leía undefined, filtrado a '' solo en el toast por el
+    // `|| ''` — pero pasado sin ese guard a _spnpRenderGate(), que lo serializaba a la
+    // string literal "undefined" vía _escHtml(String(undefined)) en el atributo
+    // data-spnp-gate-sprint. Al mover ítems, item.sprint quedaba escrito como "undefined".
+    showToast('success', 'Sprint ' + created + ' creado.');
     _renderSpsActivo();
     _renderSpsProgramados();
 
@@ -387,7 +405,7 @@ function _spnpHandlePanelClick(e) {
     // T-202606-164 no recuperable). proj.id ya validado no-null arriba en este handler.
     const _spnpQItems = _spnpQBacklogItems();
     if (_spnpQItems.length > 0) {
-      _spnpRenderGate(created.id, _spnpQItems);
+      _spnpRenderGate(created, _spnpQItems);
       return; // panel permanece visible mostrando el gate — se cierra al Mover/Omitir
     }
 
