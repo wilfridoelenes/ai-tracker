@@ -1,3 +1,8 @@
+/* [PP] mod:68 · autor:Nova · 2026-07-19 UTC-6 */
+/* Fix cascade: 6 variantes .mdiff-section-header--{green,blue,accent,warn,red,muted} →
+   compound .mdiff-section-header.mdiff-section-header--X — la base (declarada después)
+   pisaba background+color de las 6, anulando el color-coding completo del merge-diff.
+   Mismo patrón sistémico, ver locus-backlog.css mod:109. */
 /* [PP] mod:67 · autor:Nova · 2026-07-20 16:10 UTC-6 */
 /* Hallazgo fuera de scope resuelto en sesión (dueño presente, Patch, sin bifurcación): mod:65
    usaba --green crudo en .mdiff-finnrelease-header/-check — falla 4.5:1 en light theme
@@ -2343,32 +2348,32 @@
 }
 
 /* Color accent por tipo de sección */
-.mdiff-section-header--green {
+.mdiff-section-header.mdiff-section-header--green {
   color: var(--green-text);
   background: var(--green-dim);
 }
 
-.mdiff-section-header--blue {
+.mdiff-section-header.mdiff-section-header--blue {
   color: var(--blue);
   background: var(--blue-dim);
 }
 
-.mdiff-section-header--accent {
+.mdiff-section-header.mdiff-section-header--accent {
   color: var(--accent);
   background: var(--accent-dim);
 }
 
-.mdiff-section-header--warn {
+.mdiff-section-header.mdiff-section-header--warn {
   color: var(--amber);
   background: color-mix(in srgb, var(--amber) 7%, transparent);
 }
 
-.mdiff-section-header--red {
+.mdiff-section-header.mdiff-section-header--red {
   color: var(--red);
   background: var(--red-dim);
 }
 
-.mdiff-section-header--muted {
+.mdiff-section-header.mdiff-section-header--muted {
   color: var(--text2);
   background: var(--surface2);
 }

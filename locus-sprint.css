@@ -1,3 +1,7 @@
+/* [PP] mod:59 · autor:Nova · 2026-07-19 UTC-6 */
+/* Fix cascade: .sps-card--paused → .sps-card.sps-card--paused (compound) — la base
+   .sps-card (declarada después) pisaba el background del estado pausado. Mismo patrón
+   sistémico, ver locus-backlog.css mod:109. */
 /* [PP] mod:58 · autor:Nova · 2026-07-19 UTC-6 */
 /* TKT1 (REQ CAEL-01, ref_id CAEL-02) AC-3: overflow-x:auto en .spt-nav bajo @media (max-width: 480px) — scroll horizontal silencioso, scrollbar oculta (mismo patrón ya usado por el resto del sistema de tabs). */
 /* locus-sprint.css */
@@ -1702,7 +1706,7 @@
 /* B-202606-060: tokens verificados — existen en locus-base.css (dark/light).
    Clase activa, consumida por _renderSpsPausados() (T-202606-041) — NO es
    candidata a remoción en la limpieza de legacy de B-202606-058. */
-.sps-card--paused {
+.sps-card.sps-card--paused {
   background: var(--c-medium-bg);
   border-color: var(--c-medium-border);
   box-shadow: none;

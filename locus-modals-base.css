@@ -1,3 +1,9 @@
+/* [PP] mod:16 · autor:Nova · 2026-07-19 UTC-6 */
+/* DISC ejecutada: removida .modal--migration — sin consumidor confirmado en JS/HTML. */
+/* [PP] mod:15 · autor:Nova · 2026-07-19 UTC-6 */
+/* Fix cascade: .modal--ingest → .modal.modal--ingest (compound) — la base .modal
+   (declarada después) pisaba padding:0, el modal de ingesta recibía 1.5rem en vez
+   de layout full-canvas. Mismo patrón sistémico, ver locus-backlog.css mod:109. */
 /* [PP] mod:14 · autor:Nova · 2026-07-20 UTC-6 */
 /* TKT4 (REQ CAEL-0720-01): reglas .status-confirm-* retiradas de todos los selectores
    compartidos (contenedores de acciones, botones, hover, focus-visible, prefers-reduced-motion)
@@ -334,10 +340,8 @@
 
 /* Modificadores de tamaño/layout de modal */
 
-.modal--migration {
-  max-width: 460px;
-  width: 100%;
-}
+/* .modal--migration retirado — sin consumidor confirmado en JS/HTML (auditoría 2026-07-19,
+   ver DISC de limpieza). */
 
 /* .modal--standalone-ckpt retirado — TKT4 (REQ CAEL-0716-01). Sin consumidor: Rune eliminó
    #standalone-ckpt-overlay de index.html (único nodo que la usaba). */
@@ -347,7 +351,7 @@
    .modal-split más abajo, TKT1 REQ[CAEL-0716-01]) — este selector conserva solo
    el layout interno propio (padding/flex column) del contenido de la columna
    de ingesta, ahora aplicado también vía .modal-split__dialog en el mismo nodo. */
-.modal--ingest {
+.modal.modal--ingest {
   padding: 0;
   display: flex;
   flex-direction: column;

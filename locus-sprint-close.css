@@ -1,3 +1,8 @@
+/* [PP] mod:5 · autor:Nova · 2026-07-19 UTC-6 */
+/* Fix cascade: 3 variantes .scm-release-type--{major,minor,patch} → compound
+   .scm-release-type.scm-release-type--X — la base (declarada después) pisaba el
+   background de las 3, el badge de release type siempre mostraba el mismo fondo
+   neutro. Mismo patrón sistémico, ver locus-backlog.css mod:109. */
 /* [PP] mod:4 · autor:Nova · 2026-07-19 UTC-6 */
 /* locus-sprint-close.css
  * Módulo: estilos del flujo de cierre de sprint (modal + retro)
@@ -388,17 +393,17 @@
   border: 1px solid var(--border2);
 }
 
-.scm-release-type--major {
+.scm-release-type.scm-release-type--major {
   background: rgb(240 86 106 / 15%);
   color: var(--red);
 }
 
-.scm-release-type--minor {
+.scm-release-type.scm-release-type--minor {
   background: var(--accent-dim);
   color: var(--accent);
 }
 
-.scm-release-type--patch {
+.scm-release-type.scm-release-type--patch {
   background: var(--surface3);
   color: var(--text2);
 }

@@ -1,3 +1,9 @@
+/* [PP] mod:109 · autor:Nova · 2026-07-19 UTC-6 */
+/* Fix cascade: .qinc-item--sla-vencido → .qinc-item.qinc-item--sla-vencido (compound,
+   +1 clase de especificidad) — la base .qinc-item (declarada después en el archivo)
+   pisaba el background rojo de alerta SLA vencido. Mismo patrón que fix de rsb-pin-icon
+   (mod:10 locus-radar.css). Root-cause: compound selector en vez de reorden, para que
+   no dependa del orden de declaración ante futuras ediciones. */
 /* [PP] mod:108 · autor:Nova · 2026-07-20 UTC-6 */
 /* mod:108 — comentario obsoleto corregido en .qinc-export-btn: el DOC-UPDATE que marcaba
    "pendiente" ya está aplicado en _Locus-css-ref mod:96. Sin cambio de selector ni comportamiento. */
@@ -5595,12 +5601,12 @@
 /* ── Señales de SLA — .qinc-item--sla-vencido / .qinc-item--sla-riesgo ── */
 /* Mutuamente excluyentes — JS aplica solo una */
 
-.qinc-item--sla-vencido {
+.qinc-item.qinc-item--sla-vencido {
   background: rgba(232, 85, 85, 0.10);
   border-radius: var(--radius-sm);
 }
 
-[data-theme="dark"] .qinc-item--sla-vencido {
+[data-theme="dark"] .qinc-item.qinc-item--sla-vencido {
   background: rgba(232, 85, 85, 0.14);
 }
 

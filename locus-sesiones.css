@@ -1,3 +1,6 @@
+/* [PP] mod:38 · autor:Nova · 2026-07-19 UTC-6 */
+/* DISC ejecutada: removidas .sess-row--latest, .sess-row--latest:hover y su regla
+   descendiente .sess-row-summary--expanded — sin consumidor confirmado en JS/HTML. */
 /* [PP] mod:36 · autor:Nova · 2026-07-20 16:10 UTC-6 */
 /* TKT1 (REQ CAEL-0720-01): .gconfirm-body-html declarada — margin-bottom:1rem (mismo valor
    que .gconfirm-input-wrap), sin regla propia de display — reutiliza .is-hidden global de
@@ -1287,28 +1290,6 @@
 .sess-row-starred:hover {
   background: var(--accent-dim);
   filter: brightness(1.08);
-}
-
-/* T-202604-321: sesión más reciente siempre expandida */
-.sess-row--latest {
-  background: var(--surface2);
-  border-color: var(--border);
-  border-radius: var(--radius-md);
-}
-
-.sess-row--latest:hover {
-  filter: brightness(1.05);
-}
-
-.sess-row--latest
-.sess-row-summary--expanded {
-  white-space: normal;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: unset;
-  opacity: 0.85;
 }
 
 .sess-row-decision {
@@ -5337,23 +5318,7 @@ body.body--focus-mode::after {
   border-left: 2px solid var(--border2);
 }
 
-/* — Estado sesión EN CURSO — borde izquierdo de acento — */
-.sess-row--in-progress {
-  border-left: 2px solid var(--accent) !important;
-  background: var(--accent-dim);
-  border-color: var(--accent-border);
-}
-
-.sess-row--in-progress:hover {
-  background: var(--accent-dim);
-  filter: brightness(1.06);
-}
-
 /* — Línea 1: título + badge — */
-
-.sess-row--in-progress .sess-row-title {
-  font-weight: 600;
-}
 
 /* — Badge ítems relacionados — */
 .sess-items-badge {
@@ -5373,12 +5338,6 @@ body.body--focus-mode::after {
 .sess-row:hover .sess-items-badge {
   color: var(--text);
   border-color: var(--border2);
-}
-
-.sess-row--in-progress .sess-items-badge {
-  background: var(--accent-dim);
-  border-color: var(--accent-border);
-  color: var(--accent);
 }
 
 /* — Línea 2: proyecto + timestamp — */

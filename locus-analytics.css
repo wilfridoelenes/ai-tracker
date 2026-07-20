@@ -1,3 +1,6 @@
+/* [PP] mod:15 · autor:Nova · 2026-07-19 UTC-6 */
+/* DISC ejecutada: removidas .rm-chip--active y .rm-chip--selected (+ .rm-chip--active
+   .rm-chip-mark) — sin consumidor confirmado en JS/HTML (grep completo, 0 matches). */
 /* [PP] mod:13 · autor:Nova · 2026-07-20 16:10 UTC-6 */
 /* TKT2 (CAEL-09 — REQ DISC-REQ-color-swap, CAEL-07): swap .ct-pill-req ↔ .ct-pill-disc,
    par con TKT1 (locus-backlog.css, mod:95) — .item-type-pill.REQ/.DISC. .ct-pill-req toma
@@ -1437,92 +1440,6 @@
   border-radius: var(--radius-sm);
 }
 
-.rm-chip:hover {
-  border-color: var(--accent);
-  background: var(--surface3, var(--surface2));
-  transform: translateY(-1px);
-}
-
-/* estado activo (sprint actual) */
-.rm-chip--active {
-  border-color: var(--accent);
-  background: var(--surface2);
-  background: color-mix(in srgb, var(--accent) 10%, var(--surface2));
-  color: var(--text);
-}
-
-.rm-chip--active .rm-chip-mark {
-  color: var(--accent);
-}
-
-/* cerrado */
-.rm-chip--closed {
-  opacity: 0.65;
-}
-
-.rm-chip--closed .rm-chip-mark {
-  color: var(--text3, var(--text2));
-}
-
-/* pendiente / abierto */
-.rm-chip--open .rm-chip-mark {
-  color: var(--text2);
-}
-
-/* sin asignar */
-.rm-chip--unassigned {
-  border-style: dashed;
-}
-
-/* chip seleccionado (foco roadmap) */
-.rm-chip--selected {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgb(99 102 241 / 35%);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
-  background: var(--surface2);
-  background: color-mix(in srgb, var(--accent) 14%, var(--surface2));
-  color: var(--text);
-}
-
-.rm-chip-mark {
-  font-size: var(--text-sm);
-  line-height: 1;
-}
-
-.rm-chip-label {
-  font-weight: 600;
-  font-size: var(--text-sm);
-  color: inherit;
-  line-height: 1;
-}
-
-.rm-chip-count {
-  font-size: var(--text-2xs-plus);
-  color: var(--text2);
-  line-height: 1;
-}
-
-/* barra de progreso dentro del chip */
-.rm-chip-progress {
-  width: 100%;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--border);
-  overflow: hidden;
-  margin-top: 2px;
-}
-
-.rm-chip-progress-fill {
-  height: 100%;
-  border-radius: 2px;
-  background: var(--accent);
-  transition: width 0.3s ease;
-}
-
-.rm-chip--closed .rm-chip-progress-fill {
-  background: var(--text3, var(--text2));
-}
-
 /* highlight del grupo al hacer scroll */
 @keyframes roadmap-highlight-pulse {
   0% {
@@ -1544,22 +1461,6 @@
 .roadmap-sprint-highlight {
   animation: roadmap-highlight-pulse 0.9s ease 2;
   border-radius: var(--radius-md);
-}
-
-/* R-088: invalid sprint name warning */
-.rm-chip--name-warn {
-  border-color: var(--red, var(--red));
-}
-
-.rm-chip--name-warn:hover {
-  border-color: var(--red, var(--red));
-}
-
-.rm-chip-warn-icon {
-  font-size: var(--text-2xs-plus);
-  color: var(--red, var(--red));
-  margin-left: 2px;
-  flex-shrink: 0;
 }
 
 /* sprint-inline-input--warn: highlight input on naming error */
@@ -3063,26 +2964,6 @@
   border-radius: var(--radius-pill);
   flex-shrink: 0;
   background: var(--ppat-dot-color, var(--accent));
-}
-
-/* .rm-chip */
-.rm-chip {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  padding: 6px 10px 5px;
-  border-radius: var(--radius-md);
-  border: 1.5px solid var(--border);
-  background: var(--surface2);
-  color: var(--text2);
-  cursor: pointer;
-  font-size: var(--text-xs);
-  white-space: nowrap;
-  flex-shrink: 0;
-  min-width: 90px;
-  transition: transform .1s ease, box-shadow .1s ease;
-  text-align: left;
 }
 
 /* .sprint-roadmap-chips */
