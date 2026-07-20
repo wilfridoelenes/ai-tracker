@@ -1,4 +1,4 @@
-/* [PP] mod:68 · autor:Nova · 2026-07-19 UTC-6 */
+/* [PP] mod:69 · autor:Nova · 2026-07-19 UTC-6 */
 /* Fix cascade: 6 variantes .mdiff-section-header--{green,blue,accent,warn,red,muted} →
    compound .mdiff-section-header.mdiff-section-header--X — la base (declarada después)
    pisaba background+color de las 6, anulando el color-coding completo del merge-diff.
@@ -2724,26 +2724,6 @@
 
 /* END T-202604-355 */
 
-/* ── T-202604-361: Sprint Roadmap — chip activo fijo y prominente ── */
-.rm-chip--pinned {
-  order: -1;
-  position: sticky;
-  left: 0;
-  z-index: var(--z-raised);
-  box-shadow: 0 0 0 2px var(--accent), 0 2px 10px var(--accent-glow);
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  background: color-mix(in srgb, var(--accent) 16%, var(--surface2));
-  border-color: var(--accent-border);
-}
-
-.rm-chip--pinned .rm-chip-mark,
-.rm-chip--pinned .rm-chip-label {
-  font-weight: 700;
-  color: var(--accent);
-}
-
-/* END T-202604-361 */
-
 /* ── T-202604-364: Microinteracciones Backlog ── */
 
 /* Item exit animation */
@@ -2817,27 +2797,6 @@
   pointer-events: none;
   white-space: nowrap;
   animation: bl-copy-flash .6s ease forwards;
-}
-
-/* Roadmap chip click feedback */
-.rm-chip:active {
-  transform: scale(.95);
-}
-
-@keyframes rm-chip-click {
-  0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
-  }
-
-  100% {
-    box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 0%, transparent);
-    box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 0%, transparent);
-  }
-}
-
-.rm-chip--clicked {
-  animation: rm-chip-click .3s ease;
 }
 
 /* END T-202604-364 */

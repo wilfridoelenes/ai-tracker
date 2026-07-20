@@ -1,4 +1,5 @@
-// [PP] mod:60 · autor:Rune · 2026-07-17 13:20 UTC-6
+// [PP] mod:61 · autor:Rune · 2026-07-19 00:00 UTC-6
+// INC-PP-openProjPanel: breadcrumb-proj usaba openProjPanel() directo (ReferenceError) — migrado a dispatch shell:open-proj-panel, mismo patrón de T-202606-167
 // TKT1 (REQ-CAEL-0717-01): _renderInfraCurrentValue() agregada — lee getInfraVersionData()
 // (import agregado desde locus-storage.js) y puebla #hdr-menu-infra-current-value al abrir
 // el modal via openInfraSync(). Sin dato → 'sin sincronizar en esta sesión', nunca vacío ni
@@ -1343,10 +1344,13 @@ document.addEventListener('DOMContentLoaded', function () {
 // ── B-202605-019: Listeners — header, breadcrumb, more-menu, inputs ─────────
 document.addEventListener('DOMContentLoaded', function () {
 
-  // breadcrumb-proj → openProjPanel()
+  // breadcrumb-proj → shell:open-proj-panel (INC-PP-openProjPanel: openProjPanel() directo
+  // no está importado en este módulo — importarlo crearía ciclo con locus-sprint-project.js,
+  // que ya importa esc/switchTab/switchSubTab/getCurrentSubTab/getCurrentTab de este archivo.
+  // Mismo patrón desacoplado que locus-backlog-render.js y locus-sesiones-capture.js — T-202606-167)
   const breadcrumbProj = document.getElementById('breadcrumb-proj');
   if (breadcrumbProj) breadcrumbProj.addEventListener('click', function () {
-    openProjPanel();
+    window.dispatchEvent(new CustomEvent('shell:open-proj-panel'));
   });
 
   // header-pend-btn → openPendPanel()
