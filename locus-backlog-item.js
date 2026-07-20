@@ -1,4 +1,5 @@
-// [PP] mod:117 · autor:Rune · 2026-07-20 23:40 UTC-6
+// [PP] mod:118 · autor:Rune · 2026-07-20 UTC-6
+// TKT1 (REQ CAEL-0720-01): bitem-subline-sprint suprimido para type==='TKT' — ver AC en TKT.
 // TKT-[pendiente-ID] (deuda técnica, gap detectado por Finn — tercera copia no anticipada
 // en AC original): SLA_RIESGO_WINDOW_MS importada de locus-inc-fields.js, reemplaza literal
 // 21600000 en buildQIncItem() (línea ~3329). Sin cambio de comportamiento en clasificación
@@ -1185,7 +1186,10 @@ export function buildBacklogItem(item, opts = {}) {
   if (item._focusRank) _sublineParts.push(`<span class="bitem-focus-rank" title="Posición en Focus">#${item._focusRank}</span>`);
   if (item.role) _sublineParts.push(`<span class="bitem-subline-role" title="Rol responsable">${esc(item.role)}</span>`);
   if (item.area) _sublineParts.push(`<span class="bitem-subline-area" title="${esc(item.area)}">${esc(item.area)}</span>`);
-  if (item.sprint) _sublineParts.push(`<span class="bitem-subline-sprint">${esc(_sprintDisplay(item.sprint))}</span>`);
+  // TKT1 (REQ CAEL-0720-01): sprint suprimido de subline para type==='TKT' — el header del
+  // grupo (bl-vl-sprint-header, renderSprintGroup en locus-backlog-render.js) ya lo declara,
+  // repetirlo en cada fila TKT hija es redundancia visual. REQ y otros tipos sin cambio.
+  if (item.sprint && type !== 'TKT') _sublineParts.push(`<span class="bitem-subline-sprint">${esc(_sprintDisplay(item.sprint))}</span>`);
   const subline = `<div class="bitem-subline">
     ${_sublineParts.join('<span class="bitem-subline-sep">·</span>')}
     ${_discardReasonHtml}
