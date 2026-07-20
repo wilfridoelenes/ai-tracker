@@ -43,40 +43,19 @@ import { getCurrentTab } from './locus-ui-shell.js';
 // Estados ITIL "activos" — orden de grupo primero. resolved/closed van al fondo.
 const _QINC_ACTIVE_STATUSES = ['detected', 'assigned', 'in_progress', 'escalated_to_prb', 'escalated_to_chg'];
 
-export function renderQIncPanel() {
-  const body = document.getElementById('qinc-panel-body');
-  if (!body) return;
+// TKT2 (REQ CAEL-0720-05): stats-bar de Q-INC extraído a función propia — mismo criterio que
+// renderStats() (locus-backlog-core.js) para #stats-bar de Backlog. Llena #qinc-stats-bar
+// (estático en index.html) de forma independiente del cuerpo (#qinc-panel-body). AC: chips
+// muestran 0 sin ocultarse cuando no hay ítems activos — sin early-return por conteo, solo por
+// ausencia de proyecto.
+export function renderQIncStats() {
+  const statsEl = document.getElementById('qinc-stats-bar');
+  if (!statsEl) return;
 
-  if (!_getActiveProjectFilter()) {
-    body.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">📁</div>
-        <div class="empty-state-title">Selecciona un proyecto</div>
-        <div class="empty-state-hint">El backlog está vinculado a un proyecto. Selecciona uno para ver y gestionar sus ítems.</div>
-      </div>`;
-    return;
-  }
+  if (!_getActiveProjectFilter()) { statsEl.innerHTML = ''; return; }
 
-  // Ítems ITIL del proyecto activo — excluir descartados del conteo y del render
-  // [tmp:tkt-isqinc-unify]: _isQIncItem local eliminada — usa isQIncItem() importada desde locus-backlog-core.js.
-  // TKT-202607-056 (histórico): concat(getItems()) se agregó porque el universo estaba
-  // incompleto en ese momento — ITIL vivía parcialmente en ambos arrays.
-  // TKT3 (REQ-refactor-item-shape-itil-scrum, parent [pendiente-ID] — confirmar código real en
-  // Locus): concat eliminado. _setITEMS()/_setIncidents() (locus-backlog-core.js) garantizan
-  // desde TKT2 de este mismo REQ que ningún ítem ITIL persiste en ITEMS — el universo Q-INC
-  // vive exclusivamente en INCIDENTS. Este cambio alinea renderQIncPanel() con
-  // _getCountableBaseForSubtab('qinc'), que ya leía solo INCIDENTS (TKT-202607-005) — antes de
-  // este TKT ambos módulos computaban el universo Q-INC de forma distinta.
+  // Ítems ITIL del proyecto activo — misma fuente que renderQIncPanel().
   const allQInc = getIncidents().filter(isQIncItem);
-
-  if (!allQInc.length) {
-    body.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">🚨</div>
-        <div class="empty-state-title">No hay incidentes activos en Q-INC</div>
-      </div>`;
-    return;
-  }
 
   // Namespace propio 'qinc' — aislado del state global de Backlog
   const _qiTypes    = _nsGetTypes('qinc');
@@ -96,8 +75,89 @@ export function renderQIncPanel() {
     else _countByPri.medium++;
   });
 
-  // Empty state cuando no hay ítems o todos closed/descartado se cubre arriba (allQInc.length).
-  // Si _displayable queda vacío (todos closed/descartado) pero allQInc tiene ítems, mostrar mismo empty state.
+  // TKT2 AC (Nova, REQ CAEL-0720-05): chips muestran 0 sin ocultarse — sin early-return por
+  // conteo. _countByType/_countByPri ya quedan en 0 cuando _displayable está vacío.
+  statsEl.innerHTML = `
+    <div class="qinc-stats-types">
+      ${_qiTypes.size < 4 ? `<button class="stat-type-chip stat-type-chip--all" data-qi-action="qi-clear-types" title="Mostrar todos los tipos">✕</button>` : ''}
+      ${[['INC','INC'],['PRB','PRB'],['KE','KE'],['CHG','CHG']].map(([t, label]) =>
+        `<button class="stat-type-chip tc-${t.toLowerCase()}${_qiTypes.has(t) ? ' active' : ''}" data-qi-action="qi-type" data-qi-type="${t}" title="Filtrar por tipo ${t}">\
+<span class="tc-count">${_countByType[t]}</span><span class="tc-label">${label}</span></button>`
+      ).join('')}
+    </div>
+    <div class="qinc-stats-priority">
+      <button class="stat-pri-chip pri-high${_qiPriority.has('high') ? ' active' : ''}" data-qi-action="qi-priority" data-qi-priority="high" title="Filtrar SLA alta"><span class="spc-n">${_countByPri.high}</span> Alto</button>
+      <button class="stat-pri-chip pri-medium${_qiPriority.has('medium') ? ' active' : ''}" data-qi-action="qi-priority" data-qi-priority="medium" title="Filtrar SLA media"><span class="spc-n">${_countByPri.medium}</span> Med</button>
+      <button class="stat-pri-chip pri-low${_qiPriority.has('low') ? ' active' : ''}" data-qi-action="qi-priority" data-qi-priority="low" title="Filtrar SLA baja"><span class="spc-n">${_countByPri.low}</span> Bajo</button>
+    </div>
+    <input class="qinc-search-input" type="search" placeholder="Buscar en Q-INC…" value="${_qiQuery.replace(/"/g,'&quot;')}" data-qi-action="qi-search" aria-label="Buscar en Q-INC">
+  `;
+
+  // TKT2: delegación propia sobre #qinc-stats-bar — separada de _attachQIncDelegation (body),
+  // porque el stats-bar ahora vive fuera de #qinc-panel-body. Flag previene acumulación entre
+  // re-renders, mismo criterio que renderStats() de Backlog.
+  if (!statsEl._qiStatsDelegationAttached) {
+    statsEl._qiStatsDelegationAttached = true;
+    statsEl.addEventListener('click', function _qiStatsClick(e) {
+      const el = e.target.closest('[data-qi-action]');
+      if (!el) return;
+      const act = el.dataset.qiAction;
+      if (act === 'qi-clear-types') {
+        _nsReset('qinc');
+        renderQIncPanel();
+      } else if (act === 'qi-type') {
+        _nsToggleType('qinc', el.dataset.qiType);
+        renderQIncPanel();
+      } else if (act === 'qi-priority') {
+        _nsTogglePriority('qinc', el.dataset.qiPriority);
+        renderQIncPanel();
+      }
+    });
+    statsEl.addEventListener('input', function _qiStatsInput(e) {
+      const input = e.target.closest('[data-qi-action="qi-search"]');
+      if (!input) return;
+      clearTimeout(statsEl._qiSearchTimer);
+      statsEl._qiSearchTimer = setTimeout(() => {
+        _nsSetQuery('qinc', input.value);
+        renderQIncPanel();
+      }, 200);
+    });
+  }
+}
+
+// TKT2 (REQ CAEL-0720-05): renderQIncPanel() ahora gestiona exclusivamente el cuerpo
+// (#qinc-panel-body) — lista de ítems o empty-state, nunca ambos, nunca ninguno (AC Nova).
+// El stats-bar (#qinc-stats-bar, estático) se renderiza siempre vía renderQIncStats(),
+// independiente del conteo de ítems activos.
+export function renderQIncPanel() {
+  const body = document.getElementById('qinc-panel-body');
+  if (!body) return;
+
+  renderQIncStats();
+
+  if (!_getActiveProjectFilter()) {
+    body.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📁</div>
+        <div class="empty-state-title">Selecciona un proyecto</div>
+        <div class="empty-state-hint">El backlog está vinculado a un proyecto. Selecciona uno para ver y gestionar sus ítems.</div>
+      </div>`;
+    return;
+  }
+
+  // Ítems ITIL del proyecto activo — excluir descartados del conteo y del render
+  // [tmp:tkt-isqinc-unify]: _isQIncItem local eliminada — usa isQIncItem() importada desde locus-backlog-core.js.
+  const allQInc = getIncidents().filter(isQIncItem);
+
+  // Namespace propio 'qinc' — aislado del state global de Backlog
+  const _qiTypes    = _nsGetTypes('qinc');
+  const _qiPriority = _nsGetPriority('qinc');
+  const _qiQuery     = (_nsGetQuery('qinc') || '').trim().toLowerCase();
+  const _displayable = allQInc.filter(i => i.status !== 'descartado' && i.incidentStatus !== 'closed');
+
+  // TKT2: único empty-state de "sin activos" — antes había dos ramas idénticas
+  // (allQInc.length===0 y _displayable.length===0). _displayable ya cubre ambos casos: si
+  // allQInc está vacío, _displayable también lo está.
   if (!_displayable.length) {
     body.innerHTML = `
       <div class="empty-state">
@@ -106,27 +166,6 @@ export function renderQIncPanel() {
       </div>`;
     return;
   }
-
-  const _statsBarHtml = `
-    <div class="qinc-stats-bar" id="qinc-stats-bar">
-      <div class="qinc-stats-types">
-        ${_qiTypes.size < 4 ? `<button class="stat-type-chip stat-type-chip--all" data-qi-action="qi-clear-types" title="Mostrar todos los tipos">✕</button>` : ''}
-        ${[['INC','INC'],['PRB','PRB'],['KE','KE'],['CHG','CHG']].map(([t, label]) =>
-          `<button class="stat-type-chip tc-${t.toLowerCase()}${_qiTypes.has(t) ? ' active' : ''}" data-qi-action="qi-type" data-qi-type="${t}" title="Filtrar por tipo ${t}">\
-<span class="tc-count">${_countByType[t]}</span><span class="tc-label">${label}</span></button>`
-        ).join('')}
-      </div>
-      <div class="qinc-stats-priority">
-        <button class="stat-pri-chip pri-high${_qiPriority.has('high') ? ' active' : ''}" data-qi-action="qi-priority" data-qi-priority="high" title="Filtrar SLA alta"><span class="spc-n">${_countByPri.high}</span> Alto</button>
-        <button class="stat-pri-chip pri-medium${_qiPriority.has('medium') ? ' active' : ''}" data-qi-action="qi-priority" data-qi-priority="medium" title="Filtrar SLA media"><span class="spc-n">${_countByPri.medium}</span> Med</button>
-        <button class="stat-pri-chip pri-low${_qiPriority.has('low') ? ' active' : ''}" data-qi-action="qi-priority" data-qi-priority="low" title="Filtrar SLA baja"><span class="spc-n">${_countByPri.low}</span> Bajo</button>
-      </div>
-      <input class="qinc-search-input" type="search" placeholder="Buscar en Q-INC…" value="${_qiQuery.replace(/"/g,'&quot;')}" data-qi-action="qi-search" aria-label="Buscar en Q-INC">
-      <button class="qinc-export-btn" data-qi-action="qi-export-incidents" aria-label="Exportar incidents.md" title="Exportar incidents.md">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        <span class="qinc-export-btn-label">Exportar incidents.md</span>
-      </button>
-    </div>`;
 
   const _matchesQiSearch = _qiQuery
     ? i => i.code.toLowerCase().includes(_qiQuery) || (i.title || '').toLowerCase().includes(_qiQuery) || (i.area || '').toLowerCase().includes(_qiQuery)
@@ -174,18 +213,22 @@ export function renderQIncPanel() {
         return h;
       })();
 
-  body.innerHTML = _statsBarHtml + _listHtml;
+  body.innerHTML = _listHtml;
 
   // TKT-B2b: _attachQIncDelegation — único listener sobre #qinc-panel-body.
-  // Unifica: stats-bar (qi-*), copy-code de cards buildQIncItem, y qi-toggle-comportamiento.
+  // TKT3 (REQ CAEL-0720-05): ya no unifica stats-bar (qi-clear-types/qi-type/qi-priority/
+  // qi-search) ni qi-export-incidents — ambos migraron fuera de #qinc-panel-body (stats-bar
+  // propia arriba; export vía shell:export-qinc, ver final del archivo). Unifica solo:
+  // copy-code de cards buildQIncItem y qi-toggle-comportamiento.
   // Registrado una sola vez sobre body via flag — persiste entre re-renders de innerHTML.
-  // _attachBacklogListDelegation no se modifica: sigue escuchando sobre #backlog-list sin cambios.
   _attachQIncDelegation(body);
 }
 
 // TKT-B2b: delegación unificada para #qinc-panel-body.
 // Parámetro container: el elemento sobre el que se registra el listener (siempre #qinc-panel-body).
-// Un único listener maneja: filtros de stats-bar, copy-code de cards ITIL, expand de comportamientoActual.
+// TKT3 (REQ CAEL-0720-05): maneja únicamente copy-code de cards ITIL y expand de
+// comportamientoActual — filtros de stats-bar y export salieron de aquí (ver renderQIncStats()
+// y listener shell:export-qinc al final del archivo).
 // AC: exactamente un listener activo — flag _qiDelegationAttached previene acumulación en re-renders.
 function _attachQIncDelegation(container) {
   if (!container || container._qiDelegationAttached) return;
@@ -235,49 +278,6 @@ function _attachQIncDelegation(container) {
       return;
     }
 
-    // --- qi-export-incidents: descarga directa de _${prefix}-incidents.md, sin overlay ---
-    // TKT3 (REQ CAEL-0720-01) AC2: mismo generador (_generateIncidentsMd, TKT1) y mismo helper
-    // de prefijo (_docPrefix) que usa locus-map-generator.js — evaluado antes que el bloque
-    // genérico de stats-bar porque no comparte su lógica de re-render.
-    const exportBtn = e.target.closest('[data-qi-action="qi-export-incidents"]');
-    if (exportBtn) {
-      const content = _generateIncidentsMd();
-      const filename = `_${_docPrefix()}-incidents.md`;
-      const blob = new Blob([content], { type: 'text/markdown' });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href     = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
-      return;
-    }
-
-    // --- stats-bar: filtros de tipo, prioridad, clear ---
-    const el = e.target.closest('[data-qi-action]');
-    if (!el) return;
-    const act = el.dataset.qiAction;
-    if (act === 'qi-clear-types') {
-      _nsReset('qinc');
-      renderQIncPanel();
-    } else if (act === 'qi-type') {
-      _nsToggleType('qinc', el.dataset.qiType);
-      renderQIncPanel();
-    } else if (act === 'qi-priority') {
-      _nsTogglePriority('qinc', el.dataset.qiPriority);
-      renderQIncPanel();
-    }
-  });
-
-  // Search input — input event (no click)
-  container.addEventListener('input', function _qiInput(e) {
-    const input = e.target.closest('[data-qi-action="qi-search"]');
-    if (!input) return;
-    clearTimeout(container._qiSearchTimer);
-    container._qiSearchTimer = setTimeout(() => {
-      _nsSetQuery('qinc', input.value);
-      renderQIncPanel();
-    }, 200);
   });
 
   // Enter/Espacio sobre .qinc-item-header (role="button" tabindex="0", div no nativo) — mismo
@@ -303,4 +303,23 @@ window.addEventListener('shell:render-qinc', () => { renderQIncPanel(); });
 // usa para saber qué tab de primer nivel está activo (ver locus-ui-shell.js currentTab).
 window.addEventListener('shell:backlog-render-dirty', () => {
   if (getCurrentTab() === 'incidentes') renderQIncPanel();
+});
+
+// TKT3 (REQ CAEL-0720-05): descarga directa de _${prefix}-incidents.md — misma lógica que antes
+// vivía en el bloque qi-export-incidents de _attachQIncDelegation (dentro de #qinc-panel-body).
+// Ahora disparada por #btn-export-qinc (toolbar estático, #qinc-toolbar en index.html) vía el
+// evento shell:export-qinc despachado desde locus-ui-shell.js — mismo patrón que
+// shell:export-backlog en locus-backlog-generator.js. Mismo generador (_generateIncidentsMd) y
+// helper de prefijo (_docPrefix) que ya usaba TKT3 (REQ CAEL-0720-01) — sin cambio de lógica,
+// solo de disparador.
+window.addEventListener('shell:export-qinc', () => {
+  const content = _generateIncidentsMd();
+  const filename = `_${_docPrefix()}-incidents.md`;
+  const blob = new Blob([content], { type: 'text/markdown' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 });

@@ -694,7 +694,18 @@
 <!-- TKT2 (REQ CAEL-01): Q-INC promovido de sub-tab de Backlog a tab de primer nivel —
      separa navegación de Rama Reactiva (INC·PRB·KE·CHG) de Rama Planeada (__BR-Ecosystem §4b).
      Reutiliza el mismo #qinc-panel-body que consumía renderQIncPanel() — sin cambio de lógica de render. -->
+<!-- TKT2 (REQ CAEL-0720-05): #qinc-toolbar + #qinc-stats-bar agregados como siblings estáticos
+     de #qinc-panel-body — mismo patrón que #tpl-toolbar/#stats-bar en #tab-backlog. Antes,
+     ambos vivían dentro del innerHTML de renderQIncPanel() y desaparecían con 0 ítems activos.
+     Gap registrado: solo el botón "Descargar Q-INC (activos)" tiene generador implementado
+     (_generateIncidentsMd, TKT3). "Historial completo (cerrados)" del wireframe de Nova no se
+     agrega aquí — no existe generador de histórico de incidentes en el código real; requiere AC
+     de Cael antes de implementarse. Ver CHECKPOINT. -->
 <div class="tab-panel" id="tab-incidentes">
+  <div class="tpl-sidebar-actions" id="qinc-toolbar">
+    <button class="tpl-action-btn" id="btn-export-qinc" title="Descargar incidents.md (activos)">⬇ Descargar Q-INC (activos)</button>
+  </div>
+  <div class="qinc-stats-bar" id="qinc-stats-bar"></div>
   <div id="qinc-panel-body"></div>
 </div><!-- /tab-incidentes -->
 

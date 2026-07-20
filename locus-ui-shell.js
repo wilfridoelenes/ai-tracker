@@ -1420,6 +1420,12 @@ document.addEventListener('DOMContentLoaded', function () {
     window.dispatchEvent(new CustomEvent('shell:export-backlog'));
   });
 
+  // btn-export-qinc — TKT3 (REQ CAEL-0720-05): toolbar estático #qinc-toolbar
+  const btnExportQinc = document.getElementById('btn-export-qinc');
+  if (btnExportQinc) btnExportQinc.addEventListener('click', function () {
+    window.dispatchEvent(new CustomEvent('shell:export-qinc'));
+  });
+
   // btn-export-backlog-full
   const btnExportBacklogFull = document.getElementById('btn-export-backlog-full');
   if (btnExportBacklogFull) btnExportBacklogFull.addEventListener('click', function () {
