@@ -1,4 +1,8 @@
-// [PP] v0.8.0 · sprint:PP-S-06 · mod:20 · autor:Rune · 2026-07-13 02:15 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-06 · mod:21 · autor:Rune · 2026-07-20 UTC-6
+// INC-[pendiente-ID] (Tab INC no renderiza): agregado import de efecto lateral de
+// locus-incidents-render.js — TKT2 (REQ CAEL-0720-03) extrajo renderQIncPanel() ahí pero
+// ningún módulo lo importaba, así que el listener 'shell:render-qinc' nunca se registraba.
+// Fix de una línea, sin cambio de lógica de negocio — ver locus-ui-shell.js switchTab('incidentes').
 // Deprecación Command Palette (cont.): removidos import + llamada de initCommandPalette() —
 // el módulo locus-command-palette.js fue eliminado del proyecto. Ver locus-ui-shell.js.
 // INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminados imports
@@ -60,6 +64,10 @@ import './locus-backlog-item.js';
 import './locus-backlog-merge.js';
 import './locus-backlog-panel.js';
 import './locus-backlog-render.js';
+import './locus-incidents-render.js'; // INC-[pendiente-ID]: TKT2 (REQ CAEL-0720-03) extrajo renderQIncPanel/_attachQIncDelegation
+  // a este módulo pero ningún archivo lo importaba — el listener 'shell:render-qinc' nunca se
+  // registraba y switchTab('incidentes') disparaba el evento al vacío. Import de efecto lateral,
+  // mismo patrón que locus-backlog-qbacklog.js/locus-backlog-qdisc.js en las líneas siguientes.
 import './locus-backlog-qbacklog.js';
 import './locus-backlog-qdisc.js';
 import './locus-backlog-sprints.js';
