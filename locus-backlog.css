@@ -1,4 +1,4 @@
-/* [PP] mod:113 · autor:Nova · 2026-07-20 UTC-6 */
+/* [PP] mod:114 · autor:Nova · 2026-07-20 UTC-6 */
 /* TKT1 (REQ CAEL-0720-02): .bl-header-unified fusiona stats-bar + bl-toolbar en un solo
    header con border envolvente — ver AC en TKT. .bl-toolbar pierde border/sticky propio,
    migrado al wrapper. .active-filter-chips sin cambio, sigue fusionando contra el borde
@@ -2537,8 +2537,7 @@
   border-bottom-left-radius: 0; /* fusión visual con #active-filter-chips — mismo criterio que .bl-toolbar tenía antes */
   border-bottom-right-radius: 0;
   max-width: 2200px;
-  width: calc(100% - 12px);
-  margin-left: 12px;
+  width: 100%; /* fix 3: era calc(100% - 12px) + margin-left:12px — compensaba .tpl-sidebar (Gen1), eliminado en REQ CAEL-01 (ver locus-proyectos.css:2060). #backlog-list, hermano directo bajo #sspanel-backlog, nunca tuvo ese margen — el wrapper quedaba 12px más adentro que la lista ("doble gutter"). Sin margin-left, flush con #backlog-two-col-wrap. */
   margin-bottom: 0;
   position: sticky;
   top: 0; /* fix 2: .bl-header-unified vive dentro de .tpl-detail (overflow:hidden auto, locus-proyectos.css:2076) — ESE es el ancestro de scroll real para position:sticky, no la página. var(--header-h) mide el <header> de la app, que ya queda fuera de .tpl-detail (hermano, no ancestro) — sumarlo creaba un hueco artificial. Mismo patrón ya usado en este scroll container: .ctx-search-bar (locus-proyectos.css:2915-2917) usa top:0. Fix anterior (mod:112, +1.95rem+1px) fue diagnóstico incorrecto — empeoró el hueco en vez de cerrarlo. */
@@ -4077,8 +4076,7 @@
   margin-top: 0; /* INC-[pendiente-ID]: era -0.5rem — colapso de márgenes con hermano sticky no es confiable, causaba overlap visual */
   margin-bottom: 6px;
   max-width: 2200px; /* B-202607: unificado con .bl-toolbar — antes sin tope, se estiraba distinto */
-  width: calc(100% - 12px); /* B-202607-002: explícito — mismo fix que .bl-toolbar, sticky+flex colapsaba a shrink-to-fit y limitaba al contenido */
-  margin-left: 12px; /* B-202607: mismo margen que .bl-toolbar respecto al sidebar de subtabs */
+  width: 100%; /* fix 3: mismo root cause que .bl-header-unified arriba — era calc(100% - 12px), compensaba sidebar Gen1 ya eliminado. Sin margin-left para quedar flush y con los bordes alineados verticalmente con el wrapper de arriba. */
   background: var(--surface); /* TKT4-[pendiente-ID]: era --surface2 — unificado con .bl-toolbar */
   border: 1px solid var(--border); /* TKT4-[pendiente-ID]: era --border2 — unificado con .bl-toolbar */
   border-top: none; /* TKT4-[pendiente-ID]: evita doble borde en el punto de unión con .bl-toolbar */
