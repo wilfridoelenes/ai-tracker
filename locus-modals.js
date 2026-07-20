@@ -1,3 +1,10 @@
+// [PP] mod:4 · autor:Rune · 2026-07-19 15:00 UTC-6
+// INC-PP-gconfirm-bodyHtml: _gconfirmOpen() recibía `bodyHtml` de sus callers (_openStatusConfirm en
+//   locus-backlog-merge.js, y ahora _showExportConfirmModal en locus-backlog-generator.js) sin
+//   destructurarlo ni renderizarlo en #gconfirm-body-html (contenedor insertado en index.html por
+//   REQ CAEL-0720-01 TKT1, nunca conectado en este módulo). Efecto: el modal abría con título/msg
+//   pero el contenido HTML pasado por bodyHtml no se veía nunca — para el caso de export, la falta
+//   total de #export-confirm-overlay (retirado en la misma REQ) hacía que ni el modal abriera.
 // [PP] mod:3 · autor:Rune · 2026-07-17 11:20 UTC-6
 // locus-modals.js
 // Módulo: sistema de modal genérico y focus management
@@ -15,10 +22,23 @@ import { _registerCoreCallback } from './locus-backlog-core.js';
 // _gconfirmCb: interno del módulo — no expuesto públicamente
 let _gconfirmCb = null;
 
-export function _gconfirmOpen({ title, msg, okLabel = 'Confirmar', danger = true, inputLabel = null, inputPlaceholder = '' }, cb) {
+export function _gconfirmOpen({ title, msg, okLabel = 'Confirmar', danger = true, inputLabel = null, inputPlaceholder = '', bodyHtml = null }, cb) {
   _gconfirmCb = cb;
   document.getElementById('gconfirm-title').textContent = title;
   document.getElementById('gconfirm-msg').textContent = msg;
+  // INC-PP-gconfirm-bodyHtml: contenedor #gconfirm-body-html insertado en index.html (REQ CAEL-0720-01
+  // TKT1) pero nunca poblado ni mostrado aquí — bodyHtml llegaba de los callers (_openStatusConfirm)
+  // sin efecto visible. Se agrega el mismo mecanismo de toggle que el resto del modal.
+  const bodyHtmlEl = document.getElementById('gconfirm-body-html');
+  if (bodyHtmlEl) {
+    if (bodyHtml) {
+      bodyHtmlEl.innerHTML = bodyHtml;
+      bodyHtmlEl.classList.remove('is-hidden');
+    } else {
+      bodyHtmlEl.innerHTML = '';
+      bodyHtmlEl.classList.add('is-hidden');
+    }
+  }
   const okBtn = document.getElementById('gconfirm-ok-btn');
   okBtn.textContent = okLabel;
   okBtn.className = 'btn-primary' + (danger ? ' danger' : '');

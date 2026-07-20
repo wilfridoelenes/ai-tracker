@@ -1,3 +1,9 @@
+// [PP] mod:46 · autor:Rune · 2026-07-19 15:00 UTC-6
+// INC-PP-export-confirm-dead-shell: _showExportConfirmModal() migrada de #export-confirm-overlay
+//   (retirado en REQ CAEL-0720-01 TKT2) a _gconfirmOpen (locus-modals.js). Afecta a los 4 exports
+//   que pasan por este helper: exportBacklogMd (reportado por founder), exportFullHistoryMd,
+//   exportSprintsMd y el export de CONTEXT (L1425) — los cuatro no hacían nada al click.
+//   Requiere locus-modals.js mod:4 (bodyHtml ahora se renderiza en #gconfirm-body-html).
 // [PP] mod:45 · autor:Rune · 2026-07-18 01:10 UTC-6
 // INC-[pendiente-ID] (contador Últimos IDs desincronizado), 2º fix del mismo INC:
 //   exportBacklogMd() no calentaba el cache de historico antes del path sync — verificado en
@@ -32,6 +38,7 @@ import { _blogLog, _docPrefix, _effectiveVersion, _sprintDisplay, _tplKey, getAc
 import { getItems, getIncidents, itemKind, updateBacklogBanner } from './locus-backlog-core.js'; // [tmp:tkt2-qinc-count]: getIncidents agregada — _allItemsWithHistorico()
 import { showToast } from './locus-toast.js';
 import { incSlaPriority } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil
+import { _gconfirmOpen } from './locus-modals.js'; // INC-PP-export-confirm-dead-shell
 
 // ── _itemTypeGen2 — detección de tipo Gen 2 ──────────────────────────────────
 // [tmp:tkt1-itemtype-fn] AC-1: wrapper sobre itemKind() de locus-backlog-core.js.
@@ -95,23 +102,20 @@ function _lastClosedSprint() {
 }
 
 // ── Modal de confirmación de export ─────────────────────────────────────────
+// INC-PP-export-confirm-dead-shell (2026-07-19): #export-confirm-overlay/-title/-filename/-btn
+// fueron retirados de index.html en REQ CAEL-0720-01 TKT2 (reemplazados por #gconfirm-overlay +
+// bodyHtml) — esta función seguía apuntando al shell viejo, por lo que `overlay` era siempre null
+// y el export (Backlog/Historial completo/Sprints/CONTEXT, los 4 callers de este helper) no hacía
+// nada al click: sin error visible, sin toast, sin modal. Migrado a _gconfirmOpen — mismo patrón
+// ya usado por _openStatusConfirm (locus-backlog-merge.js).
 function _showExportConfirmModal(label, filename, onConfirm) {
-  const overlay = document.getElementById('export-confirm-overlay');
-  if (!overlay) return;
-  const titleEl = document.getElementById('export-confirm-title');
-  const filenameEl = document.getElementById('export-confirm-filename');
-  if (titleEl) titleEl.textContent = `⬇ Exportar ${label}`;
-  if (filenameEl) filenameEl.textContent = filename;
-  overlay.classList.add('open');
-  const btn = document.getElementById('export-confirm-btn');
-  if (btn) {
-    const newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, btn);
-    newBtn.addEventListener('click', () => {
-      overlay.classList.remove('open');
-      onConfirm();
-    });
-  }
+  _gconfirmOpen({
+    title: `⬇ Exportar ${label}`,
+    msg: '',
+    okLabel: 'Exportar',
+    danger: false,
+    bodyHtml: `<div>${filename}</div>`
+  }, () => { onConfirm(); });
 }
 
 // ── Export Backlog ───────────────────────────────────────────────────────────

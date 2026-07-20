@@ -1,3 +1,8 @@
+// [PP] mod:62 · autor:Rune · 2026-07-19 15:00 UTC-6
+// INC-PP-export-confirm-dead-shell: removido handler muerto de export-confirm-cancel-btn/
+//   export-confirm-overlay — ambos retirados de index.html en REQ CAEL-0720-01 TKT2, el listener
+//   nunca se adjuntaba (getElementById siempre null). Limpieza en el mismo INC que migra
+//   _showExportConfirmModal (locus-backlog-generator.js) al shell reemplazante #gconfirm-overlay.
 // [PP] mod:61 · autor:Rune · 2026-07-19 00:00 UTC-6
 // INC-PP-openProjPanel: breadcrumb-proj usaba openProjPanel() directo (ReferenceError) — migrado a dispatch shell:open-proj-panel, mismo patrón de T-202606-167
 // TKT1 (REQ-CAEL-0717-01): _renderInfraCurrentValue() agregada — lee getInfraVersionData()
@@ -1530,13 +1535,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const ieSaveBtn = document.getElementById('ie-save-btn');
   if (ieSaveBtn) ieSaveBtn.addEventListener('click', function () {
     confirmItemEditor();
-  });
-
-  // export-confirm-cancel-btn
-  const exportConfirmCancelBtn = document.getElementById('export-confirm-cancel-btn');
-  if (exportConfirmCancelBtn) exportConfirmCancelBtn.addEventListener('click', function () {
-    const overlay = document.getElementById('export-confirm-overlay');
-    if (overlay) overlay.classList.remove('open');
   });
 
   // proj-mismatch-cancel-btn
