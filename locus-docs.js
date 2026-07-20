@@ -1,3 +1,8 @@
+// [PP] mod:23 · autor:Rune · 2026-07-20 UTC-6
+// TKT1 (REQ CAEL-0720-01): _updateSubTabButtons() — btn-export-backlog/btn-export-backlog-full
+// ahora visibles en los 4 subtabs de Backlog (backlog/qbacklog/qdisc/historico) vía
+// _exportBarSubs.includes(sub), en vez de sub !== 'backlog'. Sin cambio de firma —
+// contract_update: no.
 // [PP] mod:22 · autor:Rune · 2026-07-17 UTC-6
 // TKT-202607-032 (REQ-202607-004) AC-2: banner .du-vencido-banner/-icon/-msg (entregable Nova,
 // locus-docs.css mod:5) integrado en renderDocUpdatesPending() — un banner por entrada
@@ -105,8 +110,14 @@ export function _updateSubTabButtons(sub) {
   const _backlogRaw = localStorage.getItem(_tplKey('backlog-items'));
   const backlogBootstrapped = !!_backlogRaw && (() => { try { return JSON.parse(_backlogRaw).length > 0; } catch { return false; } })();
   if (btnB) btnB.classList.add('is-hidden'); // R-202604-052: import manual eliminado
-  if (btnE) btnE.classList.toggle('is-hidden', sub !== 'backlog');
-  if (btnFull) btnFull.classList.toggle('is-hidden', sub !== 'backlog');
+  // TKT1 (REQ CAEL-0720-01): barra de exportación (Descargar Backlog / Historial completo)
+  // visible en los 4 subtabs del tab Backlog — antes solo en 'backlog'. Mismo set que
+  // _backlogSubs en locus-ui-shell.js (switchTab) — duplicado local porque esa constante
+  // no está exportada. No toca btn-undo-backlog/btn-redo-backlog/btn-new-item, que
+  // permanecen exclusivos de sub === 'backlog' (ver bloque undoRow debajo, sin cambio).
+  const _exportBarSubs = ['backlog', 'qbacklog', 'qdisc', 'historico'];
+  if (btnE) btnE.classList.toggle('is-hidden', !_exportBarSubs.includes(sub));
+  if (btnFull) btnFull.classList.toggle('is-hidden', !_exportBarSubs.includes(sub));
   if (btnNew) btnNew.classList.toggle('is-hidden', sub !== 'backlog');
   const undoRow = document.getElementById('tpl-undo-row');
   const btnUndo = document.getElementById('btn-undo-backlog');
