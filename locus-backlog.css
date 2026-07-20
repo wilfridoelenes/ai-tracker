@@ -1,4 +1,4 @@
-/* [PP] mod:112 · autor:Nova · 2026-07-20 UTC-6 */
+/* [PP] mod:113 · autor:Nova · 2026-07-20 UTC-6 */
 /* TKT1 (REQ CAEL-0720-02): .bl-header-unified fusiona stats-bar + bl-toolbar en un solo
    header con border envolvente — ver AC en TKT. .bl-toolbar pierde border/sticky propio,
    migrado al wrapper. .active-filter-chips sin cambio, sigue fusionando contra el borde
@@ -2541,7 +2541,7 @@
   margin-left: 12px;
   margin-bottom: 0;
   position: sticky;
-  top: calc(var(--header-h) + 1.95rem + 1px); /* fix: --header-h mide solo .header-inner — el <header> real suma 1.95rem+1px de padding/border, ver locus-layout.css:559-563, fuente única del offset. Sin este sumando el wrapper anclaba ~32px por encima del borde real del header, dejando hueco por donde se asomaba el .bl-vl-sprint-header al hacer scroll ("fijo pero flotando"). */
+  top: 0; /* fix 2: .bl-header-unified vive dentro de .tpl-detail (overflow:hidden auto, locus-proyectos.css:2076) — ESE es el ancestro de scroll real para position:sticky, no la página. var(--header-h) mide el <header> de la app, que ya queda fuera de .tpl-detail (hermano, no ancestro) — sumarlo creaba un hueco artificial. Mismo patrón ya usado en este scroll container: .ctx-search-bar (locus-proyectos.css:2915-2917) usa top:0. Fix anterior (mod:112, +1.95rem+1px) fue diagnóstico incorrecto — empeoró el hueco en vez de cerrarlo. */
   z-index: var(--z-sticky);
   background: var(--surface);
   overflow: visible;
@@ -4086,7 +4086,7 @@
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   position: sticky; /* INC-202607-001: solo .bl-toolbar tenía sticky — chips se quedaba en flujo normal y quedaba tapado al hacer scroll */
-  top: calc(var(--header-h, 54px) + 1.95rem + 1px + var(--bl-toolbar-h, 40px)); /* fix mismo root cause que .bl-header-unified (ver arriba) — faltaba el sumando de padding/border del <header> real. --bl-toolbar-h: custom property runtime, ver CSS dependencies block */
+  top: var(--bl-toolbar-h, 40px); /* fix 2: mismo root cause que .bl-header-unified arriba — var(--header-h) no aplica dentro de .tpl-detail. .active-filter-chips se fusiona contra el borde inferior de .bl-header-unified (top:0 ahora) — su propio top es solo la altura de ese wrapper, sin sumar header-h. */
   z-index: var(--z-sticky);
 }
 
