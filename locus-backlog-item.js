@@ -1,3 +1,9 @@
+// [PP] mod:117 · autor:Rune · 2026-07-20 23:40 UTC-6
+// TKT-[pendiente-ID] (deuda técnica, gap detectado por Finn — tercera copia no anticipada
+// en AC original): SLA_RIESGO_WINDOW_MS importada de locus-inc-fields.js, reemplaza literal
+// 21600000 en buildQIncItem() (línea ~3329). Sin cambio de comportamiento en clasificación
+// --sla-riesgo/--sla-vencido.
+//
 // [PP] mod:116 · autor:Rune · 2026-07-19 UTC-6
 // TKT (REQ-CAEL-0718-01 · paridad IDP Q-INC): .qinc-item-header en buildQIncItem() gana
 //   data-qi-action="qi-open-panel" · role="button" · tabindex="0" · aria-label — atributos
@@ -313,7 +319,7 @@ import { _setBacklogModified } from './locus-docs.js';
 import { _gconfirmOpen } from './locus-modals.js';
 
 import { validateLifecycleTransitions } from './locus-session-save.js'; // T-202606-020
-import { incSlaPriority, incComportamientoActual, incIncidentStatus } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil
+import { incSlaPriority, incComportamientoActual, incIncidentStatus, SLA_RIESGO_WINDOW_MS } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil + TKT-[pendiente-ID] (SLA_RIESGO_WINDOW_MS centralizado, ex-literal en buildQIncItem)
 
 import { render } from './locus-sesiones.js';
 
@@ -3326,7 +3332,7 @@ export function buildQIncItem(item) {
   if (slaDeadline) {
     if (slaPrio === 'high' && slaDeadline < Date.now()) {
       slaClass = 'qinc-item--sla-vencido';
-    } else if (slaPrio === 'high' && slaDeadline >= Date.now() && slaDeadline < Date.now() + 21600000) {
+    } else if (slaPrio === 'high' && slaDeadline >= Date.now() && slaDeadline < Date.now() + SLA_RIESGO_WINDOW_MS) {
       slaClass = 'qinc-item--sla-riesgo';
     }
   }

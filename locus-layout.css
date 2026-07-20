@@ -1,4 +1,4 @@
-/* [PP] mod:21 · autor:Nova · 2026-07-20 UTC-6 */
+/* [PP] mod:22 · autor:Nova · 2026-07-20 15:40 UTC-6 */
 /* mod:21 — retirado .status-confirm-overlay del bloque light-theme backdrop blur (L1543 previa) —
    clase huérfana, retirada de HTML/JS por TKT4 (CAEL-0720-05, REQ CAEL-0720-01). Selector nunca
    volvía a matchear tras el retiro; DISC [pendiente-ID] cerrada con este fix. */
@@ -648,7 +648,7 @@ header {
 }
 
 #search-global {
-  background: var(--surface-1);
+  background: var(--surface);
   border: 0.5px solid var(--border);
   border-radius: var(--radius);
   padding: 4px 8px 4px 26px;

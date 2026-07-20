@@ -1,4 +1,4 @@
-/* [PP] mod:13 · autor:Nova · 2026-07-19 UTC-6 */
+/* [PP] mod:14 · autor:Nova · 2026-07-20 15:40 UTC-6 */
 /* locus-base.css */
 
 
@@ -280,10 +280,8 @@
   --color-primary-alpha: var(--accent-dim);
 
   /* Semánticos de estado */
-  --correct:                    var(--green);
   --error:                      var(--red);
   --success:                    var(--green);
-  --warning:                    var(--amber);
   --color-correct:              var(--green);
   --color-incorrect:            var(--red);
   --color-danger:               var(--red);
@@ -467,10 +465,8 @@
   --color-primary-alpha: var(--accent-dim);
 
   /* Semánticos de estado */
-  --correct:                    var(--green);
   --error:                      var(--red);
   --success:                    var(--green);
-  --warning:                    var(--amber);
   --color-correct:              var(--green);
   --color-incorrect:            var(--red);
   --color-danger:               var(--red);
