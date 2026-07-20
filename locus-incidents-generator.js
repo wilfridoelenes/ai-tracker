@@ -1,3 +1,8 @@
+// [PP] mod:2 · autor:Rune · 2026-07-20 23:10 UTC-6
+// TKT-[pendiente-ID] (deuda técnica, DISC promovida en cierre de REQ CAEL-0720-01): umbral
+// de riesgo SLA movido a locus-inc-fields.js (SLA_RIESGO_WINDOW_MS, exportado) — antes vivía
+// duplicado a mano aquí y en locus-backlog-render.js. _riesgoTag() sin cambio de comportamiento.
+//
 // [PP] mod:1 · autor:Rune · 2026-07-20 11:20 UTC-6
 // TKT1 (parent: REQ CAEL-0720-01 · "Incidents export — _PP-incidents.md"): generador de
 // contenido dedicado a la rama Reactiva (INC/PRB/KE/CHG) — decisión de arquitectura del
@@ -24,14 +29,9 @@ import { _docPrefix, getActiveProject } from './locus-storage.js';
 import {
   incSlaPriority,
   incDerivedItems,
-  incIncidentStatus
+  incIncidentStatus,
+  SLA_RIESGO_WINDOW_MS
 } from './locus-inc-fields.js';
-
-// Ventana de riesgo antes del vencimiento de SLA — mismo umbral que SLA_RIESGO_WINDOW_MS
-// en locus-backlog-render.js (renderQIncPanel(), no exportado). Ese módulo es de render/DOM;
-// este es un generador de contenido puro — se duplica el valor, no la dependencia de módulo.
-// Hallazgo fuera de scope: el umbral no está centralizado entre ambos usos.
-const _SLA_RIESGO_WINDOW_MS = 21600000; // 6h
 
 const _SLA_ORDER = { high: 0, medium: 1, low: 2 };
 
@@ -94,7 +94,7 @@ function _riesgoTag(i) {
   if (typeof i.slaDeadline !== 'number') return '';
   const now = Date.now();
   if (i.slaDeadline < now) return ' · ⚠️ VENCIDO';
-  if (i.slaDeadline < now + _SLA_RIESGO_WINDOW_MS) return ' · ⚠️ en riesgo';
+  if (i.slaDeadline < now + SLA_RIESGO_WINDOW_MS) return ' · ⚠️ en riesgo';
   return '';
 }
 

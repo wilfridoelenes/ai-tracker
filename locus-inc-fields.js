@@ -1,3 +1,9 @@
+// [PP] mod:2 · autor:Rune · 2026-07-20 23:25 UTC-6
+// TKT-[pendiente-ID] (deuda técnica, DISC promovida en cierre de REQ CAEL-0720-01):
+// SLA_RIESGO_WINDOW_MS = 21600000 (6h) agregada como export — antes vivía duplicada a mano
+// en locus-incidents-generator.js y locus-backlog-render.js, ambos ya migrados a importarla
+// de aquí. Sin cambio en los 6 getters ITIL existentes.
+//
 // [PP] mod:1 · autor:Rune · 2026-07-09 UTC-6
 
 // TKT-[pendiente-ID] (REQ-centralizar-accesores-itil, TKT1): punto único de
@@ -30,6 +36,8 @@
 // (existing.slaPriority, item.derivedItems, etc.) — esos son el modelo de
 // memoria interno, no el límite de traducción camelCase↔snake_case que este
 // módulo centraliza.
+
+const SLA_RIESGO_WINDOW_MS = 21600000; // 6h — umbral de indicador de riesgo/vencimiento SLA
 
 function incSlaPriority(item) {
   if (!item) return null;
@@ -64,6 +72,7 @@ function incResolutionType(item) {
 }
 
 export {
+  SLA_RIESGO_WINDOW_MS,
   incSlaPriority,
   incComportamientoActual,
   incOriginModule,

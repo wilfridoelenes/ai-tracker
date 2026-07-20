@@ -1,3 +1,8 @@
+// [PP] mod:93 · autor:Rune · 2026-07-20 23:10 UTC-6
+// TKT-[pendiente-ID] (deuda técnica, DISC promovida en cierre de REQ CAEL-0720-01):
+// SLA_RIESGO_WINDOW_MS ya no es const local — importada de locus-inc-fields.js, mismo valor
+// (6h), _qincItemClasses() sin cambio de comportamiento.
+//
 // [PP] mod:92 · autor:Rune · 2026-07-20 22:35 UTC-6
 // TKT (REQ-[pendiente-ID] Paridad IDP Q-INC — Opción A, founder confirmó "vamos con opcion A
 //   pure" sobre hallazgo #2 de la auditoría de render): _attachQIncDelegation gana wiring
@@ -200,7 +205,7 @@ import { _generateIncidentsMd } from './locus-incidents-generator.js'; // TKT3 (
 import { showToast } from './locus-toast.js';
 
 import { esc, getCurrentTab } from './locus-ui-shell.js';
-import { incSlaPriority } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil
+import { incSlaPriority, SLA_RIESGO_WINDOW_MS } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil + TKT-[pendiente-ID] (SLA_RIESGO_WINDOW_MS centralizado, ex-const local)
 import { _attachPlanViewDelegation } from './locus-sprint-planificacion.js';
 import { _updateDocLogCount } from './locus-doc-log.js';
 
@@ -1053,7 +1058,8 @@ export function renderBacklogList(onRendered) {
 // ahora en el tab top-level (tab-notif-badge-incidentes), gestionado por locus-notifications.js.
 // Reemplaza el panel legacy de incidentes por sprint — no_incluye: CSS de SLA (TKT-D3), labels/typeScores de
 // locus-backlog-core.js (TKT-C3 — ya completado en sesión previa).
-const SLA_RIESGO_WINDOW_MS = 21600000; // 6h — ventana de riesgo antes del vencimiento
+// SLA_RIESGO_WINDOW_MS centralizada en locus-inc-fields.js (TKT-[pendiente-ID], deuda técnica
+// del cierre de REQ CAEL-0720-01) — ya no es const local, ver import arriba.
 
 // Estados ITIL "activos" — orden de grupo primero. resolved/closed van al fondo.
 const _QINC_ACTIVE_STATUSES = ['detected', 'assigned', 'in_progress', 'escalated_to_prb', 'escalated_to_chg'];

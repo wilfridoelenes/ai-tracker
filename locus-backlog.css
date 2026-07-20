@@ -1,4 +1,8 @@
-/* [PP] mod:106 · autor:Nova · 2026-07-19 22:10 UTC-6 */
+/* [PP] mod:107 · autor:Nova · 2026-07-20 UTC-6 */
+/* TKT4 (REQ CAEL-0720-01): reglas .status-confirm-overlay/.status-confirm-overlay.open y
+   .status-confirm-box/.title/.body/.actions/.cancel/.ok.danger retiradas — shell reemplazado
+   por gconfirm-overlay + bodyHtml. .item-status-confirmed y .promote-modal-overlay intactas
+   — fuera de scope. */
 /* TKT (REQ-CAEL-0718-01 · paridad IDP Q-INC): .qinc-item-header gana cursor:pointer, hover
    (var(--surface3), mismo par ya validado en el sistema) y :focus-visible (outline 2px
    var(--accent), mismo patrón que .rsb-card-quick). Sin tokens nuevos. Header ya recibió
@@ -146,21 +150,6 @@
 }
 
 /* T-202604-055: backlog log */
-/* Confirmación retroceso/descarte */
-.status-confirm-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgb(0 0 0 / 45%);
-  z-index: var(--z-top);
-  align-items: center;
-  justify-content: center;
-}
-
-.status-confirm-overlay.open {
-  display: flex;
-}
-
 .promote-modal-overlay {
   display: none;
   position: fixed;
@@ -174,50 +163,6 @@
 
 .promote-modal-overlay.open {
   display: flex;
-}
-
-.status-confirm-box {
-  background: var(--surface);
-  border: 1.5px solid var(--border2);
-  border-radius: var(--radius-lg-plus);
-  padding: 1.5rem;
-  max-width: 340px;
-  width: 90%;
-  box-shadow: 0 16px 48px rgb(0 0 0 / 40%);
-}
-
-/* TKT-[tmp:tkt-status-confirm-title] — mismo patrón que .tag-modal-title (box de tamaño equivalente, 340px) */
-.status-confirm-title {
-  font-size: var(--text-md);
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 10px;
-}
-
-.status-confirm-body {
-  font-size: var(--text-sm);
-  color: var(--text2);
-  margin-bottom: 16px;
-  line-height: 1.5;
-}
-
-.status-confirm-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-.status-confirm-cancel {
-  border: 1px solid var(--border2);
-  background: var(--surface2);
-  color: var(--text2);
-  font-size: var(--text-sm);
-  cursor: pointer;
-}
-
-.status-confirm-ok.danger {
-  background: var(--red);
-  color: #fff;
 }
 
 .ckpt-item {
