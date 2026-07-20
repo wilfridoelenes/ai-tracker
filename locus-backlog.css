@@ -1,4 +1,4 @@
-/* [PP] mod:115 · autor:Nova · 2026-07-20 UTC-6 */
+/* [PP] mod:116 · autor:Nova · 2026-07-20 UTC-6 */
 /* TKT1 (REQ CAEL-0720-01, ref_id CAEL-0720-02): unifica el mecanismo de estado activo
    en .stat-type-chip / .stat-pri-chip / .stat-effort-card — border 1.5px + fondo con
    tinte + texto en el tono -text de su propia familia, sin cambiar color semántico.
@@ -526,6 +526,11 @@
   transform: translateY(-1px);
 }
 
+.stat-type-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .stat-type-chip.active {
   opacity: 1;
   border-width: 1.5px;
@@ -742,6 +747,11 @@
 
 .stat-pri-chip:hover {
   opacity: 0.85;
+}
+
+.stat-pri-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .stat-pri-chip.pri-high {

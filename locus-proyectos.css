@@ -1,4 +1,4 @@
-/* [PP] mod:14 · autor:Nova · 2026-07-20 19:10 UTC-6 */
+/* [PP] mod:15 · autor:Nova · 2026-07-20 UTC-6 */
 /* TKT4 (REQ CAEL-0720-01): .export-confirm-modal eliminada — .export-confirm-filename y su
    selector anidado code se conservan (reutilizados dentro de bodyHtml de gconfirm-overlay). */
 /* [PP] mod:11 · autor:Nova · 2026-07-19 UTC-6 */
@@ -2109,6 +2109,11 @@
 .tpl-action-btn:hover:not(:disabled) {
   background: var(--accent);
   color: #fff;
+}
+
+.tpl-action-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .tpl-action-btn:disabled {
