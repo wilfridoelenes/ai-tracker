@@ -1,4 +1,4 @@
-/* [PP] mod:35 · autor:Nova · 2026-07-19 UTC-6 */
+/* [PP] mod:36 · autor:Nova · 2026-07-20 16:10 UTC-6 */
 /* TKT1 (REQ CAEL-0720-01): .gconfirm-body-html declarada — margin-bottom:1rem (mismo valor
    que .gconfirm-input-wrap), sin regla propia de display — reutiliza .is-hidden global de
    locus-base.css. Discrepancia con contexto: un CHECKPOINT previo de esta sesión declaró este
@@ -3961,7 +3961,7 @@
 .day-label {
   font-size: var(--text-2xs-plus);
   font-weight: 600;
-  color: var(--color-text-tertiary);
+  color: var(--hint);
   text-transform: uppercase;
   letter-spacing: .08em;
   padding: 6px 14px 5px;
@@ -3973,7 +3973,7 @@
   position: absolute;
   left: 14px; right: 14px; bottom: 0;
   height: 0.5px;
-  background: var(--color-border-tertiary, var(--border));
+  background: var(--border, var(--border));
 }
 
 .log-entry:hover {
@@ -3992,7 +3992,7 @@
 }
 
 .log-entry:hover::before {
-  background: var(--entry-color, var(--color-border-secondary, var(--border)));
+  background: var(--entry-color, var(--border2, var(--border)));
 }
 
 /* ── Timeline: dot + track vertical ── */
@@ -4009,7 +4009,7 @@
   height: 7px;
   border-radius: var(--radius-pill);
   flex-shrink: 0;
-  box-shadow: 0 0 0 2px var(--color-background-primary, var(--bg));
+  box-shadow: 0 0 0 2px var(--bg, var(--bg));
 }
 
 /* Track vertical entre entradas del mismo grupo */
@@ -4019,7 +4019,7 @@
   width: 1px;
   flex: 1;
   min-height: 14px;
-  background: var(--color-border-tertiary, var(--border));
+  background: var(--border, var(--border));
   margin-top: 3px;
 }
 
@@ -4032,7 +4032,7 @@
 .entry-ai {
   font-size: var(--text-2xs-plus);
   font-weight: 600;
-  color: var(--color-text-tertiary);
+  color: var(--hint);
   letter-spacing: .02em;
   text-transform: uppercase;
   margin-bottom: 1px;
@@ -4041,7 +4041,7 @@
 .entry-title {
   font-size: var(--text-sm);
   font-weight: 400;
-  color: var(--color-text-primary, var(--text));
+  color: var(--text, var(--text));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4058,7 +4058,7 @@
 
 .entry-time {
   font-size: var(--text-2xs-plus);
-  color: var(--color-text-tertiary);
+  color: var(--hint);
   font-variant-numeric: tabular-nums;
 }
 
@@ -4100,7 +4100,7 @@
 .entry-link {
   font-size: var(--text-lg);
   line-height: 1;
-  color: var(--color-text-tertiary);
+  color: var(--hint);
   opacity: 0;
   flex-shrink: 0;
   align-self: center;
@@ -4117,7 +4117,7 @@
 .rail-empty {
   padding: 32px 14px;
   text-align: center;
-  color: var(--color-text-tertiary);
+  color: var(--hint);
   font-size: var(--text-sm);
   line-height: 1.6;
 }
@@ -5495,7 +5495,7 @@ body.body--focus-mode::after {
 }
 
 #header-active-worker:hover {
-  border-color: var(--color-accent, #4F46E5);
+  border-color: var(--accent, #4F46E5);
   background: var(--bg3, #f1f5f9);
 }
 .hwc-dot {
@@ -5537,7 +5537,7 @@ body.body--focus-mode::after {
   gap: 6px;
   font-family: var(--font-mono, monospace);
   font-size: var(--text-2xs-plus);
-  color: var(--color-text-secondary);
+  color: var(--text2);
   padding: 2px 0;
 }
 
@@ -5551,7 +5551,7 @@ body.body--focus-mode::after {
 
 .session-timer-dot--active {
   background-color: #2ecc78;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-correct, #22c55e) 25%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--green, #22c55e) 25%, transparent);
   animation: session-timer-pulse 2s ease-in-out infinite;
 }
 
@@ -5832,8 +5832,8 @@ body.body--focus-mode::after {
 }
 
 .weekly-modal-panel {
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md-plus);
   width: min(460px, 92vw);
   display: flex;
@@ -5846,22 +5846,22 @@ body.body--focus-mode::after {
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px 10px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
 }
 
 .weekly-modal-title {
   font-weight: 700;
   font-size: var(--text-base);
-  color: var(--color-text);
+  color: var(--text);
 }
 
 .weekly-modal-close {
-  background: none; border: none; color: var(--color-text-secondary);
+  background: none; border: none; color: var(--text2);
   cursor: pointer; font-size: var(--text-base);
 }
 
 .weekly-modal-close:hover {
-  color: var(--color-text);
+  color: var(--text);
 }
 
 .weekly-modal-close:focus-visible {
@@ -5882,7 +5882,7 @@ body.body--focus-mode::after {
   align-items: center;
   gap: 8px;
   padding: 6px 0;
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--border2);
 }
 
 .weekly-stat-row:last-child {
@@ -5891,13 +5891,13 @@ body.body--focus-mode::after {
 
 .weekly-stat-label {
   font-size: var(--text-xs);
-  color: var(--color-text-secondary);
+  color: var(--text2);
 }
 
 .weekly-stat-value {
   font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--text);
   text-align: right;
 }
 
@@ -5906,7 +5906,7 @@ body.body--focus-mode::after {
   justify-content: flex-end;
   gap: 8px;
   padding: 10px 18px 14px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border);
 }
 
 /* Migrado desde index.html — user-chip */
@@ -5916,20 +5916,20 @@ body.body--focus-mode::after {
   gap: 5px;
   padding: 3px 9px 3px 6px;
   border-radius: var(--radius-2xl);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--surface);
+  border: 1px solid var(--border);
   cursor: pointer;
   font-size: var(--text-2xs-plus);
-  color: var(--color-text-secondary, #aaa);
+  color: var(--text2, #aaa);
   transition: var(--trans-color);
   white-space: nowrap;
   user-select: none;
 }
 
 .user-chip:hover, .user-chip:focus-visible {
-  background: var(--color-surface-hover);
-  border-color: var(--color-border-hover);
-  color: var(--color-text);
+  background: var(--surface2);
+  border-color: var(--border2);
+  color: var(--text);
 }
 
 .user-chip-dot {
@@ -7226,8 +7226,8 @@ body.radar-sb-open .tracker-sidebar {
 }
 
 .tvh-notif-viewall:hover {
-  border-color: var(--color-primary, var(--purple));
-  color: var(--color-primary, var(--purple));
+  border-color: var(--accent, var(--purple));
+  color: var(--accent, var(--purple));
 }
 
 .tvh-notif-viewall:focus-visible {

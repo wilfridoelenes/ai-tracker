@@ -1,4 +1,4 @@
-/* [PP] mod:66 · autor:Nova · 2026-07-19 UTC-6 */
+/* [PP] mod:67 · autor:Nova · 2026-07-20 16:10 UTC-6 */
 /* Hallazgo fuera de scope resuelto en sesión (dueño presente, Patch, sin bifurcación): mod:65
    usaba --green crudo en .mdiff-finnrelease-header/-check — falla 4.5:1 en light theme
    (2.6-2.8:1, ver locus-base.css junto a la definición de --green-text). Mismo patrón ya resuelto
@@ -270,7 +270,7 @@
 }
 
 .bitem-code.is-copied {
-  color: var(--color-correct, #16a34a);
+  color: var(--green, #16a34a);
 }
 
 .bitem-title {
@@ -3671,19 +3671,19 @@ body {
 /* Hover directo del botón */
 .copy-item-btn:hover {
   background: color-mix(in srgb, var(--surface, #fff) 12%, transparent);
-  color: var(--text1, var(--color-text));
+  color: var(--text1, var(--text));
 }
 
 /* Foco visible — accesibilidad */
 .copy-item-btn:focus-visible {
-  outline: 2px solid var(--accent, var(--color-primary));
+  outline: 2px solid var(--accent, var(--accent));
   outline-offset: 2px;
   opacity: 1;
 }
 
 /* Estado copied — checkmark activo */
 .copy-item-btn.is-copied {
-  color: var(--color-correct, #16a34a);
+  color: var(--green, #16a34a);
   opacity: 1;
 }
 /* ── END T-202605-105 ── */

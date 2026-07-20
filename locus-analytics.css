@@ -1,4 +1,4 @@
-/* [PP] mod:12 · autor:Nova · 2026-07-19 UTC-6 */
+/* [PP] mod:13 · autor:Nova · 2026-07-20 16:10 UTC-6 */
 /* TKT2 (CAEL-09 — REQ DISC-REQ-color-swap, CAEL-07): swap .ct-pill-req ↔ .ct-pill-disc,
    par con TKT1 (locus-backlog.css, mod:95) — .item-type-pill.REQ/.DISC. .ct-pill-req toma
    los valores que tenía .ct-pill-disc (--purple) y viceversa (--blue), mismo formato de
@@ -1548,24 +1548,24 @@
 
 /* R-088: invalid sprint name warning */
 .rm-chip--name-warn {
-  border-color: var(--color-incorrect, var(--red));
+  border-color: var(--red, var(--red));
 }
 
 .rm-chip--name-warn:hover {
-  border-color: var(--color-incorrect, var(--red));
+  border-color: var(--red, var(--red));
 }
 
 .rm-chip-warn-icon {
   font-size: var(--text-2xs-plus);
-  color: var(--color-incorrect, var(--red));
+  color: var(--red, var(--red));
   margin-left: 2px;
   flex-shrink: 0;
 }
 
 /* sprint-inline-input--warn: highlight input on naming error */
 .sprint-inline-input--warn {
-  border-color: var(--color-incorrect, var(--red));
-  outline: 1px solid var(--color-incorrect, var(--red));
+  border-color: var(--red, var(--red));
+  outline: 1px solid var(--red, var(--red));
 }
 
 /* ══ END T-202604-284 ══ */

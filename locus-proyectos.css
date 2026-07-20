@@ -1,4 +1,4 @@
-/* [PP] mod:12 · autor:Nova · 2026-07-20 UTC-6 */
+/* [PP] mod:13 · autor:Nova · 2026-07-20 16:10 UTC-6 */
 /* TKT4 (REQ CAEL-0720-01): .export-confirm-modal eliminada — .export-confirm-filename y su
    selector anidado code se conservan (reutilizados dentro de bodyHtml de gconfirm-overlay). */
 /* [PP] mod:11 · autor:Nova · 2026-07-19 UTC-6 */
@@ -1099,7 +1099,7 @@
 
 .qn-delete-btn:hover {
   opacity: 1;
-  color: var(--color-danger, var(--red));
+  color: var(--red, var(--red));
 }
 
 .qn-delete-btn.qn-delete-btn--visible {
@@ -1133,7 +1133,7 @@
 }
 
 .btn-danger-sm {
-  background: var(--color-danger, var(--red));
+  background: var(--red, var(--red));
   color: var(--red);
   border: none;
   border-radius: var(--radius-xs);

@@ -1,4 +1,4 @@
-/* [PP] mod:10 · autor:Nova · 2026-07-18 UTC-6 */
+/* [PP] mod:11 · autor:Nova · 2026-07-20 16:10 UTC-6 */
 /* TKT2 (REQ corregir-css-purity): adopción retroactiva de mod:8/mod:9 — founder decidió
    adoptar tal cual el CSS entregado por Rune (.bl-plan-card--done, .bl-plan-done-group/
    header/body), sin reescritura. Correcta contra tokens vigentes (--surface2, --border2) y
@@ -520,7 +520,7 @@
 }
 
 .plan-zone-toggle:focus-visible {
-  outline: 2px solid var(--color-primary, #4F46E5);
+  outline: 2px solid var(--accent, #4F46E5);
   outline-offset: 2px;
   border-radius: var(--radius-2xs);
 }
