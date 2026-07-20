@@ -1,4 +1,4 @@
-/* [PP] mod:8 · autor:Nova · 2026-07-19 UTC-6 */
+/* [PP] mod:9 · autor:Nova · 2026-07-20 19:10 UTC-6 */
 /* TKT-[tmp:tkt-rename-file]: rename de locus-sprint-plan.css → locus-contracts.css.
    Sin cambio de contenido — mismo archivo tras TKT-202607-067 (split que eliminó el
    bloque Sub-tab Plan). Nombre ahora refleja el contenido real: Contratos + AC VIVO. */
@@ -131,14 +131,14 @@
 }
 
 .acv-badge--warn {
-  color: var(--amber);
+  color: var(--amber-text);
   background: rgb(245 200 66 / 14%);
   background: color-mix(in srgb, var(--amber) 14%, transparent);
 }
 
 /* Clasificación: visual / funcional / datos */
 .acv-badge--visual {
-  color: var(--purple, var(--purple));
+  color: var(--purple-text, var(--purple));
   background: rgb(99 102 241 / 12%);
   background: color-mix(in srgb, var(--purple, var(--purple)) 12%, transparent);
 }
@@ -167,7 +167,7 @@
   border-radius: var(--radius-sm);
   border: 1px solid var(--amber);
   background: none;
-  color: var(--amber);
+  color: var(--amber-text);
   cursor: pointer;
   transition: var(--trans-color);
 }
@@ -379,7 +379,7 @@
 
 .ctr-risk-badge {
   font-size: var(--text-xs);
-  color: var(--amber);
+  color: var(--amber-text);
   background: color-mix(in srgb, var(--amber) 12%, transparent);
   border-radius: var(--radius-md-plus);
   padding: 1px 7px;

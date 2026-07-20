@@ -1,4 +1,4 @@
-/* [PP] mod:2 · autor:Nova · 2026-07-18 UTC-6 */
+/* [PP] mod:3 · autor:Nova · 2026-07-20 19:10 UTC-6 */
 /* TKT1 (REQ corregir-css-purity): header corregido — mod:1 declaraba autor:Rune sobre split
    mecánico de locus-modals.css mod:7 (TKT1 de REQ split, 2026-07-05), sin decisión de estilo
    nueva. Contenido auditado y adoptado sin cambios — solo corrección de atribución. */
@@ -185,7 +185,7 @@
 /* ── COPY CTX BUTTON ── */
 
 .copy-ctx-btn:hover {
-  color: var(--accent);
+  color: var(--accent-text);
   border-color: var(--accent);
   background: var(--accent-dim);
 }

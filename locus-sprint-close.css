@@ -1,4 +1,4 @@
-/* [PP] mod:5 · autor:Nova · 2026-07-19 UTC-6 */
+/* [PP] mod:6 · autor:Nova · 2026-07-20 19:10 UTC-6 */
 /* Fix cascade: 3 variantes .scm-release-type--{major,minor,patch} → compound
    .scm-release-type.scm-release-type--X — la base (declarada después) pisaba el
    background de las 3, el badge de release type siempre mostraba el mismo fondo
@@ -192,12 +192,12 @@
 /* sprint-action-retro: variante del sprint-action-btn para retro */
 .sprint-action-retro {
   border-color: rgb(124 106 247 / 35%);
-  color: var(--accent, var(--purple));
+  color: var(--accent-text, var(--purple));
 }
 
 .sprint-action-retro:hover {
   background: rgb(124 106 247 / 10%);
-  color: var(--accent, var(--purple));
+  color: var(--accent-text, var(--purple));
 }
 
 /* ── END T-202604-417 · Complementos ── */
@@ -248,7 +248,7 @@
 .scm-retro3-dl-btn:hover {
   background: var(--accent-dim);
   border-color: var(--accent-border);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* Body del panel */
@@ -298,7 +298,7 @@
 
 .scm-retro3-effort-sa {
   font-size: var(--text-2xs);
-  color: var(--amber);
+  color: var(--amber-text);
 }
 
 .scm-retro3-effort-nd {
@@ -320,7 +320,7 @@
 }
 
 .scm-retro3-pct--warn {
-  color: var(--amber);
+  color: var(--amber-text);
   background: rgb(245 200 66 / 10%);
 }
 
@@ -400,7 +400,7 @@
 
 .scm-release-type.scm-release-type--minor {
   background: var(--accent-dim);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .scm-release-type.scm-release-type--patch {
@@ -411,7 +411,7 @@
 /* T-202606-118: badge "requerido" para campos obligatorios sin valor en gate del Paso 1 */
 .scm-release-tag--required {
   background: rgb(232 171 50 / 15%);
-  color: var(--amber);
+  color: var(--amber-text);
   border: 1px solid rgb(232 171 50 / 30%);
 }
 
@@ -553,7 +553,7 @@
 }
 
 .scs-step.active {
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 600;
 }
 
@@ -846,7 +846,7 @@
 }
 
 .scm-effort-warn {
-  color: var(--amber);
+  color: var(--amber-text);
   font-size: var(--text-xs);
 }
 

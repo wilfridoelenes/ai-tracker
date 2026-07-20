@@ -1,4 +1,4 @@
-/* [PP] mod:7 · autor:Nova · 2026-07-12 UTC-6 */
+/* [PP] mod:8 · autor:Nova · 2026-07-20 19:10 UTC-6 */
 /* Corrección de contraste — mod:6 entregó opacity:0.85 como supuesto conservador sin
    verificar contra tokens reales (locus-base.css no estaba adjunto en esa sesión). Con
    los hex reales (--text2 dark #8b90c0, --bg dark #0b0c10, --surface2 dark #191b28):
@@ -347,7 +347,7 @@
 .historico-se-effort {
   font-size: var(--text-2xs);
   font-weight: 600;
-  color: var(--accent, #38bdf8);
+  color: var(--accent-text, #38bdf8);
   background: rgb(56 189 248 / 10%);
   border: 1px solid rgb(56 189 248 / 22%);
   padding: 1px 7px;

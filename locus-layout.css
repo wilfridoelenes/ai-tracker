@@ -1,4 +1,4 @@
-/* [PP] mod:22 · autor:Nova · 2026-07-20 15:40 UTC-6 */
+/* [PP] mod:23 · autor:Nova · 2026-07-20 19:10 UTC-6 */
 /* mod:21 — retirado .status-confirm-overlay del bloque light-theme backdrop blur (L1543 previa) —
    clase huérfana, retirada de HTML/JS por TKT4 (CAEL-0720-05, REQ CAEL-0720-01). Selector nunca
    volvía a matchear tras el retiro; DISC [pendiente-ID] cerrada con este fix. */
@@ -39,7 +39,7 @@
 
 .logo-name em {
   font-style: normal;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .logo-version {
@@ -64,7 +64,7 @@
   border-radius: var(--radius-2xl);
   font-family: var(--font-sans);
   font-size: var(--text-2xs-plus);
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 600;
   flex-shrink: 0;
   white-space: nowrap;
@@ -129,7 +129,7 @@
 
 #pepe-splash .splash-name em {
   font-style: normal;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 #pepe-splash .splash-version {
@@ -259,7 +259,7 @@
   background: var(--bg-hover);
   border-radius: var(--radius-pill);
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .theme-toggle-btn:active {
@@ -474,12 +474,12 @@ button {
 }
 
 .breadcrumb-seg--proj:not(:disabled):hover {
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-dim);
 }
 
 .breadcrumb-seg--proj:not(:disabled):hover::after {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* B-202605-518: sin proyecto activo → text-secondary, sin affordance de trigger (nada que abrir) */
@@ -504,7 +504,7 @@ button {
 }
 
 .breadcrumb-seg--sprint:hover {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* Segmento 3 — ítem: text-tertiary weight 400, overflow ellipsis */
@@ -517,7 +517,7 @@ button {
 }
 
 .breadcrumb-seg--item:hover {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* Clase de visibilidad — aplicada por JS */
@@ -717,7 +717,7 @@ header {
 
 .btn-icon:hover {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-dim);
 }
 
@@ -877,7 +877,7 @@ header {
   border-radius: var(--radius-md);
   border: 1px solid var(--accent-border);
   background: var(--accent-dim);
-  color: var(--accent);
+  color: var(--accent-text);
   cursor: pointer;
   transition: var(--trans-fast);
   align-self: flex-end;
@@ -956,7 +956,7 @@ header {
 .proj-filter-btn:hover::after,
 .proj-filter-btn.active::after {
   transform: translateY(-50%) rotate(-180deg);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* 3. Dot sync — pulse cuando sincronizando */
@@ -974,7 +974,7 @@ header {
 
 .sync-pill.syncing {
   animation: sync-pulse 1.1s ease-in-out infinite;
-  color: var(--accent, var(--blue));
+  color: var(--accent-text, var(--blue));
   border-color: var(--accent-border, rgb(56 189 248 / 40%));
   background: var(--accent-dim, rgb(56 189 248 / 10%));
 }
@@ -983,7 +983,7 @@ header {
 .more-menu-wrap:has(.more-menu:not(.is-hidden)) #more-menu-btn {
   transform: rotate(90deg);
   border-color: var(--accent-border, rgb(56 189 248 / 40%));
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-dim);
 }
 
@@ -1398,7 +1398,7 @@ header {
 }
 
 .tmpl-trigger-label:hover {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .tmpl-trigger-arrow {
@@ -1456,7 +1456,7 @@ header {
 
 /* Item editor — modo edición (título en amber) */
 .item-editor-title--edit {
-  color: var(--amber, var(--amber));
+  color: var(--amber-text, var(--amber));
 }
 
 .item-editor-title--new {
@@ -1487,7 +1487,7 @@ header {
 
 /* Hora display — estados de validación */
 .hora-disp--valid {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .hora-disp--error {
@@ -1500,7 +1500,7 @@ header {
 
 /* T-327: Aliases semánticos de estado — reemplazan style.color inline en session.js y checkpoint.js */
 .hora-valid {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .hora-error {
@@ -1513,7 +1513,7 @@ header {
 
 /* T-327: Starred — reemplaza style.color inline en ítems destacados */
 .starred {
-  color: var(--amber, var(--amber));
+  color: var(--amber-text, var(--amber));
 }
 
 /* T-330: pop-star-btn — font-size estático eliminado de template string y index.html */
@@ -1670,7 +1670,7 @@ header {
 }
 
 .ckpt-info-label--proximo {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .ckpt-info-label--decision {
@@ -1740,7 +1740,7 @@ header {
 }
 
 .paste-ta-btn--paste {
-  color: var(--accent, var(--hint));
+  color: var(--accent-text, var(--hint));
 }
 
 
@@ -2119,7 +2119,7 @@ header {
   margin-top: 4px;
   padding: 0 20px;
   background: var(--accent-dim);
-  color: var(--accent);
+  color: var(--accent-text);
   border: 1px solid var(--accent-border);
   border-radius: var(--radius-md);
   font-size: var(--text-base);

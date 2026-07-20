@@ -1,4 +1,4 @@
-/* [PP] mod:5 · autor:Nova · 2026-07-20 16:10 UTC-6 */
+/* [PP] mod:6 · autor:Nova · 2026-07-20 19:10 UTC-6 */
 /* mod:3 — --mg-radius-lg wireado a --radius-2xl (era var(--border-radius-lg, 12px), token
    inexistente en el sistema del proyecto — fallback hardcoded). Unico consumidor: .mg-panel--docgen
    (linea 35), agrupado por tamaño (820px) con item-editor-overlay/sprint-close-overlay/
@@ -882,7 +882,7 @@
 .mg-preview-badge {
   font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-text);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   border-radius: var(--radius-pill);
   padding: 2px 10px;
@@ -929,7 +929,7 @@
 .sprint-close-docgen-btn {
   background: none;
   border: none;
-  color: var(--accent);
+  color: var(--accent-text);
   cursor: pointer;
   font-size: var(--text-xs);
   text-decoration: underline;

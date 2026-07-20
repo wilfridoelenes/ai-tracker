@@ -1,4 +1,4 @@
-/* [PP] mod:11 · autor:Nova · 2026-07-20 16:45 UTC-6 */
+/* [PP] mod:12 · autor:Nova · 2026-07-20 19:10 UTC-6 */
 /* Fix: .rsb-pin-icon base reordenado antes de .rsb-pin-icon--on/--off — ambos SVGs
    del pin (outline+filled) se mostraban simultáneamente en estado sin fijar porque
    la regla base (misma especificidad, posición posterior en el archivo) ganaba el
@@ -459,7 +459,7 @@
 .rsb-session-elapsed {
   font-size: var(--text-2xs-plus);
   font-weight: 600;
-  color: var(--amber);
+  color: var(--amber-text);
   white-space: nowrap;
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
@@ -490,7 +490,7 @@
   cursor: pointer;
   font-size: var(--text-2xs-plus);
   font-weight: 600;
-  color: var(--amber);
+  color: var(--amber-text);
   transition: background 0.12s, border-color 0.12s;
   text-align: left;
 }
@@ -554,7 +554,7 @@
   cursor: pointer;
   font-size: var(--text-2xs-plus);
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-text);
   transition: opacity 0.12s, background 0.12s;
 }
 
@@ -577,7 +577,7 @@
   gap: 4px;
   font-size: var(--text-2xs);
   font-weight: 600;
-  color: var(--purple);
+  color: var(--purple-text);
   margin-top: 3px;
 }
 
@@ -618,7 +618,7 @@
 }
 
 .rsb-status-interrupted {
-  color: var(--purple);
+  color: var(--purple-text);
   background: rgb(124 106 247 / 10%);
 }
 
@@ -679,7 +679,7 @@
    que .rsb-hdr-available/.rsb-hdr-exhausted. */
 .rsb-hdr-session {
   background: rgb(245 158 11 / 12%);
-  color: var(--amber);
+  color: var(--amber-text);
 }
 
 .rsb-hdr-session .rsb-hdr-dot {
@@ -710,7 +710,7 @@
 
 :root[data-theme="light"] .rsb-hdr-session {
   background: rgb(212 146 14 / 10%);
-  color: var(--amber);
+  color: var(--amber-text);
 }
 
 :root[data-theme="light"] .rsb-hdr-session .rsb-hdr-dot {
@@ -800,7 +800,7 @@
 #global-radar-sidebar.rsb-pinned .rsb-pin-icon--off { display: none; }
 
 #global-radar-sidebar.rsb-pinned .rsb-pin-btn {
-  color: var(--accent);
+  color: var(--accent-text);
   background: rgb(99 102 241 / 12%);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   border-color: rgb(99 102 241 / 30%);
@@ -921,7 +921,7 @@ body.radar-sb-collapsed #global-footer {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border, rgb(99 102 241 / 25%));
   background: var(--surface2, rgb(99 102 241 / 8%));
-  color: var(--accent, #6366f1);
+  color: var(--accent-text, #6366f1);
   font-size: var(--text-xs);
   font-family: var(--font-mono, monospace);
   font-weight: 600;
@@ -1058,7 +1058,7 @@ body.radar-sb-collapsed #global-footer {
 
 .rsb-notif-mark-all:hover {
   border-color: var(--accent, var(--purple));
-  color: var(--accent, var(--purple));
+  color: var(--accent-text, var(--purple));
 }
 
 /* ── Ítem de notificación ────────────────────────────────────────── */
@@ -1117,7 +1117,7 @@ body.radar-sb-collapsed #global-footer {
 
 .rsb-notif-type--riesgo {
   background: rgb(245 158 11 / 15%);
-  color: var(--amber, #f59e0b);
+  color: var(--amber-text, #f59e0b);
 }
 
 .rsb-notif-type--pendiente {
@@ -1127,7 +1127,7 @@ body.radar-sb-collapsed #global-footer {
 
 .rsb-notif-type--info {
   background: rgb(124 106 247 / 12%);
-  color: var(--purple,#7c6af7);
+  color: var(--purple-text,#7c6af7);
 }
 
 .rsb-notif-title {
@@ -1187,7 +1187,7 @@ body.radar-sb-collapsed #global-footer {
 
 .rsb-notif-goto:hover {
   border-color: var(--accent, var(--purple));
-  color: var(--accent, var(--purple));
+  color: var(--accent-text, var(--purple));
   background: rgb(124 106 247 / 10%);
 }
 
@@ -1567,7 +1567,7 @@ body.radar-sb-collapsed #global-footer {
 .cscard-label {
   font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--accent, #7c6af7);
+  color: var(--accent-text, #7c6af7);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   flex: 1;

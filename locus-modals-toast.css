@@ -1,4 +1,4 @@
-/* [PP] mod:3 · autor:Nova · 2026-07-19 UTC-6 */
+/* [PP] mod:4 · autor:Nova · 2026-07-20 19:10 UTC-6 */
 /* TKT1 (REQ corregir-css-purity): header corregido — mod:1 declaraba autor:Rune sobre split
    mecánico de locus-modals.css mod:7 (TKT1 de REQ split, 2026-07-05), sin decisión de estilo
    nueva. Contenido auditado y adoptado sin cambios — solo corrección de atribución. */
@@ -147,7 +147,7 @@
 .toast-item.t-download {
   background: var(--accent-dim);
   border-color: var(--accent-border);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .toast-item.t-error {
@@ -318,7 +318,7 @@
 
 .ckpt-section.updated .ckpt-section-header {
   background: rgb(232 168 50 / 12%);
-  color: var(--amber);
+  color: var(--amber-text);
   border: 1px solid rgb(232 168 50 / 25%);
   border-bottom: none;
 }
@@ -332,7 +332,7 @@
 
 .ckpt-section.retroceso .ckpt-section-header {
   background: rgb(230 100 30 / 12%);
-  color: var(--amber);
+  color: var(--amber-text);
   border: 1px solid rgb(230 100 30 / 30%);
   border-bottom: none;
 }
@@ -360,14 +360,14 @@
 
 .ckpt-section.notice .ckpt-section-header {
   background: rgb(232 168 50 / 10%);
-  color: var(--amber);
+  color: var(--amber-text);
   border: 1px solid rgb(232 168 50 / 25%);
   border-bottom: none;
 }
 
 .ckpt-section.context .ckpt-section-header {
   background: rgb(139 195 74 / 10%);
-  color: var(--accent);
+  color: var(--accent-text);
   border: 1px solid var(--accent-border);
   border-bottom: none;
 }
@@ -458,7 +458,7 @@
 }
 
 .ckpt-item-arrow.retroceso {
-  color: var(--amber);
+  color: var(--amber-text);
 }
 
 

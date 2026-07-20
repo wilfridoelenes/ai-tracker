@@ -1,4 +1,4 @@
-/* [PP] mod:11 · autor:Nova · 2026-07-20 16:10 UTC-6 */
+/* [PP] mod:12 · autor:Nova · 2026-07-20 19:10 UTC-6 */
 /* TKT2 (REQ corregir-css-purity): adopción retroactiva de mod:8/mod:9 — founder decidió
    adoptar tal cual el CSS entregado por Rune (.bl-plan-card--done, .bl-plan-done-group/
    header/body), sin reescritura. Correcta contra tokens vigentes (--surface2, --border2) y
@@ -156,7 +156,7 @@
 }
 
 .bl-plan-col--right .bl-plan-col-title {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* — Medidor de effort (columna derecha) — */
@@ -431,7 +431,7 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-text);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   border-radius: var(--radius-sm);
   padding: 2px 6px;
@@ -571,7 +571,7 @@
 
 /* Sesión activa — label con acento visual */
 .plan-scope-section--sesion .plan-scope-label {
-  color: var(--accent, #38bdf8);
+  color: var(--accent-text, #38bdf8);
 }
 
 .plan-scope-section--sesion .plan-scope-header {
@@ -607,7 +607,7 @@
 /* ── Badge de truncamiento de sesión ── */
 .plan-scope-truncated-badge {
   font-size: var(--text-xs);
-  color: var(--amber, #f59e0b);
+  color: var(--amber-text, #f59e0b);
   background: rgb(245 158 11 / 8%);
   border: 1px solid rgb(245 158 11 / 20%);
   border-radius: var(--radius-sm);
@@ -626,7 +626,7 @@
   gap: 10px;
   padding: 10px 14px;
   border-radius: var(--radius-md-plus, var(--radius-sm));
-  color: var(--amber, #f59e0b);
+  color: var(--amber-text, #f59e0b);
   background: rgb(245 158 11 / 8%);
   border: 1px solid rgb(245 158 11 / 20%);
   margin: 0 0 12px;
@@ -652,7 +652,7 @@
 
 .sprint-conflict-btn {
   font-size: var(--text-sm);
-  color: var(--amber, #f59e0b);
+  color: var(--amber-text, #f59e0b);
   background: none;
   border: 1px solid rgb(245 158 11 / 30%);
   border-radius: var(--radius-sm);

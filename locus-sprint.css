@@ -1,4 +1,4 @@
-/* [PP] mod:59 · autor:Nova · 2026-07-19 UTC-6 */
+/* [PP] mod:60 · autor:Nova · 2026-07-20 19:10 UTC-6 */
 /* Fix cascade: .sps-card--paused → .sps-card.sps-card--paused (compound) — la base
    .sps-card (declarada después) pisaba el background del estado pausado. Mismo patrón
    sistémico, ver locus-backlog.css mod:109. */
@@ -255,7 +255,7 @@
 
 /* B-202606-031 — sección En revisión */
 .spi-label--en-revision {
-  color: var(--amber);
+  color: var(--amber-text);
 }
 
 .spi-section-count {
@@ -364,7 +364,7 @@
 /* B-202606-031 — badge En revisión */
 .spi-item-status--en-revision {
   background: color-mix(in srgb, var(--amber) 10%, transparent);
-  color: var(--amber);
+  color: var(--amber-text);
   border: 1px solid color-mix(in srgb, var(--amber) 28%, transparent);
 }
 
@@ -1351,7 +1351,7 @@
 /* Badge sprint en curso — visible cuando current:true */
 .sml-badge--current {
   background: var(--accent-dim);
-  color: var(--accent);
+  color: var(--accent-text);
   border: 1px solid var(--accent-border);
   font-size: var(--text-xs);
   font-weight: 600;
@@ -1578,7 +1578,7 @@
 
 .ssm-type--disc {
   background: rgb(124 106 247 / 15%);
-  color: var(--purple);
+  color: var(--purple-text);
 }
 
 .ssm-type--empty {
@@ -1628,7 +1628,7 @@
 
 .ssm-field-value:hover {
   background: var(--surface3);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .ssm-field-value:focus-visible {
@@ -1774,7 +1774,7 @@
   padding: 7px 16px;
   font-size: var(--text-sm);
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-text);
   background: transparent;
   border: 1.5px solid var(--accent);
   border-radius: var(--radius-sm);
@@ -1849,7 +1849,7 @@
 .spnp-badge {
   font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-dim);
   padding: 2px 8px;
   border-radius: var(--radius-sm);
@@ -2550,7 +2550,7 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 }
 
 .sps-title:hover {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* ── Meta-grid — versión / release / goal / scope en 2 columnas ── */
@@ -2620,7 +2620,7 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 }
 
 .sps-meta-editable:hover {
-  color: var(--accent);
+  color: var(--accent-text);
   border-bottom-color: var(--accent);
 }
 
@@ -2706,7 +2706,7 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 .sph-pct {
   font-size: var(--text-lg);
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-text);
   min-width: 34px;
   text-align: right;
 }
@@ -2817,7 +2817,7 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   border-radius: var(--radius-md);
   border: 1.5px solid var(--accent);
   background: transparent;
-  color: var(--accent);
+  color: var(--accent-text);
   cursor: pointer;
   transition: var(--trans-color);
 }
@@ -3248,7 +3248,7 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 
 .bl-sprint-badge--active {
   background: color-mix(in srgb, var(--accent) 14%, transparent);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .bl-sprint-badge--closed {
@@ -3266,7 +3266,7 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   align-items: center;
   justify-content: center;
   font-size: var(--text-xs);
-  color: var(--accent);
+  color: var(--accent-text);
   opacity: 0; /* oculto por defecto */
 }
 
