@@ -1,4 +1,7 @@
-/* [PP] mod:20 · autor:Nova · 2026-07-19 UTC-6 */
+/* [PP] mod:21 · autor:Nova · 2026-07-20 UTC-6 */
+/* mod:21 — retirado .status-confirm-overlay del bloque light-theme backdrop blur (L1543 previa) —
+   clase huérfana, retirada de HTML/JS por TKT4 (CAEL-0720-05, REQ CAEL-0720-01). Selector nunca
+   volvía a matchear tras el retiro; DISC [pendiente-ID] cerrada con este fix. */
 /* mod:20 — retirado duplicado #pepe-splash .splash-sub (ver bloque A4-b Splash screen, abajo
    en este archivo) — canónico queda en locus-modals-tracker.css. Ver ui-Inventory mod:27. */
 /* CAEL-05 · TKT1 (CAEL-06) — completo: tabs sin pill (font-size:15px, border:none,
@@ -1540,7 +1543,6 @@ header {
 :root[data-theme="light"] .avatar-modal,
 :root[data-theme="light"] .popup-overlay,
 :root[data-theme="light"] .proj-modal-overlay,
-:root[data-theme="light"] .status-confirm-overlay,
 :root[data-theme="light"] .item-viz-overlay {
   backdrop-filter: blur(20px) saturate(1.6);
   background: rgb(0 0 0 / 18%);

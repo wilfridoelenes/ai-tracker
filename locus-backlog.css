@@ -1,4 +1,6 @@
-/* [PP] mod:107 · autor:Nova · 2026-07-20 UTC-6 */
+/* [PP] mod:108 · autor:Nova · 2026-07-20 UTC-6 */
+/* mod:108 — comentario obsoleto corregido en .qinc-export-btn: el DOC-UPDATE que marcaba
+   "pendiente" ya está aplicado en _Locus-css-ref mod:96. Sin cambio de selector ni comportamiento. */
 /* TKT4 (REQ CAEL-0720-01): reglas .status-confirm-overlay/.status-confirm-overlay.open y
    .status-confirm-box/.title/.body/.actions/.cancel/.ok.danger retiradas — shell reemplazado
    por gconfirm-overlay + bodyHtml. .item-status-confirmed y .promote-modal-overlay intactas
@@ -5704,7 +5706,8 @@
    contra locus-base.css antes de entregar: 2.32:1 en light vs --surface2, bajo WCAG AA.
    --accent-text es token nuevo agregado en locus-base.css (mod:12) — alias de --accent en
    dark (ya 11:1), valor propio más oscuro en light (5.5:1) — mismo criterio que --green-text
-   sobre --green. DOC-UPDATE pendiente en _Locus-css-ref (nuevo token + anti-pattern). */
+   sobre --green. DOC-UPDATE aplicado en _Locus-css-ref mod:96 — token + anti-pattern documentados
+   en §Tokens de color utilitarios. */
 .qinc-export-btn {
   display: inline-flex;
   align-items: center;

@@ -1,4 +1,4 @@
-/* [PP] mod:5 · autor:Nova · 2026-07-19 UTC-6 */
+/* [PP] mod:6 · autor:Nova · 2026-07-19 UTC-6 */
 /* locus-modals-misc.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
 
 /* [PP] mod:7 · autor:Nova · 2026-07-04 UTC-6 */
@@ -74,13 +74,13 @@
 }
 
 .tc-5 {
-  color: var(--pink);
+  color: var(--pink-text); /* REQ CAEL-0719-02 TKT1 — pink crudo fallaba 4.5:1 en light */
   border-color: #5a1a3a; /* tag-color-fixed */
   background: rgb(244 114 182 / 10%);
 }
 
 .tc-6 {
-  color: var(--lime);
+  color: var(--lime-text); /* REQ CAEL-0719-02 TKT1 — lime crudo fallaba 4.5:1 en light */
   border-color: #2a4a0a; /* tag-color-fixed */
   background: rgb(163 230 53 / 10%);
 }

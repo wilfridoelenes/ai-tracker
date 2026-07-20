@@ -1,4 +1,4 @@
-/* [PP] mod:12 · autor:Nova · 2026-07-19 22:10 UTC-6 */
+/* [PP] mod:13 · autor:Nova · 2026-07-19 UTC-6 */
 /* locus-base.css */
 
 
@@ -199,6 +199,16 @@
   --red-text:  var(--red);
   --green-text: var(--green);
 
+  /* ── REQ CAEL-0719-02 (TKT1) — gap cerrado en esta sesión: --amber/--pink/--lime ya pasan
+     4.5:1 en dark (9.91–12.05 / 5.94–7.23 / 10.43–12.69:1 vs --surface/--surface2/--surface3/--bg2)
+     — sin override, mismo criterio que --orange-text/--blue-text. --purple falla en dark
+     (3.94–4.80:1, patrón inverso a los demás — ya pasa en light) — override aclarado a #8b7bf7
+     (4.70:1 mínimo medido). ── */
+  --amber-text:  var(--amber);
+  --pink-text:   var(--pink);
+  --lime-text:   var(--lime);
+  --purple-text: #8b7bf7;
+
   --card-shadow:       0 1px 6px rgb(0 0 0 / 50%), 0 0 0 1px rgb(255 255 255 / 3%);
   --card-shadow-hover: 0 4px 20px rgb(0 0 0 / 60%), 0 0 0 1px rgb(166 226 46 / 15%);
 
@@ -376,6 +386,16 @@
      (2.6–2.8:1 vs --surface3/--surface2/--bg2) — override oscurecido, mismo método que
      --blue-text/--red-text arriba: --green-text #137a40 (≥4.5:1). No se toca --green global. ── */
   --green-text: #137a40;
+
+  /* ── REQ CAEL-0719-02 (TKT1) — gap cerrado: --amber/--pink/--lime fallan como texto en light
+     (2.27–2.65 / 3.27–3.82 / 2.76–3.22:1 vs --surface/--surface2/--surface3/--bg2) — override
+     oscurecido, mismo método que --blue-text/--red-text/--green-text arriba: --amber-text #8b6009
+     (4.53:1 mínimo), --pink-text #af4181 (4.62:1 mínimo), --lime-text #4e7413 (4.70:1 mínimo).
+     --purple ya pasa en light (5.12–5.98:1) — sin override. ── */
+  --amber-text:  #8b6009;
+  --pink-text:   #af4181;
+  --lime-text:   #4e7413;
+  --purple-text: var(--purple);
 
   --card-shadow:       0 1px 4px rgb(20 22 42 / 8%);
   --card-shadow-hover: 0 4px 16px rgb(20 22 42 / 14%);
