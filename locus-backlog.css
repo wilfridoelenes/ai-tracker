@@ -1,8 +1,12 @@
-/* [PP] mod:114 · autor:Nova · 2026-07-20 UTC-6 */
-/* TKT1 (REQ CAEL-0720-02): .bl-header-unified fusiona stats-bar + bl-toolbar en un solo
-   header con border envolvente — ver AC en TKT. .bl-toolbar pierde border/sticky propio,
-   migrado al wrapper. .active-filter-chips sin cambio, sigue fusionando contra el borde
-   inferior del contenedor que ahora lo antecede (antes .bl-toolbar, ahora el wrapper). */
+/* [PP] mod:115 · autor:Nova · 2026-07-20 UTC-6 */
+/* TKT1 (REQ CAEL-0720-01, ref_id CAEL-0720-02): unifica el mecanismo de estado activo
+   en .stat-type-chip / .stat-pri-chip / .stat-effort-card — border 1.5px + fondo con
+   tinte + texto en el tono -text de su propia familia, sin cambiar color semántico.
+   Incluye fixes de coherencia necesarios para que el mecanismo unificado sea correcto:
+   color crudo --red/--blue → --red-text/--blue-text en tc-INC/tc-REQ (tc-TKT/tc-DISC
+   ya usaban -text); --yellow-text/--slate-text en tc-KE/tc-CHG (antes hex crudo);
+   .stat-effort-card.active pasa background de --blue-dim a --accent-dim (no coincidía
+   con el border-color:var(--accent) ya declarado ahí). */
 /* Fix cascade: .qinc-item--sla-vencido → .qinc-item.qinc-item--sla-vencido (compound,
    +1 clase de especificidad) — la base .qinc-item (declarada después en el archivo)
    pisaba el background rojo de alerta SLA vencido. Mismo patrón que fix de rsb-pin-icon
@@ -507,6 +511,7 @@
 
 .stat-type-chip.active {
   opacity: 1;
+  border-width: 1.5px;
 }
 
 .stat-type-chip.active:hover {
@@ -563,7 +568,7 @@
 .stat-type-chip.tc-INC {
   background: rgb(232 85 85 / 12%);
   border-color: rgb(232 85 85 / 40%);
-  color: var(--red);
+  color: var(--red-text);
 }
 
 .stat-type-chip.tc-TKT {
@@ -575,7 +580,7 @@
 .stat-type-chip.tc-REQ {
   background: rgb(56 189 248 / 12%);
   border-color: rgb(56 189 248 / 40%);
-  color: var(--blue);
+  color: var(--blue-text);
 }
 
 .stat-type-chip.tc-DISC {
@@ -614,13 +619,13 @@
 .stat-type-chip.tc-KE {
   background: rgb(234 179 8 / 12%);
   border-color: rgb(234 179 8 / 40%);
-  color: #eab308;
+  color: var(--yellow-text, #eab308);
 }
 
 .stat-type-chip.tc-CHG {
   background: rgb(100 116 139 / 12%);
   border-color: rgb(100 116 139 / 40%);
-  color: #94a3b8;
+  color: var(--slate-text, #94a3b8);
 }
 
 .stat-type-chip.active.tc-PRB {
@@ -737,10 +742,32 @@
   color: var(--text2);
 }
 
-/* T-202604-357: active state — mismo patrón que tipo y esfuerzo */
+/* T-202604-357 (revisado TKT1 CAEL-0720-02): active state unificado con tipo y esfuerzo —
+   border 1.5px + fondo con tinte + texto en tono -text, por prioridad. Reemplaza el
+   box-shadow ring genérico (no reflejaba el color semántico de la prioridad activa) por
+   el mismo mecanismo ya usado en .filter-btn.active.f-high/.f-medium — border-color/color
+   = token -text, background = token -bg. */
 .stat-pri-chip.active {
-  box-shadow: 0 0 0 2px var(--accent, var(--purple));
   opacity: 1;
+  border: 1.5px solid transparent;
+}
+
+.stat-pri-chip.active.pri-high {
+  border-color: var(--c-high-text);
+  background: var(--c-high-bg);
+  color: var(--c-high-text);
+}
+
+.stat-pri-chip.active.pri-medium {
+  border-color: var(--c-medium-text);
+  background: var(--c-medium-bg);
+  color: var(--c-medium-text);
+}
+
+.stat-pri-chip.active.pri-low {
+  border-color: var(--border2);
+  background: var(--surface3);
+  color: var(--text);
 }
 
 .stat-pri-chip .spc-n {
@@ -771,12 +798,18 @@
 }
 
 .stat-effort-card.active {
-  border-color: var(--accent);
-  background: var(--blue-dim);
+  border-width: 1.5px;
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
 }
 
 .stat-effort-card.active .sec-count {
   color: var(--accent-text);
+}
+
+.stat-effort-card.active .eff-label {
+  color: var(--accent-text);
+  font-weight: 500;
 }
 
 .stat-effort-card .sec-count {
