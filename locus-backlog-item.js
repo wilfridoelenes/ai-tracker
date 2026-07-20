@@ -1,4 +1,4 @@
-// [PP] mod:118 · autor:Rune · 2026-07-20 UTC-6
+// [PP] mod:119 · autor:Rune · 2026-07-20 15:00 UTC-6
 // TKT-[pendiente-ID] (deuda técnica, gap detectado por Finn — tercera copia no anticipada
 // en AC original): SLA_RIESGO_WINDOW_MS importada de locus-inc-fields.js, reemplaza literal
 // 21600000 en buildQIncItem() (línea ~3329). Sin cambio de comportamiento en clasificación
@@ -302,7 +302,7 @@
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _isQDiscActive, QDISC_ACTIVE_LIMIT, _openItemEditorSafe, _setIncidents, _skelHide, _undoSnapshotItems, _undoSnapshotIncidents, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass, _newBacklogItem, _syncParentRStatus } from './locus-backlog-core.js'; // TKT2 (REQ-202607-025): _newBacklogItem agregado // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202607-010: _isQDiscActive + QDISC_ACTIVE_LIMIT agregados — gate de límite Q-DISC en mergeBacklogFromTG · TKT1 (REQ-202607-021): _syncParentRStatus agregada — reemplaza a _checkAndAdvanceParentR (función local eliminada, duplicaba la misma regla con criterio divergente)
+import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _isQDiscActive, QDISC_ACTIVE_LIMIT, _openItemEditorSafe, _setIncidents, _skelHide, _undoSnapshotItems, _undoSnapshotIncidents, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass, _newBacklogItem, _syncParentRStatus, _computeRStatusFromChildren } from './locus-backlog-core.js'; // TKT1 (REQ CAEL-0720-01): _computeRStatusFromChildren agregada — reutilizada por _checkAndOrphanParentR // TKT2 (REQ-202607-025): _newBacklogItem agregado // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202607-010: _isQDiscActive + QDISC_ACTIVE_LIMIT agregados — gate de límite Q-DISC en mergeBacklogFromTG · TKT1 (REQ-202607-021): _syncParentRStatus agregada — reemplaza a _checkAndAdvanceParentR (función local eliminada, duplicaba la misma regla con criterio divergente)
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, setItemParent, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges
 import { _normalizeSprint, _VALID_INCIDENT_STATUS, _VALID_PRB_STATUS, _VALID_KE_STATUS } from './locus-session-parse.js'; // TKT-PARSER-2a: constantes ITIL exportadas · TKT1 (REQ CAEL-01): _VALID_PRB_STATUS/_VALID_KE_STATUS — vocabularios propios para transición por tipo
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
@@ -2761,6 +2761,14 @@ function _isActiveRecently(item) {
 // AC-4: al transicionar, registra en _blogLog el mensaje canónico.
 // Solo aplica cuando el ítem modificado tiene parentId y su parent es tipo R.
 // nowTs: timestamp para statusChangedAt del R.
+// TKT1 (REQ CAEL-0720-01): delega la decisión a _computeRStatusFromChildren (locus-backlog-core.js)
+// — misma función que _syncParentRStatus. Refinamiento declarado sobre el comportamiento
+// anterior: antes no había guard de done/bloqueado/descartado en este helper (solo lo tenía
+// _syncParentRStatus); _computeRStatusFromChildren lo aplica de forma uniforme — un REQ ya
+// terminal nunca se orphanea por este mecanismo, consistente con BR-Core §4 ("done y bloqueado
+// nunca se derivan de los hijos"). AC-3 (al menos un hijo no descartado → sin cambio) y el
+// guard "ya orphaned → no duplicar" siguen cubiertos por la función pura (retorna null en
+// ambos casos).
 export function _checkAndOrphanParentR(childCode, nowTs) {
   const allItems = typeof getItems() !== 'undefined' ? getItems() : [];
   const child = allItems.find(i => i.code === childCode);
@@ -2769,17 +2777,15 @@ export function _checkAndOrphanParentR(childCode, nowTs) {
   const parent = allItems.find(i => i.code === child.parentId);
   if (!parent || itemKind(parent) !== 'REQ') return; // parent debe ser REQ
 
-  // Hijos del REQ (TKT e INC) — incluye descartados para evaluar si TODOS lo están
+  // Hijos del REQ (TKT e INC) — incluye descartados, _computeRStatusFromChildren los filtra
   const children = allItems.filter(i =>
     i.parentId === parent.code &&
     ['TKT','INC'].includes(itemKind(i))
   );
   if (!children.length) return; // sin hijos declarados → no-op (gate de parser cubre REQ sin TKT al ingestar)
 
-  const allDiscarded = children.every(i => i.status === 'descartado');
-  if (!allDiscarded) return; // AC-3: al menos un hijo no descartado → R conserva status
-
-  if (parent.status === 'orphaned') return; // ya orphaned — no duplicar transición/log
+  const nextStatus = _computeRStatusFromChildren(parent.status, children.map(i => i.status));
+  if (nextStatus !== 'orphaned') return; // no todos descartados, o ya orphaned, o REQ terminal
 
   parent.status = 'orphaned';
   parent.orphaned = true;

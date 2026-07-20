@@ -1,4 +1,4 @@
-// [PP] mod:94 · autor:Rune · 2026-07-20 23:55 UTC-6
+// [PP] mod:95 · autor:Rune · 2026-07-20 UTC-6
 // TKT2 (REQ CAEL-0720-03 · Separar render de rama Reactiva a módulo propio): eliminados
 // _QINC_ACTIVE_STATUSES, renderQIncPanel(), _attachQIncDelegation() y los 2 listeners Q-INC
 // (shell:render-qinc, shell:backlog-render-dirty filtrado por getCurrentTab()==='incidentes')
@@ -203,7 +203,7 @@ import { _buildChildMap } from './locus-backlog-hierarchy.js';
 // REQ refactor-zonas TKT5: _zoneStaleness extraído a locus-backlog-zone-engine.js — único uso
 // restante en este archivo es _updateSubtabBadges() (badges qbacklog/qdisc).
 import { _zoneStaleness } from './locus-backlog-zone-engine.js';
-import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshotItems, itemKind, renderStats, renderActiveFilterChips, updateStatusFilterUI, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleVersionCollapse, toggleSectionGroup, getDoneItems, getItems } from './locus-backlog-core.js'; // TKT1 REQ unificar chips: renderActiveFilterChips agregada · toggleTypeFilter/toggleStatusFilter/toggleEffortFilter/toggleBacklogNoAcMode huérfanos removidos (inline_fix) · REQ refactor-zonas TKT5: _nsGetStatuses removido — único uso vivía en _renderZonePanel (extraído a zone-engine.js) · TKT-202607-027: _getBacklogKanbanMode removida — ya no exportada desde core.js · TKT2 (REQ CAEL-0720-03): getIncidents, _nsGetTypes/_nsGetPriority/_nsGetQuery/_nsSetQuery/_nsToggleType/_nsTogglePriority/_nsReset removidos — sin uso tras extraer renderQIncPanel a locus-incidents-render.js
+import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshotItems, itemKind, renderStats, renderActiveFilterChips, updateStatusFilterUI, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleVersionCollapse, toggleSectionGroup, getDoneItems, getItems, getIncidents, _computeRStatusFromChildren } from './locus-backlog-core.js'; // TKT2 (REQ CAEL-0720-01): getIncidents + _computeRStatusFromChildren reintroducidas — self-heal de status de REQ en _renderVistaLista, universo completo ITEMS+INCIDENTS · TKT1 REQ unificar chips: renderActiveFilterChips agregada · toggleTypeFilter/toggleStatusFilter/toggleEffortFilter/toggleBacklogNoAcMode huérfanos removidos (inline_fix) · REQ refactor-zonas TKT5: _nsGetStatuses removido — único uso vivía en _renderZonePanel (extraído a zone-engine.js) · TKT-202607-027: _getBacklogKanbanMode removida — ya no exportada desde core.js · TKT2 (REQ CAEL-0720-03): getIncidents (reintroducida arriba por TKT2 CAEL-0720-01) , _nsGetTypes/_nsGetPriority/_nsGetQuery/_nsSetQuery/_nsToggleType/_nsTogglePriority/_nsReset removidos — sin uso tras extraer renderQIncPanel a locus-incidents-render.js
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, buildBacklogItem } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation · TKT-202607-027: _renderKanban removida — ya no exportada · TKT2 (REQ CAEL-0720-03): buildQIncItem removida — usada solo en renderQIncPanel, ahora en locus-incidents-render.js
 
@@ -211,7 +211,7 @@ import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } 
 
 import { _setBacklogModified } from './locus-docs.js';
 
-import { _getActiveProjectFilter, getActiveSprints, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync, state } from './locus-storage.js'; // INC-fix: 'state' faltaba en este import — renderBacklogList() lo usa (state.projects) desde antes de mod:82/83 sin que nunca se importara, ReferenceError en runtime · TKT2 (REQ CAEL-0720-03): _docPrefix removido — solo usado en renderQIncPanel (qi-export-incidents), ahora en locus-incidents-render.js
+import { _getActiveProjectFilter, getActiveSprints, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync, state, _blogLog } from './locus-storage.js'; // TKT2 (REQ CAEL-0720-01): _blogLog agregada — log del self-heal de status de REQ en render, mismo formato que _syncParentRStatus · INC-fix: 'state' faltaba en este import — renderBacklogList() lo usa (state.projects) desde antes de mod:82/83 sin que nunca se importara, ReferenceError en runtime · TKT2 (REQ CAEL-0720-03): _docPrefix removido — solo usado en renderQIncPanel (qi-export-incidents), ahora en locus-incidents-render.js
 
 // TKT2 (REQ CAEL-0720-03): import de _generateIncidentsMd removido — solo usado en renderQIncPanel (qi-export-incidents), ahora en locus-incidents-render.js
 
@@ -620,6 +620,11 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
 
   let html = '';
 
+  // TKT2 (REQ CAEL-0720-01): flag de batching — self-heal puede corregir REQs de varios sprints
+  // en este mismo pase (loop de sprintKeys más abajo); dispara como máximo 1 saveBacklog() al
+  // final del pase completo, nunca uno por REQ ni uno por sprint group (AC edge case batching).
+  let _reqSelfHealDirty = false;
+
   // ── Sprint groups ─────────────────────────────────────────────────────────
   // TKT1 (REQ Histórico unificado): el bloque de render por grupo se movió a renderSprintGroup()
   // (función pura, exportada, ver definición más arriba). Este loop solo arma sprintItems
@@ -633,6 +638,46 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
     const _sprintObjForGate = _getSprintById(sprintId);
     const _alwaysShowHeader = _sprintObjForGate && (_sprintObjForGate.status === 'active' || _sprintObjForGate.status === 'scheduled');
     if ((!group || !group.length) && !_hasDoneInGroup && !_alwaysShowHeader) return;
+
+    // TKT2 (REQ CAEL-0720-01): self-healing de status de REQ — recalcula ANTES de que
+    // renderSprintGroup construya el HTML del grupo, para que la fila del REQ salga corregida
+    // en este mismo pase. Vive aquí (no en renderSprintGroup) a propósito — renderSprintGroup es
+    // compartida con locus-backlog-historico.js (contextPrefix:'hist') y el no_incluye del TKT
+    // excluye explícitamente cualquier vista que no sea _renderVistaLista. Solo recorre `group`
+    // (subset pendiente de este sprint) — un REQ done/historico nunca llega aquí, ya vive en
+    // doneVisible/historicoVisible más abajo, fuera de este loop.
+    // AC "estado excluido": guard explícito de done/bloqueado/descartado antes de invocar la
+    // función pura — no confía solo en que _computeRStatusFromChildren retorne null.
+    // AC de fuente de hijos (corregido — ver devolución de Rune a Cael en esta sesión): universo
+    // completo ITEMS+INCIDENTS por parentId, INCLUYE descartados — misma fuente y mismo criterio
+    // que _checkAndOrphanParentR (locus-backlog-item.js), no que _syncParentRStatus (que
+    // pre-filtra descartados y por eso nunca puede producir 'orphaned'). Necesario para que las
+    // 3 transiciones declaradas en la intención del REQ — incluida →orphaned — se recalculen aquí.
+    (group || []).forEach(item => {
+      if (itemKind(item) !== 'REQ') return;
+      if (item.status === 'done' || item.status === 'bloqueado' || item.status === 'descartado') return;
+
+      const _childrenStatuses = getItems().concat(getIncidents())
+        .filter(i => ['TKT', 'INC'].includes(itemKind(i)) && i.parentId === item.code)
+        .map(i => i.status);
+
+      const _nextStatus = _computeRStatusFromChildren(item.status, _childrenStatuses);
+      if (!_nextStatus) return;
+
+      const _prevStatus = item.status;
+      let _reason, _label;
+      if (_nextStatus === 'orphaned') { _reason = 'auto-all-children-discarded'; _label = 'todos los hijos descartados'; }
+      else if (_nextStatus === 'en-revision') { _reason = 'auto-all-children-done'; _label = 'todos los hijos activos done'; }
+      else if (_prevStatus === 'en-revision') { _reason = 'auto-child-retroceded'; _label = 'hijo retrocedió de done'; }
+      else { _reason = 'auto-child-advanced'; _label = 'hijo activo avanzó'; }
+
+      item.status = _nextStatus;
+      item.statusChangedAt = Date.now();
+      if (!item.history) item.history = [];
+      item.history.push({ type: 'status', ts: item.statusChangedAt, data: { from: _prevStatus, to: _nextStatus, reason: 'render-selfheal' } });
+      _blogLog('status-auto →', item.code, _prevStatus + ' → ' + _nextStatus + ' (' + _label + ' — self-heal en render)', 'backlog');
+      _reqSelfHealDirty = true;
+    });
 
     const sprintObj = _getSprintById(sprintId);
     const isClosed  = sprintObj?.status === 'closed';
@@ -678,6 +723,16 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
 
     html += renderSprintGroup(_groupItems, isClosed);
   });
+
+  // TKT2 (REQ CAEL-0720-01): 1 sola escritura por pase de render, sin importar cuántos REQs se
+  // corrigieron arriba (AC edge case batching). No await — el render de #backlog-list ya terminó
+  // de construir `html` de forma síncrona con los status ya corregidos in-memory; la escritura a
+  // Supabase corre en paralelo sin bloquear el pintado. No dispara _markBacklogListDirty() ni
+  // renderBacklogList() de nuevo — sin loop de re-render (AC edge case). Guard anti-cascada
+  // realtime ya cubierto genéricamente por syncState.withSaveLock() dentro de saveBacklog()
+  // (locus-storage.js:1773) — verificado contra el código real, cubre cualquier caller sin
+  // necesidad de código adicional aquí (confirmación de la AC de guard, no gap).
+  if (_reqSelfHealDirty) saveBacklog();
 
   // T-202606-090 AC-6 / TKT-C1: bloque "Icebox al final" eliminado de #backlog-list — los ítems
   // sin sprint (Q-Backlog/Q-DISC) se muestran en renderQBacklogPanel()/renderQDiscPanel() (sub-tabs).

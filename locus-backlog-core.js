@@ -1,4 +1,4 @@
-// [PP] mod:122 · autor:Rune · 2026-07-20 UTC-6
+// [PP] mod:123 · autor:Rune · 2026-07-20 15:00 UTC-6
 // TKT1 (REQ CAEL-0720-02): reaplicado sobre base subida en mod:121 sin este fix — el mod:121
 // original (con el fix de isSupabaseAuthed) no llevaba el cambio de _syncToolbarHeightVar.
 // Gap adicional detectado en esta pasada, no capturado en la Fase 5 anterior: el
@@ -1850,6 +1850,50 @@ function _applyExitAnimOrRender(code, rCode) {
 // transición automática — cualquier función que mute el status de un TKT/INC (incluyendo
 // _applyDoneStatus, que antes NO la invocaba — ese gap era la causa raíz del REQ que se
 // quedaba en 'pendiente' pese a tener sus hijos done, ver INC de referencia) debe llamarla.
+// TKT1 (REQ CAEL-0720-01): función pura — decide el status que le corresponde a un REQ
+// según su status actual y el snapshot de status de sus hijos declarados (TKT/INC, incluye
+// descartados). Sin side effects — no muta, no loguea, no toca history[]. Única fuente de
+// la regla de transición automática (BR-Core §4 · BR-Ecosystem §5) — reemplaza la lógica
+// antes duplicada entre _syncParentRStatus (este archivo) y _checkAndOrphanParentR
+// (locus-backlog-item.js), que la reutiliza importándola de aquí.
+// Reglas:
+//   done / bloqueado / descartado → null siempre (BR-Core §4: nunca se derivan de los hijos)
+//   sin hijos declarados → null (nada que evaluar)
+//   todos los hijos declarados en 'descartado' → 'orphaned' (salvo que ya lo esté → null)
+//   todos los hijos activos (no descartados) en 'done' → 'en-revision' (salvo que ya lo esté → null)
+//   reqStatus 'en-revision' y no todos los activos done → 'en-proceso' (retroceso)
+//   reqStatus 'pendiente' y algún hijo activo != 'pendiente' → 'en-proceso'
+//   cualquier otro caso → null (sin cambio)
+// Refinamiento declarado sobre el comportamiento anterior de _syncParentRStatus (TKT1,
+// ver CHECKPOINT de la sesión): la transición pendiente→en-proceso pasaba por `newTStatus
+// !== 'descartado'` (dato del evento que disparó la llamada) — permitía que un hijo recién
+// creado todavía en 'pendiente' igual disparara el avance del padre. Esta función deriva la
+// misma transición solo del snapshot ('algún hijo activo distinto de pendiente'), que es la
+// lectura literal de BR-Core §4 ("primer TKT hijo cambia status DESDE pendiente") y es la
+// única variante evaluable sin datos de evento — condición necesaria para que TKT2 (recálculo
+// en render, sin evento disponible) reutilice esta misma función sin necesitar `newTStatus`.
+export function _computeRStatusFromChildren(reqStatus, childrenStatuses) {
+  if (reqStatus === 'done' || reqStatus === 'bloqueado' || reqStatus === 'descartado') return null;
+  if (!Array.isArray(childrenStatuses) || childrenStatuses.length === 0) return null;
+
+  const activeChildren = childrenStatuses.filter(s => s !== 'descartado');
+
+  if (activeChildren.length === 0) {
+    return reqStatus === 'orphaned' ? null : 'orphaned';
+  }
+
+  const allDone = activeChildren.every(s => s === 'done');
+  if (allDone) {
+    return reqStatus === 'en-revision' ? null : 'en-revision';
+  }
+
+  if (reqStatus === 'en-revision') return 'en-proceso';
+
+  if (reqStatus === 'pendiente' && activeChildren.some(s => s !== 'pendiente')) return 'en-proceso';
+
+  return null;
+}
+
 export function _syncParentRStatus(changedItemCode, newTStatus) {
   // Solo aplica cuando el ítem que cambió es un T o un INC con parentId — getAnyItem()
   // resuelve contra ITEMS e INCIDENTS, a diferencia del ITEMS.find() previo que solo veía TKT.
@@ -1859,7 +1903,8 @@ export function _syncParentRStatus(changedItemCode, newTStatus) {
   const parent = ITEMS.find(i => i.code === changedItem.parentId && itemKind(i) === 'REQ');
   if (!parent) return;
 
-  // AC-5 (B-039): REQ ya en done o descartado — no modificar
+  // AC-5 (B-039): REQ ya en done o descartado — no modificar (_computeRStatusFromChildren
+  // también lo cubre, pero el guard explícito evita el filter/concat de siblings si no hace falta)
   if (parent.status === 'done' || parent.status === 'descartado') return;
 
   // Obtener todos los TKT/INC hijos del REQ, excluyendo descartados — concat de ambos stores
@@ -1867,46 +1912,34 @@ export function _syncParentRStatus(changedItemCode, newTStatus) {
     ['TKT', 'INC'].includes(itemKind(i)) && i.parentId === parent.code && i.status !== 'descartado'
   );
 
-  // AC-4 (B-039): R sin Ts activos — no ejecutar ninguna transición
+  // AC-4 (B-039): R sin Ts activos — no ejecutar ninguna transición. Nota: al filtrar por
+  // activeSiblings antes de llamar a la función pura, esta ruta nunca puede producir
+  // 'orphaned' (childrenStatuses siempre llega sin descartados) — igual que antes del TKT1,
+  // orphaned sigue siendo responsabilidad exclusiva de _checkAndOrphanParentR.
   if (activeSiblings.length === 0) return;
 
   const prevParentStatus = parent.status;
-  const allDone = activeSiblings.every(i => i.status === 'done');
+  const nextStatus = _computeRStatusFromChildren(prevParentStatus, activeSiblings.map(i => i.status));
+  if (!nextStatus) return null;
 
-  // AC-2 (B-039): → en-revision — todos los Ts activos están done
-  if (allDone) {
-    if (parent.status !== 'en-revision') {
-      parent.status = 'en-revision';
-      parent.statusChangedAt = Date.now();
-      if (!parent.history) parent.history = [];
-      parent.history.push({ type: 'status', ts: parent.statusChangedAt, data: { from: prevParentStatus, to: 'en-revision', reason: 'auto-all-children-done' } });
-      _blogLog('status-auto →', parent.code, prevParentStatus + ' → en-revision (todos los Ts hijos done)', 'backlog');
-      return parent.code; // B-202606-009: señal para micro-flash en pill del R
-    }
-    return null;
+  let reason, label;
+  if (nextStatus === 'en-revision') {
+    reason = 'auto-all-children-done';
+    label = 'todos los Ts hijos done';
+  } else if (prevParentStatus === 'en-revision') {
+    reason = 'auto-child-retroceded';
+    label = 'T hijo retrocedió de done';
+  } else {
+    reason = 'auto-child-advanced';
+    label = 'T hijo avanzó';
   }
 
-  // B-202606-040: en-revision → en-proceso — algún T retrocedió de done, ya no todos están done
-  if (parent.status === 'en-revision') {
-    parent.status = 'en-proceso';
-    parent.statusChangedAt = Date.now();
-    if (!parent.history) parent.history = [];
-    parent.history.push({ type: 'status', ts: parent.statusChangedAt, data: { from: 'en-revision', to: 'en-proceso', reason: 'auto-child-retroceded' } });
-    _blogLog('status-auto →', parent.code, 'en-revision → en-proceso (T hijo retrocedió de done)', 'backlog');
-    return parent.code; // B-202606-009: señal para micro-flash en pill del R
-  }
-
-  // AC-1 (B-039): pendiente → en-proceso — el T que cambió salió de pendiente y no es descartado
-  if (parent.status === 'pendiente' && newTStatus !== 'descartado') {
-    parent.status = 'en-proceso';
-    parent.statusChangedAt = Date.now();
-    if (!parent.history) parent.history = [];
-    parent.history.push({ type: 'status', ts: parent.statusChangedAt, data: { from: 'pendiente', to: 'en-proceso', reason: 'auto-child-advanced' } });
-    _blogLog('status-auto →', parent.code, 'pendiente → en-proceso (T hijo avanzó)', 'backlog');
-    return parent.code; // B-202606-009: señal para micro-flash en pill del R
-  }
-
-  return null;
+  parent.status = nextStatus;
+  parent.statusChangedAt = Date.now();
+  if (!parent.history) parent.history = [];
+  parent.history.push({ type: 'status', ts: parent.statusChangedAt, data: { from: prevParentStatus, to: nextStatus, reason } });
+  _blogLog('status-auto →', parent.code, prevParentStatus + ' → ' + nextStatus + ' (' + label + ')', 'backlog');
+  return parent.code; // B-202606-009: señal para micro-flash en pill del R
 }
 
 // T-202605-008: lógica de mutación extraída para ser llamada desde _gconfirmOpen y flujo directo
