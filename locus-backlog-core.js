@@ -1,3 +1,9 @@
+// [PP] mod:122 · autor:Rune · 2026-07-20 UTC-6
+// TKT1 (REQ CAEL-0720-02): reaplicado sobre base subida en mod:121 sin este fix — el mod:121
+// original (con el fix de isSupabaseAuthed) no llevaba el cambio de _syncToolbarHeightVar.
+// Gap adicional detectado en esta pasada, no capturado en la Fase 5 anterior: el
+// ResizeObserver (línea ~2983) también observaba .bl-toolbar directamente — mismo fix aplicado
+// ahí. Ambos selectores de .bl-toolbar en el archivo migrados a .bl-header-unified.
 // [PP] mod:121 · autor:Rune · 2026-07-20 UTC-6
 // INC-[pendiente-ID]: isSupabaseAuthed() importada — typeof _supabase !== 'undefined' &&
 // typeof _supabaseUser !== 'undefined' en loadBacklog() nunca era true (ambas privadas de
@@ -2861,8 +2867,14 @@ export function renderActiveFilterChips() {
 // la altura real de .bl-toolbar — el toolbar hace flex-wrap y su altura cambia según
 // cuántos filtros están activos. --bl-toolbar-h se mide en runtime y se consume en
 // locus-backlog.css (.active-filter-chips { top: calc(var(--header-h) + var(--bl-toolbar-h)) }).
+// TKT1 (REQ CAEL-0720-02): --bl-toolbar-h ahora mide #bl-header-unified completo (stats-bar +
+// separador + bl-toolbar), no solo .bl-toolbar — .active-filter-chips se fusiona contra el
+// borde inferior del wrapper tras la fusión visual (locus-backlog.css mod:111), su sticky top
+// debe reflejar la altura real de todo el bloque superior, no solo la porción de toolbar.
+// Nombre de la variable sin cambio — solo el selector medido. Cubre flex-wrap de la fila de
+// acciones en viewport angosto: offsetHeight ya refleja la altura post-wrap del wrapper completo.
 function _syncToolbarHeightVar() {
-  const _toolbar = document.querySelector('.bl-toolbar');
+  const _toolbar = document.querySelector('.bl-header-unified');
   if (!_toolbar) return;
   document.documentElement.style.setProperty('--bl-toolbar-h', _toolbar.offsetHeight + 'px');
 }
@@ -2970,8 +2982,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // INC-202607-001: sincronizar --bl-toolbar-h con la altura real del toolbar —
   // cambia cuando el flex-wrap agrega o quita líneas al activar/desactivar filtros
+  // TKT1 (REQ CAEL-0720-02): observa .bl-header-unified — mismo selector que
+  // _syncToolbarHeightVar() ahora mide. Observar solo .bl-toolbar aquí dejaría el resize
+  // ciego a cambios de altura de #stats-bar (ej. wrap de chips de tipo/prioridad).
   _syncToolbarHeightVar();
-  const _toolbarEl = document.querySelector('.bl-toolbar');
+  const _toolbarEl = document.querySelector('.bl-header-unified');
   if (_toolbarEl && typeof ResizeObserver !== 'undefined') {
     new ResizeObserver(function () { _syncToolbarHeightVar(); }).observe(_toolbarEl);
   } else {

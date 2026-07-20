@@ -1,3 +1,6 @@
+<!-- [PP] mod:147 · autor:Rune · 2026-07-20 UTC-6 -->
+<!-- TKT1 (REQ CAEL-0720-02): #stats-bar + #filter-bar-status envueltos en #bl-header-unified
+     — ver AC en TKT y CSS correspondiente en locus-backlog.css mod:111 (Nova). -->
 <!-- [PP] mod:146 · autor:Rune · 2026-07-19 UTC-6 -->
 <!-- TKT (reorden nav header, sin código): botones .tab-btn reordenados a Sesiones · Sprint · Backlog ·
      Proyectos · Incidentes · Analytics. Sin cambio de lógica — locus-ui-shell.js selecciona por id, no
@@ -497,7 +500,14 @@
     <!-- Sub-panel: Backlog -->
     <div class="session-subpanel active" id="sspanel-backlog">
 
+    <!-- TKT1 (REQ CAEL-0720-02): wrapper .bl-header-unified envuelve stats-bar + bl-toolbar —
+         border/radius envolvente vive en el wrapper, no en los hijos. Separador interno entre
+         ambas filas via .bl-header-sep. _syncToolbarHeightVar() mide este wrapper, no solo
+         .bl-toolbar — ver locus-backlog-core.js. -->
+    <div class="bl-header-unified" id="bl-header-unified">
     <div class="stats-bar" id="stats-bar"></div>
+
+    <div class="bl-header-sep"></div>
 
     <!-- T-202606-054: toolbar 3 grupos con divisor — G1: vistas | G2: filtros | G3: prioridad+colapsar — búsqueda al extremo derecho -->
     <div class="bl-toolbar" id="filter-bar-status">
@@ -545,6 +555,7 @@
         <button class="fbar-search-clear" id="backlog-search-clear" title="Limpiar búsqueda">✕</button>
       </div>
     </div>
+    </div><!-- /bl-header-unified -->
 
     <div class="active-filter-chips is-hidden" id="active-filter-chips"></div>
 

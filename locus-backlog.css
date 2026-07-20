@@ -1,4 +1,8 @@
-/* [PP] mod:110 · autor:Nova · 2026-07-20 19:10 UTC-6 */
+/* [PP] mod:111 · autor:Nova · 2026-07-20 UTC-6 */
+/* TKT1 (REQ CAEL-0720-02): .bl-header-unified fusiona stats-bar + bl-toolbar en un solo
+   header con border envolvente — ver AC en TKT. .bl-toolbar pierde border/sticky propio,
+   migrado al wrapper. .active-filter-chips sin cambio, sigue fusionando contra el borde
+   inferior del contenedor que ahora lo antecede (antes .bl-toolbar, ahora el wrapper). */
 /* Fix cascade: .qinc-item--sla-vencido → .qinc-item.qinc-item--sla-vencido (compound,
    +1 clase de especificidad) — la base .qinc-item (declarada después en el archivo)
    pisaba el background rojo de alerta SLA vencido. Mismo patrón que fix de rsb-pin-icon
@@ -2520,6 +2524,45 @@
    Consolida: R-202605-099
    ═══════════════════════════════════════════════════════════════════════════════════ */
 
+/* TKT1 (REQ CAEL-0720-02): wrapper que fusiona stats-bar + bl-toolbar en un header de vista
+   único. border/radius/sticky/margin, antes en .bl-toolbar, viven ahora aquí — .bl-toolbar
+   deja de ser el contenedor con estilo propio, pasa a ser un grupo interno del wrapper.
+   .active-filter-chips sigue fusionándose contra el borde inferior de ESTE wrapper (mismo
+   mecanismo de radios opuestos, ver más abajo) — no cambia su propia declaración. */
+.bl-header-unified {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md-plus);
+  border-bottom-left-radius: 0; /* fusión visual con #active-filter-chips — mismo criterio que .bl-toolbar tenía antes */
+  border-bottom-right-radius: 0;
+  max-width: 2200px;
+  width: calc(100% - 12px);
+  margin-left: 12px;
+  margin-bottom: 0;
+  position: sticky;
+  top: var(--header-h);
+  z-index: var(--z-sticky);
+  background: var(--surface);
+  overflow: visible;
+}
+
+/* Separador interno entre stats-bar y bl-toolbar — mismo peso que .bl-toolbar-sep,
+   pero horizontal y a todo el ancho en vez de vertical entre grupos */
+.bl-header-sep {
+  height: 1px;
+  background: var(--border2);
+  flex-shrink: 0;
+  margin: 0 10px;
+}
+
+/* .stats-bar se reutiliza en Histórico (locus-backlog-render.js) con su margin-bottom
+   original — se neutraliza aquí solo dentro del wrapper, sin tocar la clase base */
+.bl-header-unified > .stats-bar {
+  margin-bottom: 0;
+  padding: 4px 10px 6px;
+}
+
 /* ── Capa 1: Toolbar principal ── */
 
 .bl-toolbar {
@@ -2530,18 +2573,6 @@
   min-height: 40px;
   overflow: visible;
   padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md-plus);
-  border-bottom-left-radius: 0; /* TKT4-[pendiente-ID] REQ-B: fusión visual con #active-filter-chips */
-  border-bottom-right-radius: 0;
-  margin-bottom: 0; /* INC-[pendiente-ID]: era 0.5rem — el espaciado hacia el siguiente elemento ahora lo declara .active-filter-chips (o el contenido siguiente si chips está oculto) */
-  max-width: 2200px;
-  width: calc(100% - 12px); /* B-202607-002: explícito — position:sticky en flex containers colapsa a shrink-to-fit con width:auto en algunos navegadores; margin-right:auto no bastaba */
-  margin-left: 12px; /* B-202607: margen fijo respecto al sidebar de subtabs — solicitado por founder */
-  position: sticky;
-  top: var(--header-h);
-  z-index: var(--z-sticky);
-  background: var(--surface); /* B-202606-049: fondo sólido — oculta contenido scroll detrás */
 }
 
 .bl-toolbar-group {
