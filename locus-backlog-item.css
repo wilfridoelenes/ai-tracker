@@ -86,16 +86,20 @@
 /* ═══ T-202604-165: buildBacklogItem() premium ═══ */
 
 /* Type block — elemento dominante */
+/* CAEL-0720-12 (REQ CAEL-0720-10): badge fusionado con el código real — caja fija 42x42
+   con letra+label apilados reemplazada por píldora de una línea, ancho automático.
+   .bitem-type-letter/.bitem-type-label retirados — reemplazados por .bitem-type-code/
+   .bitem-type-code-prefix. Ver locus-backlog-item.js buildBacklogItem(). */
 .bitem-type-block {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 42px;
-  height: 42px;
-  border-radius: var(--radius-md-plus);
-  gap: 1px;
+  width: auto;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
   transition: transform 0.15s;
 }
 
@@ -109,21 +113,16 @@
   }
 }
 
-.bitem-type-letter {
+.bitem-type-code {
   font-family: var(--mono);
-  font-size: var(--text-xl);
-  font-weight: 900;
+  font-size: var(--text-xs);
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
-.bitem-type-label {
-  font-size: var(--text-3xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  opacity: 0.75;
-  line-height: 1;
+.bitem-type-code-prefix {
+  font-weight: 900;
 }
 
 .bitem-type-TKT {
@@ -207,21 +206,19 @@
 .item.bitem[data-type="DISC"] .bitem-type-block {
   width: auto;
   height: auto;
-  flex-direction: row;
+  padding: 0;
   border: none;
   background: none;
-  gap: 0;
 }
 
-.item.bitem[data-type="DISC"] .bitem-type-letter {
+.item.bitem[data-type="DISC"] .bitem-type-code {
   font-size: var(--text-2xs);
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.02em;
   color: var(--idea-color-dim);
 }
 
-.item.bitem[data-type="DISC"] .bitem-type-label {
-  display: none;
+.item.bitem[data-type="DISC"] .bitem-type-code-prefix {
+  font-weight: 700;
 }
 
 /* Descartados y done: anular tint — no compiten con los patrones de rayas */

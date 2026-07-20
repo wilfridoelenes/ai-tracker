@@ -1177,23 +1177,33 @@ export function buildBacklogItem(item, opts = {}) {
       : `<span class="bitem-origen-disc-chip bitem-origen-disc-chip--orphan" title="DISC de origen no encontrada en el backlog">origen: ${esc(item.origenDisc)}</span>`
     : '';
 
-  // Subline (code, area, sprint, role, discard reason, origen_disc, missing warning)
-  // UX-redesign: código en subline junto con rol/área/sprint — título queda como línea visual dominante
+  // Subline (area, sprint, role, discard reason, origen_disc, missing warning)
+  // CAEL-0720-11 (REQ CAEL-0720-10): item.code retirado de subline — el badge de tipo
+  // pasa a ser la única fuente visible del código (ver typeBlock abajo). focus-rank
+  // se conserva standalone, ya no anidado dentro del span de código.
+  const _sublineParts = [];
+  if (item._focusRank) _sublineParts.push(`<span class="bitem-focus-rank" title="Posición en Focus">#${item._focusRank}</span>`);
+  if (item.role) _sublineParts.push(`<span class="bitem-subline-role" title="Rol responsable">${esc(item.role)}</span>`);
+  if (item.area) _sublineParts.push(`<span class="bitem-subline-area" title="${esc(item.area)}">${esc(item.area)}</span>`);
+  if (item.sprint) _sublineParts.push(`<span class="bitem-subline-sprint">${esc(_sprintDisplay(item.sprint))}</span>`);
   const subline = `<div class="bitem-subline">
-    <span class="bitem-subline-code" data-action="copy-code" data-code="${esc(item.code)}" data-idx="${globalIdx}" title="Click para copiar ID">${item._focusRank ? `<span class="bitem-focus-rank" title="Posición en Focus">#${item._focusRank}</span> ` : ''}${esc(item.code)}</span>
-    ${item.role ? `<span class="bitem-subline-sep">·</span><span class="bitem-subline-role" title="Rol responsable">${esc(item.role)}</span>` : ''}
-    ${item.area ? `<span class="bitem-subline-sep">·</span><span class="bitem-subline-area" title="${esc(item.area)}">${esc(item.area)}</span>` : ''}
-    ${item.sprint ? `<span class="bitem-subline-sep">·</span><span class="bitem-subline-sprint">${esc(_sprintDisplay(item.sprint))}</span>` : ''}
+    ${_sublineParts.join('<span class="bitem-subline-sep">·</span>')}
     ${_discardReasonHtml}
     ${_origenDiscHtml}
     ${missingFields.length ? `<span class="bitem-missing-warn" title="Faltan: ${missingFields.join(', ')}">⚠</span>` : ''}
   </div>`;
 
-  // Type block — the dominant visual element
+  // Type block — the dominant visual element. CAEL-0720-11: badge fusionado con el código
+  // real del ítem — reemplaza el par letra/label ("REQ"/"Requerimiento") por una sola línea
+  // "REQ" (negrita) + resto del código. Interacción de copiar-ID (antes en bitem-subline-code)
+  // se traslada aquí — mismo data-action="copy-code", delegado por atributo (locus-backlog-item.js:407/1536).
+  const _codeMatch = /^([A-Z]+)(-.*)$/.exec(item.code || '');
+  const _codeDisplay = _codeMatch
+    ? `<span class="bitem-type-code-prefix">${esc(_codeMatch[1])}</span>${esc(_codeMatch[2])}`
+    : esc(item.code || type);
   const typeBlock = type
     ? `<div class="bitem-type-block bitem-type-${type}">
-        <span class="bitem-type-letter">${type}</span>
-        <span class="bitem-type-label">${typeLabel}</span>
+        <span class="bitem-type-code" data-action="copy-code" data-code="${esc(item.code)}" data-idx="${globalIdx}" title="Click para copiar ID">${_codeDisplay}</span>
        </div>`
     : '';
 
