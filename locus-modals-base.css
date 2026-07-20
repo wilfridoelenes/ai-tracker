@@ -1,4 +1,4 @@
-/* [PP] mod:17 · autor:Nova · 2026-07-20 19:10 UTC-6 */
+/* [PP] mod:18 · autor:Nova · 2026-07-20 UTC-6 */
 /* DISC ejecutada: removida .modal--migration — sin consumidor confirmado en JS/HTML. */
 /* [PP] mod:15 · autor:Nova · 2026-07-19 UTC-6 */
 /* Fix cascade: .modal--ingest → .modal.modal--ingest (compound) — la base .modal
@@ -414,7 +414,15 @@ body.radar-sb-collapsed {
   padding-left: var(--gutter-shell);
 }
 
-.modal-split__dialog {
+/* Fix de raíz (Hallazgo Rune, mismo patrón de mod:83 — .modal-split__dialog conserva la
+   clase base .modal (`class="modal modal--ingest modal-split__dialog"`, index.html), y
+   .modal{max-width:360px} (declarada después en este archivo, especificidad 0,1,0 igual)
+   ganaba en cascade sobre max-width:none — el diálogo de ingesta quedaba clipeado a 360px
+   pese a que width/height calculan correctamente contra --split-total-w/-h. Selector
+   calificado con #ingest-modal-overlay (1,1,0) elimina la dependencia del orden de
+   declaración en el archivo, mismo criterio de raíz ya aplicado a
+   #merge-diff-overlay.mdiff-overlay--docked. */
+#ingest-modal-overlay .modal-split__dialog {
   width: calc(var(--split-total-w) * 0.333 - var(--split-gap) / 2);
   height: calc(var(--split-total-h) - var(--split-header-h));
   max-width: none;

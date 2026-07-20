@@ -1,4 +1,7 @@
-// [PP] mod:119 · autor:Rune · 2026-07-20 15:00 UTC-6
+// [PP] mod:120 · autor:Rune · 2026-07-20 16:10 UTC-6
+// TKT1+TKT2 (REQ CAEL-0720-10): parent/parentId restaurado como exclusivo de TKT — cierre
+// del widen indebido introducido en mod:79/87 de module-contracts. Ver _checkAndOrphanParentR
+// y el bloque de normalización de mergeBacklogFromTG/_buildCommonItemFields.
 // TKT-[pendiente-ID] (deuda técnica, gap detectado por Finn — tercera copia no anticipada
 // en AC original): SLA_RIESGO_WINDOW_MS importada de locus-inc-fields.js, reemplaza literal
 // 21600000 en buildQIncItem() (línea ~3329). Sin cambio de comportamiento en clasificación
@@ -2040,7 +2043,12 @@ function _buildCommonItemFields(item, ctx) {
     ac: item.ac || [],
     role: item.role || '',
     origin: item.origin || null,
-    parentId: _resolvedParentId,
+    // TKT1 (REQ CAEL-0720-10): segundo gate — aunque el bloque de normalización previo a
+    // _assignPendingIds ya descarta `parent` en ítems no-TKT, este campo común (compartido
+    // por Scrum e ITIL, ver comentario de _buildCommonItemFields) no confiaba solo en eso.
+    // Mismo criterio defensivo que el guard explícito de _syncParentRStatus — no depender
+    // únicamente de que un punto anterior del pipeline haya limpiado el dato.
+    parentId: _incomingType === 'TKT' ? _resolvedParentId : null,
     dependsOn: item.dependsOn || [],
     triggeredBy: item.triggeredBy || null,
     origenDisc: item.origenDisc || null,
@@ -2201,8 +2209,17 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // T-[pendiente-ID] (REQ-unify-parent TKT2): tras normalizar a parentId, eliminar item.parent del
   // objeto en memoria — parentId es el único campo canónico en JS desde aquí en adelante. Sin esto,
   // ítems recién ingresados arrastraban .parent como campo legacy durante toda su vida en memoria.
+  // TKT1 (REQ CAEL-0720-10): parent/parentId es exclusivo de TKT (__BR-Ecosystem §5) — un
+  // ítem de otro tipo (INC/PRB/KE/CHG/DISC/REQ) que declara `parent` por error en el
+  // CHECKPOINT lo descarta sin transferirlo a parentId. Cierra el gap que permitía a un INC
+  // recibir parentId en memoria a través de este mismo bloque (widen indebido introducido en
+  // mod:79/87 de module-contracts, revertido por este REQ). itemKind(item) usa item.type
+  // directo del CHECKPOINT — todavía no pasó por _buildCommonItemFields en este punto.
   tgItems = tgItems.map(item => {
-    if (item.parent) { if (!item.parentId) item.parentId = item.parent; delete item.parent; }
+    if (item.parent) {
+      if (itemKind(item) === 'TKT') { if (!item.parentId) item.parentId = item.parent; }
+      delete item.parent;
+    }
     if (Array.isArray(item.depends_on) && !item.dependsOn) { item.dependsOn = item.depends_on; }
     return item;
   });
@@ -2777,10 +2794,14 @@ export function _checkAndOrphanParentR(childCode, nowTs) {
   const parent = allItems.find(i => i.code === child.parentId);
   if (!parent || itemKind(parent) !== 'REQ') return; // parent debe ser REQ
 
-  // Hijos del REQ (TKT e INC) — incluye descartados, _computeRStatusFromChildren los filtra
+  // TKT2 (REQ CAEL-0720-10): Hijos del REQ — solo TKT (__BR-Ecosystem §5). El filtro previo
+  // incluía INC pese a que `allItems` (= getItems()) nunca contiene INCIDENTS — ese branch
+  // ya era inalcanzable, pero se limpia igual: si un futuro fix iguala este call site a
+  // `_syncParentRStatus`/self-heal de render concatenando getIncidents(), el widen revivía
+  // sin que nadie lo decidiera de nuevo. Incluye descartados, _computeRStatusFromChildren los filtra.
   const children = allItems.filter(i =>
     i.parentId === parent.code &&
-    ['TKT','INC'].includes(itemKind(i))
+    itemKind(i) === 'TKT'
   );
   if (!children.length) return; // sin hijos declarados → no-op (gate de parser cubre REQ sin TKT al ingestar)
 

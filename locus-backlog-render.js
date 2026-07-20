@@ -1,4 +1,6 @@
-// [PP] mod:95 · autor:Rune · 2026-07-20 UTC-6
+// [PP] mod:96 · autor:Rune · 2026-07-20 16:10 UTC-6
+// TKT2 (REQ CAEL-0720-10): self-heal en _renderVistaLista revierte a solo TKT como hijo de
+// REQ — ya no concatena getIncidents(). Ver locus-backlog-core.js/locus-backlog-item.js.
 // TKT2 (REQ CAEL-0720-03 · Separar render de rama Reactiva a módulo propio): eliminados
 // _QINC_ACTIVE_STATUSES, renderQIncPanel(), _attachQIncDelegation() y los 2 listeners Q-INC
 // (shell:render-qinc, shell:backlog-render-dirty filtrado por getCurrentTab()==='incidentes')
@@ -657,8 +659,11 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
       if (itemKind(item) !== 'REQ') return;
       if (item.status === 'done' || item.status === 'bloqueado' || item.status === 'descartado') return;
 
-      const _childrenStatuses = getItems().concat(getIncidents())
-        .filter(i => ['TKT', 'INC'].includes(itemKind(i)) && i.parentId === item.code)
+      // TKT2 (REQ CAEL-0720-10): parent/parentId exclusivo de TKT (__BR-Ecosystem §5) —
+      // revierte el widen a INC (mod:87 de module-contracts, heredado de mod:79). Ya no
+      // concatena getIncidents() — un INC nunca cuenta como hijo de REQ en este recálculo.
+      const _childrenStatuses = getItems()
+        .filter(i => itemKind(i) === 'TKT' && i.parentId === item.code)
         .map(i => i.status);
 
       const _nextStatus = _computeRStatusFromChildren(item.status, _childrenStatuses);

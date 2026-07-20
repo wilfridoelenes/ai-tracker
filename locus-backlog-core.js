@@ -1,4 +1,6 @@
-// [PP] mod:123 · autor:Rune · 2026-07-20 15:00 UTC-6
+// [PP] mod:124 · autor:Rune · 2026-07-20 16:10 UTC-6
+// TKT2 (REQ CAEL-0720-10): _syncParentRStatus revierte el widen a INC de mod:79 —
+// parent/parentId vuelve a ser exclusivo de TKT (__BR-Ecosystem §5).
 // TKT1 (REQ CAEL-0720-02): reaplicado sobre base subida en mod:121 sin este fix — el mod:121
 // original (con el fix de isSupabaseAuthed) no llevaba el cambio de _syncToolbarHeightVar.
 // Gap adicional detectado en esta pasada, no capturado en la Fase 5 anterior: el
@@ -1895,10 +1897,13 @@ export function _computeRStatusFromChildren(reqStatus, childrenStatuses) {
 }
 
 export function _syncParentRStatus(changedItemCode, newTStatus) {
-  // Solo aplica cuando el ítem que cambió es un T o un INC con parentId — getAnyItem()
-  // resuelve contra ITEMS e INCIDENTS, a diferencia del ITEMS.find() previo que solo veía TKT.
+  // TKT2 (REQ CAEL-0720-10): parent/parentId es exclusivo de TKT (__BR-Ecosystem §5) — revierte
+  // el widen a INC introducido en mod:79 de module-contracts (motivado por un bug real de
+  // sync ausente en _applyDoneStatus, no por una decisión de ampliar qué cuenta como hijo de
+  // REQ). getAnyItem() se conserva porque sigue siendo el lookup correcto — solo se filtra el
+  // tipo del ítem resuelto, no la función de resolución.
   const changedItem = getAnyItem(changedItemCode);
-  if (!changedItem || !['TKT', 'INC'].includes(itemKind(changedItem)) || !changedItem.parentId) return;
+  if (!changedItem || itemKind(changedItem) !== 'TKT' || !changedItem.parentId) return;
 
   const parent = ITEMS.find(i => i.code === changedItem.parentId && itemKind(i) === 'REQ');
   if (!parent) return;
@@ -1907,9 +1912,10 @@ export function _syncParentRStatus(changedItemCode, newTStatus) {
   // también lo cubre, pero el guard explícito evita el filter/concat de siblings si no hace falta)
   if (parent.status === 'done' || parent.status === 'descartado') return;
 
-  // Obtener todos los TKT/INC hijos del REQ, excluyendo descartados — concat de ambos stores
-  const activeSiblings = ITEMS.concat(INCIDENTS).filter(i =>
-    ['TKT', 'INC'].includes(itemKind(i)) && i.parentId === parent.code && i.status !== 'descartado'
+  // TKT2 (REQ CAEL-0720-10): solo TKT — ya no concatena INCIDENTS, ningún INC cuenta como
+  // sibling activo del REQ padre.
+  const activeSiblings = ITEMS.filter(i =>
+    itemKind(i) === 'TKT' && i.parentId === parent.code && i.status !== 'descartado'
   );
 
   // AC-4 (B-039): R sin Ts activos — no ejecutar ninguna transición. Nota: al filtrar por
