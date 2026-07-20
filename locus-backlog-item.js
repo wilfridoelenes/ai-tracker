@@ -1,4 +1,4 @@
-// [PP] mod:120 · autor:Rune · 2026-07-20 16:10 UTC-6
+// [PP] mod:121 · autor:Rune · 2026-07-20 16:42 UTC-6
 // TKT1+TKT2 (REQ CAEL-0720-10): parent/parentId restaurado como exclusivo de TKT — cierre
 // del widen indebido introducido en mod:79/87 de module-contracts. Ver _checkAndOrphanParentR
 // y el bloque de normalización de mergeBacklogFromTG/_buildCommonItemFields.
@@ -750,9 +750,12 @@ function _isChildDone(item) {
 
 function _buildChildrenBlock(rCode) {
   // B-202604-158: respetar filtros activos — solo mostrar hijos que pasan tipo y status
-  // [tmp:tkt1-children-block]: getIncidents() concatenado — un INC/PRB/KE/CHG con parentId
-  // apuntando a este REQ vivía en INCIDENTS y nunca aparecía en el bloque de hijos.
-  const allChildren = getItems().concat(getIncidents()).filter(i => i.parentId === rCode);
+  // TKT3 (REQ CAEL-0720-1x, fix inline): la concatenación de getIncidents() para capturar un
+  // INC/PRB/KE/CHG con parentId propio queda retirada — parentId es exclusivo de TKT desde el
+  // gate cerrado en mergeBacklogFromTG/applyPatchesFromTG. Ese widen (agregado originalmente en
+  // mod:79, revertido en REQ CAEL-0720-10) ya no puede ocurrir por ninguna vía — ITEMS es el
+  // único universo que puede tener hijos de un REQ.
+  const allChildren = getItems().filter(i => i.parentId === rCode && itemKind(i) === 'TKT');
   if (!allChildren.length) return '';
   const children = allChildren.filter(i => {
     const t = itemKind(i);
@@ -2459,9 +2462,24 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
       // AC-4: role entrante gana si trae valor; si vacío no degrada el existente
       if (item.role && item.role !== existing.role) { changes.push({ field: 'role', from: existing.role || '—', to: item.role }); if (!_dryRun) { existing.role = item.role; changed = true; } }
       // parentId: entrante gana si trae valor; si vacío no degrada el existente
-      if (item.parentId && item.parentId !== existing.parentId) { changes.push({ field: 'parentId', from: existing.parentId || '—', to: item.parentId }); if (!_dryRun) { existing.parentId = item.parentId; changed = true; } }
-      // B-202606-004 AC-2: advertencia cuando TKT/INC existente con parentId recibe merge sin parent declarado
-      if (!item.parentId && existing.parentId && ['TKT','INC'].includes(itemKind(existing)) && !_dryRun) {
+      // TKT3 (REQ CAEL-0720-1x): parentId exclusivo de TKT (__BR-Ecosystem §5) — gate aplicado
+      // también aquí, en la rama de "ítem existente" de mergeBacklogFromTG. TKT1/TKT2
+      // (REQ CAEL-0720-10) solo gatearon la rama de creación de ítems nuevos
+      // (_buildCommonItemFields); esta rama reemite un CHECKPOINT con código ya existente y
+      // quedó fuera de ese fix — permitía reintroducir el widen de mod:79 sobre un INC/PRB/KE/
+      // CHG/DISC ya persistido, sin pasar por creación.
+      if (item.parentId && item.parentId !== existing.parentId) {
+        if (itemKind(existing) === 'TKT') {
+          changes.push({ field: 'parentId', from: existing.parentId || '—', to: item.parentId });
+          if (!_dryRun) { existing.parentId = item.parentId; changed = true; }
+        } else if (!_dryRun) {
+          _blogLog('parentId-ignorado', existing.code, 'parentId ignorado en merge: ' + (itemKind(existing) || 'tipo desconocido') + ' no puede tener parent — solo TKT (__BR-Ecosystem §5). parentId recibido: ' + item.parentId, 'backlog');
+        }
+      }
+      // B-202606-004 AC-2: advertencia cuando T existente con parentId recibe merge sin parent declarado
+      // TKT3: acotado a TKT — INC nunca debería llegar aquí con parentId propio tras el gate de arriba,
+      // pero se mantiene el filtro de tipo explícito en vez de asumirlo por construcción.
+      if (!item.parentId && existing.parentId && itemKind(existing) === 'TKT' && !_dryRun) {
         _blogLog('parent-ausente-en-merge', existing.code, existing.code + ' tiene parentId ' + existing.parentId + ' — merge entrante no declara parent. parentId conservado.', 'backlog');
       }
       // origin: entrante gana si trae valor; si vacío no degrada el existente
@@ -2600,14 +2618,17 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
       }
 
       // R-202605-021: resolver parentId para ítems nuevos
-      // AC: solo TKT o INC pueden tener parentId — REQ con parentId → ignorar + DocLog
-      // AC: si parentId apunta a TKT o INC existente → ignorar + DocLog
-      // AC: si parentId no existe en backlog → ignorar + DocLog
+      // TKT3 (REQ CAEL-0720-1x): parentId exclusivo de TKT (__BR-Ecosystem §5) — AC corregido,
+      // antes solo excluía REQ y dejaba pasar cualquier otro tipo (incluido INC) hasta
+      // _buildCommonItemFields, que lo descartaba en silencio sin DocLog. Ahora el gate vive
+      // aquí también, con log explícito para cualquier tipo no-TKT.
+      // AC: solo TKT puede tener parentId — cualquier otro tipo con parentId → ignorar + DocLog
+      // AC: si parentId apunta a un TKT o REQ inexistente/no-REQ → ignorar + DocLog
       let _resolvedParentId = null;
       const _incomingType = itemKind(item) || 'TKT';
       if (item.parentId) {
-        if (_incomingType === 'REQ') {
-                      _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: ítems tipo REQ no pueden tener padre. parentId recibido: ' + item.parentId, 'backlog');
+        if (_incomingType !== 'TKT') {
+                      _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: ítems tipo ' + _incomingType + ' no pueden tener padre — solo TKT (__BR-Ecosystem §5). parentId recibido: ' + item.parentId, 'backlog');
         } else {
           const _parentCandidate = getItems().find(p => p.code === item.parentId);
           if (!_parentCandidate) {
@@ -3247,6 +3268,17 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
       // priority sobre un INC lo aplicaba igual. No-op explícito agregado, sin log (silencioso
       // por spec — el patch no es un error, solo no aplica a este tipo de ítem).
       if (field === 'priority' && ['INC', 'PRB', 'KE', 'CHG'].includes(itemKind(existing))) {
+        return;
+      }
+      // TKT3 (REQ CAEL-0720-1x): parentId exclusivo de TKT (__BR-Ecosystem §5) — mismo gate que
+      // la rama de merge de ítems existentes en mergeBacklogFromTG. Sin este caso especial, un
+      // type:patch con parentId sobre un INC/PRB/KE/CHG/DISC caía en el catch-all genérico de
+      // abajo y lo aplicaba sin restricción de tipo — reabría el widen de mod:79 vía el
+      // mecanismo oficial de actualización de ítems existentes.
+      if (field === 'parentId' && itemKind(existing) !== 'TKT') {
+        if (incoming !== undefined && incoming !== null) {
+          _blogLog('parentId-ignorado', code, 'parentId ignorado en patch: ' + (itemKind(existing) || 'tipo desconocido') + ' no puede tener parent — solo TKT (__BR-Ecosystem §5). parentId recibido: ' + incoming, 'backlog');
+        }
         return;
       }
       if (incoming !== undefined && incoming !== null && incoming !== current) {

@@ -1,4 +1,4 @@
-// [PP] mod:96 · autor:Rune · 2026-07-20 16:10 UTC-6
+// [PP] mod:97 · autor:Rune · 2026-07-20 16:55 UTC-6
 // TKT2 (REQ CAEL-0720-10): self-heal en _renderVistaLista revierte a solo TKT como hijo de
 // REQ — ya no concatena getIncidents(). Ver locus-backlog-core.js/locus-backlog-item.js.
 // TKT2 (REQ CAEL-0720-03 · Separar render de rama Reactiva a módulo propio): eliminados
@@ -251,6 +251,14 @@ export function toggleChildrenBlock(rCode) {
 }
 
 // R-202604-016: asignar parent a un T/B desde item-body
+// @deprecated (DISC-202607-015, TKT1 · 2026-07-20): sin ningún caller en locus-backlog-item.js,
+// locus-backlog-core.js ni locus-backlog-render.js — verificado por grep exhaustivo durante el
+// cierre del INC FINN-0720-01 (parentId exclusivo de TKT). Estructuralmente inerte para ítems
+// ITIL incluso si se invocara: opera solo sobre getItems(), que nunca contiene INC/PRB/KE/CHG
+// desde la separación ITEMS/INCIDENTS (mod:89 de module-contracts). No eliminada en este TKT —
+// eliminar una función exportada requiere confirmar ausencia de callers contra el repo completo
+// (locus-backlog-panel.js y otros módulos no adjuntos en esta sesión). Acción sugerida: adjuntar
+// el resto de módulos del proyecto para completar la eliminación en un TKT de seguimiento.
 export function setItemParent(code, parentCode) {
   const item = getItems().find(i => i.code === code);
   if (!item) return;
