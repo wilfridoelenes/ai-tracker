@@ -1,5 +1,4 @@
 // [PP] mod:118 · autor:Rune · 2026-07-20 UTC-6
-// TKT1 (REQ CAEL-0720-01): bitem-subline-sprint suprimido para type==='TKT' — ver AC en TKT.
 // TKT-[pendiente-ID] (deuda técnica, gap detectado por Finn — tercera copia no anticipada
 // en AC original): SLA_RIESGO_WINDOW_MS importada de locus-inc-fields.js, reemplaza literal
 // 21600000 en buildQIncItem() (línea ~3329). Sin cambio de comportamiento en clasificación
@@ -303,7 +302,7 @@
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _isQDiscActive, QDISC_ACTIVE_LIMIT, _openItemEditorSafe, _setIncidents, _skelHide, _undoSnapshotItems, _undoSnapshotIncidents, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass, _newBacklogItem } from './locus-backlog-core.js'; // TKT2 (REQ-202607-025): _newBacklogItem agregado // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202607-010: _isQDiscActive + QDISC_ACTIVE_LIMIT agregados — gate de límite Q-DISC en mergeBacklogFromTG
+import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _isQDiscActive, QDISC_ACTIVE_LIMIT, _openItemEditorSafe, _setIncidents, _skelHide, _undoSnapshotItems, _undoSnapshotIncidents, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass, _newBacklogItem, _syncParentRStatus } from './locus-backlog-core.js'; // TKT2 (REQ-202607-025): _newBacklogItem agregado // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202607-010: _isQDiscActive + QDISC_ACTIVE_LIMIT agregados — gate de límite Q-DISC en mergeBacklogFromTG · TKT1 (REQ-202607-021): _syncParentRStatus agregada — reemplaza a _checkAndAdvanceParentR (función local eliminada, duplicaba la misma regla con criterio divergente)
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, setItemParent, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges
 import { _normalizeSprint, _VALID_INCIDENT_STATUS, _VALID_PRB_STATUS, _VALID_KE_STATUS } from './locus-session-parse.js'; // TKT-PARSER-2a: constantes ITIL exportadas · TKT1 (REQ CAEL-01): _VALID_PRB_STATUS/_VALID_KE_STATUS — vocabularios propios para transición por tipo
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
@@ -1186,10 +1185,7 @@ export function buildBacklogItem(item, opts = {}) {
   if (item._focusRank) _sublineParts.push(`<span class="bitem-focus-rank" title="Posición en Focus">#${item._focusRank}</span>`);
   if (item.role) _sublineParts.push(`<span class="bitem-subline-role" title="Rol responsable">${esc(item.role)}</span>`);
   if (item.area) _sublineParts.push(`<span class="bitem-subline-area" title="${esc(item.area)}">${esc(item.area)}</span>`);
-  // TKT1 (REQ CAEL-0720-01): sprint suprimido de subline para type==='TKT' — el header del
-  // grupo (bl-vl-sprint-header, renderSprintGroup en locus-backlog-render.js) ya lo declara,
-  // repetirlo en cada fila TKT hija es redundancia visual. REQ y otros tipos sin cambio.
-  if (item.sprint && type !== 'TKT') _sublineParts.push(`<span class="bitem-subline-sprint">${esc(_sprintDisplay(item.sprint))}</span>`);
+  if (item.sprint) _sublineParts.push(`<span class="bitem-subline-sprint">${esc(_sprintDisplay(item.sprint))}</span>`);
   const subline = `<div class="bitem-subline">
     ${_sublineParts.join('<span class="bitem-subline-sep">·</span>')}
     ${_discardReasonHtml}
@@ -2387,7 +2383,8 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
             _blogLog('ckpt-avance', item.code, oldStatus + ' → ' + newStatus, 'backlog');
             changed = true;
             // B-202606-017 AC-1+AC-2: transición automática del R padre tras avance de T/B via CHECKPOINT
-            _checkAndAdvanceParentR(item.code, Date.now());
+            // TKT1 (REQ-202607-021): _syncParentRStatus reemplaza a _checkAndAdvanceParentR — fuente única
+            _syncParentRStatus(item.code, newStatus);
           }
           advanced.push({ code: item.code, desc: existing.title, from: oldStatus, to: newStatus });
         } else if (newRank < oldRank) {
@@ -2634,8 +2631,9 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
         changed = true;
 
         // B-202606-017 AC-1+AC-2: transición automática del R padre si el nuevo T/B nace con status != pendiente
+        // TKT1 (REQ-202607-021): _syncParentRStatus reemplaza a _checkAndAdvanceParentR — fuente única
         if (initialStatus !== 'pendiente') {
-          _checkAndAdvanceParentR(item.code, nowTs);
+          _syncParentRStatus(item.code, initialStatus);
         }
 
         // R-[pendiente-ID]: si el nuevo ítem tiene origin → cerrar automáticamente el P padre
@@ -2751,47 +2749,10 @@ function _isActiveRecently(item) {
 // Solo aplica cuando el ítem modificado tiene parentId y su parent es tipo R.
 // AC-3: ítems sin parentId → no-op.
 // nowTs: timestamp para statusChangedAt del R.
-function _checkAndAdvanceParentR(childCode, nowTs) {
-  const allItems = typeof getItems() !== 'undefined' ? getItems() : [];
-  const child = allItems.find(i => i.code === childCode);
-  if (!child || !child.parentId) return; // AC-3: sin parent → no-op
-
-  const parent = allItems.find(i => i.code === child.parentId);
-  if (!parent || itemKind(parent) !== 'REQ') return; // parent debe ser REQ
-
-  // Hijos válidos: TKT e INC no descartados del mismo REQ
-  const children = allItems.filter(i =>
-    i.parentId === parent.code &&
-    ['TKT','INC'].includes(itemKind(i)) &&
-    i.status !== 'descartado'
-  );
-  if (!children.length) return;
-
-  const allDone  = children.every(i => i.status === 'done');
-  const anyActive = children.some(i => i.status !== 'pendiente');
-
-  const prevStatus = parent.status;
-
-  if (allDone && prevStatus !== 'en-revision' && prevStatus !== 'done' && prevStatus !== 'bloqueado') {
-    // Último T done → R avanza a en-revision
-    parent.status = 'en-revision';
-    parent.statusChangedAt = nowTs;
-    _blogLog('r-auto-transition', parent.code,
-      parent.code + ' ' + prevStatus + ' → en-revision (todos los Ts done via patch)', 'backlog');
-  } else if (!allDone && anyActive && prevStatus === 'pendiente') {
-    // Primer T != pendiente → R avanza a en-proceso
-    parent.status = 'en-proceso';
-    parent.statusChangedAt = nowTs;
-    _blogLog('r-auto-transition', parent.code,
-      parent.code + ' pendiente → en-proceso (T activo via patch)', 'backlog');
-  } else if (!allDone && prevStatus === 'en-revision') {
-    // T retrocedió desde done → R retrocede a en-proceso (AC-2)
-    parent.status = 'en-proceso';
-    parent.statusChangedAt = nowTs;
-    _blogLog('r-auto-transition', parent.code,
-      parent.code + ' en-revision → en-proceso (T retrocedió via patch)', 'backlog');
-  }
-}
+// TKT1 (REQ-202607-021): _checkAndAdvanceParentR eliminada — duplicaba _syncParentRStatus
+// (locus-backlog-core.js) con criterio divergente. Toda transición automática de R padre
+// vía CHECKPOINT ahora pasa por _syncParentRStatus, importada de core.js. Ver invariant
+// de consolidación declarado junto a esa función.
 
 // T-202606-017: helper de transición a orphaned del R padre cuando todos sus Ts hijos quedan descartados.
 // AC-1: invocado tras marcar un T/B hijo como 'descartado' — si todos los hijos (T/B) del R
@@ -3053,28 +3014,34 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
             // lo que requiere interacción del usuario y cancela el patch silenciosamente.
             // B-202606-100: authorized=true solo aquí — el guard de rol ya corrió arriba
             // para type REQ. Para TKT/INC no aplica restricción de rol, authorized es irrelevante.
+            // TKT1 (REQ-202607-021): llamada externa a _checkAndAdvanceParentR eliminada —
+            // _applyDoneStatus ahora sincroniza el R padre internamente (ver core.js). Repetirla
+            // aquí sería redundante (aunque inocuo por idempotencia) — se elimina para que la
+            // responsabilidad de sincronizar viva en un solo lugar, no en el caller.
             _applyDoneStatus(existing.code, true);
             changes.push({ field: 'status', from: _prevStatus, to: normalized });
-            // B-202606-014 AC-1: transición automática del REQ padre tras TKT/INC → done
-            _checkAndAdvanceParentR(existing.code, nowTs);
           } else if (normalized && normalized !== existing.status) {
             changes.push({ field: 'status', from: existing.status, to: normalized });
             existing.status = normalized;
             existing.statusChangedAt = nowTs;
             // B-202606-014 AC-2: transición automática del REQ padre tras cambio de status no-done
             // cubre retroceso desde done (en-revision → en-proceso) y avance a en-revision
-            _checkAndAdvanceParentR(existing.code, nowTs);
+            // TKT1 (REQ-202607-021): _syncParentRStatus reemplaza a _checkAndAdvanceParentR
+            _syncParentRStatus(existing.code, normalized);
           }
         } else if (normalized === 'done' && existing.parentId) {
           // INC-[pendiente-ID] (fix idempotencia): un patch status:done sobre un ítem que YA
-          // estaba done no entraba nunca al bloque de arriba — _checkAndAdvanceParentR nunca se
-          // re-evaluaba para ese ingest. Si este era el último hijo pendiente de considerar
-          // (ej. re-envío del mismo patch en un CHECKPOINT posterior, o dos CHECKPOINTs
-          // distintos tocando el mismo TKT), el REQ padre se quedaba sin la transición
-          // automática pese a que todos sus hijos ya estaban done. Re-evaluar siempre que el
-          // ítem tenga parent, sin mutar nada más — mismo criterio idempotente que el resto de
-          // _checkAndAdvanceParentR (no-op si el REQ ya está en-revision/done/bloqueado).
-          _checkAndAdvanceParentR(existing.code, nowTs);
+          // estaba done no entraba nunca al bloque de arriba — la sincronización del R padre
+          // nunca se re-evaluaba para ese ingest. Si este era el último hijo pendiente de
+          // considerar (ej. re-envío del mismo patch en un CHECKPOINT posterior, o dos
+          // CHECKPOINTs distintos tocando el mismo TKT), el REQ padre se quedaba sin la
+          // transición automática pese a que todos sus hijos ya estaban done. Re-evaluar
+          // siempre que el ítem tenga parent, sin mutar nada más — mismo criterio idempotente.
+          // No delega a _applyDoneStatus porque esa función early-return si el ítem ya está
+          // done — necesita la llamada directa a _syncParentRStatus (no-op si el REQ ya está
+          // en-revision/done/bloqueado).
+          // TKT1 (REQ-202607-021): _syncParentRStatus reemplaza a _checkAndAdvanceParentR
+          _syncParentRStatus(existing.code, 'done');
         }
         return;
       }

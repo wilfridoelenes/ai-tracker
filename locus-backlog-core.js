@@ -1,4 +1,4 @@
-// [PP] mod:120 · autor:Rune · 2026-07-13 UTC-6
+// [PP] mod:121 · autor:Rune · 2026-07-20 UTC-6
 // INC-[pendiente-ID]: isSupabaseAuthed() importada — typeof _supabase !== 'undefined' &&
 // typeof _supabaseUser !== 'undefined' en loadBacklog() nunca era true (ambas privadas de
 // locus-storage.js, sin export hasta este fix). La rama "Supabase-first" (refresh en
@@ -1827,26 +1827,38 @@ function _applyExitAnimOrRender(code, rCode) {
 
 // B-202606-039: transiciones automáticas de status en R padre al avanzar T hijo
 // B-202606-040: retroceso en-revision → en-proceso cuando T hijo sale de done
-// Reglas (BR-Ecosystem §5):
-//   pendiente → en-proceso: cuando cualquier T hijo cambia desde pendiente a cualquier status ≠ descartado
-//   en-proceso → en-revision: cuando todos los Ts hijos no-descartados están done
-//   en-revision → en-proceso: cuando un T hijo retrocede de done — ya no todos los hijos están done
-// Idempotente: no modifica R en done/descartado. T descartado ignorado en todas las transiciones.
+// TKT1 (REQ-202607-021 · consolidación de sync REQ↔hijos, aprobado por founder — opción B
+// del criterio de resolución de raíz): única implementación de la regla — reemplaza a
+// _checkAndAdvanceParentR (ex locus-backlog-item.js), que duplicaba esta misma lógica con
+// criterio divergente (esa versión sí incluía INC como hijo válido de REQ; esta no lo hacía
+// hasta este TKT). Unificado: hijos válidos = TKT + INC, vía getAnyItem() en vez de
+// ITEMS.find() — antes esta función nunca disparaba si el ítem que cambió era un INC con
+// parentId a un REQ (patrón legacy, ver __BR-Ecosystem §6 nota de compatibilidad).
+// Reglas (BR-Core §4 · BR-Ecosystem §5):
+//   pendiente → en-proceso: cuando cualquier T/INC hijo cambia desde pendiente a cualquier status ≠ descartado
+//   en-proceso → en-revision: cuando todos los T/INC hijos no-descartados están done
+//   en-revision → en-proceso: cuando un T/INC hijo retrocede de done — ya no todos los hijos están done
+// Idempotente: no modifica R en done/descartado. Hijo descartado ignorado en todas las transiciones.
 // Batch-safe: evalúa el estado completo de hijos en el momento de la llamada — no acumula.
+// Invariant de consolidación: esta es la ÚNICA función que puede mutar parent.status por
+// transición automática — cualquier función que mute el status de un TKT/INC (incluyendo
+// _applyDoneStatus, que antes NO la invocaba — ese gap era la causa raíz del REQ que se
+// quedaba en 'pendiente' pese a tener sus hijos done, ver INC de referencia) debe llamarla.
 export function _syncParentRStatus(changedItemCode, newTStatus) {
-  // Solo aplica cuando el ítem que cambió es un T con parentId
-  const changedItem = ITEMS.find(i => i.code === changedItemCode);
-  if (!changedItem || changedItem.type !== 'TKT' || !changedItem.parentId) return;
+  // Solo aplica cuando el ítem que cambió es un T o un INC con parentId — getAnyItem()
+  // resuelve contra ITEMS e INCIDENTS, a diferencia del ITEMS.find() previo que solo veía TKT.
+  const changedItem = getAnyItem(changedItemCode);
+  if (!changedItem || !['TKT', 'INC'].includes(itemKind(changedItem)) || !changedItem.parentId) return;
 
-  const parent = ITEMS.find(i => i.code === changedItem.parentId && i.type === 'REQ');
+  const parent = ITEMS.find(i => i.code === changedItem.parentId && itemKind(i) === 'REQ');
   if (!parent) return;
 
   // AC-5 (B-039): REQ ya en done o descartado — no modificar
   if (parent.status === 'done' || parent.status === 'descartado') return;
 
-  // Obtener todos los TKTs hijos del REQ, excluyendo descartados
-  const activeSiblings = ITEMS.filter(i =>
-    i.type === 'TKT' && i.parentId === parent.code && i.status !== 'descartado'
+  // Obtener todos los TKT/INC hijos del REQ, excluyendo descartados — concat de ambos stores
+  const activeSiblings = ITEMS.concat(INCIDENTS).filter(i =>
+    ['TKT', 'INC'].includes(itemKind(i)) && i.parentId === parent.code && i.status !== 'descartado'
   );
 
   // AC-4 (B-039): R sin Ts activos — no ejecutar ninguna transición
@@ -2075,6 +2087,15 @@ export function _applyDoneStatus(code, authorized) {
   if (!item.history) item.history = [];
   item.history.push({ type: 'status', ts: item.statusChangedAt, aiId: _getActiveSessionAiId() || undefined, data: { from: _prevStatus, to: 'done', role: item.role || '' } });
   _recalcAllScores();
+
+  // TKT1 (REQ-202607-021): sincronizar el R padre — ausente hasta este TKT. _applyStatusChange
+  // ya lo hacía (línea ~1919), pero _applyDoneStatus (usada por el flujo real de "marcar done"
+  // desde UI — _showInlineConfirmDone — y por el patch de CHECKPOINT con authorized:true) nunca
+  // la invocaba. Consecuencia: un TKT marcado done desde el botón inline nunca propagaba el
+  // avance automático al REQ padre (BR-Core §4), aunque el mismo flujo vía CHECKPOINT sí lo
+  // hacía porque el caller externo (applyPatchesFromTG) llamaba _checkAndAdvanceParentR aparte.
+  // Con la sincronización dentro de la mutación misma, ningún caller puede volver a omitirla.
+  _syncParentRStatus(code, 'done');
 
   // Notificar ítems desbloqueados
   const nowUnblocked = [];
