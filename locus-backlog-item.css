@@ -1,3 +1,14 @@
+/* [PP] mod:71 · autor:Nova · 2026-07-20 20:05 UTC-6 */
+/* TKT (REQ CAEL-0720-XX — resolver de búsqueda para unresolvedRefs, ref-id-title-mismatch
+   y [pendiente-ID] sin ref_id): .mdiff-unresolved-* — composición de primitivos ya
+   validados, sin componente nuevo. .bl-search-input reusada tal cual (input de texto).
+   .sps-dropdown/.sps-dropdown-item/.sps-dropdown-sep extendidas via compound selector
+   (misma convención que .mdiff-section-header.mdiff-section-header--X, mod:70) —
+   .mdiff-unresolved-dropdown no reemplaza la base .sps-dropdown, la complementa.
+   --flip aplicado desde el origen (ux-ref §E-10) porque .mdiff-card comparte el mismo
+   riesgo estructural de overflow:hidden que .sps-card. Chip reusa .mdiff-dep-pill como
+   base + botón remove con el mismo hover-tint liviano ya decidido en mod:41
+   (sin fondo persistente, consistente con .sps-dropdown-item--danger). */
 /* [PP] mod:70 · autor:Nova · 2026-07-20 19:10 UTC-6 */
 /* Fix cascade: 6 variantes .mdiff-section-header--{green,blue,accent,warn,red,muted} →
    compound .mdiff-section-header.mdiff-section-header--X — la base (declarada después)
@@ -4379,3 +4390,99 @@ body {
 }
 
 /* ══ END mdiff-icebox ══ */
+
+/* ══ mdiff-unresolved — resolver de búsqueda para unresolvedRefs (REQ CAEL-0720-XX) ══ */
+/* locus-backlog-item.js — composición de .bl-search-input + .sps-dropdown, sin componente
+   nuevo. Ver comentario de header mod:71 para principio de diseño completo. */
+
+.mdiff-unresolved-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.mdiff-unresolved-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mdiff-unresolved-search-wrap {
+  position: relative;
+}
+
+/* Extiende .sps-dropdown — no la reemplaza. El compound selector hereda fondo/borde/
+   sombra/role de la base (locus-sprint.css) y solo agrega posicionamiento relativo
+   a este contenedor. */
+.sps-dropdown.mdiff-unresolved-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: var(--z-dropdown);
+  margin-top: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+/* Flip-to-fit — mismo mecanismo que .sps-dropdown--flip (ux-ref §E-10). Rune mide con
+   getBoundingClientRect() antes de aplicar, no CSS puro de posición automática. */
+.sps-dropdown.mdiff-unresolved-dropdown.mdiff-unresolved-dropdown--flip {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 4px;
+}
+
+.mdiff-unresolved-empty {
+  font-size: var(--text-xs);
+  color: var(--text3);
+  padding: 8px 10px;
+}
+
+/* Chip de selección — extiende .mdiff-dep-pill como base, agrega botón remove inline. */
+.mdiff-dep-pill.mdiff-unresolved-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mdiff-unresolved-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  color: var(--text3);
+  font-size: var(--text-sm);
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+/* Mismo hover-tint liviano ya decidido para .card-dot-item.danger (mod:41) — sin fondo
+   persistente, consistente con .sps-dropdown-item--danger. */
+.mdiff-unresolved-chip-remove:hover {
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+}
+
+.mdiff-unresolved-chip-remove:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mdiff-unresolved-chip-remove {
+    transition: none;
+  }
+}
+
+/* ══ END mdiff-unresolved ══ */
