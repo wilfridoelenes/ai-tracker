@@ -1,3 +1,23 @@
+// [PP] mod:5 · autor:Rune · 2026-07-21 UTC-6
+// TKT4 (parent: REQ CAEL-0721-01, depends_on: TKT3): "Closed en el período" → "Cerrados —
+// acumulado histórico" en Estadísticas finales — rótulo alineado con lo que el campo
+// realmente calcula (ver comentario inline junto al campo).
+
+// [PP] mod:4 · autor:Rune · 2026-07-21 UTC-6
+// TKT3 (parent: REQ CAEL-0721-01, depends_on: TKT2): agrega sección '## Ítems' — cuerpo
+// completo por ítem (origin_module, archivos, comportamiento_actual, resolution_type,
+// discard_reason) para los cuatro tipos, incluidos cerrados/descartados. Antes el doc solo
+// tenía índice + estadísticas — Rune no podía usarlo como punto de entrada de investigación
+// sin abrir archivos reales (gap identificado en auditoría de _ob-DocStandards).
+
+// [PP] mod:3 · autor:Rune · 2026-07-21 UTC-6
+// TKT2 (parent: REQ CAEL-0721-01): _buildIndiceMd() — sla_priority ahora uniforme en las
+// 4 tablas (antes solo INC), comportamiento_actual agregado a la fila de KE, derived_items
+// agregado a la fila de CHG, resolution_type agregado a la fila de INC. Alinea con
+// _ob-DocStandards §3b v1.16 (doc_update aplicado por Vera esta sesión). Sin cambio de firma
+// de _generateIncidentsMd() — invariant preservado, verificado contra los dos call sites
+// (locus-map-generator.js:614, locus-incidents-render.js:316).
+
 // [PP] mod:2 · autor:Rune · 2026-07-20 23:10 UTC-6
 // TKT-[pendiente-ID] (deuda técnica, DISC promovida en cierre de REQ CAEL-0720-01): umbral
 // de riesgo SLA movido a locus-inc-fields.js (SLA_RIESGO_WINDOW_MS, exportado) — antes vivía
@@ -30,6 +50,10 @@ import {
   incSlaPriority,
   incDerivedItems,
   incIncidentStatus,
+  incResolutionType,
+  incComportamientoActual,
+  incOriginModule,
+  incDiscardReason,
   SLA_RIESGO_WINDOW_MS
 } from './locus-inc-fields.js';
 
@@ -98,9 +122,11 @@ function _riesgoTag(i) {
   return '';
 }
 
-// Sección '## Índice de estado' — un bloque por tipo, columnas según AC-5:
-// INC: código/título/status/prioridad/deadline · PRB: código/título/status/derived_items ·
-// KE/CHG: código/título/status. Tipo sin ítems activos declara 'ninguno' — nunca se omite.
+// Sección '## Índice de estado' — un bloque por tipo. sla_priority uniforme en los 4 (TKT2,
+// _ob-DocStandards §3b v1.16): INC: código/título/status/priority/deadline/resolution_type ·
+// PRB: código/título/status/priority/derived_items · KE: código/título/status/priority/
+// comportamiento_actual · CHG: código/título/status/priority/derived_items.
+// Tipo sin ítems activos declara 'ninguno' — nunca se omite.
 function _buildIndiceMd(active) {
   const byType = { INC: [], PRB: [], KE: [], CHG: [] };
   active.forEach(i => {
@@ -114,9 +140,9 @@ function _buildIndiceMd(active) {
   if (!byType.INC.length) {
     lines.push('ninguno', '');
   } else {
-    lines.push('| Código | Título | Status | Priority | Deadline |', '|---|---|---|---|---|');
+    lines.push('| Código | Título | Status | Priority | Deadline | resolution_type |', '|---|---|---|---|---|---|');
     _sortIncs(byType.INC).forEach(i => {
-      lines.push(`| \`${i.code}\` | ${i.title || '—'} | ${incIncidentStatus(i) || '—'} | ${incSlaPriority(i) || '—'} | ${_fmtDeadline(i)}${_riesgoTag(i)} |`);
+      lines.push(`| \`${i.code}\` | ${i.title || '—'} | ${incIncidentStatus(i) || '—'} | ${incSlaPriority(i) || '—'} | ${_fmtDeadline(i)}${_riesgoTag(i)} | ${incResolutionType(i) || '—'} |`);
     });
     lines.push('');
   }
@@ -125,10 +151,10 @@ function _buildIndiceMd(active) {
   if (!byType.PRB.length) {
     lines.push('ninguno', '');
   } else {
-    lines.push('| Código | Título | Status | derived_items |', '|---|---|---|---|');
+    lines.push('| Código | Título | Status | Priority | derived_items |', '|---|---|---|---|---|');
     byType.PRB.forEach(i => {
       const derived = incDerivedItems(i);
-      lines.push(`| \`${i.code}\` | ${i.title || '—'} | ${incIncidentStatus(i) || '—'} | ${derived && derived.length ? derived.join(', ') : '—'} |`);
+      lines.push(`| \`${i.code}\` | ${i.title || '—'} | ${incIncidentStatus(i) || '—'} | ${incSlaPriority(i) || '—'} | ${derived && derived.length ? derived.join(', ') : '—'} |`);
     });
     lines.push('');
   }
@@ -137,9 +163,9 @@ function _buildIndiceMd(active) {
   if (!byType.KE.length) {
     lines.push('ninguno', '');
   } else {
-    lines.push('| Código | Título | Status |', '|---|---|---|');
+    lines.push('| Código | Título | Status | Priority | comportamiento_actual (workaround activo) |', '|---|---|---|---|---|');
     byType.KE.forEach(i => {
-      lines.push(`| \`${i.code}\` | ${i.title || '—'} | ${incIncidentStatus(i) || '—'} |`);
+      lines.push(`| \`${i.code}\` | ${i.title || '—'} | ${incIncidentStatus(i) || '—'} | ${incSlaPriority(i) || '—'} | ${incComportamientoActual(i) || '—'} |`);
     });
     lines.push('');
   }
@@ -148,12 +174,56 @@ function _buildIndiceMd(active) {
   if (!byType.CHG.length) {
     lines.push('ninguno', '');
   } else {
-    lines.push('| Código | Título | Status |', '|---|---|---|');
+    lines.push('| Código | Título | Status | Priority | derived_items |', '|---|---|---|---|---|');
     byType.CHG.forEach(i => {
-      lines.push(`| \`${i.code}\` | ${i.title || '—'} | ${i.status || '—'} |`);
+      const derived = incDerivedItems(i);
+      lines.push(`| \`${i.code}\` | ${i.title || '—'} | ${i.status || '—'} | ${incSlaPriority(i) || '—'} | ${derived && derived.length ? derived.join(', ') : '—'} |`);
     });
     lines.push('');
   }
+
+  return lines.join('\n');
+}
+
+// Sección '## Ítems' — cuerpo completo por ítem, TODOS los ítems (incluye closed/descartado,
+// a diferencia de '## Índice de estado' que es solo activos). Un bloque por tipo, mismo orden
+// que el índice. Campos: origin_module, archivos, comportamiento_actual, resolution_type,
+// discard_reason — solo se imprime la línea del campo si el ítem lo declara (no listar
+// campos ausentes como '—' aquí; el índice ya cubre ese caso de forma tabular).
+function _buildItemsMd(all) {
+  const byType = { INC: [], PRB: [], KE: [], CHG: [] };
+  all.forEach(i => {
+    const t = itemKind(i);
+    if (byType[t]) byType[t].push(i);
+  });
+
+  const lines = ['## Ítems', ''];
+
+  INCIDENT_TYPES.forEach(t => {
+    lines.push(`### ${t}`, '');
+    if (!byType[t].length) {
+      lines.push('ninguno', '');
+      return;
+    }
+    byType[t].forEach(i => {
+      lines.push(`#### \`${i.code}\` — ${i.title || '—'}`, '');
+      const status = t === 'CHG' ? i.status : incIncidentStatus(i);
+      lines.push(`- status: ${status || '—'}`);
+      const om = incOriginModule(i);
+      if (om) lines.push(`- origin_module: ${om}`);
+      if (Array.isArray(i.archivos) && i.archivos.length) lines.push(`- archivos: ${i.archivos.join(', ')}`);
+      const ca = incComportamientoActual(i);
+      if (ca) lines.push(`- comportamiento_actual: ${ca}`);
+      const rt = incResolutionType(i);
+      if (rt) lines.push(`- resolution_type: ${rt}`);
+      const dr = incDiscardReason(i);
+      if (dr) lines.push(`- discard_reason: ${dr}`);
+      const derived = incDerivedItems(i);
+      if (derived && derived.length) lines.push(`- derived_items: ${derived.join(', ')}`);
+      if (i.triggered_by) lines.push(`- triggered_by: ${i.triggered_by}`);
+      lines.push('');
+    });
+  });
 
   return lines.join('\n');
 }
@@ -196,11 +266,20 @@ export function _generateIncidentsMd() {
   md += _buildIndiceMd(active);
   md += '\n---\n\n';
 
+  md += _buildItemsMd(all);
+  md += '\n---\n\n';
+
   md += '## Estadísticas finales\n\n';
   md += '| Campo | Valor |\n|---|---|\n';
   md += `| Ítems totales | ${all.length} |\n`;
   md += `| Activos | ${active.length} |\n`;
-  md += `| Closed en el período | ${closedCount} |\n`;
+  // TKT4 (parent: REQ CAEL-0721-01, depends_on: TKT3): rótulo corregido — "Closed en el
+  // período" implicaba delta desde un corte temporal que este módulo no persiste (ver
+  // Bifurcación real declarada por Cael en Fase 2 — Opción B elegida, Opción A del snapshot
+  // en locus-storage.js queda como DISC separada). Este campo es y siempre fue acumulado
+  // histórico, nunca delta — el rótulo ahora lo dice explícitamente en vez de sugerir algo
+  // que el módulo no calcula.
+  md += `| Cerrados — acumulado histórico (no es delta desde el último export) | ${closedCount} |\n`;
 
   return md;
 }

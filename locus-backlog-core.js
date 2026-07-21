@@ -1,4 +1,4 @@
-// [PP] mod:125 · autor:Rune · 2026-07-21 10:35 UTC-6
+// [PP] mod:126 · autor:Rune · 2026-07-21 22:40 UTC-6
 // Fix (founder, análisis de construcción): toggleCollapseAll() apuntaba a .version-group-body/
 // .version-collapse-arrow — clases previas a la unificación de renderSprintGroup() (REQ
 // Histórico unificado con Vista Lista de Backlog), que ya produce .bl-vl-sprint-body/
@@ -2436,7 +2436,7 @@ export function renderStats() {
       <!-- Bloque de conteos: pendientes primero -->
       <div class="stat-compact-counts">
         <div class="stat-compact-item stat-compact-item--primary">
-          <span class="stat-compact-n${_hasPending ? ' stat-compact-n--primary' : ' stat-compact-n--muted'}">${backlogCount + enRevisionCount}</span>
+          <span class="stat-compact-n${backlogCount > 0 ? ' stat-compact-n--primary' : ' stat-compact-n--muted'}">${backlogCount}</span>
           <span class="stat-compact-l">pendientes</span>
         </div>
         ${enRevisionCount > 0 ? `<div class="stat-compact-item stat-compact-item--revision">

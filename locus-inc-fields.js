@@ -1,3 +1,11 @@
+// [PP] mod:3 · autor:Rune · 2026-07-21 UTC-6
+// TKT-[pendiente-ID] (parent: REQ CAEL-0721-01 · "_PP-incidents.md — alineación con
+// _ob-DocStandards §3b v1.16"): agrega incDiscardReason() — mismo patrón de los 6 getters
+// existentes. Único accessor de discard_reason que faltaba en este módulo; discardReason →
+// discard_reason ya se normaliza en locus-backlog-core.js (línea ~1182) pero ese módulo no lo
+// exportaba como getter canónico de lectura — locus-incidents-generator.js (TKT3) lo necesita
+// para el cuerpo de ítem sin reimplementar el fallback camelCase||snake_case a mano.
+
 // [PP] mod:2 · autor:Rune · 2026-07-20 23:25 UTC-6
 // TKT-[pendiente-ID] (deuda técnica, DISC promovida en cierre de REQ CAEL-0720-01):
 // SLA_RIESGO_WINDOW_MS = 21600000 (6h) agregada como export — antes vivía duplicada a mano
@@ -71,6 +79,11 @@ function incResolutionType(item) {
   return item.resolutionType || item.resolution_type || null;
 }
 
+function incDiscardReason(item) {
+  if (!item) return null;
+  return item.discardReason || item.discard_reason || null;
+}
+
 export {
   SLA_RIESGO_WINDOW_MS,
   incSlaPriority,
@@ -78,5 +91,6 @@ export {
   incOriginModule,
   incDerivedItems,
   incIncidentStatus,
-  incResolutionType
+  incResolutionType,
+  incDiscardReason
 };
