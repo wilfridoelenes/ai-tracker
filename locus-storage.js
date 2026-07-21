@@ -1,4 +1,4 @@
-// [PP] mod:130 · autor:Rune · 2026-07-18 UTC-6
+// [PP] mod:131 · autor:Rune · 2026-07-20 UTC-6
 // CAEL-0718-18 (TKT2 · REQ CAEL-0718-16): los 82 console.log/warn/error de código real
 // reemplazados por logger.debug/warn/error (locus-logger.js) — 6 menciones dentro de
 // comentarios preservadas sin tocar. console.log → logger.debug (gateable por flag),
@@ -2352,9 +2352,13 @@ export async function saveContextDocs() {
   }
 
   try {
+    // TKT (DISC-202607-017): timestamp único compartido entre ambas filas del upsert —
+    // dos toISOString() separadas podían generar valores distintos y desincronizar
+    // _applyDocIfNewer() al comparar remoto vs local para 'context' y 'htmlmap' del mismo batch.
+    const _writeTs = new Date().toISOString();
     const { error } = await _supabase.from('tracker_docs').upsert([
-      { user_id: _supabaseUser.id, key: 'context' + suffix, value: ctxPayload, updated_at: new Date().toISOString() },
-      { user_id: _supabaseUser.id, key: 'htmlmap' + suffix, value: hmPayload,  updated_at: new Date().toISOString() }
+      { user_id: _supabaseUser.id, key: 'context' + suffix, value: ctxPayload, updated_at: _writeTs },
+      { user_id: _supabaseUser.id, key: 'htmlmap' + suffix, value: hmPayload,  updated_at: _writeTs }
     ], { onConflict: 'user_id,key' });
     if (error) throw error;
     // REQ-PERSIST-OPT TKT3 / AC-2: localStorage ya tiene el respaldo desde antes del upsert —
