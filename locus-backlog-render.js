@@ -1,4 +1,7 @@
-// [PP] mod:99 · autor:Rune · 2026-07-21 09:15 UTC-6
+// [PP] mod:100 · autor:Rune · 2026-07-21 10:05 UTC-6
+// INC-CAEL-0721-01 (triggered_by TKT-CAEL-0720-05): _initHistoricoToolbar se invocaba
+// (líneas 1207/1216) sin estar en el import de locus-backlog-historico.js — ReferenceError
+// en runtime, rompía todo renderHistoricoPanel. Import corregido, sin cambio de lógica.
 // TKT (REQ CAEL-0720-24 · Eliminar setItemParent()): función y comentario @deprecated
 // removidos (antes líneas 253-290) — ver nota inline reemplazante. Sin cambio de firma en
 // ninguna otra función exportada. contract_update: no.
@@ -201,7 +204,7 @@
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
-import { renderHistoricoSection, getHistoricoCount, getHistoricoStats } from './locus-backlog-historico.js';
+import { renderHistoricoSection, getHistoricoCount, getHistoricoStats, _initHistoricoToolbar } from './locus-backlog-historico.js';
 // REQ refactor-zonas TKT1: _buildChildMap extraído a locus-backlog-hierarchy.js — sin cambio
 // de contrato, ver header de ese módulo.
 import { _buildChildMap } from './locus-backlog-hierarchy.js';

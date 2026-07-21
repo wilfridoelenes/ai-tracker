@@ -1,4 +1,13 @@
-// [PP] mod:124 · autor:Rune · 2026-07-20 18:10 UTC-6
+// [PP] mod:125 · autor:Rune · 2026-07-20 18:45 UTC-6
+// TKT1 (REQ CAEL-0720-02 · unresolvedRefs extendido en _assignPendingIds, Opción A de unificación):
+// tercer parámetro opcional unresolvedRefs — mismo array por referencia que _normalizeRefIdValue
+// puebla en mod:124. Puebla tmp-slug-no-resoluble y ref-no-resuelta, en AMBAS ramas (escalar y
+// lista dependsOn — extendido más allá de la redacción literal del AC porque dependsOn es
+// exactamente el caso de referencia cruzada que motiva DISC-C; declarado como supuesto explícito
+// en el CHECKPOINT, no aplicado en silencio). Nunca puebla la rama de [pendiente-ID] con
+// assignedCount>1 (placeholder ambiguo) — excluida en Fase 5 Gap 3 por falta de title/ref_id
+// utilizable por un buscador. Compat 100%: callers existentes sin el tercer argumento se
+// comportan exactamente igual que mod:124.
 // TKT1 (REQ CAEL-0720-[pendiente-ID] · gap 3, corregido tras hallazgo de Rune en sesión): fix vive
 // en _normalizeRefIdValue (L2178, closure de mergeBacklogFromTG) — no en _assignPendingIds, que
 // nunca recibe el campo {ref_id,title} porque ya llega null/string desde aquí. unresolvedRefs nuevo
@@ -1771,7 +1780,14 @@ function _findTmpMatch(tmpCode, desc, existingItems, incomingType) {
 //   Ítems con código real existente se registran como identidad: code → code.
 // T-202605-140 T2: Paso 2 — resolver referencias cruzadas (dependsOn, parentId,
 //   triggeredBy, origenDisc, promovida_a) usando slugMap. Referencia no resuelta → null/[].
-export async function _assignPendingIds(tgItems, seedSlugMap) {
+// TKT1 (REQ CAEL-0720-02 · unresolvedRefs extendido, Opción A de unificación): tercer parámetro
+// unresolvedRefs — opcional, mismo array (por referencia) que _normalizeRefIdValue puebla en
+// mergeBacklogFromTG (mod:124). Ausente o no-array → comportamiento idéntico a mod:124, AC4.
+// Puebla las ramas tmp-slug-no-resoluble y ref-no-resuelta (AC1/AC2) — nunca la rama de placeholder
+// ambiguo ([pendiente-ID] con assignedCount>1): esa se excluyó explícitamente en Fase 5 (Gap 3) por
+// no tener title ni ref_id que un buscador pueda usar como semilla — sigue conservada en silencio,
+// sin cambio de comportamiento respecto a mod:124.
+export async function _assignPendingIds(tgItems, seedSlugMap, unresolvedRefs) {
   // TKT1 (REQ-[pendiente-ID] · Integridad de generación y persistencia de código de ítems):
   //   validTypes Gen1 (P/T/R/B) reemplazado por _GEN2_TYPES — los 7 tipos canónicos
   //   (REQ/TKT/DISC/INC/PRB/KE/CHG). Causa raíz confirmada: con el set Gen1, todo ítem
@@ -1925,6 +1941,11 @@ export async function _assignPendingIds(tgItems, seedSlugMap) {
           _blogLog('tmp-slug-no-resoluble', item.code || '[sin-codigo]',
             field + ': ' + val + ' no pudo resolverse — [tmp:slug] sin type valido en este bloque',
             'backlog');
+          // TKT1 (REQ CAEL-0720-02, AC1): registro adicional en unresolvedRefs — no reemplaza el
+          // _blogLog anterior, lo complementa. Solo si el caller pasó el array (Opción A).
+          if (Array.isArray(unresolvedRefs)) {
+            unresolvedRefs.push({ code: item.code || '[sin-código]', field, rawValue: val, source: 'tmp_slug_no_resoluble' });
+          }
           patch[field] = null;
           changed = true;
         }
@@ -1934,6 +1955,10 @@ export async function _assignPendingIds(tgItems, seedSlugMap) {
         const existsInBacklog = getItems() && getItems().find(i => i.code === val);
         if (!existsInBacklog) {
           _blogLog('ref-no-resuelta', item.code || '[sin-código]', field + ': ' + val + ' no existe en el backlog', 'backlog');
+          // TKT1 (REQ CAEL-0720-02, AC2): registro adicional en unresolvedRefs — mismo criterio.
+          if (Array.isArray(unresolvedRefs)) {
+            unresolvedRefs.push({ code: item.code || '[sin-código]', field, rawValue: val, source: 'ref_no_resuelta' });
+          }
           patch[field] = null;
           changed = true;
         }
@@ -1956,6 +1981,11 @@ export async function _assignPendingIds(tgItems, seedSlugMap) {
             _blogLog('tmp-slug-no-resoluble', item.code || '[sin-codigo]',
               field + '[]: ' + val + ' no pudo resolverse — [tmp:slug] sin type valido en este bloque',
               'backlog');
+            // TKT1 (REQ CAEL-0720-02, AC1 — mismo criterio de escalar, extendido a lista): dependsOn
+            // es exactamente el caso de referencia cruzada que motiva DISC-C.
+            if (Array.isArray(unresolvedRefs)) {
+              unresolvedRefs.push({ code: item.code || '[sin-código]', field, rawValue: val, source: 'tmp_slug_no_resoluble' });
+            }
             listChanged = true;
             return null;
           }
@@ -1966,6 +1996,10 @@ export async function _assignPendingIds(tgItems, seedSlugMap) {
           const existsInBacklog = getItems() && getItems().find(i => i.code === val);
           if (!existsInBacklog) {
             _blogLog('ref-no-resuelta', item.code || '[sin-código]', field + '[]: ' + val + ' no existe en el backlog', 'backlog');
+            // TKT1 (REQ CAEL-0720-02, AC2 — extendido a lista): mismo criterio.
+            if (Array.isArray(unresolvedRefs)) {
+              unresolvedRefs.push({ code: item.code || '[sin-código]', field, rawValue: val, source: 'ref_no_resuelta' });
+            }
             listChanged = true;
             return null;
           }
@@ -2262,7 +2296,10 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // B-202606-022: _assignPendingIds retorna { items, slugMap } — slugMap se propaga hasta applyPatchesFromTG
   // TKT2: opts.seedSlugMap propagado — encadena la identidad de [tmp:slug] resuelta en bloques
   // previos del mismo batch (ver _applyCheckpointBatch, locus-session-save.js).
-  const { items: _assignedItems, slugMap: _slugMap } = await _assignPendingIds(tgItems, opts && opts.seedSlugMap);
+  // TKT1 (REQ CAEL-0720-02): unresolvedRefs (ya declarado arriba, poblado por _normalizeRefIdValue)
+  // se pasa como tercer argumento — Opción A de unificación, un solo array acumula ambas fuentes
+  // en vez de dos campos separados en el retorno de mergeBacklogFromTG.
+  const { items: _assignedItems, slugMap: _slugMap } = await _assignPendingIds(tgItems, opts && opts.seedSlugMap, unresolvedRefs);
   tgItems = _assignedItems;
 
   let changed = false;
