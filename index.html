@@ -1,4 +1,4 @@
-<!-- [PP] mod:147 · autor:Rune · 2026-07-20 UTC-6 -->
+<!-- [PP] mod:148 · autor:Nova · 2026-07-21 UTC-6 -->
 <!-- TKT1 (REQ CAEL-0720-02): #stats-bar + #filter-bar-status envueltos en #bl-header-unified
      — ver AC en TKT y CSS correspondiente en locus-backlog.css mod:111 (Nova). -->
 <!-- [PP] mod:146 · autor:Rune · 2026-07-19 UTC-6 -->
@@ -568,8 +568,18 @@
     </div><!-- /sspanel-backlog -->
 
     <!-- Sub-panel: Backlog (Q-Backlog) — REQ-C/TKT-C6 -->
+    <!-- TKT1 (REQ CAEL-0721-01, design_intent: QBacklog-header-unified-homologacion): wrapper
+         .bl-header-unified estático envolviendo el punto de inyección del stats-bar
+         (#qbacklog-panel-body) — mismo patrón sticky/borde/radius que #bl-header-unified
+         (Vista Lista, L507) y #historico-header-unified (locus-backlog-render.js). Sin fila de
+         toolbar propia: Q-Backlog no tiene buscador ni toggle de vistas, a diferencia de Backlog.
+         El stats-bar real lo sigue inyectando _renderZonePanel() (locus-backlog-zone-engine.js,
+         TKT2 del mismo REQ) dentro de #qbacklog-panel-body — sin cambio de contrato JS, solo de
+         wrapper visual. -->
     <div class="session-subpanel" id="sspanel-qbacklog">
-      <div id="qbacklog-panel-body"></div>
+      <div class="bl-header-unified" id="qbacklog-header-unified">
+        <div id="qbacklog-panel-body"></div>
+      </div>
       <div class="bl-done-group" id="qbacklog-done-group">
         <div class="bl-done-header" id="qbacklog-done-header">
           <span class="bl-done-arrow">▾</span>

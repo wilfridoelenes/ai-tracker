@@ -1,4 +1,9 @@
-/* [PP] mod:118 · autor:Nova · 2026-07-21 10:40 UTC-6 */
+/* [PP] mod:119 · autor:Nova · 2026-07-21 UTC-6 */
+/* TKT1 (REQ CAEL-0721-01, design_intent: QBacklog-header-unified-homologacion): regla de
+   neutralización de padding para .qinc-stats-bar dentro de .bl-header-unified — reuso exacto
+   del criterio ya declarado para .stats-bar (mismo valor 4px 10px 6px, mismo selector con hijo
+   directo). CSS dependencies: .bl-header-unified (existente), #qbacklog-panel-body (existente,
+   index.html TKT1). Sin clase nueva. */
 /* TKT1 (REQ CAEL-0720-01, ref_id CAEL-0720-02): unifica el mecanismo de estado activo
    en .stat-type-chip / .stat-pri-chip / .stat-effort-card — border 1.5px + fondo con
    tinte + texto en el tono -text de su propia familia, sin cambiar color semántico.
@@ -2611,6 +2616,15 @@
    original — se neutraliza aquí solo dentro del wrapper, sin tocar la clase base */
 .bl-header-unified > .stats-bar {
   margin-bottom: 0;
+  padding: 4px 10px 6px;
+}
+
+/* TKT2 (REQ CAEL-0721-01): .qinc-stats-bar (Q-Backlog vía _renderZonePanel) reutilizada dentro
+   de .bl-header-unified — mismo criterio de neutralización que .stats-bar arriba. Su padding
+   base (6px 0, ver §Stats bar y search Q-INC) queda para Q-INC, que no tiene wrapper. Selector
+   acotado a .bl-header-unified > * > para no afectar #qinc-stats-bar (tab Incidentes, sin
+   wrapper) ni #qdisc-panel-body (Q-DISC no envuelve su stats-bar en .bl-header-unified). */
+.bl-header-unified > #qbacklog-panel-body > .qinc-stats-bar {
   padding: 4px 10px 6px;
 }
 

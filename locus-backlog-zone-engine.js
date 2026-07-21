@@ -1,4 +1,7 @@
-// [PP] mod:4 · autor:Rune · 2026-07-21 10:00 UTC-6
+// [PP] mod:5 · autor:Rune · 2026-07-21 UTC-6
+// TKT2 (REQ CAEL-0721-01): early-return de activeZoneItems vacío reubicado después de
+// _statsBarHtml — el stats-bar ya no desaparece cuando Q-Backlog/Q-DISC no tiene ítems activos.
+// Ver detalle inline en el cuerpo de _renderZonePanel.
 // TKT-202607-011 (TKT3 REQ-202607-006): chips de área en stats-bar — exclusivo de qdisc vía
 //   opts.showAreaChips. Conteo sobre activeZoneItems (mismo universo que chips de tipo/prioridad
 //   ya existentes). Top 6 por conteo descendente + chip estático "+N más" cuando hay más de 6
@@ -224,21 +227,12 @@ export function _renderZonePanel(opts) {
   const activeZoneItems = hasDoneState ? zoneItems.filter(i => i.status !== 'done') : zoneItems;
   if (hasDoneState) _renderDoneGroup(nsKey, doneZoneItems);
 
-  if (!activeZoneItems.length) {
-    // Mejora visual DISC (aprobada por founder): opts.emptyHint es opcional, sin default —
-    // qbacklog no lo declara (ver locus-backlog-qbacklog.js), su empty-state no cambia.
-    const _emptyHintHtml = opts.emptyHint
-      ? `<div class="empty-state-hint">${opts.emptyHint}</div>`
-      : '';
-    body.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">${_emptyIcon}</div>
-        <div class="empty-state-title">${emptyTitle}</div>
-        ${_emptyHintHtml}
-      </div>`;
-    return;
-  }
-
+  // TKT2 (REQ CAEL-0721-01): cálculo de _statsBarHtml movido antes del early-return por
+  // activeZoneItems vacío (antes solo corría con ítems activos > 0 — el stats-bar desaparecía
+  // por completo con Q-Backlog/Q-DISC sin ítems, único camino de _renderZonePanel sin
+  // _statsBarHtml de los tres). Con activeZoneItems.length === 0, todos los conteos caen a 0 de
+  // forma natural (los .forEach de abajo no iteran nada) — sin condicional nuevo, mismo cálculo
+  // para los tres caminos de salida (vacío por cero ítems, vacío por filtro, grid con ítems).
   // TKT3 REQ2 S'02 — stats-bar interactiva: conteo sobre activeZoneItems (universo sin filtrar
   // por tipo/prioridad/búsqueda), mismo criterio que renderQIncPanel (_displayable) — evita que
   // un chip desactivado muestre conteo 0 en vez del total real de la zona.
@@ -303,6 +297,26 @@ export function _renderZonePanel(opts) {
       </div>
       ${_areaChipsHtml}
     </div>`;
+
+  // TKT2 (REQ CAEL-0721-01): early-return por activeZoneItems vacío, reubicado aquí (después de
+  // _statsBarHtml) para que el stats-bar se incluya con conteos en 0 — antes retornaba antes de
+  // este cálculo y el bloque desaparecía por completo. Mismo criterio que el early-return de
+  // filteredItems vacío (más abajo), que ya incluía _statsBarHtml correctamente.
+  if (!activeZoneItems.length) {
+    // Mejora visual DISC (aprobada por founder): opts.emptyHint es opcional, sin default —
+    // qbacklog no lo declara (ver locus-backlog-qbacklog.js), su empty-state no cambia.
+    const _emptyHintHtml = opts.emptyHint
+      ? `<div class="empty-state-hint">${opts.emptyHint}</div>`
+      : '';
+    body.innerHTML = _statsBarHtml + `
+      <div class="empty-state">
+        <div class="empty-state-icon">${_emptyIcon}</div>
+        <div class="empty-state-title">${emptyTitle}</div>
+        ${_emptyHintHtml}
+      </div>`;
+    return;
+  }
+
   if (!body._zpDelegationAttached) {
     body._zpDelegationAttached = true;
     // REQ refactor-zonas TKT2: nsKey/opts ya identifican la zona por closure — sin necesidad de
