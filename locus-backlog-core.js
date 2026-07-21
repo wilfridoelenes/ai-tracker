@@ -1,4 +1,11 @@
-// [PP] mod:124 · autor:Rune · 2026-07-20 16:10 UTC-6
+// [PP] mod:125 · autor:Rune · 2026-07-21 10:35 UTC-6
+// Fix (founder, análisis de construcción): toggleCollapseAll() apuntaba a .version-group-body/
+// .version-collapse-arrow — clases previas a la unificación de renderSprintGroup() (REQ
+// Histórico unificado con Vista Lista de Backlog), que ya produce .bl-vl-sprint-body/
+// .version-header-arrow. querySelectorAll no lanzaba error, solo devolvía NodeList vacío para
+// los grupos de sprint — botón silenciosamente inerte. Selectores corregidos + classList.
+// toggle('collapsed') agregado en la rama de flecha no-section (.version-header-arrow.collapsed
+// tiene tratamiento CSS propio, no solo el glifo de textContent).
 // TKT2 (REQ CAEL-0720-10): _syncParentRStatus revierte el widen a INC de mod:79 —
 // parent/parentId vuelve a ser exclusivo de TKT (__BR-Ecosystem §5).
 // TKT1 (REQ CAEL-0720-02): reaplicado sobre base subida en mod:121 sin este fix — el mod:121
@@ -734,9 +741,15 @@ const collapsedVersions = _cvLoad();
 
 // T-202606-104: Modo R eliminado — Colapsar opera solo sobre headers de sección
 export function toggleCollapseAll() {
-  // T-202605-112: incluir section-group-body para icebox y pendientes
-  const bodies = document.querySelectorAll('.version-group-body, .section-group-body');
-  const arrows = document.querySelectorAll('.version-collapse-arrow, .section-group-arrow');
+  // Fix (founder, análisis de construcción — botón Colapsar de Backlog no hacía nada):
+  // .version-group-body/.version-collapse-arrow eran los nombres previos a la unificación de
+  // renderSprintGroup() (REQ Histórico unificado con Vista Lista de Backlog) — el motor de
+  // render pasó a .bl-vl-sprint-body/.version-header-arrow pero esta función quedó apuntando
+  // a las clases viejas, querySelectorAll devolvía NodeList vacío para los grupos de sprint sin
+  // lanzar error. .section-group-body/.section-group-arrow (icebox/pendientes) siguen vigentes,
+  // sin cambio.
+  const bodies = document.querySelectorAll('.bl-vl-sprint-body, .section-group-body');
+  const arrows = document.querySelectorAll('.version-header-arrow, .section-group-arrow');
   const btn = document.getElementById('bl-collapse-all-btn');
   const label = btn ? btn.querySelector('.bl-collapse-btn-label') : null;
   const icon = btn ? btn.querySelector('.bl-collapse-btn-icon') : null;
@@ -755,6 +768,7 @@ export function toggleCollapseAll() {
       if (a.classList.contains('section-group-arrow')) {
         a.classList.add('collapsed');
       } else {
+        a.classList.add('collapsed');
         a.textContent = '▸';
       }
     });
@@ -773,6 +787,7 @@ export function toggleCollapseAll() {
       if (a.classList.contains('section-group-arrow')) {
         a.classList.remove('collapsed');
       } else {
+        a.classList.remove('collapsed');
         a.textContent = '▾';
       }
     });
