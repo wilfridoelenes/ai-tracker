@@ -1,4 +1,4 @@
-/* [PP] mod:117 · autor:Rune · 2026-07-21 09:15 UTC-6 */
+/* [PP] mod:118 · autor:Nova · 2026-07-21 10:40 UTC-6 */
 /* TKT1 (REQ CAEL-0720-01, ref_id CAEL-0720-02): unifica el mecanismo de estado activo
    en .stat-type-chip / .stat-pri-chip / .stat-effort-card — border 1.5px + fondo con
    tinte + texto en el tono -text de su propia familia, sin cambiar color semántico.
@@ -1081,15 +1081,6 @@
   user-select: none;
 }
 
-/* Cuerpo del grupo sprint — separado del header con gap */
-.version-group-body {
-  margin-top: 6px;
-}
-
-.version-group-body.collapsed {
-  display: none;
-}
-
 /* Flecha de colapso en header de sprint — mismo patrón que .bl-done-arrow */
 .version-header-arrow {
   font-size: var(--text-xs);
@@ -1188,16 +1179,6 @@
   border-radius: var(--radius-sm); padding: 1px 6px;
 }
 
-
-/* T-202604-004: ítems dentro de sprint activo — diferenciación visual */
-.sprint-group-active .version-group-body .item:hover {
-  border-left-color: rgb(245 158 11 / 70%);
-}
-
-.sprint-group-active .version-group-body .item.is-done {
-  border-left-color: rgb(46 204 120 / 40%);
-  background: transparent;
-}
 
 /* P-202604-098: historial sprints cerrados */
 .closed-sprints-block {

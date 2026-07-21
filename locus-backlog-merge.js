@@ -1,3 +1,23 @@
+// [PP] mod:59 · autor:Rune · 2026-07-20 15:55 UTC-6
+// TKT1 (REQ CAEL-0720-01) — corrección sobre mod:58: Finn devolvió bug menor en auditoría —
+//   mdiff-card--patch violaba no_incluye ("no introduce CSS nuevo") al ser una clase no
+//   declarada en css-ref. Retirada — mdiff-card--accent (ya existente) cubre el acento visual.
+//   Sin cambio de lógica de _buildPatchCard ni de la sección 'patches' — solo el className del
+//   contenedor.
+// [PP] mod:58 · autor:Rune · 2026-07-20 15:40 UTC-6
+// TKT1 (REQ CAEL-0720-01 · AC1-5): agregada _buildPatchCard(patchItem, existingItem) — tarjeta
+//   de preview para ítems type:patch en showMergeDiffPanel, sección nueva 'patches' insertada
+//   tras el bloque 'ignored' (antes de "Inyectar en shell"). Reusa .mdiff-card/.mdiff-card-top/
+//   .mdiff-code/.mdiff-type-badge/_fieldChips() existentes — sin CSS nuevo (no_incluye). Campos
+//   de la lista negra de __BR-Ecosystem §8 (code, type, schema_version, ref_id, intencion,
+//   kill_criteria) filtrados antes de generar chips vía _PATCH_BLACKLIST — el 'type' del propio
+//   objeto patch ('patch') también cae en esa lista, no es el tipo del ítem. Lookup de
+//   existingItem resuelto exclusivamente vía getAnyItem(p.code) (import agregado desde
+//   locus-backlog-core.js, línea ~129) en el call site del map sobre _patchItems — nunca
+//   getItems().find() suelto, cierra el gap de Fase 5 (Finn, iteración 1: getItems().find() no
+//   resuelve ítems ITIL). Ítem no encontrado → from renderiza literal '(código no encontrado)'
+//   en el chip correspondiente (AC2), sin excepción. Badge de conteo total no se toca — ya sumaba
+//   _patchItems.length desde mod:46/mod:48.
 // [PP] mod:57 · autor:Rune · 2026-07-20 UTC-6
 // TKT3 (REQ CAEL-0720-01 · AC1-6, AC8): _showStatusConfirmModal retirada — _confirmRetroceso y
 //   _confirmDiscard ahora llaman _openStatusConfirm (wrapper delgado sobre _gconfirmOpen con
@@ -126,7 +146,7 @@
 // Dependencias: locus-backlog-core.js · locus-backlog-item.js · locus-backlog-sprints.js · locus-storage.js · locus-toast.js
 // Carga: después de locus-backlog-item.js
 
-import { _calcPriority, _getActiveSessionAiId, _undoSnapshotItems, loadBacklog, renderStats, updateBacklogBanner, getItems, _registerCoreCallback, itemKind as _itemKindFn, _syncParentRStatus } from './locus-backlog-core.js';
+import { _calcPriority, _getActiveSessionAiId, _undoSnapshotItems, loadBacklog, renderStats, updateBacklogBanner, getItems, getAnyItem, _registerCoreCallback, itemKind as _itemKindFn, _syncParentRStatus } from './locus-backlog-core.js'; // CAEL-0720-01 TKT1: getAnyItem — lookup de existingItem en _buildPatchCard, resuelve backlog + incidents
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { _getSprintById } from './locus-backlog-sprints.js';
 import { _blogLog, getActiveProject, getActiveSprints, saveBacklog, _sprintDisplay } from './locus-storage.js'; // TKT5-[pendiente-ID]: _sprintDisplay para opción de sprint nuevo en DIFF
@@ -547,6 +567,39 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     </div>`;
   };
 
+  // ── Tarjeta de preview para ítems type:patch ──
+  // CAEL-0720-01 TKT1: campos no patcheables de __BR-Ecosystem §8 — nunca generan chip. 'type'
+  // incluido porque en el objeto patch su valor es siempre 'patch' (marcador de instrucción del
+  // parser), no el tipo del ítem — mostrarlo como campo que "cambia" sería ruido, no información.
+  const _PATCH_BLACKLIST = ['type', 'code', 'schema_version', 'ref_id', 'intencion', 'kill_criteria'];
+  // Función pura — no invoca mergeBacklogFromTG ni applyPatchesFromTG, solo lee patchItem y
+  // existingItem para construir el string HTML. El lookup de existingItem lo resuelve el caller
+  // (map sobre _patchItems, ver bloque de sección 'patches' más abajo) vía getAnyItem(code) —
+  // nunca getItems().find() suelto, que no resuelve ítems ITIL (INC/PRB/KE/CHG).
+  const _buildPatchCard = (patchItem, existingItem) => {
+    const itemType  = _itemKindFn({ code: patchItem.code });
+    const typeCls   = _typeClass[itemType] || 'mdiff-type--unknown';
+    const typeName  = _typeName[itemType]  || '?';
+    const changes = Object.keys(patchItem)
+      .filter(field => !_PATCH_BLACKLIST.includes(field))
+      .map(field => ({
+        field,
+        from: existingItem ? (existingItem[field] != null ? existingItem[field] : null) : '(código no encontrado)',
+        to: patchItem[field],
+      }));
+    return `
+    <div class="mdiff-card mdiff-card--accent ${typeCls}">
+      <div class="mdiff-card-accent"></div>
+      <div class="mdiff-card-body">
+        <div class="mdiff-card-top">
+          <span class="mdiff-type-badge">${typeName}</span>
+          <span class="mdiff-code mdiff-card-title">${esc(patchItem.code)} · patch</span>
+        </div>
+        ${_fieldChips(changes)}
+      </div>
+    </div>`;
+  };
+
   // R-202605-148: sort INC→REQ→TKT→DISC dentro de un array de ítems del DIFF
   // REQ-MERGE-GEN2 TKT1: migrado a .type || _itemKindFn para tipo Gen2
   const _sortByType = arr => [...arr].sort((a, b) => {
@@ -653,6 +706,17 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       // Sin cambios colapsado por defecto
       sectionsHtml += _section('unchanged', 'muted', `Sin cambios <span class="mdiff-sec-count">${ignoredOk.length}</span>`, rows, true);
     }
+  }
+
+  // CAEL-0720-01 TKT1: preview de ítems type:patch — no participan del dry-run de
+  // mergeBacklogFromTG (se filtran de tgItems antes del diff, línea ~213), así que no aparecen en
+  // ninguna categoría de diff.*. Cada patch se compara contra su ítem existente vía getAnyItem —
+  // resuelve tanto backlog (getItems) como incidents (getIncidents), a diferencia de un
+  // getItems().find() suelto. Badge de conteo total ya sumaba _patchItems.length desde mod:46 —
+  // sin cambio aquí (AC4).
+  if (_patchItems.length) {
+    const rows = _patchItems.map(p => _buildPatchCard(p, getAnyItem(p.code))).join('');
+    sectionsHtml += _section('patches', 'accent', `✎ Cambios directos (patch) <span class="mdiff-sec-count">${_patchItems.length}</span>`, rows);
   }
 
   // ── Inyectar en shell ──

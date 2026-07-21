@@ -1,4 +1,4 @@
-/* [PP] mod:16 · autor:Nova · 2026-07-20 19:10 UTC-6 */
+/* [PP] mod:17 · autor:Nova · 2026-07-21 10:40 UTC-6 */
 /* DISC ejecutada: removidas .rm-chip--active y .rm-chip--selected (+ .rm-chip--active
    .rm-chip-mark) — sin consumidor confirmado en JS/HTML (grep completo, 0 matches). */
 /* [PP] mod:13 · autor:Nova · 2026-07-20 16:10 UTC-6 */
@@ -777,18 +777,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-.version-collapse-arrow {
-  font-size: var(--text-2xs);
-  color: var(--text3);
-  transition: transform 0.15s;
-  cursor: pointer;
-}
-
-.version-group-body.collapsed {
-  display: none;
-}
-
 
 /* B-006: Campo hora de reset en popup */
 .pop-reset-row {
