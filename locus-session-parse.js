@@ -1,4 +1,4 @@
-// [PP] mod:131 · autor:Rune · 2026-07-20 UTC-6
+// [PP] mod:132 · autor:Rune · 2026-07-21 UTC-6
 // TKT (REQ CAEL-0720-22 · ref_id CAEL-0720-23 · módulo crítico, kill_criteria aprobado por
 //   founder): handlePaste/handleInput ganan _routeParse(id, ta) — si _splitCheckpointBlocks
 //   (ta.value).length > 1, delega a _processIngestBatch() en vez de parsePaste(id). Bloque único
@@ -1955,12 +1955,18 @@ function _updateIngestBlockCount() {
 //   detecta 2+ bloques ``` completos, delega a _processIngestBatch() — mismo camino que ya
 //   disparaba el botón manual #ingest-process-batch-btn, ahora también alcanzable desde paste/input
 //   sin acción adicional del founder (AC1/AC4 del TKT). Con 0 o 1 bloque, comportamiento histórico
-//   exacto vía parsePaste(id) — sin cambio (AC2/AC3). _processIngestBatch ya llama internamente a
-//   _updateIngestBlockCount indirectamente vía su propio flujo de UI — no se duplica la llamada
-//   aquí para el camino batch; el camino single conserva su _updateIngestBlockCount() explícito.
+//   exacto vía parsePaste(id) — sin cambio (AC2/AC3).
+// TKT-202607-041 (DISC-202607-018): el comentario original de este bloque afirmaba que
+//   _processIngestBatch ya invocaba _updateIngestBlockCount() indirectamente vía su propio flujo
+//   de UI — verificado contra el cuerpo real de _processIngestBatch() y es incorrecto: la función
+//   nunca la llama, ni siquiera tras `ta.value = ''` al aplicar el batch (#ingest-block-count
+//   quedaba con el conteo pre-batch). Fix: _updateIngestBlockCount() se invoca aquí mismo, en la
+//   rama batch, con el mismo criterio síncrono que ya usa la rama single (llamada justo después
+//   de la decisión de ruteo, sin esperar la resolución async de _processIngestBatch).
 function _routeParse(id, ta) {
   if (ta && _splitCheckpointBlocks(ta.value).length > 1) {
     _processIngestBatch();
+    _updateIngestBlockCount(); // TKT-202607-041 AC1
     return true;
   }
   return false;
