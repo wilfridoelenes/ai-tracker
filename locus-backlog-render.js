@@ -1,3 +1,9 @@
+// [PP] mod:101 · autor:Rune · 2026-07-21 10:20 UTC-6
+// Fix (founder, post-liberación REQ CAEL-0720-01): chips tc-INC/tc-DISC removidos de la
+// stats-bar de Histórico — universo real es solo REQ/TKT (INC/PRB/KE/CHG viven permanentemente
+// en Q-INC, DISC nunca tiene sprint — ninguno de los dos puede cumplir el criterio de
+// historicoItems). Chips eran muertos por diseño (siempre 0) salvo residuales legacy Gen1,
+// ya cubiertos por la sección dedicada con botón Purgar (_legacyHistoricos).
 // [PP] mod:100 · autor:Rune · 2026-07-21 10:05 UTC-6
 // INC-CAEL-0721-01 (triggered_by TKT-CAEL-0720-05): _initHistoricoToolbar se invocaba
 // (líneas 1207/1216) sin estar en el import de locus-backlog-historico.js — ReferenceError
@@ -1162,8 +1168,6 @@ export async function renderHistoricoPanel() {
           <div class="stat-compact-sep"></div>
           <span class="stat-type-chip stat-type-chip--static tc-REQ"><span class="tc-count">${_stats.byType.REQ || 0}</span><span class="tc-label">Req</span></span>
           <span class="stat-type-chip stat-type-chip--static tc-TKT"><span class="tc-count">${_stats.byType.TKT || 0}</span><span class="tc-label">Ticket</span></span>
-          <span class="stat-type-chip stat-type-chip--static tc-INC"><span class="tc-count">${_stats.byType.INC || 0}</span><span class="tc-label">INC</span></span>
-          <span class="stat-type-chip stat-type-chip--static tc-DISC"><span class="tc-count">${_stats.byType.DISC || 0}</span><span class="tc-label">DISC</span></span>
           <div class="stat-compact-sep"></div>
           <span class="stat-pri-chip stat-pri-chip--static pri-high"><span class="spc-n">${_stats.byPriority.high}</span> Alto</span>
           <span class="stat-pri-chip stat-pri-chip--static pri-medium"><span class="spc-n">${_stats.byPriority.medium}</span> Med</span>

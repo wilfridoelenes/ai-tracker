@@ -1,4 +1,7 @@
-// [PP] mod:24 · autor:Rune · 2026-07-21 09:15 UTC-6
+// [PP] mod:25 · autor:Rune · 2026-07-21 10:20 UTC-6
+// Fix (founder, post-liberación REQ CAEL-0720-01): byType simplificado a {REQ,TKT} — INC/DISC/
+// PRB/KE/CHG removidos, universo real de Histórico no puede contenerlos (ver comentario en
+// locus-backlog-render.js mod:101). Sin retrocompatibilidad con claves muertas.
 // REQ-[pendiente-ID] Unificar vocabulario historico: archivo renombrado
 // locus-backlog-archive.js → locus-backlog-historico.js. Rename mecánico de identificadores
 // vivos: migrateClosedItemsToHistorico (ex archiveClosedItems), getHistoricoCount (ex
@@ -167,7 +170,7 @@ export function getHistoricoStats() {
   const { historicoItems } = _buildHistoricoPartitions();
   const all = historicoItems.concat(_legacyHistoricos);
 
-  const byType = { REQ: 0, TKT: 0, INC: 0, DISC: 0, PRB: 0, KE: 0, CHG: 0 };
+  const byType = { REQ: 0, TKT: 0 };
   const byPriority = { high: 0, medium: 0, low: 0 };
   const byEffort = { 1: 0, 2: 0, 3: 0 };
 
