@@ -1,4 +1,12 @@
-/* [PP] mod:119 · autor:Nova · 2026-07-21 UTC-6 */
+/* [PP] mod:120 · autor:Nova · 2026-07-21 UTC-6 */
+/* TKT3 (REQ-202607-010, design_intent: QBacklog-header-unified-homologacion): corrige la nota
+   de mod:119 (abajo, entrada previa de este mismo REQ) — #qbacklog-panel-body ya NO vive dentro
+   de .bl-header-unified. Estructura correcta: .bl-header-unified envuelve solo el stats-bar
+   (#qbacklog-stats-bar, sticky); #qbacklog-panel-body vive fuera, envuelto en .bl-zone-body
+   (nuevo, no sticky) que cierra visualmente el conjunto. Motivo: la estructura de mod:119 tenía
+   el bug de dejar la lista completa pegada al hacer scroll (todo dentro del sticky), no solo el
+   header — ver detalle en index.html y locus-backlog-zone-engine.js del mismo TKT. */
+/* [PP] mod:119 · autor:Nova · 2026-07-21 UTC-6 — ver corrección arriba (mod:120) */
 /* TKT1 (REQ CAEL-0721-01, design_intent: QBacklog-header-unified-homologacion): regla de
    neutralización de padding para .qinc-stats-bar dentro de .bl-header-unified — reuso exacto
    del criterio ya declarado para .stats-bar (mismo valor 4px 10px 6px, mismo selector con hijo
@@ -2619,13 +2627,35 @@
   padding: 4px 10px 6px;
 }
 
-/* TKT2 (REQ CAEL-0721-01): .qinc-stats-bar (Q-Backlog vía _renderZonePanel) reutilizada dentro
-   de .bl-header-unified — mismo criterio de neutralización que .stats-bar arriba. Su padding
-   base (6px 0, ver §Stats bar y search Q-INC) queda para Q-INC, que no tiene wrapper. Selector
-   acotado a .bl-header-unified > * > para no afectar #qinc-stats-bar (tab Incidentes, sin
-   wrapper) ni #qdisc-panel-body (Q-DISC no envuelve su stats-bar en .bl-header-unified). */
-.bl-header-unified > #qbacklog-panel-body > .qinc-stats-bar {
+/* TKT2 (REQ CAEL-0721-01, mod:119) → corregido en TKT3 (REQ-202607-010): #qbacklog-panel-body
+   ya no vive dentro de .bl-header-unified — el stats-bar de Q-Backlog ahora es
+   #qbacklog-stats-bar, hijo directo del wrapper (ver index.html). Mismo criterio de
+   neutralización de padding que .stats-bar arriba — sin esto, .qinc-stats-bar traería su
+   padding base (6px 0, §Stats bar y search Q-INC), pensado para vivir suelto en el tab
+   Incidentes, no dentro de un wrapper con su propio padding lateral. */
+.bl-header-unified > #qbacklog-stats-bar {
   padding: 4px 10px 6px;
+}
+
+/* TKT3 (REQ-202607-010, design_intent: QBacklog-header-unified-homologacion): contenedor de la
+   lista/empty-state de Q-Backlog — vive fuera de .bl-header-unified (no sticky), cierra
+   visualmente el conjunto con el header de arriba: mismos bordes laterales, fondo propio,
+   radius inferior redondeado (el header ya trae border-bottom-*-radius:0 para la fusión). Sin
+   border-top — se funde directo contra el borde inferior del header, una sola pieza visual
+   continua. Mismo criterio de ancho/gutter que .bl-header-unified (width:100%, sin margin-left,
+   ver fix 3 arriba). Equivalente conceptual al bloque de contenido de Discoveries
+   (qdisc-status-body), sin duplicar su clase — Q-Backlog no tiene la jerarquía de 3 grupos de
+   Discoveries, es un solo cuerpo continuo. */
+.bl-zone-body {
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: var(--radius-md-plus);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  width: 100%;
+  max-width: 2200px;
+  background: var(--surface2);
+  min-height: 120px;
 }
 
 /* ── Capa 1: Toolbar principal ── */

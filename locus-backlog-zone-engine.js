@@ -1,4 +1,7 @@
-// [PP] mod:5 · autor:Rune · 2026-07-21 UTC-6
+// [PP] mod:6 · autor:Rune · 2026-07-21 UTC-6
+// TKT3 (REQ-202607-010, design_intent: QBacklog-header-unified-homologacion): opts.statsBarId
+// opcional — separa el stats-bar de bodyId en un nodo propio. Sin statsBarId (qdisc),
+// comportamiento anterior exacto preservado. Ver detalle inline en el cuerpo de la función.
 // TKT2 (REQ CAEL-0721-01): early-return de activeZoneItems vacío reubicado después de
 // _statsBarHtml — el stats-bar ya no desaparece cuando Q-Backlog/Q-DISC no tiene ítems activos.
 // Ver detalle inline en el cuerpo de _renderZonePanel.
@@ -126,6 +129,13 @@ export function _attachDoneGroupToggle(prefix) {
 // R→hijos vía _buildChildMap, bloque Terminados estático.
 export function _renderZonePanel(opts) {
   const { bodyId, badgeId, nsKey, isZone, emptyTitle, emptyIcon } = opts;
+  // TKT3 (REQ-202607-010, design_intent: QBacklog-header-unified-homologacion): statsBarId
+  // opcional — cuando se declara, _statsBarHtml se escribe en ese nodo separado (sticky, dentro
+  // de .bl-header-unified) y bodyId recibe solo el contenido de lista/empty-state (scrolleable
+  // normal, fuera del sticky). Sin statsBarId (caso de qdisc, que no pasa por
+  // .bl-header-unified — tiene su propio shell #qdisc-stats-block externo), preserva el
+  // comportamiento exacto anterior: todo concatenado en un solo nodo bodyId.
+  const statsBarEl = opts.statsBarId ? document.getElementById(opts.statsBarId) : null;
   // TKT1 REQ hide-done-qdisc: hasDoneState/hasChildren — default true preserva comportamiento
   // exacto de qbacklog (único caller previo a ese TKT). qdisc los declara en false: DISC nunca
   // alcanza status 'done' (__BR-Ecosystem §5) ni tiene jerarquía R→hijos (no aplica
@@ -298,6 +308,15 @@ export function _renderZonePanel(opts) {
       ${_areaChipsHtml}
     </div>`;
 
+  // TKT3 (REQ-202607-010): con statsBarId, el stats-bar se escribe en su propio nodo (sticky,
+  // dentro de .bl-header-unified) — body queda libre para solo lista/empty-state, scrolleable
+  // normal. Sin statsBarId (qdisc), _bodyPrefixHtml preserva el comportamiento anterior exacto:
+  // stats-bar concatenado al inicio del mismo nodo bodyId.
+  if (statsBarEl) {
+    statsBarEl.innerHTML = _statsBarHtml;
+  }
+  const _bodyPrefixHtml = statsBarEl ? '' : _statsBarHtml;
+
   // TKT2 (REQ CAEL-0721-01): early-return por activeZoneItems vacío, reubicado aquí (después de
   // _statsBarHtml) para que el stats-bar se incluya con conteos en 0 — antes retornaba antes de
   // este cálculo y el bloque desaparecía por completo. Mismo criterio que el early-return de
@@ -308,7 +327,7 @@ export function _renderZonePanel(opts) {
     const _emptyHintHtml = opts.emptyHint
       ? `<div class="empty-state-hint">${opts.emptyHint}</div>`
       : '';
-    body.innerHTML = _statsBarHtml + `
+    body.innerHTML = _bodyPrefixHtml + `
       <div class="empty-state">
         <div class="empty-state-icon">${_emptyIcon}</div>
         <div class="empty-state-title">${emptyTitle}</div>
@@ -317,13 +336,17 @@ export function _renderZonePanel(opts) {
     return;
   }
 
-  if (!body._zpDelegationAttached) {
-    body._zpDelegationAttached = true;
+  // TKT3 (REQ-202607-010): delegación de click de los chips (zp-type/zp-priority/zp-area) se
+  // adjunta a statsBarEl cuando existe — el stats-bar ya no vive dentro de body en ese caso.
+  // Sin statsBarId (qdisc), preserva el listener en body, comportamiento anterior exacto.
+  const _delegationTarget = statsBarEl || body;
+  if (!_delegationTarget._zpDelegationAttached) {
+    _delegationTarget._zpDelegationAttached = true;
     // REQ refactor-zonas TKT2: nsKey/opts ya identifican la zona por closure — sin necesidad de
     // inspeccionar el id del DOM ni de importar renderQBacklogPanel/renderQDiscPanel (habría
     // creado import circular con los módulos de zona concretos, que son quienes importan
     // _renderZonePanel desde aquí). Re-render = re-invocar _renderZonePanel con el mismo opts.
-    body.addEventListener('click', function _zpStatsClick(e) {
+    _delegationTarget.addEventListener('click', function _zpStatsClick(e) {
       const btn = e.target.closest('[data-zp-action]');
       if (!btn) return;
       if (btn.dataset.zpAction === 'zp-type') {
@@ -364,7 +387,7 @@ export function _renderZonePanel(opts) {
   });
 
   if (!filteredItems.length) {
-    body.innerHTML = _statsBarHtml + `
+    body.innerHTML = _bodyPrefixHtml + `
       <div class="empty-state">
         <div class="empty-state-icon">${_emptyIcon}</div>
         <div class="empty-state-title">${emptyTitle}</div>
@@ -411,7 +434,7 @@ export function _renderZonePanel(opts) {
   });
   html += '</div>';
 
-  body.innerHTML = _statsBarHtml + html;
+  body.innerHTML = _bodyPrefixHtml + html;
 
   // TKT self-heal-qbacklog: 1 sola escritura por pase de render, sin importar cuántos REQs se
   // corrigieron arriba — mismo criterio de batching que _renderVistaLista. No await — el DOM ya

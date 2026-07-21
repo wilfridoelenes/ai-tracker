@@ -1,4 +1,4 @@
-<!-- [PP] mod:148 · autor:Nova · 2026-07-21 UTC-6 -->
+<!-- [PP] mod:149 · autor:Nova · 2026-07-21 UTC-6 -->
 <!-- TKT1 (REQ CAEL-0720-02): #stats-bar + #filter-bar-status envueltos en #bl-header-unified
      — ver AC en TKT y CSS correspondiente en locus-backlog.css mod:111 (Nova). -->
 <!-- [PP] mod:146 · autor:Rune · 2026-07-19 UTC-6 -->
@@ -568,16 +568,22 @@
     </div><!-- /sspanel-backlog -->
 
     <!-- Sub-panel: Backlog (Q-Backlog) — REQ-C/TKT-C6 -->
-    <!-- TKT1 (REQ CAEL-0721-01, design_intent: QBacklog-header-unified-homologacion): wrapper
-         .bl-header-unified estático envolviendo el punto de inyección del stats-bar
-         (#qbacklog-panel-body) — mismo patrón sticky/borde/radius que #bl-header-unified
-         (Vista Lista, L507) y #historico-header-unified (locus-backlog-render.js). Sin fila de
-         toolbar propia: Q-Backlog no tiene buscador ni toggle de vistas, a diferencia de Backlog.
-         El stats-bar real lo sigue inyectando _renderZonePanel() (locus-backlog-zone-engine.js,
-         TKT2 del mismo REQ) dentro de #qbacklog-panel-body — sin cambio de contrato JS, solo de
-         wrapper visual. -->
+    <!-- TKT3 (REQ-202607-010, design_intent: QBacklog-header-unified-homologacion): estructura
+         corregida — .bl-header-unified envuelve SOLO el stats-bar (#qbacklog-stats-bar), sticky,
+         mismo patrón que #bl-header-unified (Vista Lista, L507). #qbacklog-panel-body vive FUERA
+         del sticky, como hermano, envuelto en .bl-zone-body — contenedor propio (fondo, bordes
+         laterales, radius inferior) que cierra visualmente el conjunto con el header de arriba,
+         mismo criterio que el boceto aprobado por founder (ver CHECKPOINT de esta sesión).
+         Reemplaza la estructura de TKT1 (mod:148), que envolvía #qbacklog-panel-body completo
+         dentro del sticky — bug: la lista entera quedaba pegada al hacer scroll en vez de solo
+         el header. El stats-bar real lo inyecta _renderZonePanel() vía opts.statsBarId
+         (locus-backlog-zone-engine.js TKT3 del mismo REQ) — sin cambio de contrato para qdisc,
+         que no declara statsBarId y no pasa por este wrapper. -->
     <div class="session-subpanel" id="sspanel-qbacklog">
       <div class="bl-header-unified" id="qbacklog-header-unified">
+        <div class="qinc-stats-bar" id="qbacklog-stats-bar"></div>
+      </div>
+      <div class="bl-zone-body" id="qbacklog-zone-body">
         <div id="qbacklog-panel-body"></div>
       </div>
       <div class="bl-done-group" id="qbacklog-done-group">

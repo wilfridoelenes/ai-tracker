@@ -1,4 +1,6 @@
-// [PP] mod:3 · autor:Rune · 2026-07-15 15:05 UTC-6
+// [PP] mod:4 · autor:Rune · 2026-07-21 UTC-6
+// TKT3 (REQ-202607-010): renderQBacklogPanel declara statsBarId:'qbacklog-stats-bar' —
+// habilita la separación de nodos en _renderZonePanel (locus-backlog-zone-engine.js mod:6).
 // Housekeeping (Excepción de resolución directa — dueño presente, nivel Patch, sin
 // bifurcación): eliminada línea muerta querySelectorAll('.tpl-nav-btn') — clase sin
 // referencias en el DOM desde la limpieza de locus-proyectos.css (REQ CAEL-01). No-op sin
@@ -21,9 +23,14 @@ import { _isQBacklogActive } from './locus-backlog-core.js';
 import { _renderZonePanel, _attachDoneGroupToggle } from './locus-backlog-zone-engine.js';
 
 // B-202606-052 → TKT-C1: renderQBacklogPanel — sub-tab Backlog (Q-Backlog: REQ/TKT).
+// TKT3 (REQ-202607-010, design_intent: QBacklog-header-unified-homologacion): statsBarId
+// declarado — el stats-bar se renderiza en #qbacklog-stats-bar (sticky, dentro de
+// .bl-header-unified, index.html) en vez de dentro de bodyId. bodyId queda con solo la
+// lista/empty-state, en su propio contenedor visual fuera del sticky.
 export function renderQBacklogPanel() {
   _renderZonePanel({
     bodyId: 'qbacklog-panel-body',
+    statsBarId: 'qbacklog-stats-bar',
     badgeId: 'tpl-badge-qbacklog',
     nsKey: 'qbacklog',
     isZone: _isQBacklogActive,
