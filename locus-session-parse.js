@@ -1,4 +1,12 @@
-// [PP] mod:130 · autor:Rune · 2026-07-18 UTC-6
+// [PP] mod:131 · autor:Rune · 2026-07-20 UTC-6
+// TKT (REQ CAEL-0720-22 · ref_id CAEL-0720-23 · módulo crítico, kill_criteria aprobado por
+//   founder): handlePaste/handleInput ganan _routeParse(id, ta) — si _splitCheckpointBlocks
+//   (ta.value).length > 1, delega a _processIngestBatch() en vez de parsePaste(id). Bloque único
+//   (0 o 1 bloque) preserva el path histórico exacto, incluido el reintento 150/300ms de
+//   handlePaste. Sin cambio de firma en ninguna de las dos funciones (contract_detail:
+//   signature_change: false) — cambio interno de sideEffects únicamente. no_incluye: no toca
+//   el botón/listener de #ingest-process-batch-btn (locus-sesiones.js) ni la lógica interna de
+//   _splitCheckpointBlocks/_processIngestBatch.
 // TKT4 (REQ CAEL-0718-01 · AC1): bloque de solo sprint_proposal en el modal batch ahora se
 //   marca skipped:{type:'sprint_proposal'} (distinto de 'invalid') — _processIngestBatch muestra
 //   aviso "se procesa en Tab Sprint" en vez de silenciarlo. AC2 verificado sin cambio de código:
@@ -1942,6 +1950,22 @@ function _updateIngestBlockCount() {
   el.textContent = n === 1 ? '1 bloque detectado' : `${n} bloques detectados`;
 }
 
+// TKT (REQ CAEL-0720-22 · ref_id CAEL-0720-23): _routeParse(id, ta) — punto único de decisión
+//   single vs batch, compartido por handlePaste y handleInput. Si _splitCheckpointBlocks(ta.value)
+//   detecta 2+ bloques ``` completos, delega a _processIngestBatch() — mismo camino que ya
+//   disparaba el botón manual #ingest-process-batch-btn, ahora también alcanzable desde paste/input
+//   sin acción adicional del founder (AC1/AC4 del TKT). Con 0 o 1 bloque, comportamiento histórico
+//   exacto vía parsePaste(id) — sin cambio (AC2/AC3). _processIngestBatch ya llama internamente a
+//   _updateIngestBlockCount indirectamente vía su propio flujo de UI — no se duplica la llamada
+//   aquí para el camino batch; el camino single conserva su _updateIngestBlockCount() explícito.
+function _routeParse(id, ta) {
+  if (ta && _splitCheckpointBlocks(ta.value).length > 1) {
+    _processIngestBatch();
+    return true;
+  }
+  return false;
+}
+
 export function handlePaste(id) {
   // Llamado desde onpaste — diferir para que el browser inserte el texto del clipboard.
   // B-202605-NNN: 150ms en lugar de 60ms — algunos browsers (Chrome) insertan
@@ -1957,6 +1981,8 @@ export function handlePaste(id) {
       _pasteRetry[id] = true;
       setTimeout(() => {
         delete _pasteRetry[id];
+        const _ta2 = document.getElementById('ingest-ta') /* CAEL-22 */;
+        if (_routeParse(id, _ta2)) return; // TKT CAEL-0720-23: 2+ bloques → batch, corta el path single
         parsePaste(id);
         _updateIngestBlockCount(); // TKT2 (REQ CAEL-01) AC1
         const ai = getAI(id);
@@ -1968,6 +1994,7 @@ export function handlePaste(id) {
       }, 150);
       return;
     }
+    if (_routeParse(id, ta)) return; // TKT CAEL-0720-23: 2+ bloques → batch, corta el path single
     parsePaste(id);
     _updateIngestBlockCount(); // TKT2 (REQ CAEL-01) AC1
     const ai = getAI(id);
@@ -1984,6 +2011,8 @@ export function handleInput(id) {
   // T-202606-032: guard _pasteInFlight eliminado — AC-4/AC-9.
   // _pasteRetry no bloquea handleInput — handlePaste y handleInput son eventos distintos.
   // parsePaste corre en cada keystroke; el auto-trigger solo se lanza cuando el parse es completo y válido.
+  const ta = document.getElementById('ingest-ta') /* CAEL-22 */;
+  if (_routeParse(id, ta)) return; // TKT CAEL-0720-23: 2+ bloques → batch, corta el path single
   parsePaste(id);
   _updateIngestBlockCount(); // TKT2 (REQ CAEL-01) AC2 — contador en vivo
 }

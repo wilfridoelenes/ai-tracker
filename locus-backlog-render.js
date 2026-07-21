@@ -1,4 +1,7 @@
-// [PP] mod:97 · autor:Rune · 2026-07-20 16:55 UTC-6
+// [PP] mod:98 · autor:Rune · 2026-07-20 17:20 UTC-6
+// TKT (REQ CAEL-0720-24 · Eliminar setItemParent()): función y comentario @deprecated
+// removidos (antes líneas 253-290) — ver nota inline reemplazante. Sin cambio de firma en
+// ninguna otra función exportada. contract_update: no.
 // TKT2 (REQ CAEL-0720-10): self-heal en _renderVistaLista revierte a solo TKT como hijo de
 // REQ — ya no concatena getIncidents(). Ver locus-backlog-core.js/locus-backlog-item.js.
 // TKT2 (REQ CAEL-0720-03 · Separar render de rama Reactiva a módulo propio): eliminados
@@ -250,44 +253,12 @@ export function toggleChildrenBlock(rCode) {
   if (arrow) arrow.textContent = _collapsedChildren.has(rCode) ? '▸' : '▾';
 }
 
-// R-202604-016: asignar parent a un T/B desde item-body
-// @deprecated (DISC-202607-015, TKT1 · 2026-07-20): sin ningún caller en locus-backlog-item.js,
-// locus-backlog-core.js ni locus-backlog-render.js — verificado por grep exhaustivo durante el
-// cierre del INC FINN-0720-01 (parentId exclusivo de TKT). Estructuralmente inerte para ítems
-// ITIL incluso si se invocara: opera solo sobre getItems(), que nunca contiene INC/PRB/KE/CHG
-// desde la separación ITEMS/INCIDENTS (mod:89 de module-contracts). No eliminada en este TKT —
-// eliminar una función exportada requiere confirmar ausencia de callers contra el repo completo
-// (locus-backlog-panel.js y otros módulos no adjuntos en esta sesión). Acción sugerida: adjuntar
-// el resto de módulos del proyecto para completar la eliminación en un TKT de seguimiento.
-export function setItemParent(code, parentCode) {
-  const item = getItems().find(i => i.code === code);
-  if (!item) return;
-  item.parentId = parentCode || null;
-  // T-[pendiente-ID]: parentId es el único campo canónico en JS (REQ-unify-parent TKT2).
-  // El bridge a item.parent introducido en el fix anterior (INC) se elimina — _toItemRow()
-  // ya no lee it.parent, lee exclusivamente it.parentId.
-  // B-[pendiente-ID]: heredar sprint del R padre al asignar parentId desde card expandido —
-  // _buildChildMap filtra hijos por sprintItems del grupo del R. Si el sprint del T no coincide
-  // con el del R, el hijo no aparece anidado aunque parentId esté correctamente asignado.
-  // Mismo comportamiento que mergeBacklogFromTG (_parentSprint) y applyPatchesFromTG (sprint patch en R).
-  if (parentCode) {
-    const parentItem = getItems().find(i => i.code === parentCode);
-    if (parentItem) {
-      // Propagar sprint del R padre — Q-Backlog se representa como '' (sin retrocompatibilidad
-      // con 'icebox', __BR-Execution §2). Consistente con _buildChildMap y herencia de B-202606-083.
-      item.sprint = parentItem.sprint || '';
-    }
-  }
-  _undoSnapshotItems();
-  saveBacklog();
-  _setBacklogModified();
-  // INC-[pendiente-ID]: mismo fix que setItemSprint — renderBacklogList() directo era ciego
-  // a qué panel disparó el cambio. shell:backlog-render-dirty refresca #backlog-list,
-  // qbacklog-panel-body o qdisc-panel-body según cuál esté activo.
-  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
-  renderStats();
-  showToast('success', parentCode ? `${code} vinculado a ${parentCode}` : `${code} desvinculado`);
-}
+// TKT (REQ CAEL-0720-24 · Eliminar setItemParent() — código muerto confirmado): función
+// setItemParent() removida — DISC-202607-015 cerrada. Verificado sin callers contra el repo
+// completo (grep exhaustivo, 60+ archivos): solo existían la definición aquí y el import en
+// locus-backlog-item.js (línea 309), ambos eliminados en este TKT. Estructuralmente inerte
+// desde antes (operaba solo sobre getItems(), que nunca contiene ITIL desde mod:89 de
+// module-contracts) — ver nota histórica en module-contracts mod:89 (INC FINN-0720-01).
 
 // TKT1 (REQ unificar renderer de #active-filter-chips): reducida a su función real —
 // visibilidad de #filter-clear-btn. El chip-render de #active-filter-chips (con cobertura
