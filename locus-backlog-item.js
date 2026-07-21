@@ -1,4 +1,8 @@
-// [PP] mod:122 · autor:Rune · 2026-07-20 17:20 UTC-6
+// [PP] mod:123 · autor:Rune · 2026-07-20 17:35 UTC-6
+// INC (sweep de gates ITIL en applyPatchesFromTG, triggered_by Propuesta de mejora #3 post-cierre
+// CAEL-0720-24): slaPriority/slaDeadline/resolutionType/comportamientoActual/originModule/
+// derivedItems gateados a INC/PRB/KE/CHG en el catch-all genérico — mismo criterio que ya
+// aplicaba a parentId (L3281+7) y priority (L3273+7). Sin cambio de firma. contract_update: no.
 // TKT (REQ CAEL-0720-24 · Eliminar setItemParent()): setItemParent retirado del import de
 // locus-backlog-render.js — función eliminada, sin caller. Resto del import intacto.
 // contract_update: no.
@@ -3278,6 +3282,18 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
       // type:patch con parentId sobre un INC/PRB/KE/CHG/DISC caía en el catch-all genérico de
       // abajo y lo aplicaba sin restricción de tipo — reabría el widen de mod:79 vía el
       // mecanismo oficial de actualización de ítems existentes.
+      // INC (sweep de gates ITIL en applyPatchesFromTG — triggered_by Propuesta de mejora #3,
+      // post-cierre CAEL-0720-24): slaPriority, slaDeadline, resolutionType, comportamientoActual,
+      // originModule y derivedItems son exclusivos de la rama Reactiva — mergeBacklogFromTG ya
+      // los gatea vía _isItilExisting (L2430), pero el catch-all genérico de esta función no
+      // distinguía tipo. Mismo patrón de gate incompleto que ya se cerró aquí mismo para parentId
+      // (L3281) y priority (L3273) — un patch con estos campos sobre REQ/TKT/DISC quedaba sin
+      // restricción. No-op silencioso, sin log — el campo simplemente no aplica a este tipo, no
+      // es un error del emisor (mismo criterio que el no-op de priority).
+      if (['slaPriority', 'slaDeadline', 'resolutionType', 'comportamientoActual', 'originModule', 'derivedItems'].includes(field)
+          && !['INC', 'PRB', 'KE', 'CHG'].includes(itemKind(existing))) {
+        return;
+      }
       if (field === 'parentId' && itemKind(existing) !== 'TKT') {
         if (incoming !== undefined && incoming !== null) {
           _blogLog('parentId-ignorado', code, 'parentId ignorado en patch: ' + (itemKind(existing) || 'tipo desconocido') + ' no puede tener parent — solo TKT (__BR-Ecosystem §5). parentId recibido: ' + incoming, 'backlog');
