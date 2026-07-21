@@ -1,4 +1,4 @@
-// [PP] mod:101 · autor:Rune · 2026-07-21 10:20 UTC-6
+// [PP] mod:102 · autor:Rune · 2026-07-21 16:10 UTC-6
 // Fix (founder, post-liberación REQ CAEL-0720-01): chips tc-INC/tc-DISC removidos de la
 // stats-bar de Histórico — universo real es solo REQ/TKT (INC/PRB/KE/CHG viven permanentemente
 // en Q-INC, DISC nunca tiene sprint — ninguno de los dos puede cumplir el criterio de
@@ -610,10 +610,11 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
 
   let html = '';
 
-  // TKT2 (REQ CAEL-0720-01): flag de batching — self-heal puede corregir REQs de varios sprints
-  // en este mismo pase (loop de sprintKeys más abajo); dispara como máximo 1 saveBacklog() al
-  // final del pase completo, nunca uno por REQ ni uno por sprint group (AC edge case batching).
-  let _reqSelfHealDirty = false;
+  // INC-[pendiente-ID] fix: self-heal de status de REQ removido de este loop — corre una
+  // sola vez, sobre el universo completo de ITEMS, en renderBacklogList() antes de calcular
+  // `filtered`/pendienteItems (ver bloque al inicio de esa función). Este loop ya solo lee
+  // item.status, corregido de antemano — evita que un REQ pase el filtro de status con su
+  // valor viejo y mute a un status fuera del filtro activo dentro de la misma pasada.
 
   // ── Sprint groups ─────────────────────────────────────────────────────────
   // TKT1 (REQ Histórico unificado): el bloque de render por grupo se movió a renderSprintGroup()
@@ -628,49 +629,6 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
     const _sprintObjForGate = _getSprintById(sprintId);
     const _alwaysShowHeader = _sprintObjForGate && (_sprintObjForGate.status === 'active' || _sprintObjForGate.status === 'scheduled');
     if ((!group || !group.length) && !_hasDoneInGroup && !_alwaysShowHeader) return;
-
-    // TKT2 (REQ CAEL-0720-01): self-healing de status de REQ — recalcula ANTES de que
-    // renderSprintGroup construya el HTML del grupo, para que la fila del REQ salga corregida
-    // en este mismo pase. Vive aquí (no en renderSprintGroup) a propósito — renderSprintGroup es
-    // compartida con locus-backlog-historico.js (contextPrefix:'hist') y el no_incluye del TKT
-    // excluye explícitamente cualquier vista que no sea _renderVistaLista. Solo recorre `group`
-    // (subset pendiente de este sprint) — un REQ done/historico nunca llega aquí, ya vive en
-    // doneVisible/historicoVisible más abajo, fuera de este loop.
-    // AC "estado excluido": guard explícito de done/bloqueado/descartado antes de invocar la
-    // función pura — no confía solo en que _computeRStatusFromChildren retorne null.
-    // AC de fuente de hijos (corregido — ver devolución de Rune a Cael en esta sesión): universo
-    // completo ITEMS+INCIDENTS por parentId, INCLUYE descartados — misma fuente y mismo criterio
-    // que _checkAndOrphanParentR (locus-backlog-item.js), no que _syncParentRStatus (que
-    // pre-filtra descartados y por eso nunca puede producir 'orphaned'). Necesario para que las
-    // 3 transiciones declaradas en la intención del REQ — incluida →orphaned — se recalculen aquí.
-    (group || []).forEach(item => {
-      if (itemKind(item) !== 'REQ') return;
-      if (item.status === 'done' || item.status === 'bloqueado' || item.status === 'descartado') return;
-
-      // TKT2 (REQ CAEL-0720-10): parent/parentId exclusivo de TKT (__BR-Ecosystem §5) —
-      // revierte el widen a INC (mod:87 de module-contracts, heredado de mod:79). Ya no
-      // concatena getIncidents() — un INC nunca cuenta como hijo de REQ en este recálculo.
-      const _childrenStatuses = getItems()
-        .filter(i => itemKind(i) === 'TKT' && i.parentId === item.code)
-        .map(i => i.status);
-
-      const _nextStatus = _computeRStatusFromChildren(item.status, _childrenStatuses);
-      if (!_nextStatus) return;
-
-      const _prevStatus = item.status;
-      let _reason, _label;
-      if (_nextStatus === 'orphaned') { _reason = 'auto-all-children-discarded'; _label = 'todos los hijos descartados'; }
-      else if (_nextStatus === 'en-revision') { _reason = 'auto-all-children-done'; _label = 'todos los hijos activos done'; }
-      else if (_prevStatus === 'en-revision') { _reason = 'auto-child-retroceded'; _label = 'hijo retrocedió de done'; }
-      else { _reason = 'auto-child-advanced'; _label = 'hijo activo avanzó'; }
-
-      item.status = _nextStatus;
-      item.statusChangedAt = Date.now();
-      if (!item.history) item.history = [];
-      item.history.push({ type: 'status', ts: item.statusChangedAt, data: { from: _prevStatus, to: _nextStatus, reason: 'render-selfheal' } });
-      _blogLog('status-auto →', item.code, _prevStatus + ' → ' + _nextStatus + ' (' + _label + ' — self-heal en render)', 'backlog');
-      _reqSelfHealDirty = true;
-    });
 
     const sprintObj = _getSprintById(sprintId);
     const isClosed  = sprintObj?.status === 'closed';
@@ -717,15 +675,10 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
     html += renderSprintGroup(_groupItems, isClosed);
   });
 
-  // TKT2 (REQ CAEL-0720-01): 1 sola escritura por pase de render, sin importar cuántos REQs se
-  // corrigieron arriba (AC edge case batching). No await — el render de #backlog-list ya terminó
-  // de construir `html` de forma síncrona con los status ya corregidos in-memory; la escritura a
-  // Supabase corre en paralelo sin bloquear el pintado. No dispara _markBacklogListDirty() ni
-  // renderBacklogList() de nuevo — sin loop de re-render (AC edge case). Guard anti-cascada
-  // realtime ya cubierto genéricamente por syncState.withSaveLock() dentro de saveBacklog()
-  // (locus-storage.js:1773) — verificado contra el código real, cubre cualquier caller sin
-  // necesidad de código adicional aquí (confirmación de la AC de guard, no gap).
-  if (_reqSelfHealDirty) saveBacklog();
+  // INC-[pendiente-ID] fix: saveBacklog() de self-heal ya no vive aquí — se dispara una sola
+  // vez en renderBacklogList() (ver bloque previo a `filtered`), donde ahora corre el self-heal
+  // sobre el universo completo. Guard anti-cascada realtime sigue cubierto genéricamente por
+  // syncState.withSaveLock() dentro de saveBacklog() (locus-storage.js:1773).
 
   // T-202606-090 AC-6 / TKT-C1: bloque "Icebox al final" eliminado de #backlog-list — los ítems
   // sin sprint (Q-Backlog/Q-DISC) se muestran en renderQBacklogPanel()/renderQDiscPanel() (sub-tabs).
@@ -963,6 +916,45 @@ export function renderBacklogList(onRendered) {
   }
 
   // TKT-202607-027: bloque de desvío a vista Kanban eliminado (T-202604-287 deprecado) — Vista Lista es el único modo
+
+  // INC-[pendiente-ID] fix: self-healing de status de REQ — recalcula sobre el universo
+  // COMPLETO de ITEMS (getItems(), sin filtrar por status todavía) y ANTES de construir
+  // `filtered`/pendienteItems más abajo. Antes vivía dentro de _renderVistaLista, aplicado
+  // solo sobre `group` (subconjunto ya filtrado por status) — un REQ podía pasar el filtro
+  // de status con su valor viejo y mutar a un status que ya no calza con el filtro activo
+  // en esta misma pasada, quedando fuera recién en la siguiente pasada (ej. al tocar la
+  // barra de filtros) → flicker aparece/desaparece del card. Mismo mecanismo, mismo orden
+  // que _renderZonePanel (locus-backlog-zone-engine.js:178-219, self-heal sobre zoneItems
+  // sin filtrar, antes de derivar activeZoneItems/doneZoneItems) — ese archivo ya lo hacía
+  // bien; este bloque alinea _renderVistaLista al mismo patrón. La construcción de HTML por
+  // sprint group más abajo ya no recalcula self-heal — solo lee item.status ya corregido.
+  let _reqSelfHealDirty = false;
+  getItems().forEach(item => {
+    if (itemKind(item) !== 'REQ') return;
+    if (item.status === 'done' || item.status === 'bloqueado' || item.status === 'descartado') return;
+
+    const _childrenStatuses = getItems()
+      .filter(i => itemKind(i) === 'TKT' && i.parentId === item.code)
+      .map(i => i.status);
+
+    const _nextStatus = _computeRStatusFromChildren(item.status, _childrenStatuses);
+    if (!_nextStatus) return;
+
+    const _prevStatus = item.status;
+    let _label;
+    if (_nextStatus === 'orphaned') { _label = 'todos los hijos descartados'; }
+    else if (_nextStatus === 'en-revision') { _label = 'todos los hijos activos done'; }
+    else if (_prevStatus === 'en-revision') { _label = 'hijo retrocedió de done'; }
+    else { _label = 'hijo activo avanzó'; }
+
+    item.status = _nextStatus;
+    item.statusChangedAt = Date.now();
+    if (!item.history) item.history = [];
+    item.history.push({ type: 'status', ts: item.statusChangedAt, data: { from: _prevStatus, to: _nextStatus, reason: 'render-selfheal' } });
+    _blogLog('status-auto →', item.code, _prevStatus + ' → ' + _nextStatus + ' (' + _label + ' — self-heal en render)', 'backlog');
+    _reqSelfHealDirty = true;
+  });
+  if (_reqSelfHealDirty) saveBacklog();
 
   // Filtrado por tipo + status + effort (T-071)
   // B-202604-193: excluir ítems históricos del plano activo — van a sección colapsada al fondo
