@@ -1,4 +1,4 @@
-/* [PP] mod:116 · autor:Nova · 2026-07-20 UTC-6 */
+/* [PP] mod:117 · autor:Rune · 2026-07-21 09:15 UTC-6 */
 /* TKT1 (REQ CAEL-0720-01, ref_id CAEL-0720-02): unifica el mecanismo de estado activo
    en .stat-type-chip / .stat-pri-chip / .stat-effort-card — border 1.5px + fondo con
    tinte + texto en el tono -text de su propia familia, sin cambiar color semántico.
@@ -822,6 +822,17 @@
 
 .stat-effort-card:hover {
   border-color: var(--accent);
+}
+
+/* Modifier estático — mismo criterio que .stat-type-chip--static/.stat-pri-chip--static
+   (T-202606-006). Usado en la fila de esfuerzo de Histórico (TKT2 CAEL-0720-01) —
+   el span no tiene data-action, sin hover de borde ni cursor pointer. */
+.stat-effort-card--static {
+  cursor: default;
+}
+
+.stat-effort-card--static:hover {
+  border-color: var(--border);
 }
 
 .stat-effort-card.active {

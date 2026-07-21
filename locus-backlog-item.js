@@ -1,4 +1,13 @@
-// [PP] mod:123 · autor:Rune · 2026-07-20 17:35 UTC-6
+// [PP] mod:124 · autor:Rune · 2026-07-20 18:10 UTC-6
+// TKT1 (REQ CAEL-0720-[pendiente-ID] · gap 3, corregido tras hallazgo de Rune en sesión): fix vive
+// en _normalizeRefIdValue (L2178, closure de mergeBacklogFromTG) — no en _assignPendingIds, que
+// nunca recibe el campo {ref_id,title} porque ya llega null/string desde aquí. unresolvedRefs nuevo
+// (variable de mergeBacklogFromTG, expuesta en el return) se puebla solo en la rama
+// ref-id-sin-declarante con {code, field, ref_id, title} — title incluido para que el resolver de
+// búsqueda de TKT2 prellene el input. ref-id-title-mismatch sigue bloqueo duro sin entrada — posible
+// integridad de dato falseada, no un "no encontrado". El literal [pendiente-ID] sin ref_id
+// (Sub-paso 2 de _assignPendingIds, L1922/1953, conservado sin log) queda fuera de scope — sin
+// title ni ref_id no hay nada que un buscador resuelva. contract_update: sí — ver CHECKPOINT.
 // INC (sweep de gates ITIL en applyPatchesFromTG, triggered_by Propuesta de mejora #3 post-cierre
 // CAEL-0720-24): slaPriority/slaDeadline/resolutionType/comportamientoActual/originModule/
 // derivedItems gateados a INC/PRB/KE/CHG en el catch-all genérico — mismo criterio que ya
@@ -2147,7 +2156,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs): slugMap: new Map() agregado al
   // resultado de items vacíos — sin esto, el orquestador de batch (_applyCheckpointBatch,
   // locus-session-save.js) pierde la cadena de seedSlugMap si un bloque del batch no trae ítems.
-  if (!tgItems || !tgItems.length) return { created:[], advanced:[], retroceso:[], discarded:[], updated:[], ignored:[], createdAndClosed:[], tmpSuggestions:[], invalidTransition:[], slugMap: (opts && opts.seedSlugMap instanceof Map) ? opts.seedSlugMap : new Map(), refIdTitleMap: new Map() }; // TKT1 (REQ-[pendiente-ID] · CAEL-04): refIdTitleMap vacío en el guard temprano — sin tgItems no hay refId que declarar, pero el campo debe existir siempre en el objeto de retorno para que los callers no necesiten un guard adicional de undefined
+  if (!tgItems || !tgItems.length) return { created:[], advanced:[], retroceso:[], discarded:[], updated:[], ignored:[], createdAndClosed:[], tmpSuggestions:[], invalidTransition:[], slugMap: (opts && opts.seedSlugMap instanceof Map) ? opts.seedSlugMap : new Map(), refIdTitleMap: new Map(), unresolvedRefs: [] }; // TKT1 (REQ-[pendiente-ID] · CAEL-04): refIdTitleMap vacío en el guard temprano — sin tgItems no hay refId que declarar, pero el campo debe existir siempre en el objeto de retorno para que los callers no necesiten un guard adicional de undefined. TKT1 (REQ CAEL-0720-[pendiente-ID] · gap 3): unresolvedRefs vacío por el mismo motivo — sin tgItems no hay ref-id-sin-declarante que registrar.
   const _dryRun   = !!(opts && opts.dryRun);
   const _ckptRol  = (opts && opts.ckptRol) || '';
 
@@ -2175,13 +2184,21 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // '[tmp:REF_ID]' solo si el title coincide exactamente con el declarante; si no coincide,
   // se bloquea con null + DocLog. Si el ref_id no tiene declarante en este tgItems, también
   // null + DocLog — mismo criterio que un [tmp:slug] sin item correspondiente.
-  function _normalizeRefIdValue(val, item, field) {
+  // TKT1 (REQ CAEL-0720-[pendiente-ID] · gap 3, corregido tras hallazgo de Rune): ref-id-sin-declarante
+  // ahora puebla unresolvedRefs con {field, ref_id, title} — es el único caso de esta función con
+  // suficiente información (title) para que el resolver de búsqueda de TKT2 prellene el input.
+  // ref-id-title-mismatch permanece bloqueo duro sin entrada — posible integridad de dato falseada,
+  // no un "no encontrado" resoluble por UI. El literal '[pendiente-ID]' sin ref_id (Sub-paso 2 de
+  // _assignPendingIds, líneas 1922/1953) queda fuera de scope de este TKT — no hay título ni ref_id
+  // que ofrecer, es ambigüedad irrecuperable, no un caso de UI.
+  function _normalizeRefIdValue(val, item, field, unresolvedRefs) {
     if (!val || typeof val !== 'object' || Array.isArray(val) || !val.ref_id) return val; // no es {ref_id,title} — dejar pasar tal cual
     const _declaredTitle = _refIdTitleMap.get(val.ref_id);
     if (_declaredTitle === undefined) {
       _blogLog('ref-id-sin-declarante', item.code || '[sin-código]',
         `ref_id ${val.ref_id} referenciado sin ítem declarante en este bloque — pegar el bloque completo.`,
         'backlog');
+      unresolvedRefs.push({ code: item.code || '[sin-código]', field, ref_id: val.ref_id, title: val.title || '' });
       return null;
     }
     if (_declaredTitle !== (val.title || '')) {
@@ -2193,13 +2210,18 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
     return `[tmp:${val.ref_id}]`;
   }
 
+  // TKT1 (REQ CAEL-0720-[pendiente-ID] · gap 3): unresolvedRefs vive a nivel de mergeBacklogFromTG —
+  // acumula entradas de ref-id-sin-declarante de todos los ítems del batch, se expone en el objeto
+  // de retorno (ver return final más abajo) para que el resolver de búsqueda de TKT2 lo consuma.
+  const unresolvedRefs = [];
+
   tgItems = tgItems.map(item => {
     _REF_OBJ_FIELDS.forEach(field => {
-      if (item[field] !== undefined) item[field] = _normalizeRefIdValue(item[field], item, field);
+      if (item[field] !== undefined) item[field] = _normalizeRefIdValue(item[field], item, field, unresolvedRefs);
     });
     _REF_OBJ_LISTS.forEach(field => {
       if (Array.isArray(item[field])) {
-        item[field] = item[field].map(v => _normalizeRefIdValue(v, item, field));
+        item[field] = item[field].map(v => _normalizeRefIdValue(v, item, field, unresolvedRefs));
       }
     });
     return item;
@@ -2739,7 +2761,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
     _updateSubtabBadges();
     if (getCurrentTab() === 'backlog') { _markBacklogListDirty(); renderBacklogList(); updateBacklogBanner(); }
   }
-  return { created, advanced, retroceso, discarded, updated, ignored, createdAndClosed, tmpSuggestions, invalidTransition, slugMap: _slugMap, refIdTitleMap: _refIdTitleMap }; // T-[pendiente-ID]: invalidTransition poblado pre-clasificación · B-202606-022: slugMap para resolución de [tmp:slug] en applyPatchesFromTG · TKT1 (REQ-[pendiente-ID] · CAEL-04): refIdTitleMap expuesto — ya se construía internamente (L2056) para normalizar parentId/triggeredBy/origenDisc/promovida_a/dependsOn, pero nunca salía de esta función. applyPatchesFromTG lo necesita para resolver patch.code cuando llega como {ref_id,title} o [tmp:REF_ID]
+  return { created, advanced, retroceso, discarded, updated, ignored, createdAndClosed, tmpSuggestions, invalidTransition, slugMap: _slugMap, refIdTitleMap: _refIdTitleMap, unresolvedRefs }; // T-[pendiente-ID]: invalidTransition poblado pre-clasificación · B-202606-022: slugMap para resolución de [tmp:slug] en applyPatchesFromTG · TKT1 (REQ-[pendiente-ID] · CAEL-04): refIdTitleMap expuesto — ya se construía internamente (L2056) para normalizar parentId/triggeredBy/origenDisc/promovida_a/dependsOn, pero nunca salía de esta función. applyPatchesFromTG lo necesita para resolver patch.code cuando llega como {ref_id,title} o [tmp:REF_ID] · TKT1 (REQ CAEL-0720-[pendiente-ID] · gap 3): unresolvedRefs expuesto — poblado en _normalizeRefIdValue con entradas ref-id-sin-declarante ({code, field, ref_id, title}), consumido por el resolver de búsqueda de TKT2
 }
 
 

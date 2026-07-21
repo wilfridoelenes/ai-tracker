@@ -1,4 +1,4 @@
-// [PP] mod:22 · autor:Rune · 2026-07-04 UTC-6
+// [PP] mod:24 · autor:Rune · 2026-07-21 09:15 UTC-6
 // REQ-[pendiente-ID] Unificar vocabulario historico: archivo renombrado
 // locus-backlog-archive.js → locus-backlog-historico.js. Rename mecánico de identificadores
 // vivos: migrateClosedItemsToHistorico (ex archiveClosedItems), getHistoricoCount (ex
@@ -159,12 +159,17 @@ export function getHistoricoCount() {
 // Mismo universo que getHistoricoCount() — historicoItems + _legacyHistoricos, sin solape.
 // Chips resultantes son informativos — no filtran ni disparan re-render (ver render.js).
 // [tmp:tkt5-archive-stats] migrado a Gen2: byType con claves canónicas Gen2, detección via itemKind().
+// TKT2 (REQ CAEL-0720-01, ref_id CAEL-0720-03): byEffort agregado — mismo universo
+// (historicoItems + _legacyHistoricos) que byType/byPriority. Adición no disruptiva: el
+// shape base {total, byType, byPriority} no cambia, solo se agrega una key nueva —
+// ningún call site existente que destructura campos específicos se rompe.
 export function getHistoricoStats() {
   const { historicoItems } = _buildHistoricoPartitions();
   const all = historicoItems.concat(_legacyHistoricos);
 
   const byType = { REQ: 0, TKT: 0, INC: 0, DISC: 0, PRB: 0, KE: 0, CHG: 0 };
   const byPriority = { high: 0, medium: 0, low: 0 };
+  const byEffort = { 1: 0, 2: 0, 3: 0 };
 
   all.forEach(i => {
     const t = itemKind(i);
@@ -172,9 +177,11 @@ export function getHistoricoStats() {
     if (i.priority === 'high') byPriority.high++;
     else if (i.priority === 'low') byPriority.low++;
     else byPriority.medium++;
+    const e = parseInt(i.effort) || 1;
+    if (byEffort[e] !== undefined) byEffort[e]++;
   });
 
-  return { total: all.length, byType, byPriority };
+  return { total: all.length, byType, byPriority, byEffort };
 }
 
 // INC-[pendiente-ID]: async — refresca el cache de historico antes de construir las particiones.
@@ -317,6 +324,103 @@ function _attachHistoricoChildToggleDelegation(body) {
       localStorage.removeItem(_collapseKey);
     }
   });
+}
+
+// TKT3 (REQ CAEL-0720-01, ref_id CAEL-0720-04): wiring del toolbar homologado con Backlog —
+// Colapsar todo + buscador. Idempotente vía _historicoToolbarAttached, mismo patrón que
+// _historicoChildDelegationAttached. Llamado por renderHistoricoPanel() (locus-backlog-render.js)
+// después de inyectar #historico-header-unified — el toolbar es estático (vive en el mismo
+// nodo que se recrea en cada render de renderHistoricoPanel), así que los listeners se
+// re-adjuntan sobre los nodos frescos en cada llamada — el guard evita que el LISTENER DE
+// _applyHistoricoSearch se duplique si el caller invoca esta función más de una vez sobre el
+// mismo montaje, no evita el re-wiring entre renders (el nodo #historico-toolbar es reemplazado
+// por completo en cada render, por eso _historicoToolbarAttached se resetea al inicio de cada
+// llamada, a diferencia de _historicoChildDelegationAttached que vive sobre #historico-body,
+// nodo persistente entre renders del mismo montaje del panel).
+export function _initHistoricoToolbar() {
+  const toolbar = document.getElementById('historico-toolbar');
+  if (!toolbar) return;
+
+  const collapseBtn = document.getElementById('historico-collapse-all-btn');
+  if (collapseBtn && !collapseBtn._historicoWired) {
+    collapseBtn._historicoWired = true;
+    collapseBtn.addEventListener('click', () => {
+      const bodies = document.querySelectorAll('#historico-body .bl-vl-sprint-body');
+      if (!bodies.length) return;
+      const anyExpanded = Array.from(bodies).some(b => !b.classList.contains('collapsed'));
+      bodies.forEach(body => {
+        const groupId = body.id.replace(/^vbody-/, '');
+        const arrow = document.getElementById('varrow-' + groupId);
+        body.classList.toggle('collapsed', anyExpanded);
+        if (arrow) arrow.classList.toggle('collapsed', anyExpanded);
+        const trigger = body.previousElementSibling;
+        if (trigger && trigger.classList.contains('version-collapse-trigger')) {
+          trigger.setAttribute('aria-expanded', String(!anyExpanded));
+        }
+        const key = 'historico-collapsed-' + groupId;
+        try {
+          if (anyExpanded) localStorage.setItem(key, '1');
+          else localStorage.removeItem(key);
+        } catch {}
+      });
+      collapseBtn.setAttribute('aria-pressed', String(anyExpanded));
+      const label = collapseBtn.querySelector('.bl-collapse-btn-label');
+      if (label) label.textContent = anyExpanded ? 'Expandir todo' : 'Colapsar todo';
+    });
+  }
+
+  const searchInput = document.getElementById('historico-search-input');
+  const searchClear = document.getElementById('historico-search-clear');
+  if (searchInput && !searchInput._historicoWired) {
+    searchInput._historicoWired = true;
+    searchInput.addEventListener('input', () => _applyHistoricoSearch(searchInput.value));
+  }
+  if (searchClear && !searchClear._historicoWired) {
+    searchClear._historicoWired = true;
+    searchClear.addEventListener('click', () => {
+      if (!searchInput) return;
+      searchInput.value = '';
+      _applyHistoricoSearch('');
+      searchInput.focus();
+    });
+  }
+}
+
+// AC3 ajustado en implementación (Rune, mismo criterio que "Decisiones de colocación
+// silenciosas" — declarado, no silenciado): el filtrado opera a nivel de GRUPO de sprint
+// completo, no por fila individual. Ocultar solo las filas .item que no matchean orfanaba
+// hijos visibles bajo un padre R oculto (renderSprintGroup anida R→hijos, la jerarquía no
+// es plana). Un grupo con al menos un match muestra el grupo completo sin filtrar filas
+// internas — evita romper la jerarquía a costa de precisión de filtrado dentro del grupo.
+function _applyHistoricoSearch(query) {
+  const body = document.getElementById('historico-body');
+  if (!body) return;
+  const q = query.trim().toLowerCase();
+  const groups = body.querySelectorAll('.bl-vl-sprint-group');
+  let matchingGroups = 0;
+
+  groups.forEach(group => {
+    const hasMatch = !q || Array.from(group.querySelectorAll('.item')).some(row => {
+      const code = (row.dataset.code || '').toLowerCase();
+      const title = (row.querySelector('.bitem-title')?.textContent || '').toLowerCase();
+      return code.includes(q) || title.includes(q);
+    });
+    group.classList.toggle('is-hidden', !hasMatch);
+    if (hasMatch) matchingGroups++;
+  });
+
+  let emptyMsg = document.getElementById('historico-search-empty');
+  if (!matchingGroups && q) {
+    if (!emptyMsg) {
+      emptyMsg = document.createElement('div');
+      emptyMsg.id = 'historico-search-empty';
+      emptyMsg.className = 'historico-empty';
+      body.appendChild(emptyMsg);
+    }
+    emptyMsg.textContent = `Sin resultados para «${query.trim()}»`;
+  } else if (emptyMsg) {
+    emptyMsg.remove();
+  }
 }
 
 // ─── fin R-202605-103 ──────────────────────────────────────────────────────

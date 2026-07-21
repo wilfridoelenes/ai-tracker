@@ -1,4 +1,4 @@
-// [PP] mod:98 · autor:Rune · 2026-07-20 17:20 UTC-6
+// [PP] mod:99 · autor:Rune · 2026-07-21 09:15 UTC-6
 // TKT (REQ CAEL-0720-24 · Eliminar setItemParent()): función y comentario @deprecated
 // removidos (antes líneas 253-290) — ver nota inline reemplazante. Sin cambio de firma en
 // ninguna otra función exportada. contract_update: no.
@@ -393,7 +393,7 @@ export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
   const _prefix    = contextPrefix ? contextPrefix + '-' : '';
   const groupId    = _prefix + 'vl-' + sprintId.toLowerCase().replace(/[^a-z0-9]/g, '-');
   const isCollapsed = contextPrefix
-    ? (() => { try { return localStorage.getItem('arch-collapsed-' + groupId) === '1'; } catch { return false; } })()
+    ? (() => { try { return localStorage.getItem('historico-collapsed-' + groupId) === '1'; } catch { return false; } })()
     : _getCollapsedVersions().has(groupId);
 
   // Progress — sobre sprintItems (ver nota de fidelidad en header del archivo: en el caso
@@ -1137,27 +1137,53 @@ export async function renderHistoricoPanel() {
   const count = getHistoricoCount();
   if (badge) badge.textContent = '';
 
-  // T-202606-006: stats-bar informativa — conteos por tipo y prioridad sobre el universo
-  // completo de Histórico (mismo criterio que getHistoricoCount). Chips sin
-  // interacción — <span>, sin data-action, sin role/tabindex, sin listener de delegación.
-  // Clases: .stats-bar/.stats-row reusadas de Backlog · .stat-type-chip--static /
-  // .stat-pri-chip--static entregadas por Nova (mod:48 de locus-backlog.css).
+  // TKT2 (REQ CAEL-0720-01, ref_id CAEL-0720-03): stats-bar de Histórico homologada con
+  // .bl-header-unified de Backlog — wrapper con borde/radius/sticky/background (locus-backlog.css
+  // mod:100+), fila de conteos en .stats-row--compact (chip Total migrado de .stat-card a
+  // .stat-compact-item), fila de esfuerzo agregada (byEffort, ver getHistoricoStats mod:23).
+  // Chips de tipo/prioridad/esfuerzo siguen siendo informativos — <span>, sin data-action, sin
+  // role/tabindex, sin listener de delegación (mismo criterio T-202606-006 ya vigente).
+  // Clases: .stat-type-chip--static / .stat-pri-chip--static ya existentes (mod:48) —
+  // ninguna clase CSS nueva requerida (TKT1 de Nova, CSS dependencies block: reuso puro).
   const _stats = getHistoricoStats();
   const _statsBarHtml = `
-    <div class="stats-bar" id="historico-stats-bar">
-      <div class="stats-row">
-        <div class="stat-card"><span class="stat-n">${_stats.total}</span><span class="stat-l">Total</span></div>
+    <div class="bl-header-unified" id="historico-header-unified">
+      <div class="stats-bar" id="historico-stats-bar">
+        <div class="stats-row stats-row--compact">
+          <div class="stat-compact-counts">
+            <div class="stat-compact-item">
+              <span class="stat-compact-n">${_stats.total}</span>
+              <span class="stat-compact-l">total</span>
+            </div>
+          </div>
+          <div class="stat-compact-sep"></div>
+          <span class="stat-type-chip stat-type-chip--static tc-REQ"><span class="tc-count">${_stats.byType.REQ || 0}</span><span class="tc-label">Req</span></span>
+          <span class="stat-type-chip stat-type-chip--static tc-TKT"><span class="tc-count">${_stats.byType.TKT || 0}</span><span class="tc-label">Ticket</span></span>
+          <span class="stat-type-chip stat-type-chip--static tc-INC"><span class="tc-count">${_stats.byType.INC || 0}</span><span class="tc-label">INC</span></span>
+          <span class="stat-type-chip stat-type-chip--static tc-DISC"><span class="tc-count">${_stats.byType.DISC || 0}</span><span class="tc-label">DISC</span></span>
+          <div class="stat-compact-sep"></div>
+          <span class="stat-pri-chip stat-pri-chip--static pri-high"><span class="spc-n">${_stats.byPriority.high}</span> Alto</span>
+          <span class="stat-pri-chip stat-pri-chip--static pri-medium"><span class="spc-n">${_stats.byPriority.medium}</span> Med</span>
+          <span class="stat-pri-chip stat-pri-chip--static pri-low"><span class="spc-n">${_stats.byPriority.low}</span> Bajo</span>
+          <div class="stat-compact-sep"></div>
+          <span class="stat-effort-card stat-effort-card--static"><span class="sec-count">${_stats.byEffort[1] || 0}</span><span class="eff-label">● simple</span></span>
+          <span class="stat-effort-card stat-effort-card--static"><span class="sec-count">${_stats.byEffort[2] || 0}</span><span class="eff-label">●● medio</span></span>
+          <span class="stat-effort-card stat-effort-card--static"><span class="sec-count">${_stats.byEffort[3] || 0}</span><span class="eff-label">●●● complejo</span></span>
+        </div>
       </div>
-      <div class="stats-row">
-        <span class="stat-type-chip stat-type-chip--static tc-REQ"><span class="tc-count">${_stats.byType.REQ || 0}</span><span class="tc-label">Req</span></span>
-        <span class="stat-type-chip stat-type-chip--static tc-TKT"><span class="tc-count">${_stats.byType.TKT || 0}</span><span class="tc-label">Ticket</span></span>
-        <span class="stat-type-chip stat-type-chip--static tc-INC"><span class="tc-count">${_stats.byType.INC || 0}</span><span class="tc-label">INC</span></span>
-        <span class="stat-type-chip stat-type-chip--static tc-DISC"><span class="tc-count">${_stats.byType.DISC || 0}</span><span class="tc-label">DISC</span></span>
-      </div>
-      <div class="stats-row">
-        <span class="stat-pri-chip stat-pri-chip--static pri-high"><span class="spc-n">${_stats.byPriority.high}</span> Alto</span>
-        <span class="stat-pri-chip stat-pri-chip--static pri-medium"><span class="spc-n">${_stats.byPriority.medium}</span> Med</span>
-        <span class="stat-pri-chip stat-pri-chip--static pri-low"><span class="spc-n">${_stats.byPriority.low}</span> Bajo</span>
+      <div class="bl-header-sep"></div>
+      <div class="bl-toolbar" id="historico-toolbar">
+        <div class="bl-toolbar-group">
+          <button class="bl-collapse-btn" id="historico-collapse-all-btn" title="Colapsar / expandir todos los sprints" aria-pressed="false">
+            <span class="bl-collapse-btn-icon">⊟</span>
+            <span class="bl-collapse-btn-label">Colapsar todo</span>
+          </button>
+        </div>
+        <div class="bl-toolbar-spacer"></div>
+        <div class="fbar-search-wrap">
+          <input class="fbar-search-input" id="historico-search-input" type="text" placeholder="🔍 Buscar en histórico…" autocomplete="off">
+          <button class="fbar-search-clear" id="historico-search-clear" title="Limpiar búsqueda">✕</button>
+        </div>
       </div>
     </div>`;
 
@@ -1178,6 +1204,7 @@ export async function renderHistoricoPanel() {
         <div class="empty-state-icon">🗄</div>
         <div class="empty-state-title">No hay sprints cerrados aún</div>
       </div>`;
+    _initHistoricoToolbar();
     return;
   }
 
@@ -1186,6 +1213,7 @@ export async function renderHistoricoPanel() {
   panel.appendChild(_listContainer);
   // Cache ya refrescado arriba — el await interno de renderHistoricoSection es no-op (Map ya poblado).
   await renderHistoricoSection(_listContainer);
+  _initHistoricoToolbar();
 }
 
 // TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): _initHistoricoSubTab eliminado —
