@@ -1,3 +1,14 @@
+// [PP] mod:61 · autor:Rune · 2026-07-20 21:40 UTC-6
+// TKT2 (REQ CAEL-0720-02 · fix sobre mod:60): bug reportado por Finn en auditoría —
+// _mdiffUnresolvedRemove no revertía target[field] cuando field es array (dependsOn), porque
+// buscaba la posición por entry.selectedCode, campo que _mdiffUnresolvedSelect nunca escribía
+// (quedaba undefined, findIndex nunca matcheaba el valor real recién insertado). Fix:
+// _mdiffUnresolvedSelect ahora guarda entry.selectedCode = selectedCode al mutar target[field]
+// (mismo objeto entry que diff.unresolvedRefs[uIdx] ya expone — sin campo nuevo en schema de
+// ítem, solo estado de trabajo del panel). _mdiffUnresolvedRemove limpia entry.selectedCode a
+// undefined tras revertir, para que un segundo ciclo select→remove no arrastre estado stale.
+// AC7 verificado de nuevo contra el caso array tras el fix. Sin cambio en el caso escalar
+// (ya funcionaba correctamente antes del fix). contract_update: no.
 // [PP] mod:60 · autor:Rune · 2026-07-20 21:15 UTC-6
 // TKT2 (REQ CAEL-0720-02 · AC1-7): resolver de búsqueda para diff.unresolvedRefs — sección
 // 'unresolved' insertada tras 'patches', markup literal de Nova (mod:71 de locus-backlog-item.css).
@@ -1222,8 +1233,8 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     const uIdx = btn.dataset.unresolvedIdx;
 
     const target = tgItems.find(i => i.code === code);
+    const entry = Array.isArray(diff.unresolvedRefs) ? diff.unresolvedRefs[uIdx] : null;
     if (target) {
-      const entry = Array.isArray(diff.unresolvedRefs) ? diff.unresolvedRefs[uIdx] : null;
       if (Array.isArray(target[field])) {
         const rawOld = entry ? (entry.rawValue || entry.ref_id) : undefined;
         const pos = target[field].findIndex(v => v === rawOld || (v && v.ref_id === rawOld));
@@ -1233,6 +1244,12 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         target[field] = selectedCode;
       }
     }
+    // Bug fix (Finn, auditoría TKT2): entry.selectedCode nunca se guardaba — _mdiffUnresolvedRemove
+    // no podía localizar la entrada mutada en target[field] cuando field es array, porque buscaba
+    // por entry.selectedCode (siempre undefined) en vez de por el valor recién escrito. Se guarda
+    // aquí, en la misma entry que unresolvedRefs ya expone — sin campo nuevo en el schema del ítem,
+    // solo en el objeto de trabajo en memoria del panel.
+    if (entry) entry.selectedCode = selectedCode;
 
     const row = btn.closest('.mdiff-unresolved-row');
     const wrap = row ? row.querySelector('.mdiff-unresolved-search-wrap') : null;
@@ -1263,6 +1280,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         target[field] = original;
       }
     }
+    if (entry) entry.selectedCode = undefined;
 
     const chip = btn.closest('.mdiff-unresolved-chip');
     if (chip) {
