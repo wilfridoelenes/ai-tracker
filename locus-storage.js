@@ -1,4 +1,4 @@
-// [PP] mod:131 · autor:Rune · 2026-07-20 UTC-6
+// [PP] mod:132 · autor:Rune · 2026-07-21 UTC-6
 // CAEL-0718-18 (TKT2 · REQ CAEL-0718-16): los 82 console.log/warn/error de código real
 // reemplazados por logger.debug/warn/error (locus-logger.js) — 6 menciones dentro de
 // comentarios preservadas sin tocar. console.log → logger.debug (gateable por flag),
@@ -1465,17 +1465,18 @@ function _filterValidIncidentsForUpsert(_rawIncidents) {
 //   · verificado_por → verified_by (naming DDL)
 //   · contract_update eliminado — columna no existe en DDL
 //   · updated_at: ISO string → BIGINT epoch ms (tipo DDL: BIGINT)
-function _toItemRow(it, { projId, userId, updatedAtMs }) {
+// CAEL-0721-01 (TKT1): _toItemColumns() extrae las columnas de CONTENIDO compartidas entre
+// _toItemRow() (saveBacklog) y saveHistoricoItems() — todo lo que no sea user_id/project_id/
+// status/updated_at, que cada caller inyecta según su propio contrato (status en particular:
+// _toItemRow lee it.status, saveHistoricoItems lo fuerza a 'historico'). Motivo: ambas funciones
+// mapeaban las mismas ~28 columnas a mano en paralelo y ya divergieron una vez — archived_at/
+// done_at existían aquí pero no en saveHistoricoItems() (INC-[pendiente-ID], gap documentado en
+// module-contracts §4 mod:44). Con este mapeador, un campo nuevo se agrega en un solo lugar.
+function _toItemColumns(it) {
   return {
-    // T-202606-026: user_id obligatorio en cada fila — RLS de tracker_items (T-202606-024)
-    // filtra por user_id = auth.uid(). _supabaseUser está garantizado no-null en este punto
-    // por el gate `if (!_supabase || !_supabaseUser) { ...; return; }` anterior en saveBacklog().
-    user_id:              userId,
-    project_id:           projId || null,
     code:                 it.code             || null,
     type:                 it.type             || null,
     title:                it.title            || null,
-    status:               it.status           || null,
     priority:             it.priority         || null,
     effort:               it.effort != null ? Number(it.effort) : null,
     area:                 it.area             || null,
@@ -1540,6 +1541,18 @@ function _toItemRow(it, { projId, userId, updatedAtMs }) {
     // pero se preserva por consistencia con el resto del mapeo.
     archived_at:          it.archivedAt != null ? it.archivedAt : null,
     done_at:              it.doneAt     != null ? it.doneAt     : null,
+  };
+}
+
+function _toItemRow(it, { projId, userId, updatedAtMs }) {
+  return {
+    // T-202606-026: user_id obligatorio en cada fila — RLS de tracker_items (T-202606-024)
+    // filtra por user_id = auth.uid(). _supabaseUser está garantizado no-null en este punto
+    // por el gate `if (!_supabase || !_supabaseUser) { ...; return; }` anterior en saveBacklog().
+    user_id:              userId,
+    project_id:           projId || null,
+    ..._toItemColumns(it),
+    status:               it.status           || null,
     // DDL: updated_at BIGINT (epoch ms) — no ISO string
     // updatedAtMs calculado una vez fuera de _toItemRow — todas las filas comparten el mismo valor (AC-3)
     updated_at:           updatedAtMs
@@ -2166,56 +2179,16 @@ export async function saveHistoricoItems(items) {
     const _updatedAtMs = Date.now();
     syncState.markEchoPending(_updatedAtMs);
 
-    // Mapear con el mismo DDL que saveBacklog()._toItemRow() — columnas exactas de tracker_items.
+    // CAEL-0721-01 (TKT1): mismo mapeador que saveBacklog()._toItemRow() — _toItemColumns()
+    // reemplaza el mapeo inline manual. Cierra el gap donde archived_at/done_at no se
+    // persistían para ítems archivados a histórico (ausentes en este mapeo, presentes en
+    // _toItemRow() — ver module-contracts §4 mod:44). status:'historico' y updated_at
+    // siguen siendo específicos de este caller, igual que antes.
     const rows = payload.map(it => ({
       user_id:               _supabaseUser.id,
       project_id:            projId || null,
-      code:                  it.code              || null,
-      type:                  it.type              || null,
-      title:                 it.title             || null,
+      ..._toItemColumns(it),
       status:                'historico',
-      priority:              it.priority          || null,
-      effort:                it.effort != null ? Number(it.effort) : null,
-      area:                  it.area              || null,
-      // TKT3 (REQ-202607-026): columna `sprint` legacy eliminada — mismo criterio que TKT2
-      // en _toItemRow(). sprint_id/sprint_name agregadas aquí por primera vez: estaban
-      // ausentes desde que TKT-202607-096 las introdujo en _toItemRow() sin replicar el
-      // cambio en este mapeo paralelo — los ítems archivados a histórico perdían
-      // sprint_id/sprint_name por completo. Mismo criterio `!== undefined` que _toItemRow
-      // — '' es valor legítimo (Q-Backlog) y no debe colapsar a null junto con undefined.
-      sprint_id:             it.sprint_id !== undefined ? it.sprint_id : null,
-      sprint_name:           it.sprint_name !== undefined ? it.sprint_name : null,
-      role:                  it.role              || null,
-      parent:                it.parentId          || null,
-      // INC triggered_by TKT-202607-063: leía it.depends_on — campo canónico en JS es dependsOn.
-      depends_on:            Array.isArray(it.dependsOn) ? it.dependsOn : [],
-      triggered_by:          it.triggered_by      || null,
-      no_incluye:            it.no_incluye        != null ? it.no_incluye : null,
-      kill_criteria:         it.kill_criteria     || null,
-      promovida_a:           it.promovida_a       || null,
-      origen_disc:           it.origenDisc        || null,
-      // INC-[pendiente-ID]: mismo fallback camelCase que _toItemRow() — ver nota ahí.
-      discard_reason:        it.discard_reason    || it.discardReason || null,
-      comportamiento_actual: it.comportamiento_actual || null,
-      origin_module:         it.origin_module     || null,
-      verified_by:           it.verificado_por    || null,
-      schema_version:        it.schema_version != null ? Number(it.schema_version) : 2,
-      ac:                    Array.isArray(it.ac) ? it.ac : [],
-      intencion:             it.intencion         || null,
-      // T-[pendiente-ID] (REQ-contract-rename, TKT5): contract_detail reemplaza a contract —
-      // mismo mapeo paralelo a _toItemRow() (TKT2), no unificado (deuda distinta, no_incluye).
-      contract_detail:       it.contract_detail   || null,
-      next_role:             it.nextRole          || null,
-      design_intent:         it.designIntent      || null,
-      blocked_at:            it.blockedAt         || null,
-      contract_update:       it.contract_update   || null,
-      archivos:              Array.isArray(it.archivos) ? it.archivos : null,
-      sla_priority:          it.sla_priority      || null,
-      sla_deadline:          it.slaDeadline       != null ? it.slaDeadline : null,
-      incident_status:       incIncidentStatus(it),
-      resolution_type:       incResolutionType(it),
-      derived_items:         Array.isArray(it.derived_items) ? it.derived_items : null,
-      queue:                 it.queue             || null,
       updated_at:            _updatedAtMs,
     }));
 

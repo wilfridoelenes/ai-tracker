@@ -1,4 +1,29 @@
-// [PP] mod:104 · autor:Rune · 2026-07-20 19:40 UTC-6
+// [PP] mod:109 · autor:Rune · 2026-07-21 UTC-6
+// TKT CAEL-0721-06 (REQ CAEL-0721-05, parcial — JS completo, CSS pendiente de Nova):
+// _sprintItemHtml() distingue REQ orphaned de pendiente real — nueva clase
+// spi-item--orphaned + badge con texto "Huérfano" (reusa spi-item-status--pendiente).
+// Chequeo vía item.status directo, independiente de _sprintItemBucket() (que sigue
+// colapsando orphaned→'pendiente' por diseño, sin cambio — ver nota mod:94 abajo).
+// [PP] mod:108 · autor:Rune · 2026-07-21 UTC-6
+// TKT-fast: eliminado import huérfano { render } de locus-sesiones.js — sin call site,
+// confirmado por grep antes de eliminar (hallazgo cerrado de TKT-202607-044).
+// [PP] mod:107 · autor:Rune · 2026-07-21 UTC-6
+// TKT-202607-044 (parcial — JS completo, CSS bloqueado): eliminado subsistema huérfano
+//   "sprint en curso" (setSprintCurrent, _syncCurrentBadges, listener sobre
+//   #sprint-manager-list — inexistente en index.html desde T-202606-036). Badge Activo/
+//   Pausado unificado a sprint-badge-active/sprint-badge-paused (sin .sml-badge). Import
+//   de _markStatusBarDirty eliminado (huérfano tras la limpieza). Bloqueo CSS: eliminar
+//   .sml-badge/.sml-badge--active/--closed/--scheduled/--current de locus-sprint.css —
+//   solo Nova escribe .css. Ver CHECKPOINT.
+// TKT-202607-043: HTML sin escapar en 4 puntos — _sprintItemHtml (item.code/item.title,
+//   texto + aria-label), _renderSprintWorkers (nombre de worker), _renderSprintScopeAdded
+//   (i.code/i.title), _renderConflictBanner (s.id/s.label/s.name). Los 4 ahora usan
+//   _escHtml() ya existente en el archivo — mismo patrón que el resto del módulo.
+// TKT-202607-042: showToast('error', ...) en _sppReorder tenía argumentos invertidos
+//   (mensaje como type, 'error' como title) — firma real es showToast(type, title).
+//   _spsFieldEdit(): showToast('success', 'Sprint actualizado.') se disparaba
+//   incondicional e inmediato sin esperar _upsertSprint() (async, no awaited) — en
+//   fallo el founder veía éxito seguido de error. Movido a .then(), .catch() intacto.
 // INC-[pendiente-ID] (fix — gate "mover ítems Q-Backlog" tras aprobar sprint_proposal):
 // _spnpHandlePanelClick() leía `created.id` sobre el retorno de
 // _tryIngestSprintProposalFromParsed() — esa función retorna un string (id corto del
@@ -122,8 +147,9 @@ import { _tryIngestSprintProposalFromParsed, parseCheckpoint } from './locus-ses
 import { _getActiveProjectFilter } from './locus-proj-core.js';
 import { showToast, toast } from './locus-toast.js';
 
-import { render } from './locus-sesiones.js';
-import { _markStatusBarDirty } from './locus-sesiones-stats.js';
+// TKT-202607-044: import de _markStatusBarDirty eliminado — único call site vivía en
+// setSprintCurrent(), eliminada en este mismo TKT (sin call site externo, ver comentario
+// en la sección de exposición pública, más abajo en este archivo).
 
 // ── Estado interno ──────────────────────────────────────────────────────────
 let _sprintTabActiveSprint = null;
@@ -196,12 +222,17 @@ function _sprintItemHtml(item) {
   const bucket    = _sprintItemBucket(item);
   const isDone    = bucket === 'done';
   const isBlocked = bucket === 'bloqueado';
+  // TKT CAEL-0721-06: orphaned se lee de item.status directamente — el bucket
+  // ya colapsa orphaned→'pendiente' por diseño (§4, visibilidad sin bloquear release),
+  // así que no es distinguible desde bucket. Chequeo independiente, sin tocar _sprintItemBucket().
+  const isOrphaned = item.status === 'orphaned';
   let cls = 'spi-item';
-  if (isBlocked) cls += ' spi-item--blocked';
-  if (isDone)    cls += ' spi-item--done';
+  if (isBlocked)  cls += ' spi-item--blocked';
+  if (isDone)     cls += ' spi-item--done';
+  if (isOrphaned) cls += ' spi-item--orphaned';
 
   const isEnRevision = bucket === 'en-revision';
-  const statusLabel = isDone ? 'Done' : isBlocked ? 'Bloqueado' : isEnRevision ? 'En revisión' : 'Pendiente';
+  const statusLabel = isDone ? 'Done' : isBlocked ? 'Bloqueado' : isEnRevision ? 'En revisión' : isOrphaned ? 'Huérfano' : 'Pendiente';
   const statusCls   = isDone ? 'spi-item-status--done' : isBlocked ? 'spi-item-status--blocked' : isEnRevision ? 'spi-item-status--en-revision' : 'spi-item-status--pendiente';
   const blockedIcon = isBlocked ? `<span class="spi-item-blocked-icon" aria-hidden="true">⚠</span>` : '';
 
@@ -215,10 +246,13 @@ function _sprintItemHtml(item) {
     }
   }
 
-  return `<div class="${cls}" tabindex="0" role="button" aria-label="${item.code}: ${item.title}" data-item-code="${item.code}">
+  // TKT-202607-043: item.code/item.title sin escapar — texto y aria-label. Único
+  // renderer de ítem del board (todas las secciones) sin _escHtml(), pese a ser la
+  // convención ya usada por el resto del archivo (_renderSpsActivo, _renderSpsProgramados, etc).
+  return `<div class="${cls}" tabindex="0" role="button" aria-label="${_escHtml(item.code)}: ${_escHtml(item.title || '')}" data-item-code="${_escHtml(item.code)}">
   ${blockedIcon}
-  <span class="spi-item-code">${item.code}</span>
-  <span class="spi-item-title">${item.title || ''}</span>
+  <span class="spi-item-code">${_escHtml(item.code)}</span>
+  <span class="spi-item-title">${_escHtml(item.title || '')}</span>
   ${childrenHtml}
   <span class="spi-item-status ${statusCls}">${statusLabel}</span>
 </div>`;
@@ -631,19 +665,19 @@ function _spsFieldEdit(el, sprintId, field, onDone, opts) {
         } else {
           sp[field] = newVal;
         }
-        try {
-          // B-202606-XXX: save() persiste `state` — los sprints viven en tracker_sprints
-          // desde T-202606-005 y no se sincronizan vía save(). Usar _upsertSprint().
-          // QA: _getActiveProjectFilter() puede ser '' en vista "todos" — usar el proyecto
-          // dueño del sprint primero, mismo patrón que setSprintStatus en locus-backlog-sprints.js.
-          const _projId = sp.projId || sp.projectId || _getActiveProjectFilter();
-          _upsertSprint(sp, _projId).catch(function(err) {
-            showToast('error', 'Error al guardar. Intenta de nuevo.');
-          });
+        // TKT-202607-042: showToast('success', ...) se disparaba de forma incondicional
+        // e inmediata, sin esperar la resolución de _upsertSprint() (async, no awaited) —
+        // en fallo el founder veía "Sprint actualizado" seguido del toast de error.
+        // save() persiste `state` — los sprints viven en tracker_sprints desde T-202606-005
+        // y no se sincronizan vía save(). Usar _upsertSprint().
+        // QA: _getActiveProjectFilter() puede ser '' en vista "todos" — usar el proyecto
+        // dueño del sprint primero, mismo patrón que setSprintStatus en locus-backlog-sprints.js.
+        const _projId = sp.projId || sp.projectId || _getActiveProjectFilter();
+        _upsertSprint(sp, _projId).then(function() {
           showToast('success', 'Sprint actualizado.');
-        } catch (err) {
+        }).catch(function(err) {
           showToast('error', 'Error al guardar. Intenta de nuevo.');
-        }
+        });
       }
     }
     onDone();
@@ -783,7 +817,7 @@ function _renderSpsActivo() {
       '<div class="sps-card-header">' +
         '<span class="sps-card-id font-mono">' + _escHtml(id) + '</span>' +
         '<span class="sps-card-title sps-meta-editable" tabindex="0" title="Click para editar título">' + _escHtml(label) + '</span>' +
-        '<span class="sml-badge sprint-badge-active">Activo</span>' +
+        '<span class="sprint-badge-active">Activo</span>' +
         '<div class="sps-menu-wrap">' +
           '<button class="sps-btn-menu" type="button" aria-label="Acciones del sprint activo" aria-expanded="false" aria-haspopup="true" data-sps-activo-menu>···</button>' +
           '<div class="sps-dropdown" role="menu" aria-label="Acciones sprint activo" hidden>' +
@@ -1184,7 +1218,7 @@ function _sppReorder(draggedId, targetId) {
   try {
     save();
   } catch (err) {
-    showToast('Error al guardar el orden. Intenta de nuevo.', 'error');
+    showToast('error', 'Error al guardar el orden. Intenta de nuevo.');
   }
 
   _renderSpsProgramados();
@@ -1377,7 +1411,8 @@ function _renderSprintWorkers(sprint) {
   if (workers.length === 0) {
     body.innerHTML = '<span class="spw-empty">Sin workers vinculados</span>';
   } else {
-    body.innerHTML = workers.map(w => `<span class="spw-pill">${w}</span>`).join('');
+    // TKT-202607-043: nombre del worker sin escapar antes de este fix.
+    body.innerHTML = workers.map(w => `<span class="spw-pill">${_escHtml(w)}</span>`).join('');
   }
 
   section.classList.remove('is-hidden');
@@ -1406,6 +1441,8 @@ function _renderSprintScopeAdded(sprint) {
     return;
   }
 
+  // TKT-202607-043: i.code/i.title sin escapar antes de este fix. i.type no se toca
+  // (alimenta una clase CSS, enum controlado REQ/TKT/INC/DISC — fuera del AC declarado).
   body.innerHTML = scopeItems.map(i => {
     const typeKey = (i.type || 'T').toLowerCase();
     const dateStr = i.scopeAddedAt
@@ -1413,8 +1450,8 @@ function _renderSprintScopeAdded(sprint) {
       : '';
     return `<div class="sca-item">
   <span class="sca-item-type sca-item-type--${typeKey}">${i.type || 'T'}</span>
-  <span class="sca-item-code">${i.code}</span>
-  <span class="sca-item-title">${i.title || ''}</span>
+  <span class="sca-item-code">${_escHtml(i.code)}</span>
+  <span class="sca-item-title">${_escHtml(i.title || '')}</span>
   ${dateStr ? `<span class="sca-item-date">${dateStr}</span>` : ''}
 </div>`;
   }).join('');
@@ -1619,7 +1656,13 @@ function _renderConflictBanner() {
     const d = new Date(ts);
     return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
   }
-  const items = conflicts.map(s => `${s.label ? `${s.id} · ${s.label}` : (s.name || s.id)} · abierto ${_fmtDate(s.startedAt)}`).join('<br>');
+  // TKT-202607-043: s.label/s.name/s.id sin escapar antes de este fix — mismos campos
+  // que _renderSpsActivo/_renderSpsProgramados/_renderSpsCerrados sí escapan. '<br>' es
+  // separador estructural entre conflictos, no se escapa.
+  const items = conflicts.map(s => {
+    const label = s.label ? `${_escHtml(s.id)} · ${_escHtml(s.label)}` : _escHtml(s.name || s.id);
+    return `${label} · abierto ${_fmtDate(s.startedAt)}`;
+  }).join('<br>');
   const count = conflicts.length;
   banner.innerHTML = `
     <span class="sprint-conflict-icon">⚠</span>
@@ -1930,7 +1973,7 @@ function _renderSpsPausados() {
       '<div class="sps-card sps-card--paused" data-sprint-id="' + _escHtml(s.id || '') + '">' +
         '<div class="sps-header">' +
           '<span class="sps-title">' + _escHtml(title) + '</span>' +
-          '<span class="sml-badge sml-badge--paused">PAUSADO</span>' +
+          '<span class="sprint-badge-paused">PAUSADO</span>' +
           blockedBadgeHtml +
           stalenessHtml +
         '</div>' +
@@ -2197,33 +2240,12 @@ function _spsCerradosToggle(sprintId) {
 // ── T-202605-046: Listeners — spt-tab buttons ─────────────────────────────
 // Migrado desde index.html — reemplaza onclick inline en .spt-tab. Listener de
 // #btn-close-sprint eliminado (B-202606-024) — el elemento fue removido del HTML en T-202606-042
+// TKT-202607-044: bloque de #sprint-manager-list (Ver retro / Marcar en curso, T-202605-050/
+// T-202605-134) eliminado — el contenedor no existe en index.html desde el rediseño
+// T-202606-036, que lo reemplazó por #sps-activo/#sps-programados/#sps-pausados/#sps-cerrados
+// sin migrar ni retirar este listener. Ver retro sigue disponible vía _spsCerradosHandleClick.
 
 document.addEventListener('DOMContentLoaded', function() {
-  // B-202605-050: listener único para botones Ver retro en #sprint-manager-list
-  // Registrado una sola vez aquí — no dentro de _renderSprintManager() que se llama en cada render
-  const smlContainer = document.getElementById('sprint-manager-list');
-  if (smlContainer) {
-    smlContainer.addEventListener('click', function(e) {
-      // B-202605-050: Ver retro
-      const retroBtn = e.target.closest('.sml-retro-btn');
-      if (retroBtn) {
-        const sprintId = retroBtn.dataset.sprintId;
-        if (sprintId) {
-          openSprintRetroView(sprintId);
-        }
-        return;
-      }
-
-      // T-202605-134: Marcar / desmarcar sprint en curso
-      const currentBtn = e.target.closest('.sml-current-btn');
-      if (currentBtn) {
-        const sprintId = currentBtn.dataset.sprintSetCurrent;
-        if (sprintId) setSprintCurrent(sprintId);
-        return;
-      }
-    });
-  }
-
   // Sub-tabs sprint: Ítems / Planificar / Sprints — T-202606-029
   ['items', 'planificar', 'sprints'].forEach(function(subtab) {
     const btn = document.getElementById('spt-tab-' + subtab);
@@ -2285,104 +2307,13 @@ document.addEventListener('DOMContentLoaded', function() {
   // B-202606-064: listeners de botón 'Aprobar apertura' y modal eliminados
 });
 
-// ── T-202605-107: setSprintCurrent — marcar / desmarcar sprint en curso ────────
-
-/**
- * Marca o desmarca un sprint abierto como "en curso" (current: true).
- *
- * Comportamiento:
- *  - Si sprintId NO es current → lo marca current: true y desmarca cualquier otro.
- *  - Si sprintId YA es current → lo desmarca (current: false). Ninguno queda como current.
- *
- * Actualiza el DOM inmediatamente (sin reload) y persiste via save().
- *
- * Accesible desde inline handlers HTML: window.setSprintCurrent(sprintId)
- *
- * @param {string} sprintId
- */
-export function setSprintCurrent(sprintId) {
-  if (!sprintId) return;
-
-  const allSprints = getActiveSprints();
-  if (!allSprints || !allSprints.length) return;
-
-  // Proyecto activo — todos los sprints comparten el mismo projId
-  const targetSprint = allSprints.find(s => s.id === sprintId);
-  if (!targetSprint) return;
-
-  // B-202605-056: guard — solo sprints activos pueden marcarse como current
-  if (targetSprint.status !== 'active') {
-    console.warn(`[setSprintCurrent] sprint ${sprintId} no es active (status: ${targetSprint.status}) — operación ignorada`);
-    return;
-  }
-
-  const projId      = targetSprint.projId || targetSprint.projectId || null;
-  const isAlready   = !!targetSprint.current;
-  const nextCurrent = !isAlready; // toggle
-
-  // Mutar modelo — solo sprints del mismo proyecto
-  allSprints.forEach(s => {
-    const sameProj = projId
-      ? (s.projId === projId || s.projectId === projId)
-      : true; // sin projId → afectar todos (fallback seguro)
-    if (!sameProj) return;
-    s.current = (s.id === sprintId) ? nextCurrent : false;
-  });
-
-  // Persistir
-  save();
-
-  // T-202605-150: sincronizar status bar al cambiar sprint en curso
-  _markStatusBarDirty();
-
-  // T-202605-142: sincronizar header y burndown del tab Sprint en tiempo real
-  renderSprintTab();
-
-  // Actualizar DOM — sin reload
-  // T-202605-148: pasar projId para que _syncCurrentBadges filtre solo sprints del proyecto objetivo
-  _syncCurrentBadges(allSprints, projId);
-}
-
-/**
- * Sincroniza badges y botones de current en el DOM según el estado del modelo.
- * Opera sobre elementos con data-sprint-id en el tab Sprint.
- *
- * T-202605-148: acepta projId opcional — cuando se provee, opera únicamente sobre
- * los sprints del proyecto objetivo. Evita mutar badges de sprints de otros proyectos
- * cuando allSprints contiene sprints multi-proyecto y projId es null en el modelo.
- *
- * @param {Array}       sprints — array ya mutado
- * @param {string|null} projId  — proyecto objetivo; null → sin filtro (comportamiento original)
- */
-function _syncCurrentBadges(sprints, projId) {
-  // T-202605-148: filtrar al proyecto objetivo cuando projId está disponible
-  const targets = projId
-    ? sprints.filter(s => (s.projId === projId || s.projectId === projId))
-    : sprints;
-
-  targets.forEach(s => {
-    // Badge — elemento con data-sprint-current-badge="[sprintId]"
-    const badge = document.querySelector(`[data-sprint-current-badge="${s.id}"]`);
-    if (badge) {
-      badge.classList.toggle('is-hidden', !s.current);
-    }
-
-    // Botón — elemento con data-sprint-set-current="[sprintId]"
-    const btn = document.querySelector(`[data-sprint-set-current="${s.id}"]`);
-    if (btn) {
-      btn.classList.toggle('is-hidden', !!s.current);
-      btn.classList.toggle('is-current', !!s.current);
-      btn.setAttribute('aria-pressed', String(!!s.current));
-      btn.title = s.current ? 'Desmarcar sprint en curso' : 'Marcar como sprint en curso';
-    }
-  });
-}
-
-// ── END T-202605-107 ────────────────────────────────────────────────────────
+// TKT-202607-044: setSprintCurrent()/_syncCurrentBadges() (T-202605-107) eliminadas —
+// dependían de #sprint-manager-list (T-202605-050), inexistente en index.html desde el
+// rediseño T-202606-036. Sin call site externo a este archivo (confirmado por grep contra
+// los 52 módulos JS del proyecto — locus-backlog-sprints.js solo las menciona en comentario,
+// no las invoca). El import de _markStatusBarDirty pierde su único call site y se elimina.
 
 // ── Exposición pública ──────────────────────────────────────────────────────
-
-// B-202606-024: window._sptSwitch · window.setSprintCurrent eliminados — no hay consumidores en HTML ni window.*
 
 // ── B-202605-019: Listeners — sprint management panel (_spm*) ───────────────
 document.addEventListener('DOMContentLoaded', function () {
