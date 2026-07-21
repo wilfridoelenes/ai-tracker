@@ -1,3 +1,18 @@
+// [PP] mod:60 · autor:Rune · 2026-07-20 21:15 UTC-6
+// TKT2 (REQ CAEL-0720-02 · AC1-7): resolver de búsqueda para diff.unresolvedRefs — sección
+// 'unresolved' insertada tras 'patches', markup literal de Nova (mod:71 de locus-backlog-item.css).
+// _mdiffUnresolvedFilter: filtro código-prefijo + título-substring, case-insensitive, unión sin
+// duplicados, orden exacto→prefijo→título, máx 8 resultados, flip-to-fit via getBoundingClientRect
+// (mismo mecanismo que .sps-dropdown--flip). _mdiffUnresolvedSelect: muta tgItems[code][field] en
+// memoria — si field es array, reemplaza la entrada no-resuelta in-place (no push nuevo); reemplaza
+// el shell de búsqueda por el chip. _mdiffUnresolvedRemove: revierte a rawValue/ref_id original,
+// restaura el shell vacío. Ninguna de las tres persiste por separado — viajan con tgItems hacia el
+// mismo flujo de 'Inyectar en shell' ya existente (AC6). Sin cierre-al-click-afuera — no está en AC,
+// no agregado. Tres variables de módulo (_mdiffUnresolvedFilter/Select/Remove) siguiendo el patrón
+// ya establecido de _mdiffToggleSection/_mdiffJumpTo — limpiadas a null en los tres puntos de cierre
+// del panel (antes solo dos tenían _mdiffJumpTo/_mdiffSetItemSprint, el tercero — cancelar sin
+// aplicar — también corregido). contract_update: no — ninguna función exportada cambia de firma;
+// las tres nuevas son internas, no exportadas.
 // [PP] mod:59 · autor:Rune · 2026-07-20 15:55 UTC-6
 // TKT1 (REQ CAEL-0720-01) — corrección sobre mod:58: Finn devolvió bug menor en auditoría —
 //   mdiff-card--patch violaba no_incluye ("no introduce CSS nuevo") al ser una clase no
@@ -172,6 +187,11 @@ let _mdiffToggleSection = null;
 let _mdiffJumpTo = null;
 let _mdiffSetItemSprint = null;
 let _mdiffUpdateConfirmBtn = null;
+// TKT2 (REQ CAEL-0720-02): resolver de búsqueda para diff.unresolvedRefs — mismo patrón
+// de closure asignado/limpiado que el resto de _mdiff*.
+let _mdiffUnresolvedFilter = null;
+let _mdiffUnresolvedSelect = null;
+let _mdiffUnresolvedRemove = null;
 
 // T-202606-006: true mientras el DIFF está abierto — consultable por otros módulos vía getter.
 // Se pone true al hacer overlay.classList.add('open') y false en todos los cierres del DIFF.
@@ -719,6 +739,32 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     sectionsHtml += _section('patches', 'accent', `✎ Cambios directos (patch) <span class="mdiff-sec-count">${_patchItems.length}</span>`, rows);
   }
 
+  // TKT2 (REQ CAEL-0720-02, AC de coherencia): resolver de búsqueda para diff.unresolvedRefs —
+  // consumido desde el único punto de entrada expuesto por mergeBacklogFromTG (locus-backlog-item.js
+  // L2801). Cubre las tres fuentes que unresolvedRefs puede contener: ref-id-sin-declarante
+  // ({code, field, ref_id, title} — _normalizeRefIdValue), tmp-slug-no-resoluble y ref-no-resuelta
+  // ({code, field, rawValue, source} — _assignPendingIds, escalar y dependsOn). Markup literal
+  // entregado por Nova (turno anterior) — sin modificar estructura. Filtrado/selección se resuelve
+  // en runtime (ver _mdiffUnresolvedFilter/_mdiffUnresolvedSelect más abajo) — este bloque solo
+  // construye el shell inicial por entrada.
+  if (Array.isArray(diff.unresolvedRefs) && diff.unresolvedRefs.length) {
+    const rows = diff.unresolvedRefs.map((u, uIdx) => {
+      const _label = u.field;
+      const _prefill = u.title || '';
+      return `<div class="mdiff-unresolved-row" data-unresolved-idx="${uIdx}">
+        <span class="mdiff-unresolved-label">${esc(_label)}</span>
+        <div class="mdiff-unresolved-search-wrap">
+          <input type="text" class="bl-search-input" data-action="mdiff-unresolved-search"
+            data-code="${esc(u.code)}" data-field="${esc(u.field)}" data-unresolved-idx="${uIdx}"
+            aria-label="Buscar ítem para ${esc(_label)}"
+            placeholder="Buscar por código o título…" value="${esc(_prefill)}">
+          <div class="sps-dropdown mdiff-unresolved-dropdown" role="menu" hidden></div>
+        </div>
+      </div>`;
+    }).join('');
+    sectionsHtml += _section('unresolved', 'warn', `🔍 Referencias sin resolver <span class="mdiff-sec-count">${diff.unresolvedRefs.length}</span>`, rows);
+  }
+
   // ── Inyectar en shell ──
   const overlay = document.getElementById('merge-diff-overlay');
   if (!overlay) return;
@@ -1122,6 +1168,114 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  // TKT2 (REQ CAEL-0720-02, AC1-2): filtro del resolver — código con prefijo case-insensitive
+  // o substring de título case-insensitive, unión sin duplicados. Orden: código exacto, luego
+  // prefijo de código, luego substring de título. Máximo 8 resultados (AC2).
+  _mdiffUnresolvedFilter = function(inputEl) {
+    const q = (inputEl.value || '').trim().toLowerCase();
+    const wrap = inputEl.closest('.mdiff-unresolved-search-wrap');
+    const dropdown = wrap ? wrap.querySelector('.mdiff-unresolved-dropdown') : null;
+    if (!dropdown) return;
+    if (!q) { dropdown.setAttribute('hidden', ''); dropdown.innerHTML = ''; return; }
+
+    const all = getItems();
+    const exact = [], prefixMatch = [], titleMatch = [];
+    const seen = new Set();
+    for (const it of all) {
+      const codeL = String(it.code || '').toLowerCase();
+      const titleL = String(it.title || '').toLowerCase();
+      if (seen.has(it.code)) continue;
+      if (codeL === q) { exact.push(it); seen.add(it.code); }
+      else if (codeL.startsWith(q)) { prefixMatch.push(it); seen.add(it.code); }
+      else if (titleL.includes(q)) { titleMatch.push(it); seen.add(it.code); }
+    }
+    const results = [...exact, ...prefixMatch, ...titleMatch].slice(0, 8);
+
+    const code = inputEl.dataset.code;
+    const field = inputEl.dataset.field;
+    const uIdx = inputEl.dataset.unresolvedIdx;
+
+    if (!results.length) {
+      dropdown.innerHTML = `<div class="mdiff-unresolved-empty">Sin coincidencias — pega el código exacto</div>`;
+    } else {
+      dropdown.innerHTML = results.map(r => `<button type="button" class="sps-dropdown-item" role="menuitem"
+        data-action="mdiff-unresolved-select" data-code="${esc(code)}" data-field="${esc(field)}"
+        data-unresolved-idx="${esc(uIdx)}" data-selected-code="${esc(r.code)}">${esc(r.code)} · ${esc(r.title || '')}</button>`).join('');
+    }
+    dropdown.removeAttribute('hidden');
+
+    // Flip-to-fit — mismo mecanismo que .sps-dropdown--flip (ux-ref §E-10): medir espacio
+    // disponible antes de decidir orientación.
+    const rect = wrap.getBoundingClientRect();
+    const dropdownHeight = dropdown.scrollHeight || 240;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    dropdown.classList.toggle('mdiff-unresolved-dropdown--flip', spaceBelow < dropdownHeight && rect.top > dropdownHeight);
+  };
+
+  // TKT2 (REQ CAEL-0720-02, AC4-6): selección — muta tgItems en memoria, reemplaza el shell
+  // de búsqueda por el chip. Si field es array (dependsOn), reemplaza la entrada no-resuelta
+  // dentro del array por el código seleccionado — no agrega entrada nueva (AC4).
+  _mdiffUnresolvedSelect = function(btn) {
+    const code = btn.dataset.code;
+    const field = btn.dataset.field;
+    const selectedCode = btn.dataset.selectedCode;
+    const uIdx = btn.dataset.unresolvedIdx;
+
+    const target = tgItems.find(i => i.code === code);
+    if (target) {
+      const entry = Array.isArray(diff.unresolvedRefs) ? diff.unresolvedRefs[uIdx] : null;
+      if (Array.isArray(target[field])) {
+        const rawOld = entry ? (entry.rawValue || entry.ref_id) : undefined;
+        const pos = target[field].findIndex(v => v === rawOld || (v && v.ref_id === rawOld));
+        if (pos >= 0) target[field][pos] = selectedCode;
+        else target[field].push(selectedCode);
+      } else {
+        target[field] = selectedCode;
+      }
+    }
+
+    const row = btn.closest('.mdiff-unresolved-row');
+    const wrap = row ? row.querySelector('.mdiff-unresolved-search-wrap') : null;
+    if (wrap) {
+      wrap.outerHTML = `<span class="mdiff-dep-pill mdiff-unresolved-chip">${esc(selectedCode)}
+        <button type="button" class="mdiff-unresolved-chip-remove" data-action="mdiff-unresolved-remove"
+          data-code="${esc(code)}" data-field="${esc(field)}" data-unresolved-idx="${esc(uIdx)}"
+          aria-label="Quitar selección">×</button>
+      </span>`;
+    }
+  };
+
+  // TKT2 (REQ CAEL-0720-02, AC7): remove — revierte tgItems al rawValue/ref_id original,
+  // restaura el shell de búsqueda vacío.
+  _mdiffUnresolvedRemove = function(btn) {
+    const code = btn.dataset.code;
+    const field = btn.dataset.field;
+    const uIdx = btn.dataset.unresolvedIdx;
+    const entry = Array.isArray(diff.unresolvedRefs) ? diff.unresolvedRefs[uIdx] : null;
+    const original = entry ? (entry.rawValue !== undefined ? entry.rawValue : (entry.ref_id || '')) : '';
+
+    const target = tgItems.find(i => i.code === code);
+    if (target) {
+      if (Array.isArray(target[field])) {
+        const pos = target[field].findIndex(v => v === (entry && entry.selectedCode));
+        if (pos >= 0) target[field][pos] = original;
+      } else {
+        target[field] = original;
+      }
+    }
+
+    const chip = btn.closest('.mdiff-unresolved-chip');
+    if (chip) {
+      chip.outerHTML = `<div class="mdiff-unresolved-search-wrap">
+        <input type="text" class="bl-search-input" data-action="mdiff-unresolved-search"
+          data-code="${esc(code)}" data-field="${esc(field)}" data-unresolved-idx="${esc(uIdx)}"
+          aria-label="Buscar ítem para ${esc(field)}"
+          placeholder="Buscar por código o título…" value="">
+        <div class="sps-dropdown mdiff-unresolved-dropdown" role="menu" hidden></div>
+      </div>`;
+    }
+  };
+
   // R-202605-148: persistir sprint desde select inline del DIFF sin re-render del panel
   _mdiffSetItemSprint = function(sel) {
     const code = sel.dataset.itemCode;
@@ -1478,6 +1632,9 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     _mdiffToggleSection = null;
     _mdiffJumpTo = null;
     _mdiffSetItemSprint = null;
+    _mdiffUnresolvedFilter = null;
+    _mdiffUnresolvedSelect = null;
+    _mdiffUnresolvedRemove = null;
     _mdiffStepZeroActive = false; // T-202606-006
     _itemExcludedAC.abort(); // T-202606-006 — limpiar listener
 
@@ -1541,10 +1698,22 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       if (_mdiffToggleSection) _mdiffToggleSection(btn);
     } else if (action === 'mdiff-jump-to') {
       if (_mdiffJumpTo) _mdiffJumpTo(btn.dataset.secId);
+    } else if (action === 'mdiff-unresolved-select') {
+      if (_mdiffUnresolvedSelect) _mdiffUnresolvedSelect(btn);
+    } else if (action === 'mdiff-unresolved-remove') {
+      if (_mdiffUnresolvedRemove) _mdiffUnresolvedRemove(btn);
     }
   });
 
   // T-202606-008: delegation change — reemplaza onchange= inline en templates de pendingList y _sprintSelect
+  // TKT2 (REQ CAEL-0720-02, AC1): filtrado en vivo del resolver — evento input, no change,
+  // para reaccionar tecla por tecla.
+  overlay.addEventListener('input', function(e) {
+    if (e.target.dataset && e.target.dataset.action === 'mdiff-unresolved-search') {
+      if (_mdiffUnresolvedFilter) _mdiffUnresolvedFilter(e.target);
+    }
+  });
+
   overlay.addEventListener('change', function(e) {
     // Sprint select — data-action="mdiff-set-sprint" (generado por _sprintSelect)
     if (e.target.classList.contains('mdiff-sprint-select') && e.target.dataset.action === 'mdiff-set-sprint') {
@@ -1576,6 +1745,9 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     _mdiffToggleSection = null;
     _mdiffJumpTo = null;
     _mdiffSetItemSprint = null;
+    _mdiffUnresolvedFilter = null;
+    _mdiffUnresolvedSelect = null;
+    _mdiffUnresolvedRemove = null;
     _mdiffStepZeroActive = false; // T-202606-006
     _itemExcludedAC.abort(); // T-202606-006 — limpiar listener
     // Sin toast — el usuario canceló deliberadamente
@@ -1653,6 +1825,9 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       _mdiffToggleSection = null;
       _mdiffJumpTo = null;
       _mdiffSetItemSprint = null;
+      _mdiffUnresolvedFilter = null;
+      _mdiffUnresolvedSelect = null;
+      _mdiffUnresolvedRemove = null;
       _mdiffStepZeroActive = false; // T-202606-006
       _itemExcludedAC.abort(); // T-202606-006 — limpiar listener
     }
