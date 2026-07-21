@@ -1,3 +1,10 @@
+// [PP] mod:133 · autor:Rune · 2026-07-21 UTC-6
+// TKT1 (parent: REQ CAEL-0721-07 · "Delta real de 'Closed' desde el último export"): default
+// de proj.incidentsExportSnapshot (null hasta el primer export real) + markIncidentsExported()
+// exportada. closedCount se recibe como parámetro — este módulo no importa de
+// locus-backlog-core.js/locus-inc-fields.js para clasificación (evita import circular, ese
+// módulo ya importa de aquí). Solo persiste lo que el caller ya calculó.
+
 // [PP] mod:132 · autor:Rune · 2026-07-21 UTC-6
 // CAEL-0718-18 (TKT2 · REQ CAEL-0718-16): los 82 console.log/warn/error de código real
 // reemplazados por logger.debug/warn/error (locus-logger.js) — 6 menciones dentro de
@@ -3233,6 +3240,9 @@ function _applyStateData(raw) {
     if (proj.notes === undefined) proj.notes = '';
     if (proj.status === undefined) proj.status = 'active';
     if (proj.infraVersion === undefined) proj.infraVersion = 0; // T-202606-209: campo infra_version del proyecto
+    // TKT1 (REQ CAEL-0721-07): snapshot de export previo de _PP-incidents.md — null hasta el
+    // primer export real vía shell:export-qinc. Nunca lo escribe este módulo por sí solo.
+    if (proj.incidentsExportSnapshot === undefined) proj.incidentsExportSnapshot = null;
     // TKT1 · REQ-sprints-migration: proj.sprints eliminado del blob — _applyStateData() ya no
     // inicializa, migra ni lee proj.sprints. Los sprints viven exclusivamente en tracker_sprints,
     // poblados en _allSprintsCache por _loadAllProjectsSprintsFromSupabase().
@@ -3397,6 +3407,20 @@ export function getActiveProject() {
   const id = _getActiveProjectFilter();
   // acceso directo a state.projects — dato vive en locus-storage, no requiere import externo
   return id ? (state.projects || []).find(p => p.id === id) || null : null;
+}
+
+// TKT1 (REQ CAEL-0721-07): marca el snapshot de export de _PP-incidents.md sobre el proyecto
+// activo. closedCount llega calculado desde el caller (locus-incidents-render.js, vía
+// _countClosedIncidents() de locus-incidents-generator.js) — este módulo no reimplementa
+// clasificación de ítems para evitar import circular con locus-backlog-core.js.
+export function markIncidentsExported(closedCount) {
+  const proj = getActiveProject();
+  if (!proj) return;
+  proj.incidentsExportSnapshot = {
+    at: Date.now(),
+    closedCount: typeof closedCount === 'number' ? closedCount : 0
+  };
+  save();
 }
 
 // Todas las sesiones de un proyecto

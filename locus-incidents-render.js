@@ -1,3 +1,9 @@
+// [PP] mod:2 · autor:Rune · 2026-07-21 UTC-6
+// TKT3 (parent: REQ CAEL-0721-07): shell:export-qinc ahora marca el snapshot de export vía
+// markIncidentsExported(_countClosedIncidents()) — único call site que lo hace en todo el
+// ecosistema. generateDocuments() de locus-map-generator.js (cierre de sprint) sigue llamando
+// solo _generateIncidentsMd() sin tocar este listener — snapshot no se altera al cerrar sprint.
+
 // [PP] mod:1 · autor:Rune · 2026-07-20 23:40 UTC-6
 // TKT1 (REQ CAEL-0720-03 · Separar render de rama Reactiva a módulo propio): módulo nuevo,
 // exclusivo del render de Q-INC (INC/PRB/KE/CHG) — extraído íntegro de locus-backlog-render.js
@@ -34,9 +40,9 @@ import { buildQIncItem } from './locus-backlog-item.js';
 
 import { incSlaPriority, SLA_RIESGO_WINDOW_MS } from './locus-inc-fields.js';
 
-import { _generateIncidentsMd } from './locus-incidents-generator.js';
+import { _generateIncidentsMd, _countClosedIncidents } from './locus-incidents-generator.js';
 
-import { _getActiveProjectFilter, _docPrefix } from './locus-storage.js';
+import { _getActiveProjectFilter, _docPrefix, markIncidentsExported } from './locus-storage.js';
 
 import { getCurrentTab } from './locus-ui-shell.js';
 
@@ -322,4 +328,7 @@ window.addEventListener('shell:export-qinc', () => {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+  // TKT3 (REQ CAEL-0721-07): marca snapshot DESPUÉS de generar contenido — el delta del export
+  // que el founder acaba de descargar refleja el snapshot ANTERIOR, no el que se marca ahora.
+  markIncidentsExported(_countClosedIncidents());
 });
