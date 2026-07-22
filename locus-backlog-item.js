@@ -1,3 +1,29 @@
+// [PP] mod:129 · autor:Rune · 2026-07-21 23:28 UTC-6
+// TKT (INC-[pendiente-ID] · descartado como destino universal ITIL): validateIncidentTransitions
+//   ahora acepta incidentStatus:'descartado' desde cualquier estado no-terminal para INC/PRB —
+//   BR-Core §6 lo declara sin restricción de origen ("Cualquier status → descartado"), pero
+//   _VALID_INCIDENT_TRANSITIONS/_VALID_PRB_TRANSITIONS no lo tenían declarado en ningún estado
+//   (solo _VALID_KE_TRANSITIONS lo tenía, para 'active'). Antes de este fix, un patch legítimo
+//   incidentStatus:'descartado' sobre un INC/PRB en cualquier estado era rechazado por
+//   "transición ITIL inválida". Chequeo centralizado en la función (itilType !== 'KE' porque KE
+//   ya lo resolvía nativamente vía su tabla) en vez de duplicado en las 3 tablas — regla
+//   transversal en un solo lugar. 'descartado' sigue siendo terminal — no habilita salida desde
+//   descartado. Sin cambio de firma. contract_update: no.
+// [PP] mod:128 · autor:Rune · 2026-07-21 23:20 UTC-6
+// TKT (INC-[pendiente-ID] · guard status ITIL en applyPatchesFromTG): field==='status' ahora
+//   hace no-op silencioso (con log en DocLog) para INC/PRB/KE, mismo patrón ya usado en el branch
+//   field==='incidentStatus' (no-op para tipos no-ITIL). Antes, un patch con status:X (X != 'done')
+//   sobre un INC/PRB/KE mutaba existing.status sin tocar incidentStatus ni pasar por
+//   validateIncidentTransitions — desincronización silenciosa del ciclo ITIL (BR-Core §6). El
+//   sub-caso 'done' ya estaba cubierto por _applyDoneStatus (guard incondicional para INC/PRB/KE) —
+//   este fix cierra el resto del vocabulario. CHG no se excluye — sigue usando status con
+//   vocabulario Scrum por diseño (BR-Ecosystem §4b). Sin cambio de firma. contract_update: no.
+// [PP] mod:127 · autor:Rune · 2026-07-21 23:13 UTC-6
+// TKT (INC-[pendiente-ID] · retiro archivedInSprint): campo eliminado del modelo de ítems por
+//   BR-Ecosystem §4b ("no existe vínculo INC↔sprint que declarar" — incident_status:closed es
+//   terminal por sí mismo). Bloque de escritura en mergeBacklogFromTG retirado (antes ~L2523-2532).
+//   Import getActiveSprints retirado — sin otro caller en este archivo. Sin cambio de comportamiento
+//   del ciclo ITIL — incidentStatus/status siguen mergeando exactamente igual. contract_update: no.
 // [PP] mod:126 · autor:Rune · 2026-07-21 UTC-6
 // TKT1 (REQ CAEL-0721-01): _buildCommonItemFields() no copiaba no_incluye/intencion/
 //   contract_detail/kill_criteria/nextRole/designIntent/blockedAt/contract_update desde el
@@ -339,7 +365,7 @@
 import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _isQDiscActive, QDISC_ACTIVE_LIMIT, _openItemEditorSafe, _setIncidents, _skelHide, _undoSnapshotItems, _undoSnapshotIncidents, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass, _newBacklogItem, _syncParentRStatus, _computeRStatusFromChildren } from './locus-backlog-core.js'; // TKT1 (REQ CAEL-0720-01): _computeRStatusFromChildren agregada — reutilizada por _checkAndOrphanParentR // TKT2 (REQ-202607-025): _newBacklogItem agregado // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202607-010: _isQDiscActive + QDISC_ACTIVE_LIMIT agregados — gate de límite Q-DISC en mergeBacklogFromTG · TKT1 (REQ-202607-021): _syncParentRStatus agregada — reemplaza a _checkAndAdvanceParentR (función local eliminada, duplicaba la misma regla con criterio divergente)
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges · TKT (REQ CAEL-0720-24): setItemParent retirado — función eliminada, sin callers
 import { _normalizeSprint, _VALID_INCIDENT_STATUS, _VALID_PRB_STATUS, _VALID_KE_STATUS } from './locus-session-parse.js'; // TKT-PARSER-2a: constantes ITIL exportadas · TKT1 (REQ CAEL-01): _VALID_PRB_STATUS/_VALID_KE_STATUS — vocabularios propios para transición por tipo
-import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
+import { _blogLog, _tplKey, getAI, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito // INC-[pendiente-ID] (retiro archivedInSprint): getActiveSprints retirado — sin caller tras eliminar el bloque de escritura de archivedInSprint
 
 
 import { _buildItemMentionedIn, _buildItemMigratedBlock, openItemPanel, _openMigrateItem, _confirmMigrateItem, _acvToggle, _acvStartEdit, _acvConfirm } from './locus-backlog-panel.js'; // T-202606-089 AC-3 · TKT1 REQ CAEL-0719-01
@@ -2074,6 +2100,20 @@ function validateIncidentTransitions(oldIncidentStatus, newIncidentStatus, itilT
     // Defensivo: no es una transición ITIL inválida en sí, es un valor inválido — no bloquear aquí.
     return { valid: true };
   }
+  // INC-[pendiente-ID] (gap detectado en auditoría Q-INC): 'descartado' es destino válido desde
+  // CUALQUIER estado no-terminal para los 3 tipos ITIL — BR-Core §6 lo declara sin restricción de
+  // origen ("Cualquier status → descartado | Con justificación explícita en el CHECKPOINT") para
+  // INC y PRB, y _VALID_KE_TRANSITIONS ya lo permitía para KE. Antes de este fix, solo KE tenía la
+  // transición declarada en su tabla — INC/PRB la rechazaban con "transición ITIL inválida" pese a
+  // estar autorizada por BR. Chequeo centralizado aquí (no replicado en las 3 tablas por-tipo) para
+  // que la regla transversal viva en un solo lugar — mismo criterio de causa raíz que ya motivó
+  // extraer _itilStatusSet/_itilStatusList en locus-session-parse.js. 'closed' NO se excluye como
+  // origen — BR-Core no declara excepción para closed, la regla es literal "cualquier status".
+  // discard_reason (obligatorio en items descartados, ver BR-Ecosystem §5) se valida en el punto
+  // de ingesta del patch, no aquí — esta función solo valida el par de estados.
+  if (newIncidentStatus === 'descartado' && oldIncidentStatus !== 'descartado' && itilType !== 'KE') {
+    return { valid: true };
+  }
   const _allowed = _transitions[oldIncidentStatus];
   if (!_allowed || !_allowed.has(newIncidentStatus)) {
     return { valid: false, reason: `transición ITIL inválida: ${oldIncidentStatus} → ${newIncidentStatus}` };
@@ -2520,16 +2560,11 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
           // el upsert indefinidamente. existing.status espeja existing.incidentStatus para tipos ITIL.
           if (!_dryRun) { existing.incidentStatus = item.incidentStatus; existing.status = item.incidentStatus; changed = true; }
         }
-        // TKT1 (REQ-inc-historico): al cerrar un incidente vía patch/merge, se fija archivedInSprint
-        // al sprint 'active' actual — primer valor gana, nunca se recalcula si ya existía (AC fuera
-        // de scope). Sin sprint 'active' → queda sin asignar, no bloquea el resto del merge.
-        if (!_noIncidentStatus && item.incidentStatus === 'closed' && !existing.archivedInSprint) {
-          const _openSprint = getActiveSprints().find(s => s.status === 'active');
-          if (_openSprint) {
-            changes.push({ field: 'archivedInSprint', from: existing.archivedInSprint || '—', to: _openSprint.id });
-            if (!_dryRun) { existing.archivedInSprint = _openSprint.id; changed = true; }
-          }
-        }
+        // INC-[pendiente-ID] (retiro archivedInSprint): bloque de escritura de archivedInSprint
+        // eliminado — BR-Ecosystem §4b declara el campo retirado del modelo de ítems ("no existe
+        // vínculo INC↔sprint que declarar"; incident_status:closed es terminal por sí mismo, sin
+        // requerir asociación a ningún sprint). Sin cambio de comportamiento del ciclo ITIL —
+        // incidentStatus/status siguen mergeando exactamente igual arriba en este mismo bloque.
         if (item.slaPriority && item.slaPriority !== existing.slaPriority) { changes.push({ field: 'slaPriority', from: existing.slaPriority || '—', to: item.slaPriority }); if (!_dryRun) { existing.slaPriority = item.slaPriority; changed = true; } }
         if (item.slaDeadline != null && item.slaDeadline !== existing.slaDeadline) { changes.push({ field: 'slaDeadline', from: existing.slaDeadline || '—', to: item.slaDeadline }); if (!_dryRun) { existing.slaDeadline = item.slaDeadline; changed = true; } }
         if (item.resolutionType && item.resolutionType !== existing.resolutionType) { changes.push({ field: 'resolutionType', from: existing.resolutionType || '—', to: item.resolutionType }); if (!_dryRun) { existing.resolutionType = item.resolutionType; changed = true; } }
@@ -3120,6 +3155,26 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
       const current  = existing[field];
 
       if (field === 'status') {
+        // INC-[pendiente-ID] (gap detectado en auditoría Q-INC): status de INC/PRB/KE vive
+        // exclusivamente en incidentStatus (BR-Core §6) — mismo guard que ya existe para el
+        // branch field==='incidentStatus' (no-op para tipos no-ITIL, ver abajo), replicado aquí
+        // en la dirección inversa. Antes de este fix, un patch con field:'status' sobre un
+        // INC/PRB/KE con cualquier valor != 'done' mutaba existing.status directamente sin
+        // tocar existing.incidentStatus ni pasar por validateIncidentTransitions — desincronizando
+        // el ciclo de vida real del ítem. El sub-caso 'done' ya estaba protegido por
+        // _applyDoneStatus (bloquea INC/PRB/KE incondicionalmente) — este guard cierra el resto
+        // del vocabulario. CHG no se excluye — usa status con vocabulario Scrum por diseño
+        // (BR-Ecosystem §4b, excepción de vocabulario), no tiene incidentStatus paralelo.
+        const _statusPatchKind = itemKind(existing);
+        if (['INC', 'PRB', 'KE'].includes(_statusPatchKind)) {
+          _blogLog(
+            'patch-status-en-itil-ignorado',
+            code,
+            `Campo status ignorado en patch de ${_statusPatchKind} ${code} — usar incidentStatus (BR-Core §6).`,
+            'backlog'
+          );
+          return;
+        }
         const normalized = incoming; // T-202606-034: incoming ya canónico desde parser — _normalizeStatus eliminada
         if (normalized !== existing.status) {
           const _prevStatus = existing.status;

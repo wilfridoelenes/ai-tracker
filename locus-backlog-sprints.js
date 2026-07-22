@@ -1,3 +1,10 @@
+// [PP] mod:53 · autor:Rune · 2026-07-21 23:13 UTC-6
+// TKT (INC-[pendiente-ID] · retiro archivedInSprint): _incEligibleForSprintClose pierde el
+//   parámetro sprintId y el criterio archivedInSprint (campo eliminado del modelo, BR-Ecosystem
+//   §4b) — único criterio de elegibilidad ahora es la ventana de tiempo closedAt/statusChangedAt
+//   >= sprintOpenedAt, ya existente como fallback. Call site en _generateSprintRetroMd actualizado
+//   (ya no pasa `id`). Sin cambio en qué ítems aparecen en la retro — mismo resultado para
+//   incidentes cuyo cierre cae dentro de la ventana del sprint. contract_update: no.
 // [PP] mod:52 · autor:Rune · 2026-07-17 UTC-6
 // TKT-202607-031: _scmExecuteClose() ya no vacía docUpdateIndex al cerrar sprint
 //   (_setDocUpdateIndex({}) + log 'descartado · sprint cerrado' eliminados — violaba
@@ -188,15 +195,17 @@ function _suggestVersionTarget(releaseType) {
   } catch { return 'futura'; }
 }
 
-// TKT2 (REQ-inc-historico): criterio único de elegibilidad para migrar INC/PRB/KE/CHG a
-// historico al cerrar sprint — compartido por _scmExecuteClose (mutación real) y
-// _generateSprintRetroMd (texto de retro), para que ambos coincidan exactamente (AC de contrato).
-// Prioriza archivedInSprint (TKT1, locus-backlog-item.js) — fallback a ventana de tiempo
-// preexistente (closedAt >= sprintOpenedAt) cuando el campo no fue asignado.
-function _incEligibleForSprintClose(i, sprintId, sprintOpenedAt) {
+// TKT2 (REQ-inc-historico): criterio único de elegibilidad para listar INC/PRB/KE/CHG closed
+// en la retro del sprint — compartido con _generateSprintRetroMd (texto de retro), para que
+// ambos coincidan exactamente (AC de contrato). No migra el ítem a historico — Q-INC no
+// depende del ciclo de vida de sprint (BR-Ecosystem §4b).
+// INC-[pendiente-ID] (retiro archivedInSprint): parámetro sprintId retirado — sin uso una vez
+// eliminado el criterio de archivedInSprint (campo retirado del modelo, BR-Ecosystem §4b: "no
+// existe vínculo INC↔sprint que declarar"). Único criterio de elegibilidad ahora es la ventana
+// de tiempo closedAt/statusChangedAt >= sprintOpenedAt — mismo fallback que ya existía.
+function _incEligibleForSprintClose(i, sprintOpenedAt) {
   if (i.type !== 'INC' && i.type !== 'PRB' && i.type !== 'KE' && i.type !== 'CHG') return false;
   if (i.incidentStatus !== 'closed') return false;
-  if (i.archivedInSprint) return i.archivedInSprint === sprintId;
   const _closedTs = i.closedAt || i.statusChangedAt || 0;
   return _closedTs >= (sprintOpenedAt || 0);
 }
@@ -261,7 +270,7 @@ function _generateSprintRetroMd(id, notes) {
   // TKT-202607-045 (REQ-202607-015): concat(getIncidents()) — INC/PRB/KE/CHG viven en INCIDENTS
   // desde REQ-202607-003, getItems() ya no los incluye. Sin este concat, ningún incidente
   // aparecía en la retro pese a estar closed dentro de la ventana del sprint.
-  const incClosedItems = getItems().concat(getIncidents()).filter(i => _incEligibleForSprintClose(i, id, _sprintOpenedAt));
+  const incClosedItems = getItems().concat(getIncidents()).filter(i => _incEligibleForSprintClose(i, _sprintOpenedAt));
   const _incClosedList = incClosedItems.length
     ? incClosedItems.map(i => `- ${i.code}: incident \u00b7 ${_incDate(i.closedAt || i.statusChangedAt)}`).join('\n')
     : '';

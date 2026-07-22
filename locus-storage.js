@@ -1,3 +1,24 @@
+// [PP] mod:138 · autor:Rune · 2026-07-22 UTC-6
+// Corrección de header desincronizado (auditoría de infraestructura de incidentes):
+//   mod:136 (abajo) narraba el fix de schema_version como pendiente de DDL — pero el ALTER
+//   TABLE ya fue ejecutado y verificado vía information_schema (24 columnas, schema_version
+//   integer · NOT NULL · default 2) y _toIncidentRow()/_mapRowToIncident() ya tienen el mapeo
+//   activo (ver comentario inline junto a la función: "INC-[pendiente-ID] gap cerrado — ALTER
+//   ejecutado y verificado"). El fix se aplicó sin agregar su propia entrada de header — mod:136
+//   quedó como única entrada visible, describiendo un estado que el cuerpo del archivo ya no
+//   tiene. Esta entrada no cambia comportamiento — corrige la trazabilidad del header para que
+//   coincida con el código real. Ver `_Locus-module-contracts.md` mod:105 — misma corrección
+//   aplicada ahí. Sin cambio de comportamiento. contract_update: no.
+// [PP] mod:136 · autor:Rune · 2026-07-21 23:35 UTC-6
+// TKT (INC-[pendiente-ID] · schema_version ausente en tracker_incidents, DDL pendiente):
+//   documentado el gap en _toIncidentRow — columna no existe en Postgres (18 columnas verificadas,
+//   sin schema_version). DDL requerido declarado en comentario junto a la función: ALTER TABLE
+//   tracker_incidents ADD COLUMN schema_version INTEGER DEFAULT 2. No se agrega la clave al
+//   objeto retornado — enviarla sin la columna tumbaría el upsert completo (42703). Sin cambio de
+//   comportamiento — solo documentación + preparación del fix para cuando el ALTER exista.
+//   Registrado como deuda escalate_to: Vera. contract_update: no.
+//   [ESTADO REAL — ver mod:137 arriba: el ALTER ya se ejecutó y el mapeo ya está activo. Esta
+//   entrada mod:136 queda como registro histórico del momento en que el gap aún estaba abierto.]
 // [PP] mod:135 · autor:Rune · 2026-07-21 UTC-6
 // TKT4 (REQ CAEL-0721-01): no_incluye — TKT1 dejó el array en memoria intacto (canónico,
 //   ver locus-backlog-item.js:2126) y TKT1-AC3 documentaba el join-a-texto como responsabilidad
@@ -1563,12 +1584,21 @@ function _toItemColumns(it) {
     blocked_at:           it.blockedAt         || null,
     contract_update:      it.contract_update   || null,
     archivos:             Array.isArray(it.archivos) ? it.archivos : null,
-    sla_priority:         it.sla_priority      || null,
-    sla_deadline:         it.slaDeadline       != null ? it.slaDeadline : null,
-    incident_status:      incIncidentStatus(it),
-    resolution_type:      incResolutionType(it),
-    derived_items:        Array.isArray(it.derived_items) ? it.derived_items : null,
-    queue:                it.queue             || null,
+    // INC-202607-AUDIT: sla_priority/sla_deadline/incident_status/resolution_type/
+    // derived_items/queue retirados de este mapeo — son campos exclusivos de la rama
+    // Reactiva (__BR-Ecosystem §5: INC/PRB/KE/CHG no declaran priority ni ninguno de
+    // estos campos aplica a REQ/TKT/DISC). tracker_items solo acepta type IN (REQ,TKT,DISC)
+    // desde tracker_items_type_check — nunca tendrá una fila ITIL. Las 6 columnas físicas
+    // eran resto del pre-split a tracker_incidents (TKT-202607-005/044), confirmadas
+    // presentes vía information_schema en auditoría 2026-07-22 pese a no estar documentadas
+    // como columnas de tracker_items en _pp-strategy §5. Ver _toIncidentRow() más abajo —
+    // ahí sí corresponden, vía incSlaPriority()/incIncidentStatus()/etc.
+    // DDL pendiente tras deploy de este fix: ALTER TABLE tracker_items
+    //   DROP COLUMN sla_priority, DROP COLUMN sla_deadline, DROP COLUMN incident_status,
+    //   DROP COLUMN resolution_type, DROP COLUMN derived_items, DROP COLUMN queue;
+    // Orden obligatorio: este fix debe estar deployado ANTES de correr el DDL — si el DDL
+    // corre primero contra el código viejo, el upsert de saveBacklog() falla (columna
+    // inexistente en payload).
     // INC-[pendiente-ID] fix: archived_at/done_at no estaban mapeadas en ningún punto de
     // _toItemRow() — el cierre de sprint (migrateClosedItemsToHistorico, locus-backlog-historico.js)
     // setea item.archivedAt en memoria pero nunca se persistía en Supabase. done_at no tenía
@@ -1597,13 +1627,19 @@ function _toItemRow(it, { projId, userId, updatedAtMs }) {
 }
 
 // TKT-202607-044 (REQ-202607-015): _toIncidentRow() — mapeo hacia las columnas reales
-// de tracker_incidents (verificadas vía information_schema — 18 columnas, schema propio
-// y más angosto que tracker_items: sin status/priority/effort/area/sprint/parent/
-// depends_on, que no existen en esta tabla). onConflict:code — mismo target que _toItemRow().
+// de tracker_incidents (verificadas vía information_schema — 24 columnas tras el ALTER de
+// INC-[pendiente-ID], schema propio y más angosto que tracker_items en los campos Scrum:
+// sin status/priority/effort/area/sprint/parent/depends_on, que no existen en esta tabla).
+// onConflict:code — mismo target que _toItemRow().
 // TKT4 (REQ CAEL-01 · PP-S-02): ALTER TABLE aplicado por el founder — role, next_role, ac,
 // queue y verificado_por agregados a tracker_incidents (BR-Ecosystem §5/§8 los declara
 // parte del schema de INC/PRB/KE/CHG; antes se perdían al persistir). ac se envía siempre
 // como array — nunca null ni ausente (AC-3 de TKT4: `ac:[]` si el ítem no lo declara).
+// INC-[pendiente-ID] (gap cerrado — ALTER ejecutado y verificado vía information_schema):
+// tracker_incidents ganó columna schema_version (integer · NOT NULL · default 2) — BR-Ecosystem
+// §5/§8 la declara obligatoria en ítems nuevos con valor inicial 2. _buildItilItem
+// (locus-session-parse.js) ya propagaba inc.schema_version al objeto en memoria; se agrega el
+// mapeo faltante, mismo patrón que _toItemRow (línea ~1552).
 function _toIncidentRow(inc, { projId, userId, updatedAtMs }) {
   return {
     user_id:               userId,
@@ -1611,6 +1647,7 @@ function _toIncidentRow(inc, { projId, userId, updatedAtMs }) {
     code:                  inc.code               || null,
     type:                  inc.type               || null,
     title:                 inc.title              || null,
+    schema_version:        inc.schema_version != null ? Number(inc.schema_version) : 2,
     triggered_by:          inc.triggered_by       || null,
     // TKT-202607-INC-NAMING: fallback a camelCase — mismo motivo que el gate de exclusión
     // arriba en esta función. inc.originModule/inc.comportamientoActual son los nombres
