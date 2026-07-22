@@ -1,4 +1,11 @@
-// [PP] mod:134 · autor:Rune · 2026-07-21 UTC-6
+// [PP] mod:135 · autor:Rune · 2026-07-21 UTC-6
+// TKT4 (REQ CAEL-0721-01): no_incluye — TKT1 dejó el array en memoria intacto (canónico,
+//   ver locus-backlog-item.js:2126) y TKT1-AC3 documentaba el join-a-texto como responsabilidad
+//   de TKT2 — pero TKT2 nunca lo tocó (solo draft/status_changed_at/verified_by). La columna
+//   real (_pp-strategy §5) no declara jsonb/array como sí lo hacen ac/depends_on/contract_detail
+//   — es texto plano. _toItemColumns() serializa el array a JSON string antes de upsert;
+//   _mapRowToItem() lo deserializa de vuelta a array, con fallback defensivo si la fila trae
+//   un string legacy no-JSON (pre-fix) — se envuelve en array de 1 elemento en vez de perderlo.
 // TKT2 (REQ CAEL-0721-01): _toItemColumns()/_mapRowToItem() — draft y status_changed_at
 //   (ambas columnas existentes en DDL, _pp-strategy §5) nunca se escribían ni se rehidrataban
 //   para REQ/TKT. verified_by leía/escribía it.verificado_por/item.verificado_por — campo que
@@ -1510,7 +1517,13 @@ function _toItemColumns(it) {
     // INC triggered_by TKT-202607-063: leía it.depends_on — siempre undefined, persistía [] sin importar el dato real.
     depends_on:           Array.isArray(it.dependsOn) ? it.dependsOn : [],
     triggered_by:         it.triggered_by     || null,
-    no_incluye:           it.no_incluye != null ? it.no_incluye : null,
+    // TKT4 (REQ CAEL-0721-01): columna es texto plano (_pp-strategy §5, sin anotación
+    // jsonb/array) — el array canónico en memoria (locus-backlog-item.js:2126) se serializa
+    // a JSON string antes de upsert. Array vacío → null (mismo criterio que el resto de
+    // campos opcionales), nunca '[]' persistido.
+    no_incluye:           Array.isArray(it.no_incluye) && it.no_incluye.length > 0
+                             ? JSON.stringify(it.no_incluye)
+                             : null,
     kill_criteria:        it.kill_criteria    || null,
     promovida_a:          it.promovida_a      || null,
     // DDL: columna renombrada origen_disc (Gen2) — era origin_p en Gen1
@@ -2024,7 +2037,19 @@ function _mapRowToItem(row) {
     // resto del app consume — se perdía tras cada reload.
     dependsOn:             Array.isArray(row.depends_on) ? row.depends_on : [],
     triggered_by:          row.triggered_by,
-    no_incluye:            row.no_incluye,
+    // TKT4 (REQ CAEL-0721-01): deserializa el JSON string persistido de vuelta a array —
+    // simétrico a _toItemColumns(). Fallback defensivo: fila legacy con string plano no-JSON
+    // (escrita antes de este fix, o dato corrupto) se envuelve en array de 1 elemento en vez
+    // de perderse o tirar la carga completa del ítem.
+    no_incluye:            (() => {
+      if (row.no_incluye == null) return [];
+      try {
+        const parsed = JSON.parse(row.no_incluye);
+        return Array.isArray(parsed) ? parsed : [String(parsed)];
+      } catch (_e) {
+        return [row.no_incluye];
+      }
+    })(),
     kill_criteria:         row.kill_criteria,
     promovida_a:           row.promovida_a,
     origen_disc:           row.origen_disc,
