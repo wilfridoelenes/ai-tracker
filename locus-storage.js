@@ -1,4 +1,8 @@
-// [PP] mod:138 · autor:Rune · 2026-07-22 UTC-6
+// [PP] mod:139 · autor:Rune · 2026-07-22 UTC-6
+// INC-CAEL-0722-06: _subscribeRealtime() gateado con _REALTIME_ENABLED=false — el cliente
+// reintentaba suscripción indefinidamente contra canales sin publicación activa en Supabase
+// (Realtime desactivado del lado servidor desde 2026-07-08, ver _pp-strategy §4). Ver
+// declaración del flag junto a las variables de módulo Realtime, ~L340.
 // Corrección de header desincronizado (auditoría de infraestructura de incidentes):
 //   mod:136 (abajo) narraba el fix de schema_version como pendiente de DDL — pero el ALTER
 //   TABLE ya fue ejecutado y verificado vía information_schema (24 columnas, schema_version
@@ -345,6 +349,22 @@ let _realtimeChannels   = [];     // T-202606-002: canales Realtime — tracker_
 // se resetea a 0 en 'SUBSCRIBED' — cada nuevo ciclo de fallo empieza el backoff desde 1s.
 let _realtimeReconnectTimer     = null;
 let _realtimeReconnectAttempts  = 0;
+// INC-CAEL-0722-06: Realtime está desactivado a nivel Supabase Publications para
+// tracker_state/tracker_sessions/tracker_items/tracker_incidents desde 2026-07-08
+// (ver _pp-strategy §4 — decisión confirmada por el founder, uso single-user/single-tab).
+// La desactivación se hizo solo del lado servidor — _subscribeRealtime() seguía
+// invocándose en cada evento de auth (SIGNED_IN/INITIAL_SESSION/getSession fallback)
+// sin gate propio, así que el cliente intentaba suscribirse a canales sin publicación
+// activa en cada sesión, recibía CHANNEL_ERROR/TIMED_OUT y entraba en el loop de
+// reconexión con backoff indefinidamente — no rompe la app (fallback ya cubre el path),
+// pero genera reintentos y ruido de consola en cada sesión sin ningún consumidor que
+// los necesite. Este flag espeja del lado cliente la misma decisión ya vigente del lado
+// servidor. Reactivar: cambiar a true aquí Y reactivar las 4 tablas en Supabase
+// (Database → Publications) — mismo momento que _pp-strategy §4 ya anticipa
+// ("el código de reconexión ya corregido queda listo para ese momento sin trabajo
+// adicional") — ese código no cambia con este fix, solo deja de dispararse mientras
+// el flag esté en false.
+const _REALTIME_ENABLED = false;
 // INC-[pendiente-ID] (triggered_by hallazgo fuera de scope, cierre INC-202607-009): user_id
 // para el cual _realtimeChannels está activo. Permite que _subscribeRealtime() sea idempotente
 // ante llamadas repetidas del mismo usuario — ver comentario completo en _subscribeRealtime().
@@ -2448,6 +2468,9 @@ export async function saveContextDocs() {
 // en este mismo cliente (_realtimeLastTs). Fallback: si la suscripción a alguna tabla
 // falla, el resto de la app sigue funcional vía localStorage/poll.
 export function _subscribeRealtime() {
+  // INC-CAEL-0722-06: ver declaración de _REALTIME_ENABLED arriba — no-op mientras
+  // Realtime siga desactivado del lado servidor (Supabase Publications).
+  if (!_REALTIME_ENABLED) return;
   if (!_supabase || !_supabaseUser) return;
   // INC-[pendiente-ID] (triggered_by hallazgo fuera de scope, cierre INC-202607-009):
   // supabase-js re-emite INITIAL_SESSION en cada _recoverAndRefresh (visibilitychange/foco
