@@ -1,3 +1,9 @@
+// [PP] mod:47 · autor:Rune · 2026-07-21 12:00 UTC-6
+// INC-PP-no-incluye-forEach: exportBacklogMd() crasheaba con TypeError en item.no_incluye.forEach
+//   is not a function (_buildItemFieldsMd, ~L1187). no_incluye es string según schema
+//   (__BR-Ecosystem §8 / __BR-Execution §1) — el código lo trataba como array. Fix: impresión
+//   inline del string, mismo patrón ya usado para item.intencion.no_incluye (L1181). Sin cambio
+//   de contrato de datos — no_incluye nunca fue array en el schema vigente.
 // [PP] mod:46 · autor:Rune · 2026-07-19 15:00 UTC-6
 // INC-PP-export-confirm-dead-shell: _showExportConfirmModal() migrada de #export-confirm-overlay
 //   (retirado en REQ CAEL-0720-01 TKT2) a _gconfirmOpen (locus-modals.js). Afecta a los 4 exports
@@ -1180,11 +1186,11 @@ function _buildItemFieldsMd(item, state) {
     if (item.intencion.done_cuando) md += `- Done cuando: ${item.intencion.done_cuando}\n`;
     if (item.intencion.no_incluye)  md += `- No incluye: ${item.intencion.no_incluye}\n`;
   }
-  // T-202606-065: no_incluye — emitir siempre en TKTs. Lista si existe, 'n/a' si no.
+  // T-202606-065: no_incluye — emitir siempre en TKTs. Es string (schema __BR-Ecosystem §8),
+  // no array — INC-PP-no-incluye-forEach: item.no_incluye.forEach no es función sobre un string.
   if (_itemTypeGen2(item) === 'TKT') {
-    if (item.no_incluye && item.no_incluye.length) {
-      md += `\n**No incluye:**\n`;
-      item.no_incluye.forEach(n => { md += `- ${n}\n`; });
+    if (item.no_incluye) {
+      md += `\n**No incluye:** ${item.no_incluye}\n`;
     } else {
       md += `\n**No incluye:** n/a\n`;
     }
