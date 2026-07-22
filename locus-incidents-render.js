@@ -1,3 +1,8 @@
+// [PP] mod:3 · autor:Rune · 2026-07-22 UTC-6
+// TKT (REQ CAEL-0722-01): renderQIncStats() ahora cuenta solo ítems activos
+// (_QINC_ACTIVE_STATUSES) en _countByType/_countByPri — un ítem resolved deja de sumar en los
+// chips de tipo/prioridad. renderQIncPanel() y filteredQInc sin cambio — el filtro por chip
+// sigue mostrando/filtrando ambas secciones (Activos+Resueltos) igual que antes.
 // [PP] mod:2 · autor:Rune · 2026-07-21 UTC-6
 // TKT3 (parent: REQ CAEL-0721-07): shell:export-qinc ahora marca el snapshot de export vía
 // markIncidentsExported(_countClosedIncidents()) — único call site que lo hace en todo el
@@ -71,7 +76,12 @@ export function renderQIncStats() {
   const _countByType = { INC: 0, PRB: 0, KE: 0, CHG: 0 };
   const _countByPri  = { high: 0, medium: 0, low: 0 };
   const _displayable = allQInc.filter(i => i.status !== 'descartado' && i.incidentStatus !== 'closed');
-  _displayable.forEach(i => {
+  // TKT (REQ CAEL-0722-01): el conteo de los chips refleja solo ítems activos — mismo criterio
+  // que renderQIncPanel() usa para separar la sección "Activos" de "Resueltos" (_QINC_ACTIVE_STATUSES).
+  // _displayable sigue siendo el universo base (excluye descartado/closed) — este filtro adicional
+  // es exclusivo del conteo mostrado en el stats-bar, no afecta filteredQInc de renderQIncPanel().
+  const _activeForCount = _displayable.filter(i => _QINC_ACTIVE_STATUSES.includes(i.incidentStatus));
+  _activeForCount.forEach(i => {
     const t = itemKind(i);
     if (t && _countByType[t] !== undefined) _countByType[t]++;
     // TKT1 (REQ-centralizar-accesores-itil): mismo motivo que el badge arriba.
