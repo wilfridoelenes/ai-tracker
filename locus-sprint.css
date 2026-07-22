@@ -1,4 +1,4 @@
-/* [PP] mod:62 · autor:Nova · 2026-07-21 UTC-6 */
+/* [PP] mod:63 · autor:Nova · 2026-07-21 23:05 UTC-6 */
 /* TKT CAEL-0721-06 (REQ CAEL-0721-05): .spi-item--orphaned — opacity 0.6 + border-color
    var(--hint), mismo mecanismo que .sps-card--pausado. Sin token nuevo, sin color/ícono. */
 /* [PP] mod:61 · autor:Nova · 2026-07-21 UTC-6 */
@@ -323,9 +323,10 @@
 }
 
 /* TKT CAEL-0721-06 (REQ CAEL-0721-05) — REQ orphaned en bucket pendiente.
-   Mismo tratamiento neutro que .sps-card--pausado (border-color: var(--hint)) —
-   sin color, sin ícono, sin patrón nuevo. Badge reusa .spi-item-status--pendiente,
-   solo cambia el texto vía JS ("Huérfano") — sin clase de badge nueva. */
+   Fila: mismo tratamiento neutro que .sps-card--pausado (border-color: var(--hint)),
+   sin color, sin ícono. Badge (abajo, .spi-item-status--orphaned): clase propia,
+   NO reusa .spi-item-status--pendiente — corrección post-QA Finn, ver comentario
+   de cabecera en locus-sprint.js. */
 .spi-item--orphaned {
   opacity: 0.6;
   border-color: var(--hint);
@@ -381,6 +382,17 @@
 
 /* B-202606-031 — badge En revisión */
 .spi-item-status--en-revision {
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
+  color: var(--amber-text);
+  border: 1px solid color-mix(in srgb, var(--amber) 28%, transparent);
+}
+
+/* TKT CAEL-0721-06 — badge Huérfano. Mismo patrón que .staleness-pill.staleness--orphaned
+   (--amber reservado a gaps de completitud de especificación, __BR-Ecosystem/css-ref) y
+   mismo par background/color que .spi-item-status--en-revision arriba — color: var(--amber-text)
+   en vez de var(--amber) crudo, siguiendo la migración de anti-pattern ya cerrada en el proyecto
+   (§Cambios mod:99/mod:100 de _Locus-css-ref.md). Sin token nuevo. */
+.spi-item-status--orphaned {
   background: color-mix(in srgb, var(--amber) 10%, transparent);
   color: var(--amber-text);
   border: 1px solid color-mix(in srgb, var(--amber) 28%, transparent);

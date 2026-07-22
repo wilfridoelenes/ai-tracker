@@ -1,4 +1,10 @@
-// [PP] mod:133 · autor:Rune · 2026-07-21 UTC-6
+// [PP] mod:134 · autor:Rune · 2026-07-21 UTC-6
+// TKT2 (REQ CAEL-0721-01): _toItemColumns()/_mapRowToItem() — draft y status_changed_at
+//   (ambas columnas existentes en DDL, _pp-strategy §5) nunca se escribían ni se rehidrataban
+//   para REQ/TKT. verified_by leía/escribía it.verificado_por/item.verificado_por — campo que
+//   ningún productor ni consumidor real usa para REQ/TKT (grep: cero matches fuera de este
+//   archivo) — corregido a it.verified_by/item.verified_by en ambas direcciones. Sin cambio en
+//   _toIncidentRow()/_mapRowToIncident() — verificado_por sigue siendo el nombre correcto ahí.
 // TKT1 (parent: REQ CAEL-0721-07 · "Delta real de 'Closed' desde el último export"): default
 // de proj.incidentsExportSnapshot (null hasta el primer export real) + markIncidentsExported()
 // exportada. closedCount se recibe como parámetro — este módulo no importa de
@@ -1518,7 +1524,18 @@ function _toItemColumns(it) {
     comportamiento_actual: it.comportamiento_actual || null,
     origin_module:        it.origin_module    || null,
     // DDL: columna 'verified_by' TEXT (no 'verificado_por')
-    verified_by:          it.verificado_por   || null,
+    // TKT2 (REQ CAEL-0721-01): leía it.verificado_por — ningún productor real setea ese campo
+    // para REQ/TKT (applyPatchesFromTG setea existing.verified_by, snake_case, vía el path
+    // genérico de "resto de campos patcheables" — locus-backlog-item.js). verificado_por es
+    // exclusivo de la Variante ligera de INC (__BR-Core §6) — nombre equivocado para este caso,
+    // columna siempre null por typo de campo, no por falta de dato.
+    verified_by:          it.verified_by      || null,
+    // TKT2 (REQ CAEL-0721-01): draft y status_changed_at no tenían ninguna entrada en este
+    // mapeo — item.draft/item.statusChangedAt están correctos en memoria (mergeBacklogFromTG
+    // los persiste explícitamente, TKT1/REQ-202607-027; applyPatchesFromTG los actualiza al
+    // avalar Fase 5) pero nunca llegaban al payload de upsert hacia tracker_items.
+    draft:                it.draft === true,
+    status_changed_at:    it.statusChangedAt != null ? it.statusChangedAt : null,
     schema_version:       it.schema_version != null ? Number(it.schema_version) : 2,
     // ac: array JS → jsonb Postgres
     ac:                   Array.isArray(it.ac) ? it.ac : [],
@@ -2014,7 +2031,14 @@ function _mapRowToItem(row) {
     discard_reason:        row.discard_reason,
     comportamiento_actual: row.comportamiento_actual,
     origin_module:         row.origin_module,
-    verificado_por:        row.verified_by,  // DDL: verified_by → JS: verificado_por
+    // TKT2 (REQ CAEL-0721-01): rehidrataba a item.verificado_por — simétrico al bug de
+    // _toItemColumns(), ningún consumidor real de REQ/TKT lee ese nombre. verificado_por
+    // sigue siendo el campo correcto para _mapRowToIncident() (INC) — sin cambio ahí.
+    verified_by:           row.verified_by,   // DDL: verified_by
+    // TKT2 (REQ CAEL-0721-01): draft/statusChangedAt no se rehidrataban — un ítem recargado
+    // desde Supabase perdía ambos campos aunque el fix de escritura ya los persistiera.
+    draft:                 row.draft === true,
+    statusChangedAt:       row.status_changed_at != null ? row.status_changed_at : null,
     schema_version:        row.schema_version,
     ac:                    Array.isArray(row.ac) ? row.ac : [],
     intencion:             row.intencion,

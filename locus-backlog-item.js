@@ -1,4 +1,10 @@
-// [PP] mod:125 · autor:Rune · 2026-07-20 18:45 UTC-6
+// [PP] mod:126 · autor:Rune · 2026-07-21 UTC-6
+// TKT1 (REQ CAEL-0721-01): _buildCommonItemFields() no copiaba no_incluye/intencion/
+//   contract_detail/kill_criteria/nextRole/designIntent/blockedAt/contract_update desde el
+//   tgItem entrante — 8 campos que Cael declara en el CHECKPOINT y el parser propaga (ver
+//   TKT3 del mismo REQ) se perdían en este constructor y quedaban NULL en tracker_items sin
+//   importar la especificación. Sin cambio de firma, sin cambio de comportamiento para ITIL
+//   (buildIncidentItem() no se toca).
 // TKT1 (REQ CAEL-0720-02 · unresolvedRefs extendido en _assignPendingIds, Opción A de unificación):
 // tercer parámetro opcional unresolvedRefs — mismo array por referencia que _normalizeRefIdValue
 // puebla en mod:124. Puebla tmp-slug-no-resoluble y ref-no-resuelta, en AMBAS ramas (escalar y
@@ -2112,6 +2118,19 @@ function _buildCommonItemFields(item, ctx) {
     blocking: item.blocking || false,
     sessionId: sessionId || null,
     draft: item.draft === true,
+    // TKT1 (REQ CAEL-0721-01): 8 campos que el tgItem entrante ya trae (locus-session-parse.js,
+    // TKT3 del mismo REQ) pero que este constructor nunca copiaba al objeto persistido —
+    // quedaban NULL en tracker_items sin importar lo que Cael declarara en el CHECKPOINT.
+    // no_incluye ya se trata como array en el resto del codebase (ver _toItemColumns) —
+    // coalesce a [] en vez de null para no romper esa expectativa de tipo.
+    no_incluye: Array.isArray(item.no_incluye) ? item.no_incluye : [],
+    intencion: item.intencion || null,
+    contract_detail: item.contract_detail || null,
+    kill_criteria: item.kill_criteria || null,
+    nextRole: item.nextRole || null,
+    designIntent: item.designIntent || null,
+    blockedAt: item.blockedAt || null,
+    contract_update: item.contract_update || null,
     createdAt: nowTs,
     statusChangedAt: nowTs,
     doneAt: initialStatus === 'done' ? nowTs : null

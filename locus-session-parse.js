@@ -1,4 +1,11 @@
-// [PP] mod:132 · autor:Rune · 2026-07-21 UTC-6
+// [PP] mod:133 · autor:Rune · 2026-07-21 UTC-6
+// TKT3 (REQ CAEL-0721-01): los 3 puntos de construcción de tgItems nunca propagaban
+//   kill_criteria/next_role/design_intent/blocked_at/contract_update desde el ítem parseado —
+//   mismo patrón de pérdida ya corregido para draft (TKT1/REQ-202607-027) y contract_detail
+//   (TKT4/REQ-contract-rename), pero nunca aplicado a estos 5 campos. Además: contract_detail
+//   faltaba en el sitio 1 (sesión embebida) y archivos faltaba en los sitios 2 y 3 (batch) —
+//   inconsistencia entre los 3 sitios, alineados aquí. Ver locus-backlog-item.js TKT1 (mismo
+//   REQ) — sin esta propagación, ese fix no tenía dato real que copiar.
 // TKT (REQ CAEL-0720-22 · ref_id CAEL-0720-23 · módulo crítico, kill_criteria aprobado por
 //   founder): handlePaste/handleInput ganan _routeParse(id, ta) — si _splitCheckpointBlocks
 //   (ta.value).length > 1, delega a _processIngestBatch() en vez de parsePaste(id). Bloque único
@@ -1481,6 +1488,22 @@ export function parsePaste(id) {
           intencion:     _it.intencion     || null,                            // T-202606-105
           no_incluye:    Array.isArray(_it.no_incluye) ? _it.no_incluye : [], // T-202606-105
           archivos:      Array.isArray(_it.archivos) ? _it.archivos : [],     // T-[pendiente-ID]: BR-Ecosystem v5.2 — archivos reales que el T toca, declarado por Cael en Fase 2
+          // TKT3 (REQ CAEL-0721-01): contract_detail no se propagaba en este sitio (sí en los
+          // otros 2 puntos de construcción) — se perdía entre parseo y mergeBacklogFromTG
+          // específicamente en el path de sesión embebida. Alineado a BR-Execution §2.
+          contract_detail: _it.contract_detail || null,
+          // TKT3 (REQ CAEL-0721-01): kill_criteria/next_role/design_intent/blocked_at/
+          // contract_update nunca se propagaban a tgItem en ninguno de los 3 puntos de
+          // construcción del parser — mismo patrón de pérdida ya corregido para draft
+          // (TKT1/REQ-202607-027) y contract_detail (TKT4/REQ-contract-rename). Sin esta
+          // propagación, _buildCommonItemFields() (locus-backlog-item.js, TKT1 de este mismo
+          // REQ) nunca tiene el dato disponible para persistir, sin importar lo declarado
+          // en el CHECKPOINT.
+          kill_criteria: _it.kill_criteria || null,
+          nextRole:      _it.next_role     || null,
+          designIntent:  _it.design_intent || null,
+          blockedAt:     _it.blocked_at    || null,
+          contract_update: _it.contract_update || null,
           // TKT1 (REQ-202607-026 · AC1): draft es campo de nivel CHECKPOINT (ckpt.draft), no
           // del ítem individual — se propaga aquí (path de sesión embebida) para que
           // mergeBacklogFromTG lo persista en cada ítem nuevo del batch. Sin esta propagación,
@@ -2336,6 +2359,16 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
           // T-[pendiente-ID] (REQ-contract-rename, TKT4): contract_detail no se propagaba a
           // tgItems — se perdía entre el parseo y mergeBacklogFromTG. Alineado a BR-Execution §2.
           contract_detail: it.contract_detail || null,
+          // TKT3 (REQ CAEL-0721-01): archivos ausente en este sitio (sí presente en el sitio 1,
+          // ~L1483) — inconsistencia entre los 3 puntos de construcción. kill_criteria/next_role/
+          // design_intent/blocked_at/contract_update ausentes en los 3 sitios — mismo patrón de
+          // pérdida ya corregido para draft/contract_detail. Ver comentario extendido en sitio 1.
+          archivos:      Array.isArray(it.archivos) ? it.archivos : [],
+          kill_criteria: it.kill_criteria || null,
+          nextRole:      it.next_role     || null,
+          designIntent:  it.design_intent || null,
+          blockedAt:     it.blocked_at    || null,
+          contract_update: it.contract_update || null,
           // TKT1 (REQ-202607-026 · AC1): draft es campo de nivel CHECKPOINT (ckpt.draft), no
           // del ítem individual — se propaga aquí para que mergeBacklogFromTG lo persista en
           // el ítem nuevo. Mismo patrón de pérdida ya corregido para contract_detail en TKT4.
@@ -2381,6 +2414,15 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
       // T-[pendiente-ID] (REQ-contract-rename, TKT4): contract_detail no se propagaba a
       // tgItems — se perdía entre el parseo y mergeBacklogFromTG. Alineado a BR-Execution §2.
       contract_detail: it.contract_detail || null,
+      // TKT3 (REQ CAEL-0721-01): archivos ausente en este sitio (sí presente en el sitio 1,
+      // ~L1483) — misma inconsistencia que el sitio 2. kill_criteria/next_role/design_intent/
+      // blocked_at/contract_update ausentes en los 3 sitios. Ver comentario extendido en sitio 1.
+      archivos:      Array.isArray(it.archivos) ? it.archivos : [],
+      kill_criteria: it.kill_criteria || null,
+      nextRole:      it.next_role     || null,
+      designIntent:  it.design_intent || null,
+      blockedAt:     it.blocked_at    || null,
+      contract_update: it.contract_update || null,
       // TKT1 (REQ-202607-026 · AC1): draft es campo de nivel CHECKPOINT (ckpt.draft), no del
       // ítem individual — se propaga a cada tgItem para que mergeBacklogFromTG lo persista en
       // el ítem nuevo. Mismo patrón de pérdida ya corregido para contract_detail en TKT4.

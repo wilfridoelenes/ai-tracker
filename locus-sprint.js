@@ -1,7 +1,10 @@
-// [PP] mod:109 · autor:Rune · 2026-07-21 UTC-6
+// [PP] mod:110 · autor:Rune · 2026-07-21 23:05 UTC-6
 // TKT CAEL-0721-06 (REQ CAEL-0721-05, parcial — JS completo, CSS pendiente de Nova):
 // _sprintItemHtml() distingue REQ orphaned de pendiente real — nueva clase
-// spi-item--orphaned + badge con texto "Huérfano" (reusa spi-item-status--pendiente).
+// spi-item--orphaned (fila) + spi-item-status--orphaned (badge, propia, texto "Huérfano").
+// Corrección post-QA Finn: statusCls caía en default 'pendiente' para orphaned pese a
+// existir isOrphaned — badge mostraba color de pendiente con texto "Huérfano". Ver
+// _Locus-css-ref.md — regla semántica --amber reservada a gaps de completitud.
 // Chequeo vía item.status directo, independiente de _sprintItemBucket() (que sigue
 // colapsando orphaned→'pendiente' por diseño, sin cambio — ver nota mod:94 abajo).
 // [PP] mod:108 · autor:Rune · 2026-07-21 UTC-6
@@ -233,7 +236,7 @@ function _sprintItemHtml(item) {
 
   const isEnRevision = bucket === 'en-revision';
   const statusLabel = isDone ? 'Done' : isBlocked ? 'Bloqueado' : isEnRevision ? 'En revisión' : isOrphaned ? 'Huérfano' : 'Pendiente';
-  const statusCls   = isDone ? 'spi-item-status--done' : isBlocked ? 'spi-item-status--blocked' : isEnRevision ? 'spi-item-status--en-revision' : 'spi-item-status--pendiente';
+  const statusCls   = isDone ? 'spi-item-status--done' : isBlocked ? 'spi-item-status--blocked' : isEnRevision ? 'spi-item-status--en-revision' : isOrphaned ? 'spi-item-status--orphaned' : 'spi-item-status--pendiente';
   const blockedIcon = isBlocked ? `<span class="spi-item-blocked-icon" aria-hidden="true">⚠</span>` : '';
 
   // Progreso de hijos (Ts)

@@ -1,3 +1,11 @@
+// [PP] mod:6 · autor:Rune · 2026-07-21 15:10 UTC-6
+// INC-[pendiente-ID] (fix — SyntaxError reportado por founder: locus-incidents-render.js:43 no
+// podía importar '_countClosedIncidents', ausente en este módulo): agrega el export faltante.
+// Mismo cálculo que closedCount interno de _generateIncidentsMd() (all.length - active.length,
+// sobre getIncidents() — invariant de fuente de datos preservado) — ahora factorizado en una sola
+// función y reutilizado por ambas, evitando lógica duplicada. Único archivo tocado. Variante ligera
+// (BR-Core §6): sin cambio de comportamiento visible salvo la corrección del import roto.
+
 // [PP] mod:5 · autor:Rune · 2026-07-21 UTC-6
 // TKT4 (parent: REQ CAEL-0721-01, depends_on: TKT3): "Closed en el período" → "Cerrados —
 // acumulado histórico" en Estadísticas finales — rótulo alineado con lo que el campo
@@ -228,14 +236,24 @@ function _buildItemsMd(all) {
   return lines.join('\n');
 }
 
-// _generateIncidentsMd() — única función pública de este módulo. Fuente de datos: exclusivamente
-// getIncidents() — nunca construye array propio ni lee state directamente (invariant declarado
-// en contract_detail del TKT). Nunca acepta parámetro de versión.
+// _countClosedIncidents() — export nuevo (INC fix, mod:6). Expone el mismo cálculo que
+// _generateIncidentsMd() ya hacía internamente como variable local: total de getIncidents()
+// menos activos según _isActiveIncident(). Único consumidor conocido: locus-incidents-render.js
+// (markIncidentsExported() en el listener shell:export-qinc). Misma fuente de datos que el
+// resto del módulo — exclusivamente getIncidents().
+export function _countClosedIncidents() {
+  const all = getIncidents() || [];
+  const active = all.filter(_isActiveIncident);
+  return all.length - active.length;
+}
+
+// _generateIncidentsMd() — única función pública de este módulo (junto con _countClosedIncidents).
+// Fuente de datos: exclusivamente getIncidents() — nunca construye array propio ni lee state
+// directamente (invariant declarado en contract_detail del TKT). Nunca acepta parámetro de versión.
 export function _generateIncidentsMd() {
   const all = getIncidents() || [];
   const active = all.filter(_isActiveIncident);
-  // "Closed en el período" = total - activos dentro de getIncidents() tal cual persiste hoy —
-  // sin poda de closed acumulados (gap conocido, declarado en no_incluye del TKT, ver §3b).
+  // mod:6: closedCount ahora delega en el mismo cálculo que _countClosedIncidents() — una sola fuente.
   const closedCount = all.length - active.length;
 
   const prefix = _docPrefix();
@@ -273,12 +291,6 @@ export function _generateIncidentsMd() {
   md += '| Campo | Valor |\n|---|---|\n';
   md += `| Ítems totales | ${all.length} |\n`;
   md += `| Activos | ${active.length} |\n`;
-  // TKT4 (parent: REQ CAEL-0721-01, depends_on: TKT3): rótulo corregido — "Closed en el
-  // período" implicaba delta desde un corte temporal que este módulo no persiste (ver
-  // Bifurcación real declarada por Cael en Fase 2 — Opción B elegida, Opción A del snapshot
-  // en locus-storage.js queda como DISC separada). Este campo es y siempre fue acumulado
-  // histórico, nunca delta — el rótulo ahora lo dice explícitamente en vez de sugerir algo
-  // que el módulo no calcula.
   md += `| Cerrados — acumulado histórico (no es delta desde el último export) | ${closedCount} |\n`;
 
   return md;
