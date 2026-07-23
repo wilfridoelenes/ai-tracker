@@ -1,4 +1,9 @@
-// [PP] mod:14 · autor:Rune · 2026-07-23 03:10 UTC-6
+// [PP] mod:15 · autor:Rune · 2026-07-23 04:20 UTC-6
+// TKT2 (REQ CAEL-0722-01): _rsbCfgExpanded, _renderCfgPanel(), _rsbToggleCfg() y la
+// delegación de rsbToggleCfg/cfgReset/cfgSetThreshold/cfgSetEnabled dentro de
+// #global-radar-sidebar retirados — la configuración de alertas migró a modal propio
+// (locus-notifications.js openNotifConfig() + _wireAlertCfgDelegation()). El sidebar
+// solo renderiza estado de workers.
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -13,7 +18,7 @@
 //   session.js   → navigateToCard, openQuickCapture
 //   checkpoint.js → showCheckpointPanel
 
-import { _NOTIF_DEFAULTS, _computeNotifications, _notifConfig, _notifConfigReset, _notifConfigSetEnabled, _notifConfigSetThreshold, _notifGoto, _notifReadSet, _registerNotifActions, markAllNotifsRead, markNotifRead, updateTabNotifBadges } from './locus-notifications.js';
+import { _computeNotifications, _notifGoto, _notifReadSet, _registerNotifActions, markAllNotifsRead, markNotifRead, updateTabNotifBadges } from './locus-notifications.js';
 import { openQuickCapture } from './locus-sesiones-capture.js';
 // TKT2 (CAEL-0717-01): import circular controlado con locus-sesiones.js (que ya importa
 // de este módulo, línea de arriba en ese archivo) — seguro porque _openIngestModal solo
@@ -105,77 +110,16 @@ function _renderNotifSection(allNotifs, readSet) {
     }
   }
 
-  // B mayor: panel config extraído a _renderCfgPanel() — se llama siempre desde renderGlobalRadarSidebar()
   return '<div class="radar-sb-section rsb-notif-section">' +
     notifContent +
   '</div>';
 }
 
-// B mayor: variable de módulo — preserva estado de expansión del panel config entre re-renders
-// B menor: _rsbToggleCfg y renderGlobalRadarSidebar leen/escriben este valor
-// Expuesto en window para que openNotifConfig (locus-checkpoint-stats.js) pueda sincronizarlo
-let _rsbCfgExpanded = false;
+// TKT2 (REQ CAEL-0722-01): _rsbCfgExpanded, _renderCfgPanel() y _rsbToggleCfg() retirados —
+// la configuración de alertas migró a modal propio (locus-notifications.js openNotifConfig()).
+// El Radar Sidebar ya no renderiza ni gestiona expansión de ningún panel de config.
 let _rsbAutoHideInited = false;
 let _rsbHandlersInited = false;
-Object.defineProperty(window, '_rsbCfgExpanded', {
-  get: function() { return _rsbCfgExpanded; },
-  set: function(v) { _rsbCfgExpanded = !!v; },
-  configurable: true
-});
-
-// B mayor: _renderCfgPanel — extraída de _renderNotifSection para llamarse siempre,
-// independientemente de si hay notificaciones activas (unseen > 0 o no)
-function _renderCfgPanel() {
-  var cfg = _notifConfig();
-  var cfgRows = Object.keys(_NOTIF_DEFAULTS).map(function(key) {
-    var def = cfg[key];
-    var thrInput = (typeof def.threshold === 'number' && def.threshold > 0)
-      ? '<input class="rsb-cfg-thr" type="number" min="1" max="365" value="' + def.threshold + '"' +
-        (def.enabled ? '' : ' disabled') +
-        ' data-action="cfgSetThreshold" data-cfg-key="' + key + '">' +
-        '<span class="rsb-cfg-thr-unit">d</span>'
-      : '';
-    return '<div class="rsb-cfg-row">' +
-      '<label class="rsb-cfg-label">' + def.label + '</label>' +
-      '<div class="rsb-cfg-controls">' +
-        thrInput +
-        '<input class="rsb-cfg-toggle" type="checkbox"' + (def.enabled ? ' checked' : '') +
-          ' data-action="cfgSetEnabled" data-cfg-key="' + key + '">' +
-      '</div>' +
-    '</div>';
-  }).join('');
-
-  // B menor: aplicar estado de expansión preservado en _rsbCfgExpanded
-  var bodyClass = _rsbCfgExpanded ? 'rsb-cfg-body' : 'rsb-cfg-body rsb-cfg-body--hidden';
-  var arrowChar = _rsbCfgExpanded ? '\u25BE' : '\u25B8';
-  var ariaExpanded = _rsbCfgExpanded ? 'true' : 'false';
-
-  return '<div class="rsb-cfg-section" id="rsb-cfg-section">' +
-    '<button class="rsb-cfg-toggle-btn" data-action="rsbToggleCfg" aria-expanded="' + ariaExpanded + '" id="rsb-cfg-toggle-btn">' +
-      '<span>\uD83D\uDD14 Configurar alertas</span>' +
-      '<span class="rsb-cfg-arrow" id="rsb-cfg-arrow">' + arrowChar + '</span>' +
-    '</button>' +
-    '<div class="' + bodyClass + '" id="rsb-cfg-body">' +
-      cfgRows +
-      '<div class="rsb-cfg-row">' +
-        '<button type="button" class="btn-ghost" id="rsb-cfg-reset-btn" data-action="cfgReset">Restaurar por defecto</button>' +
-      '</div>' +
-    '</div>' +
-  '</div>';
-}
-
-// R-202605-119: toggle del panel config en el Radar Sidebar
-function _rsbToggleCfg(e) {
-  if (e) e.stopPropagation();
-  var body  = document.getElementById('rsb-cfg-body');
-  var arrow = document.getElementById('rsb-cfg-arrow');
-  var btn   = document.getElementById('rsb-cfg-toggle-btn');
-  if (!body) return;
-  var isHidden = body.classList.toggle('rsb-cfg-body--hidden');
-  _rsbCfgExpanded = !isHidden; // B menor: sincronizar variable de módulo
-  if (arrow) arrow.textContent = isHidden ? '\u25B8' : '\u25BE';
-  if (btn)   btn.setAttribute('aria-expanded', String(!isHidden));
-}
 
 // ── DATA HELPERS ──────────────────────────────────────────────────────────────
 
@@ -405,13 +349,6 @@ export function renderGlobalRadarSidebar() {
     }
   }
 
-  // B-202605-009: leer estado real del DOM ANTES de destruirlo con innerHTML
-  // _rsbCfgExpanded puede estar desincronizado si el panel fue expandido sin pasar por openNotifConfig
-  var _cfgBodyEl = document.getElementById('rsb-cfg-body');
-  if (_cfgBodyEl) {
-    _rsbCfgExpanded = !_cfgBodyEl.classList.contains('rsb-cfg-body--hidden');
-  }
-
   // B-[pendiente-ID]: guard de diff — evita reescribir innerHTML (y el parpadeo visual que
   // produce) cuando el html generado es idéntico al ya presente en el DOM. _saveFlush()
   // despacha shell:render-radar en cada guardado sin distinguir si el cambio afecta al radar —
@@ -425,10 +362,6 @@ export function renderGlobalRadarSidebar() {
     container.querySelectorAll('.rsb-proj-pill[data-proj-color]').forEach(pill => {
       pill.style.setProperty('--rsb-proj-color', pill.dataset.projColor);
     });
-
-    // B mayor: _renderCfgPanel siempre presente en el DOM — independiente de unseen y de active.length
-    // Se inserta después de innerHTML para sobrevivir al bloque empty-state
-    container.insertAdjacentHTML('beforeend', _renderCfgPanel());
   }
 
   // Header — contadores — R-202605-138: contadores migrados a fila 2
@@ -680,7 +613,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (!sidebar) return;
 
   // Click delegation — cubre rsb-card, rsb-card-quick, rsb-empty-btn, rsb-collapsible,
-  // rsb-notif-goto, rsb-notif-dismiss, rsb-notif-mark-all, rsb-cfg-toggle-btn
+  // rsb-notif-goto, rsb-notif-dismiss, rsb-notif-mark-all
   // REQ-restore-draft TKT2 (Rune) AC7: draft-dot es role="button" tabindex="0" (span, no
   // nativamente interactivo) — Enter/Espacio no disparan .click() por sí solos. Scoped al
   // propio elemento, no al delegador genérico de [data-action] — el resto de acciones ya
@@ -715,32 +648,14 @@ document.addEventListener('DOMContentLoaded', function () {
     } else if (action === 'notifMarkAll') {
       e.stopPropagation();
       markAllNotifsRead();
-    } else if (action === 'rsbToggleCfg') {
-      _rsbToggleCfg(e);
     } else if (action === 'openAddAI') {
       openAddAI();
     } else if (action === 'rsbToggleAgotadas') {
       _rsbToggleAgotadas();
-    } else if (action === 'cfgReset') {
-      e.stopPropagation();
-      _notifConfigReset();
     }
   });
-
-  // Change delegation — cubre rsb-cfg-thr (cfgSetThreshold) y rsb-cfg-toggle (cfgSetEnabled)
-  sidebar.addEventListener('change', function (e) {
-    const el = e.target.closest('[data-action]');
-    if (!el) return;
-    const action = el.dataset.action;
-    const key = el.dataset.cfgKey;
-    if (action === 'cfgSetThreshold') {
-      e.stopPropagation();
-      _notifConfigSetThreshold(key, el.value);
-    } else if (action === 'cfgSetEnabled') {
-      e.stopPropagation();
-      _notifConfigSetEnabled(key, el.checked);
-    }
-  });
+  // TKT2 (REQ CAEL-0722-01): change delegation de cfgSetThreshold/cfgSetEnabled retirada —
+  // re-scoped al contenedor del modal en locus-notifications.js (_wireAlertCfgDelegation).
 });
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────

@@ -1,3 +1,9 @@
+// [PP] mod:15 · autor:Rune · 2026-07-23 04:20 UTC-6
+// TKT2 (REQ CAEL-0722-01): openNotifConfig() reescrito — modal propio vía _gconfirmOpen()
+// en vez de togglear/scrollear el Radar Sidebar. Nueva _wireAlertCfgDelegation() scoped a
+// #gconfirm-body-html. Import de toggleRadarSidebar retirado (huérfano tras el cambio).
+// blocked_at: "Restaurar por defecto" usa reset directo — el patrón D-03
+// (.item-inline-confirm) queda pendiente hasta identificar el módulo que lo implementa.
 // [PP] mod:14 · autor:Rune · 2026-07-13 UTC-6
 // INC-[pendiente-ID]: getState() importado — typeof state !== 'undefined' en
 // _computeNotifications() (bloque 6, aiCadencia) nunca era true — 'active' siempre
@@ -33,13 +39,14 @@
 import { setFilter } from './locus-backlog-item.js';
 import { getItems, getIncidents, _registerCoreCallback } from './locus-backlog-core.js';
 import { navigateToItem } from './locus-item-navigator.js'; // TKT1 (REQ CAEL-04): reubicado — antes en locus-backlog-sprints.js
-import { renderGlobalRadarSidebar, toggleRadarSidebar } from './locus-radar.js';
+import { renderGlobalRadarSidebar } from './locus-radar.js';
 import { navigateToCard } from './locus-sesiones-stats.js';
 import { _sprintDisplay, getActiveSprints, getAllSessions, getState } from './locus-storage.js'; // INC-[pendiente-ID]: getState agregado — guard typeof state muerto
 import { switchTab } from './locus-ui-shell.js';
 import { toast } from './locus-toast.js';
 import { getMdiffStepZeroActive } from './locus-backlog-merge.js';
 import { incSlaPriority, incIncidentStatus } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil
+import { _gconfirmOpen } from './locus-modals.js'; // TKT2 (REQ CAEL-0722-01): modal propio de configuración de alertas
 
 // T-202604-422: Notificaciones de ecosistema — motor + helpers
 const _NOTIF_KEY         = 'ai-tracker-notifs-read';
@@ -407,18 +414,77 @@ export function updateTabNotifBadges(allNotifs) {
 }
 
 // B-202605-240: UI de configuración de notificaciones
-// R-202605-119: openNotifConfig redirige al Radar Sidebar — config unificada ahí
+// TKT2 (REQ CAEL-0722-01): modal propio vía shell gconfirm — reemplaza la redirección al
+// Radar Sidebar (R-202605-119, ya no togglea ni hace scrollIntoView). Edge case AC: si el
+// sidebar está colapsado, permanece colapsado — el modal no depende de su estado.
 export function openNotifConfig() {
-  const sidebar = document.getElementById('global-radar-sidebar');
-  if (!sidebar) return;
-  if (sidebar.classList.contains('collapsed')) {
-    toggleRadarSidebar();
-  }
-  renderGlobalRadarSidebar();
-  setTimeout(function() {
-    var body = document.getElementById('rsb-cfg-body');
-    if (body) body.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, 50);
+  const cfg = _notifConfig();
+  const rows = Object.keys(_NOTIF_DEFAULTS).map(function(key) {
+    const def = cfg[key];
+    const thrInput = (typeof def.threshold === 'number' && def.threshold > 0)
+      ? '<input class="alertcfg-input" type="number" min="1" max="365" value="' + def.threshold + '"' +
+        (def.enabled ? '' : ' disabled') +
+        ' data-action="cfgSetThreshold" data-cfg-key="' + key + '">' +
+        '<span class="alertcfg-unit">d</span>'
+      : '';
+    return '<div class="alertcfg-row">' +
+      '<label class="alertcfg-label">' + def.label + '</label>' +
+      '<div class="alertcfg-controls">' +
+        thrInput +
+        '<input class="alertcfg-toggle" type="checkbox"' + (def.enabled ? ' checked' : '') +
+          ' data-action="cfgSetEnabled" data-cfg-key="' + key + '">' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  // blocked_at (CHECKPOINT TKT2): AC4 de TKT1 pide que "Restaurar por defecto" revele el
+  // par accept/cancel de .item-inline-confirm (D-03) — módulo que lo implementa no
+  // identificado ni adjunto en sesión (ver CHECKPOINT de Cael, blockers). Fallback: reset
+  // directo al click. No retomar esta parte sin el módulo de referencia.
+  const bodyHtml = '<div class="alertcfg-list" id="alertcfg-list">' +
+    rows +
+    '<div class="alertcfg-reset-wrap">' +
+      '<button type="button" class="alertcfg-reset-btn" id="alertcfg-reset-btn" data-action="cfgReset">Restaurar por defecto</button>' +
+    '</div>' +
+  '</div>';
+
+  _gconfirmOpen({ title: 'Configurar alertas', msg: '', okLabel: 'Cerrar', danger: false, bodyHtml: bodyHtml }, function() {});
+  _wireAlertCfgDelegation();
+}
+
+// TKT2: delegación scoped al contenedor del modal (#gconfirm-body-html) — reemplaza la
+// delegación que vivía en #global-radar-sidebar (locus-radar.js). Listener attach una sola
+// vez sobre el contenedor persistente; _gconfirmOpen() solo reescribe su innerHTML en cada
+// apertura, por lo que no requiere re-wiring.
+let _alertCfgDelegationInited = false;
+function _wireAlertCfgDelegation() {
+  const container = document.getElementById('gconfirm-body-html');
+  if (!container || _alertCfgDelegationInited) return;
+  _alertCfgDelegationInited = true;
+
+  container.addEventListener('click', function(e) {
+    const el = e.target.closest('[data-action]');
+    if (!el || el.dataset.action !== 'cfgReset') return;
+    e.stopPropagation();
+    _notifConfigReset();
+  });
+
+  container.addEventListener('change', function(e) {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const action = el.dataset.action;
+    const key = el.dataset.cfgKey;
+    if (action === 'cfgSetThreshold') {
+      e.stopPropagation();
+      const num = parseInt(el.value, 10);
+      if (isNaN(num) || num < 1) { el.classList.add('alertcfg-input--error'); return; }
+      el.classList.remove('alertcfg-input--error');
+      _notifConfigSetThreshold(key, el.value);
+    } else if (action === 'cfgSetEnabled') {
+      e.stopPropagation();
+      _notifConfigSetEnabled(key, el.checked);
+    }
+  });
 }
 
 export function _notifConfigReset() {
