@@ -1,3 +1,13 @@
+// [PP] mod:8 · autor:Rune · 2026-07-23 UTC-6
+// TKT1 (REQ-[pendiente-ID] Empty state bloque Terminados): _renderDoneGroup no tenía rama
+// visual para doneItems.length === 0 — bodyEl.innerHTML quedaba en '' (bloque en blanco al
+// expandir "Terminados" con 0 ítems done). Agregado mismo patrón .empty-state/.empty-state-icon/
+// .empty-state-title/.empty-state-hint ya usado 3 veces en este mismo archivo (_renderZonePanel,
+// L174/338/398) — sin CSS nuevo, sin consulta a Nova (reuso de clases existentes, no hay
+// selector nuevo ni componente nuevo). Sin empty-state-btn — bloque informativo, no onboarding.
+// Conteo del header (${prefix}-done-count) y el toggle de colapso (_attachDoneGroupToggle) sin
+// cambio. contract_update: no — misma firma _renderDoneGroup(prefix, doneItems).
+
 // [PP] mod:7 · autor:Rune · 2026-07-23 UTC-6
 // Hallazgo fuera de scope (Nova, auditoría _Locus-css-ref mod:109): mismo bug que
 // locus-incidents-render.js mod:6 — tc-${t.toLowerCase()} (tc-req/tc-tkt) nunca matcheaba
@@ -107,7 +117,11 @@ function _renderDoneGroup(prefix, doneItems) {
   if (!bodyEl) return;
   bodyEl.innerHTML = doneItems.length
     ? _sortDoneItems(doneItems).map(item => buildBacklogItem(item)).join('')
-    : '';
+    : `<div class="empty-state">
+        <div class="empty-state-icon">✔</div>
+        <div class="empty-state-title">Sin ítems terminados aún</div>
+        <div class="empty-state-hint">Los ítems que lleguen a done en este sprint aparecerán aquí.</div>
+      </div>`;
 }
 
 // Toggle de colapso del bloque "Terminados" — header y body son estáticos (index.html), el
