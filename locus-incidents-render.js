@@ -1,3 +1,37 @@
+// [PP] mod:9 · autor:Rune · 2026-07-23 UTC-6
+// TKT2 (REQ CAEL-0723-05, ref_id CAEL-0723-06): cierra el Hallazgo fuera de scope declarado en
+// mod:8 — _activeForCount (renderQIncStats) migra de _QINC_ACTIVE_STATUSES a _isQIncTerminal,
+// mismo criterio que ya usa el body (renderQIncPanel, TKT1/mod:8). Antes un INC/PRB 'resolved'
+// aparecía bajo "Activos" en el body pero no sumaba en los chips de tipo/prioridad del
+// stats-bar — desfase entre lo mostrado y lo contado. _QINC_ACTIVE_STATUSES retirada — sin
+// consumidores tras este patch (__BR-Execution §2, sin retrocompatibilidad). _displayable de
+// renderQIncStats sin cambio — sigue excluyendo closed/descartado antes de llegar a
+// _activeForCount; redundante con _isQIncTerminal para 'closed' pero inofensivo, no se toca para
+// minimizar superficie del TKT.
+
+// [PP] mod:8 · autor:Rune · 2026-07-23 UTC-6
+// TKT1 (REQ CAEL-0723-03, ref_id CAEL-0723-04): "Terminados" reemplaza "Resueltos" — antes
+// mezclaba dos conceptos: 'closed' (INC/PRB) nunca llegaba a renderizarse (excluido en
+// _displayable, línea de _qincEffectiveStatus !== 'closed'), y "Resueltos" en realidad agrupaba
+// todo lo que no fuera _QINC_ACTIVE_STATUSES — incluyendo 'resolved' de INC/PRB, que NO es
+// terminal (BR-Core §6: closed lo es, resolved no). Nueva función _isQIncTerminal(item) clasifica
+// por tipo: closed (INC/PRB) · resolved (KE, su único terminal — no tiene status closed propio) ·
+// done (CHG, vocabulario Scrum). 'resolved' de INC/PRB ahora cae en "Activos" — sigue pendiente
+// de verificación de Finn, igual criterio que ya separa Activos/Terminados en Q-Backlog
+// (_pp-context §5): "Activos" = requiere acción de algún rol. _displayable ya no excluye
+// 'closed' — ahora fluye hasta el split y aterriza en "Terminados". "Terminados" se renderiza
+// siempre (header + body), a diferencia de "Activos" que sigue omitiéndose si vacío — con empty
+// state propio cuando _terminalItems.length===0 (mismo patrón .empty-state ya usado en este
+// archivo, líneas 205-210/228-232/264). renderQIncStats()/_activeForCount sin cambio — sigue
+// contando solo _QINC_ACTIVE_STATUSES.
+//
+// Hallazgo fuera de scope (detectado en esta sesión, no resuelto — fuera de los AC aprobados):
+// tras este TKT, un INC 'resolved' aparece en el body bajo "Activos" pero NO suma en los chips
+// de tipo/prioridad del stats-bar (_activeForCount solo cuenta _QINC_ACTIVE_STATUSES, que no
+// incluye 'resolved') — inconsistencia visual entre lo que el body muestra como activo y lo que
+// el stats-bar cuenta como activo. Acción sugerida: pasar a Cael (PO+BA) — evaluar si
+// _activeForCount debe adoptar el mismo criterio _isQIncTerminal en un REQ separado.
+
 // [PP] mod:7 · autor:Rune · 2026-07-23 UTC-6
 // TKT2 (REQ CAEL-0722-01, ref_id CAEL-0722-03): clasificación activo/resuelto de Q-INC
 // corregida vía _qincEffectiveStatus() — dispatch por tipo (item.status para CHG,
@@ -102,7 +136,24 @@ function _qincEffectiveStatus(item) {
 // TKT2: agrega vocabulario CHG (pendiente/en-revision) y KE (active) — antes solo cubría
 // vocabulario INC, dejando todo CHG y KE siempre clasificado como "Resueltos" sin importar
 // su status real.
-const _QINC_ACTIVE_STATUSES = ['detected', 'assigned', 'in_progress', 'escalated_to_prb', 'escalated_to_chg', 'active', 'pendiente', 'en-revision'];
+// TKT2 (REQ CAEL-0723-05): _QINC_ACTIVE_STATUSES retirada — sin consumidores desde que
+// _activeForCount migró a _isQIncTerminal (mismo mod:9). Su único otro uso, el split
+// Activos/Terminados de renderQIncPanel(), ya había migrado a _isQIncTerminal en TKT1 (mod:8).
+// Vocabulario ITIL activo por tipo — si se necesita de nuevo, vive implícito en _isQIncTerminal
+// (todo lo que no es terminal) en vez de una lista enumerada aparte.
+
+// TKT1 (REQ CAEL-0723-03): terminal real por tipo — a diferencia de una lista enumerada de
+// estados "activos", este criterio distingue vocabulario porque "terminal" no es el mismo status
+// para los cuatro tipos: closed (INC/PRB, __BR-Core §6) · resolved (KE — único terminal, KE no
+// tiene status closed propio) · done (CHG — vocabulario Scrum, __BR-Ecosystem §4b). 'resolved'
+// de INC/PRB NO es terminal — pendiente de verificación de Finn.
+function _isQIncTerminal(item) {
+  const k = itemKind(item);
+  const s = _qincEffectiveStatus(item);
+  if (k === 'KE')  return s === 'resolved';
+  if (k === 'CHG') return s === 'done';
+  return s === 'closed'; // INC / PRB
+}
 
 // TKT2 (REQ CAEL-0720-05): stats-bar de Q-INC extraído a función propia — mismo criterio que
 // renderStats() (locus-backlog-core.js) para #stats-bar de Backlog. Llena #qinc-stats-bar
@@ -126,11 +177,12 @@ export function renderQIncStats() {
   const _countByType = { INC: 0, PRB: 0, KE: 0, CHG: 0 };
   const _countByPri  = { high: 0, medium: 0, low: 0 };
   const _displayable = allQInc.filter(i => _qincEffectiveStatus(i) !== 'descartado' && _qincEffectiveStatus(i) !== 'closed');
-  // TKT (REQ CAEL-0722-01): el conteo de los chips refleja solo ítems activos — mismo criterio
-  // que renderQIncPanel() usa para separar la sección "Activos" de "Resueltos" (_QINC_ACTIVE_STATUSES).
-  // _displayable sigue siendo el universo base (excluye descartado/closed) — este filtro adicional
-  // es exclusivo del conteo mostrado en el stats-bar, no afecta filteredQInc de renderQIncPanel().
-  const _activeForCount = _displayable.filter(i => _QINC_ACTIVE_STATUSES.includes(_qincEffectiveStatus(i)));
+  // TKT2 (REQ CAEL-0723-05): _activeForCount ahora usa _isQIncTerminal — mismo criterio que
+  // separa Activos/Terminados en renderQIncPanel() (TKT1, mod:8). Antes usaba
+  // _QINC_ACTIVE_STATUSES, que no incluía 'resolved' (INC/PRB) — un INC resolved aparecía bajo
+  // "Activos" en el body pero no sumaba en los chips de tipo/prioridad. _QINC_ACTIVE_STATUSES
+  // queda sin consumidores tras este cambio — retirada (sin retrocompatibilidad, __BR-Execution §2).
+  const _activeForCount = _displayable.filter(i => !_isQIncTerminal(i));
   _activeForCount.forEach(i => {
     const t = itemKind(i);
     if (t && _countByType[t] !== undefined) _countByType[t]++;
@@ -219,9 +271,9 @@ export function renderQIncPanel() {
   const _qiTypes    = _nsGetTypes('qinc');
   const _qiPriority = _nsGetPriority('qinc');
   const _qiQuery     = (_nsGetQuery('qinc') || '').trim().toLowerCase();
-  const _displayable = allQInc.filter(i => _qincEffectiveStatus(i) !== 'descartado' && _qincEffectiveStatus(i) !== 'closed');
-
-  // TKT2: único empty-state de "sin activos" — antes había dos ramas idénticas
+  // TKT1 (REQ CAEL-0723-03): ya no excluye 'closed' — antes moría aquí sin llegar nunca al
+  // render (ver mod:8, header del archivo). Sigue excluyendo 'descartado'.
+  const _displayable = allQInc.filter(i => _qincEffectiveStatus(i) !== 'descartado'); — antes había dos ramas idénticas
   // (allQInc.length===0 y _displayable.length===0). _displayable ya cubre ambos casos: si
   // allQInc está vacío, _displayable también lo está.
   if (!_displayable.length) {
@@ -263,19 +315,27 @@ export function renderQIncPanel() {
   const _listHtml = filteredQInc.length === 0
     ? `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">Sin resultados</div><div class="empty-state-hint">Ningún ítem coincide con el filtro activo.</div></div>`
     : (() => {
-        const _activeItems   = filteredQInc.filter(i => _QINC_ACTIVE_STATUSES.includes(_qincEffectiveStatus(i)));
-        const _resolvedItems = filteredQInc.filter(i => !_QINC_ACTIVE_STATUSES.includes(_qincEffectiveStatus(i)));
+        const _activeItems   = filteredQInc.filter(i => !_isQIncTerminal(i));
+        const _terminalItems = filteredQInc.filter(i => _isQIncTerminal(i));
         let h = '';
         if (_activeItems.length) {
           h += '<div class="qinc-section"><div class="qinc-section-header">Activos</div><div class="items-grid">';
           _activeItems.forEach(item => { h += _buildQIncItemHtml(item); });
           h += '</div></div>';
         }
-        if (_resolvedItems.length) {
-          h += '<div class="qinc-section"><div class="qinc-section-header">Resueltos</div><div class="items-grid">';
-          _resolvedItems.forEach(item => { h += _buildQIncItemHtml(item); });
-          h += '</div></div>';
-        }
+        // TKT1 (REQ CAEL-0723-03): "Terminados" siempre se renderiza — a diferencia de
+        // "Activos", que se omite si vacío. filteredQInc.length>0 está garantizado en este punto
+        // (branch de "Sin resultados" ya se resolvió arriba), así que _activeItems y
+        // _terminalItems nunca están vacíos los dos a la vez — pero cada uno individualmente sí.
+        h += '<div class="qinc-section"><div class="qinc-section-header">Terminados</div>';
+        h += _terminalItems.length
+          ? `<div class="items-grid">${_terminalItems.map(item => _buildQIncItemHtml(item)).join('')}</div>`
+          : `<div class="empty-state">
+              <div class="empty-state-icon">✔</div>
+              <div class="empty-state-title">Sin ítems terminados aún</div>
+              <div class="empty-state-hint">Los INC/PRB en closed, KE en resolved y CHG en done aparecerán aquí.</div>
+            </div>`;
+        h += '</div>';
         return h;
       })();
 
