@@ -1,3 +1,10 @@
+// [PP] mod:143 · autor:Rune · 2026-07-23 UTC-6
+// TKT1 (REQ CAEL-0722-01, ref_id CAEL-0722-02): _mapRowToIncident() restaura status como
+// mirror de incident_status para los 4 tipos ITIL (INC/PRB/KE/CHG) — antes solo poblaba
+// incidentStatus, dejando .status undefined tras cada hidratación desde Supabase. Ver nota
+// completa junto a la función. _toIncidentRow() no se toca — el pliegue en escritura ya era
+// correcto.
+
 // [PP] mod:141 · autor:Rune · 2026-07-22 22:18 UTC-6
 // INC-CAEL-0722-06: _subscribeRealtime() gateado con _REALTIME_ENABLED=false — el cliente
 // reintentaba suscripción indefinidamente contra canales sin publicación activa en Supabase
@@ -511,6 +518,8 @@ export function setSyncStatus(status, label) {
   if (gfSync) { gfSync.className = 'gf-sync gf-sync--' + status; gfSync.textContent = label; }
   // actualizar ítem de usuario en menú ⋯
   _updateUserMenuItem();
+  // TKT (REQ CAEL-0723-01, ref_id CAEL-0723-02): #mm-btn-sync deja de duplicar #gf-sync
+  _updateSyncMenuItem();
 }
 
 function _updateUserMenuItem() {
@@ -523,6 +532,24 @@ function _updateUserMenuItem() {
     btn.classList.remove('is-hidden');
   } else {
     btn.classList.add('is-hidden');
+  }
+}
+
+// TKT (REQ CAEL-0723-01, ref_id CAEL-0723-02): #mm-btn-sync duplicaba el estado que #gf-sync
+// ya muestra siempre visible en el footer (mismo origen, setSyncStatus() de arriba) — con sesión
+// activa el click no ejecutaba ninguna acción (handleSyncPillClick solo abre el modal de auth
+// cuando !_supabaseUser). Mismo patrón que _updateUserMenuItem(): oculto con sesión activa,
+// visible como login trigger sin sesión — reemplaza el label 'Sync: [status]' recién asignado
+// arriba en setSyncStatus() por 'Iniciar sesión' solo en el estado deslogueado.
+function _updateSyncMenuItem() {
+  const btn = document.getElementById('mm-btn-sync');
+  const lbl = document.getElementById('sync-status-label');
+  if (!btn) return;
+  if (_supabaseUser) {
+    btn.classList.add('is-hidden');
+  } else {
+    btn.classList.remove('is-hidden');
+    if (lbl) lbl.textContent = 'Iniciar sesión';
   }
 }
 
@@ -2218,6 +2245,13 @@ function _mapRowToItem(row) {
 // TKT4 (REQ CAEL-01 · PP-S-02): role/next_role/ac/queue/verificado_por rehidratados —
 // AC-2 (sobreviven guardar+recargar) y AC-4 (regresión: filas viejas sin estas columnas,
 // NULL tras el ALTER, se hidratan sin error — role/next_role/verificado_por null, ac:[]).
+// TKT1 (REQ CAEL-0722-01, ref_id CAEL-0722-02): status restaurado como mirror de
+// incident_status para los 4 tipos ITIL — no solo CHG. _buildItilItem() (locus-session-parse.js)
+// ya setea item.status = mirror de incident_status en parse fresco para INC/PRB/KE, y el valor
+// canónico Scrum directo para CHG — esta función no reflejaba ese mismo mirror al hidratar desde
+// Supabase, dejando .status undefined para todo ítem ITIL leído de la DB (independiente de tipo).
+// _normalizeCommonFields() (locus-backlog-core.js) recibía status:undefined → default 'pendiente'
+// silencioso, corrompiendo la clasificación activo/descartado en el tab Q-INC tras cada reload.
 function _mapRowToIncident(row) {
   return {
     code:                  row.code,
@@ -2229,6 +2263,7 @@ function _mapRowToIncident(row) {
     archivos:              Array.isArray(row.archivos) ? row.archivos : null,
     derived_items:         Array.isArray(row.derived_items) ? row.derived_items : null,
     sla_priority:          row.sla_priority,
+    status:                row.incident_status || null,
     incidentStatus:        row.incident_status || null,
     resolutionType:        row.resolution_type || null,
     discard_reason:        row.discard_reason,

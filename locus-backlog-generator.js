@@ -1,3 +1,9 @@
+// [PP] mod:48 · autor:Rune · 2026-07-23 10:15 UTC-6
+// TKT3 (REQ CAEL-0722-01, ref_id CAEL-0722-04): _isActiveQIncItem() — rama INC leía
+//   i.incident_status crudo (snake_case) sin fallback camelCase, siempre false para INC en
+//   memoria (parseado o hidratado). Ahora usa incIncidentStatus(i) — mismo accessor canónico
+//   ya usado por locus-incidents-render.js y locus-backlog-panel.js. Ramas PRB/KE/CHG sin
+//   cambio — ya correctas leyendo i.status tras TKT1 (mirror en _mapRowToIncident()).
 // [PP] mod:47 · autor:Rune · 2026-07-21 12:00 UTC-6
 // INC-PP-no-incluye-forEach: exportBacklogMd() crasheaba con TypeError en item.no_incluye.forEach
 //   is not a function (_buildItemFieldsMd, ~L1187). no_incluye es string según schema
@@ -43,7 +49,7 @@
 import { _blogLog, _docPrefix, _effectiveVersion, _sprintDisplay, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getState, getInfraVersionData, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js';
 import { getItems, getIncidents, itemKind, updateBacklogBanner } from './locus-backlog-core.js'; // [tmp:tkt2-qinc-count]: getIncidents agregada — _allItemsWithHistorico()
 import { showToast } from './locus-toast.js';
-import { incSlaPriority } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil
+import { incSlaPriority, incIncidentStatus } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil · incIncidentStatus: TKT3 (ref_id CAEL-0722-04)
 import { _gconfirmOpen } from './locus-modals.js'; // INC-PP-export-confirm-dead-shell
 
 // ── _itemTypeGen2 — detección de tipo Gen 2 ──────────────────────────────────
@@ -64,7 +70,12 @@ function _isActiveDisc(i) {
 }
 function _isActiveQIncItem(i) {
   const t = _itemTypeGen2(i);
-  if (t === 'INC') return !!i.incident_status && i.incident_status !== 'closed' && i.incident_status !== 'descartado';
+  // TKT3 (ref_id CAEL-0722-04): INC leía i.incident_status crudo (snake_case) sin fallback a
+  // incidentStatus (camelCase, formato real en memoria tras parse o hidratación) — siempre false.
+  // incIncidentStatus() resuelve ambos formatos, mismo accessor ya usado por locus-incidents-render.js
+  // y locus-backlog-panel.js. PRB/KE/CHG sin cambio — ya correctos leyendo i.status tras TKT1
+  // (ref_id CAEL-0722-02, mirror status↔incident_status aplicado en _mapRowToIncident()).
+  if (t === 'INC') { const s = incIncidentStatus(i); return !!s && s !== 'closed' && s !== 'descartado'; }
   if (t === 'PRB') return i.status === 'detected' || i.status === 'in_progress' || i.status === 'resolved';
   if (t === 'KE') return i.status === 'active';
   if (t === 'CHG') return i.status === 'pendiente' || i.status === 'en-revision';

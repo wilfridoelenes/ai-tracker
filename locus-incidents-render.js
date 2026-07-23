@@ -1,3 +1,10 @@
+// [PP] mod:7 · autor:Rune · 2026-07-23 UTC-6
+// TKT2 (REQ CAEL-0722-01, ref_id CAEL-0722-03): clasificación activo/resuelto de Q-INC
+// corregida vía _qincEffectiveStatus() — dispatch por tipo (item.status para CHG,
+// incIncidentStatus() para INC/PRB/KE), reemplaza el uso directo de i.status/i.incidentStatus
+// en _displayable y en el split _activeItems/_resolvedItems. _QINC_ACTIVE_STATUSES amplía
+// vocabulario CHG (pendiente/en-revision) y KE (active) — antes solo cubría vocabulario INC.
+
 // [PP] mod:6 · autor:Rune · 2026-07-23 UTC-6
 // Hallazgo fuera de scope (Nova, auditoría _Locus-css-ref mod:109): renderQIncStats() emitía
 // tc-${t.toLowerCase()} (tc-inc/tc-prb/tc-ke/tc-chg) — CSS solo define el compuesto en
@@ -71,7 +78,7 @@ import {
 
 import { buildQIncItem } from './locus-incidents-item.js';
 
-import { incSlaPriority, SLA_RIESGO_WINDOW_MS } from './locus-inc-fields.js';
+import { incSlaPriority, incIncidentStatus, SLA_RIESGO_WINDOW_MS } from './locus-inc-fields.js';
 
 import { _generateIncidentsMd, _countClosedIncidents, copyIncidentItemMd } from './locus-incidents-generator.js'; // TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-06): copyIncidentItemMd — botón "Copiar ítem" en _attachQIncDelegation
 
@@ -79,8 +86,23 @@ import { _getActiveProjectFilter, _docPrefix, markIncidentsExported } from './lo
 
 import { getCurrentTab } from './locus-ui-shell.js';
 
+// TKT2 (REQ CAEL-0722-01, ref_id CAEL-0722-03): status efectivo por tipo — CHG usa item.status
+// (vocabulario Scrum, __BR-Ecosystem §4b; incidentStatus queda null por diseño en _buildItilItem
+// para CHG, incluso recién parseado sin round-trip por Supabase). INC/PRB/KE usan
+// incIncidentStatus(item) (camelCase en memoria o snake_case hidratado). Mismo dispatch que
+// _isActiveIncident() (locus-incidents-generator.js) — no se reutiliza esa función directamente
+// porque su criterio de "activo" difiere del corte activo/resuelto de este panel (ej. PRB/INC en
+// 'resolved' cuentan como "activo" en _isActiveIncident, pero este panel los separa a "Resueltos" —
+// dos necesidades de clasificación distintas sobre el mismo dato, no un desacuerdo de bug).
+function _qincEffectiveStatus(item) {
+  return itemKind(item) === 'CHG' ? (item.status || null) : incIncidentStatus(item);
+}
+
 // Estados ITIL "activos" — orden de grupo primero. resolved/closed van al fondo.
-const _QINC_ACTIVE_STATUSES = ['detected', 'assigned', 'in_progress', 'escalated_to_prb', 'escalated_to_chg'];
+// TKT2: agrega vocabulario CHG (pendiente/en-revision) y KE (active) — antes solo cubría
+// vocabulario INC, dejando todo CHG y KE siempre clasificado como "Resueltos" sin importar
+// su status real.
+const _QINC_ACTIVE_STATUSES = ['detected', 'assigned', 'in_progress', 'escalated_to_prb', 'escalated_to_chg', 'active', 'pendiente', 'en-revision'];
 
 // TKT2 (REQ CAEL-0720-05): stats-bar de Q-INC extraído a función propia — mismo criterio que
 // renderStats() (locus-backlog-core.js) para #stats-bar de Backlog. Llena #qinc-stats-bar
@@ -103,12 +125,12 @@ export function renderQIncStats() {
 
   const _countByType = { INC: 0, PRB: 0, KE: 0, CHG: 0 };
   const _countByPri  = { high: 0, medium: 0, low: 0 };
-  const _displayable = allQInc.filter(i => i.status !== 'descartado' && i.incidentStatus !== 'closed');
+  const _displayable = allQInc.filter(i => _qincEffectiveStatus(i) !== 'descartado' && _qincEffectiveStatus(i) !== 'closed');
   // TKT (REQ CAEL-0722-01): el conteo de los chips refleja solo ítems activos — mismo criterio
   // que renderQIncPanel() usa para separar la sección "Activos" de "Resueltos" (_QINC_ACTIVE_STATUSES).
   // _displayable sigue siendo el universo base (excluye descartado/closed) — este filtro adicional
   // es exclusivo del conteo mostrado en el stats-bar, no afecta filteredQInc de renderQIncPanel().
-  const _activeForCount = _displayable.filter(i => _QINC_ACTIVE_STATUSES.includes(i.incidentStatus));
+  const _activeForCount = _displayable.filter(i => _QINC_ACTIVE_STATUSES.includes(_qincEffectiveStatus(i)));
   _activeForCount.forEach(i => {
     const t = itemKind(i);
     if (t && _countByType[t] !== undefined) _countByType[t]++;
@@ -197,7 +219,7 @@ export function renderQIncPanel() {
   const _qiTypes    = _nsGetTypes('qinc');
   const _qiPriority = _nsGetPriority('qinc');
   const _qiQuery     = (_nsGetQuery('qinc') || '').trim().toLowerCase();
-  const _displayable = allQInc.filter(i => i.status !== 'descartado' && i.incidentStatus !== 'closed');
+  const _displayable = allQInc.filter(i => _qincEffectiveStatus(i) !== 'descartado' && _qincEffectiveStatus(i) !== 'closed');
 
   // TKT2: único empty-state de "sin activos" — antes había dos ramas idénticas
   // (allQInc.length===0 y _displayable.length===0). _displayable ya cubre ambos casos: si
@@ -241,8 +263,8 @@ export function renderQIncPanel() {
   const _listHtml = filteredQInc.length === 0
     ? `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">Sin resultados</div><div class="empty-state-hint">Ningún ítem coincide con el filtro activo.</div></div>`
     : (() => {
-        const _activeItems   = filteredQInc.filter(i => _QINC_ACTIVE_STATUSES.includes(i.incidentStatus));
-        const _resolvedItems = filteredQInc.filter(i => !_QINC_ACTIVE_STATUSES.includes(i.incidentStatus));
+        const _activeItems   = filteredQInc.filter(i => _QINC_ACTIVE_STATUSES.includes(_qincEffectiveStatus(i)));
+        const _resolvedItems = filteredQInc.filter(i => !_QINC_ACTIVE_STATUSES.includes(_qincEffectiveStatus(i)));
         let h = '';
         if (_activeItems.length) {
           h += '<div class="qinc-section"><div class="qinc-section-header">Activos</div><div class="items-grid">';
