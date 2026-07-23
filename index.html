@@ -1,3 +1,10 @@
+<!-- [PP] mod:151 · autor:Rune · 2026-07-23 UTC-6 -->
+<!-- Rediseño sub-tab Sprints — ad-hoc, instrucción directa del founder (sin REQ/TKT, mismo
+     tratamiento que locus-sprint.js mod:111 / locus-sprint.css mod:64). Cierra el bloqueo
+     parcial declarado en locus-sprint.js mod:111: shell estático de #sps-stats-block —
+     4 celdas fijas (Activo/Programados/Pausados/Cerrados), primer hijo de
+     #sprint-panel-sprints, mismo patrón que #qdisc-stats-block (BR-Execution §5 — elemento
+     invariante, nunca se oculta, contenido vía _renderSpsStatsBlock() en locus-sprint.js). -->
 <!-- [PP] mod:150 · autor:Nova · 2026-07-22 UTC-6 -->
 <!-- TKT1 (REQ CAEL-0720-02): #stats-bar + #filter-bar-status envueltos en #bl-header-unified
      — ver AC en TKT y CSS correspondiente en locus-backlog.css mod:111 (Nova). -->
@@ -845,6 +852,31 @@
 
   <!-- Panel Sprints — T-202606-028 -->
   <div id="sprint-panel-sprints" role="tabpanel" aria-labelledby="spt-tab-sprints" class="is-hidden">
+    <!-- TKT (rediseño sub-tab Sprints, mod:111 locus-sprint.js — ad-hoc, mismo tratamiento
+         que CSS mod:64 de Nova): shell estático del bloque de métricas — siempre presente
+         en el DOM, 4 celdas fijas (Activo/Programados/Pausados/Cerrados), contenido vía
+         _renderSpsStatsBlock() en locus-sprint.js. Nunca se oculta — mismo patrón que
+         #qdisc-stats-block (BR-Execution §5, elemento invariante). Pausados/Cerrados sin
+         modificador de color a propósito — ver locus-sprint.css mod:64 comentario junto a
+         .sps-status-header--pausados/--cerrados. -->
+    <div class="sps-stats-block" id="sps-stats-block">
+      <div class="sps-stat-cell sps-stat-cell--activo">
+        <span class="sps-stat-label">Activo</span>
+        <span class="sps-stat-n" id="sps-stat-activo">0</span>
+      </div>
+      <div class="sps-stat-cell sps-stat-cell--programados">
+        <span class="sps-stat-label">Programados</span>
+        <span class="sps-stat-n" id="sps-stat-programados">0</span>
+      </div>
+      <div class="sps-stat-cell">
+        <span class="sps-stat-label">Pausados</span>
+        <span class="sps-stat-n" id="sps-stat-pausados">0</span>
+      </div>
+      <div class="sps-stat-cell">
+        <span class="sps-stat-label">Cerrados</span>
+        <span class="sps-stat-n" id="sps-stat-cerrados">0</span>
+      </div>
+    </div>
     <!-- T-202606-002: encabezado de contexto — visible solo en modo .spt-main-view (ver locus-sprint.js renderSprintTab) -->
     <div class="spt-context-header" id="spt-context-header">
       <span class="spt-context-header__icon" aria-hidden="true">⏳</span>

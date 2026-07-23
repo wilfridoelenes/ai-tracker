@@ -1,3 +1,12 @@
+// [PP] mod:112 · autor:Rune · 2026-07-23 UTC-6
+// Cierra el bloqueo parcial declarado en mod:111 (index.html no adjunto en esa sesión):
+// _renderSpsStatsBlock() puebla el shell estático #sps-stats-block (index.html mod:151,
+// 4 celdas fijas Activo/Programados/Pausados/Cerrados) — solo actualiza textContent de
+// los 4 contadores, sin generar estructura (BR-Execution §5). Fuente: getActiveSprints(),
+// mismo dato que ya consumen _renderSpsActivo/_getProgramadosSprints/_renderSpsPausados/
+// _renderSpsCerrados — sin filtro de proyecto nuevo. Invocada en _sptSwitch junto a las
+// 4 status-groups, único entry point de render del subtab 'sprints' (verificado: todos
+// los call sites de _sptSwitch pasan por esa rama).
 // [PP] mod:111 · autor:Rune · 2026-07-22 UTC-6
 // Rediseño sub-tab Sprints — ad-hoc, instrucción directa del founder (sin REQ/TKT,
 // mismo tratamiento que CSS mod:64 de Nova, locus-sprint.css). design_intent:
@@ -324,6 +333,7 @@ function _sptSwitch(subtab, triggerBtn, skipItemsRender = false) {
   }
   if (subtab === 'planificar') _renderSprintPlanificar();
   if (subtab === 'sprints') {
+    _renderSpsStatsBlock(); // cierra bloqueo parcial mod:111 — shell en index.html mod:151
     _renderSpsActivo(); // T-202606-036
     _renderSpsProgramados(); // T-202606-037
     _renderSpsPausados(); // T-202606-041
@@ -859,6 +869,32 @@ function _spsAttachGroupToggle(container) {
   container.addEventListener('keydown', _spsGroupToggleKeydown);
 }
 // ── END status-group wrapper ─────────────────────────────────────────────────
+
+// ── Bloque de métricas #sps-stats-block — cierra bloqueo parcial declarado en
+// mod:111 (index.html no estaba adjunto en esa sesión). Shell estático ya vive
+// en index.html (BR-Execution §5 — elemento invariante, nunca se genera por JS);
+// esta función solo actualiza el textContent de los 4 contadores, mismo criterio
+// que #qdisc-stats-block. Fuente: getActiveSprints() — mismo dato ya consumido
+// por _renderSpsActivo/_getProgramadosSprints/_renderSpsPausados/_renderSpsCerrados,
+// sin recorrido ni filtro de proyecto nuevo (getActiveSprints() ya viene acotado
+// al proyecto activo, mismo supuesto que el resto de este archivo). ──
+function _renderSpsStatsBlock() {
+  const allSprints = getActiveSprints() || [];
+  const nActivo      = allSprints.filter(function(s) { return s.status === 'active'; }).length;
+  const nProgramados = allSprints.filter(function(s) { return s.status === 'scheduled'; }).length;
+  const nPausados     = allSprints.filter(function(s) { return s.status === 'paused'; }).length;
+  const nCerrados     = allSprints.filter(function(s) { return s.status === 'closed'; }).length;
+
+  const elActivo      = document.getElementById('sps-stat-activo');
+  const elProgramados = document.getElementById('sps-stat-programados');
+  const elPausados     = document.getElementById('sps-stat-pausados');
+  const elCerrados     = document.getElementById('sps-stat-cerrados');
+  if (elActivo)      elActivo.textContent      = String(nActivo);
+  if (elProgramados) elProgramados.textContent = String(nProgramados);
+  if (elPausados)     elPausados.textContent     = String(nPausados);
+  if (elCerrados)     elCerrados.textContent     = String(nCerrados);
+}
+// ── END #sps-stats-block ─────────────────────────────────────────────────────
 
 // ── T-202606-036 / T-202606-043: _renderSpsActivo — card del sprint activo ──
 //
