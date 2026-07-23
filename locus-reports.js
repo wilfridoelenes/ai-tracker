@@ -1,4 +1,4 @@
-// [PP] mod:11 · autor:Rune · 2026-07-08 16:10 UTC-6
+// [PP] mod:12 · autor:Rune · 2026-07-22 22:18 UTC-6
 // locus-reports.js
 // Última actualización: B-202606-108 — removeItem() de la clave legacy eliminado en
 // confirmResetBacklog() y en el delete remoto del danger zone de backlog — sin escrituras activas.
@@ -13,7 +13,7 @@ import { renderGlobalRadarSidebar } from './locus-radar.js';
 import { updateStats } from './locus-sesiones-stats.js';
 
 // T-202606-166: _getActiveProjectFilter y getProjectById movidas a locus-storage.js
-import { _getActiveProjectFilter, _mutateSessions, _offlineQueuePush, _subscribeRealtime, _tplKey, _unsubscribeRealtime, getAI, getAISessions, getActiveTracker, getAllSessions, getProjectById, save, saveImmediate, setSyncStatus } from './locus-storage.js';
+import { _getActiveProjectFilter, _mutateSessions, _offlineQueuePush, _subscribeRealtime, _tplKey, _unsubscribeRealtime, getAI, getAISessions, getActiveTracker, getAllSessions, getProjectById, getSupabaseContext, save, saveImmediate, setSyncStatus } from './locus-storage.js';
 
 import { _updateSubTabButtons, renderContext, updateContextBanner } from './locus-docs.js';
 
@@ -262,26 +262,30 @@ function confirmResetBacklog() {
   saveBacklog();
 
   // AC-9: borrar backlog en Supabase cuando el usuario está autenticado
-  if (typeof _supabase !== 'undefined' && _supabase &&
-      typeof _supabaseUser !== 'undefined' && _supabaseUser) {
-    (async () => {
-      try {
-        const projId = _getActiveProjectFilter();
-        const suffix = projId ? '-' + projId : '-global';
-        const { error } = await _supabase
-          .from('tracker_backlog')
-          .delete()
-          .eq('user_id', _supabaseUser.id)
-          .in('key', ['items' + suffix, 'meta' + suffix]);
-        if (error) throw error;
-        setSyncStatus('synced', '✓ sincronizado');
-      } catch (err) {
-        console.error('[AI Tracker] confirmResetBacklog: Supabase sync error:', err);
-        setSyncStatus('offline', '✕ sin conexión');
-        _offlineQueuePush({ type: 'backlog' });
-        showToast('warning', '⚠️ Reset local aplicado — Supabase se sincronizará al reconectar');
-      }
-    })();
+  // INC-[pendiente-ID]: typeof _supabase !== 'undefined' era guard siempre falso — este
+  // delete nunca se ejecutaba.
+  {
+    const _sbCtx = getSupabaseContext();
+    if (_sbCtx) {
+      (async () => {
+        try {
+          const projId = _getActiveProjectFilter();
+          const suffix = projId ? '-' + projId : '-global';
+          const { error } = await _sbCtx.client
+            .from('tracker_backlog')
+            .delete()
+            .eq('user_id', _sbCtx.userId)
+            .in('key', ['items' + suffix, 'meta' + suffix]);
+          if (error) throw error;
+          setSyncStatus('synced', '✓ sincronizado');
+        } catch (err) {
+          console.error('[AI Tracker] confirmResetBacklog: Supabase sync error:', err);
+          setSyncStatus('offline', '✕ sin conexión');
+          _offlineQueuePush({ type: 'backlog' });
+          showToast('warning', '⚠️ Reset local aplicado — Supabase se sincronizará al reconectar');
+        }
+      })();
+    }
   }
 
   closeResetBacklogModal();
@@ -407,16 +411,22 @@ async function confirmCleanProject() {
       if (projObj) projObj.sessions = [];
 
       // DELETE en Supabase
-      if (_supabase && _supabaseUser) {
-        const { error } = await _supabase
-          .from('tracker_sessions')
-          .delete()
-          .eq('user_id', _supabaseUser.id)
-          .eq('project_id', projId);
-        if (error) {
-          // AC-13: fallo Supabase — limpieza local aplicada de todas formas
-          errors.push('Sesiones: ' + error.message);
-          _offlineQueuePush({ type: 'sessions', projId });
+      // INC-[pendiente-ID]: _supabase/_supabaseUser referenciados directo, sin typeof —
+      // no declarados en este módulo → ReferenceError real al ejecutar esta rama, no
+      // solo no-op silencioso como en los otros call sites del mismo bug.
+      {
+        const _sbCtx = getSupabaseContext();
+        if (_sbCtx) {
+          const { error } = await _sbCtx.client
+            .from('tracker_sessions')
+            .delete()
+            .eq('user_id', _sbCtx.userId)
+            .eq('project_id', projId);
+          if (error) {
+            // AC-13: fallo Supabase — limpieza local aplicada de todas formas
+            errors.push('Sesiones: ' + error.message);
+            _offlineQueuePush({ type: 'sessions', projId });
+          }
         }
       }
 
@@ -431,16 +441,21 @@ async function confirmCleanProject() {
       if (typeof getItems() !== 'undefined') getItems().length = 0;
 
       // DELETE en Supabase
-      if (_supabase && _supabaseUser) {
-        const suffix = '-' + projId;
-        const { error } = await _supabase
-          .from('tracker_backlog')
-          .delete()
-          .eq('user_id', _supabaseUser.id)
-          .in('key', ['items' + suffix, 'meta' + suffix]);
-        if (error) {
-          errors.push('Backlog: ' + error.message);
-          _offlineQueuePush({ type: 'backlog' });
+      // INC-[pendiente-ID]: _supabase/_supabaseUser referenciados directo, sin typeof —
+      // ReferenceError real al ejecutar esta rama (mismo bug que el delete de sesiones arriba).
+      {
+        const _sbCtx = getSupabaseContext();
+        if (_sbCtx) {
+          const suffix = '-' + projId;
+          const { error } = await _sbCtx.client
+            .from('tracker_backlog')
+            .delete()
+            .eq('user_id', _sbCtx.userId)
+            .in('key', ['items' + suffix, 'meta' + suffix]);
+          if (error) {
+            errors.push('Backlog: ' + error.message);
+            _offlineQueuePush({ type: 'backlog' });
+          }
         }
       }
 

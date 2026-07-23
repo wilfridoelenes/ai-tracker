@@ -1,4 +1,4 @@
-// [PP] mod:12 · autor:Rune · 2026-07-17 14:35 UTC-6
+// [PP] mod:14 · autor:Rune · 2026-07-23 03:10 UTC-6
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -236,9 +236,14 @@ function _buildSessionCard(ai, isInterrupted, sessions) {
   const cls = isInterrupted ? 'rsb-card interrupted-state' : 'rsb-card in-session-state';
   // TKT2 (CAEL-0717-01): interrupted-state conserva el badge — no_incluye. in-session-state
   // reemplaza el badge "● sesión" por + (registrar CHKPT) y ⚡ (sesión rápida).
+  // TKT2 (REQ-restore-draft, Rune) AC1: badge de borrador — solo en la rama con botón +,
+  // antes de él. localStorage.getItem es síncrono, sin costo relevante por card.
+  const _draftBadge = (!isInterrupted && localStorage.getItem('draft-' + ai.id))
+    ? `<span id="draft-${ai.id}" class="draft-dot visible" data-action="open-ingest" data-ai-id="${ai.id}" role="button" tabindex="0" title="Borrador pendiente — click para restaurar" aria-label="Borrador pendiente — click para restaurar"></span>`
+    : '';
   const meta = isInterrupted
     ? `<span class="rsb-status-badge rsb-status-interrupted">⚡ en curso</span>`
-    : `<button class="rsb-card-quick" data-action="open-ingest" data-ai-id="${ai.id}" title="Pegar CHECKPOINT" aria-label="Pegar CHECKPOINT"><i class="ti ti-plus" aria-hidden="true"></i></button>
+    : `${_draftBadge}<button class="rsb-card-quick" data-action="open-ingest" data-ai-id="${ai.id}" title="Pegar CHECKPOINT" aria-label="Pegar CHECKPOINT"><i class="ti ti-plus" aria-hidden="true"></i></button>
        <button class="rsb-card-quick" data-action="openQuickCapture" data-ai-id="${ai.id}" title="Sesión rápida" aria-label="Sesión rápida">⚡</button>`;
 
   return `<div class="${cls}" data-action="navigateToCard" data-ai-id="${ai.id}" id="rsb-card-${ai.id}">
@@ -274,6 +279,7 @@ function _buildAvailableCard(ai, sessions) {
       <div class="rsb-card-name" title="${esc(ai.name)}">${esc(ai.name)}</div>
       <div class="rsb-card-meta">
         ${tsSpan}
+        ${localStorage.getItem('draft-' + ai.id) ? `<span id="draft-${ai.id}" class="draft-dot visible" data-action="open-ingest" data-ai-id="${ai.id}" role="button" tabindex="0" title="Borrador pendiente — click para restaurar" aria-label="Borrador pendiente — click para restaurar"></span>` : ''}
         <button class="rsb-card-quick" data-action="open-ingest" data-ai-id="${ai.id}" title="Pegar CHECKPOINT" aria-label="Pegar CHECKPOINT"><i class="ti ti-plus" aria-hidden="true"></i></button>
         <button class="rsb-card-quick" data-action="openQuickCapture" data-ai-id="${ai.id}" title="Sesión rápida" aria-label="Sesión rápida">⚡</button>
       </div>
@@ -675,6 +681,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Click delegation — cubre rsb-card, rsb-card-quick, rsb-empty-btn, rsb-collapsible,
   // rsb-notif-goto, rsb-notif-dismiss, rsb-notif-mark-all, rsb-cfg-toggle-btn
+  // REQ-restore-draft TKT2 (Rune) AC7: draft-dot es role="button" tabindex="0" (span, no
+  // nativamente interactivo) — Enter/Espacio no disparan .click() por sí solos. Scoped al
+  // propio elemento, no al delegador genérico de [data-action] — el resto de acciones ya
+  // son <button> nativos y no lo necesitan.
+  sidebar.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const el = e.target.closest('[role="button"][data-action="open-ingest"]');
+    if (!el) return;
+    e.preventDefault();
+    _openIngestModal(el.dataset.aiId);
+  });
+
   sidebar.addEventListener('click', function (e) {
     const el = e.target.closest('[data-action]');
     if (!el) return;

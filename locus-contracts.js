@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:7 · autor:Rune · 2026-07-17 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:8 · autor:Rune · 2026-07-22 22:18 UTC-6
 // TKT1 (REQ finn_release/contract_detail.file — CAEL-0717-01): _ctrMergeFromItem ahora lee
 //   fn.file por función (infra_version 38, __BR-Execution §2) — antes solo se indexaba por
 //   contract.file de nivel de bloque, ignorando silenciosamente functions[].file cuando un
@@ -25,7 +25,7 @@
 
 import { renderStats, getItems} from './locus-backlog-core.js';
 import { _focusFirstInteractive, _restoreModalFocus } from './locus-modals.js';
-import { LOCUS_KEYS, _offlineQueuePush, _tplKey, save, setSyncStatus } from './locus-storage.js';
+import { LOCUS_KEYS, _offlineQueuePush, _tplKey, getSupabaseContext, save, setSyncStatus } from './locus-storage.js';
 
 import { showToast } from './locus-toast.js';
 
@@ -381,43 +381,47 @@ function confirmResetSessions() {
   localStorage.removeItem('app-version-override');
 
   // AC-9: sincronizar reset a Supabase cuando el usuario está autenticado
-  if (typeof _supabase !== 'undefined' && _supabase &&
-      typeof _supabaseUser !== 'undefined' && _supabaseUser) {
-    (async () => {
-      try {
-        // Borrar sesiones en tracker_sessions para todos los proyectos
-        const { error: sessErr } = await _supabase
-          .from('tracker_sessions')
-          .delete()
-          .eq('user_id', _supabaseUser.id);
-        if (sessErr) throw sessErr;
+  // INC-[pendiente-ID]: typeof _supabase !== 'undefined' era guard siempre falso — _supabase
+  // no es global ni estaba importado en este módulo. Este bloque nunca se ejecutaba.
+  {
+    const _sbCtx = getSupabaseContext();
+    if (_sbCtx) {
+      (async () => {
+        try {
+          // Borrar sesiones en tracker_sessions para todos los proyectos
+          const { error: sessErr } = await _sbCtx.client
+            .from('tracker_sessions')
+            .delete()
+            .eq('user_id', _sbCtx.userId);
+          if (sessErr) throw sessErr;
 
-        // Sobrescribir state en tracker_state con sesiones y sprints vacíos
-        const stateWithoutSessions = {
-          ...state,
-          projects: (state.projects || []).map(p => {
-            const { sessions, ...rest } = p;
-            return { ...rest, sprints: [] };
-          })
-        };
-        const { error: stateErr } = await _supabase
-          .from('tracker_state')
-          .upsert({
-            user_id: _supabaseUser.id,
-            key: 'main',
-            value: stateWithoutSessions,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'user_id,key' });
-        if (stateErr) throw stateErr;
+          // Sobrescribir state en tracker_state con sesiones y sprints vacíos
+          const stateWithoutSessions = {
+            ...state,
+            projects: (state.projects || []).map(p => {
+              const { sessions, ...rest } = p;
+              return { ...rest, sprints: [] };
+            })
+          };
+          const { error: stateErr } = await _sbCtx.client
+            .from('tracker_state')
+            .upsert({
+              user_id: _sbCtx.userId,
+              key: 'main',
+              value: stateWithoutSessions,
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'user_id,key' });
+          if (stateErr) throw stateErr;
 
-        setSyncStatus('synced', '✓ sincronizado');
-      } catch (err) {
-        console.error('[AI Tracker] confirmResetSessions: Supabase sync error:', err);
-        setSyncStatus('offline', '✕ sin conexión');
-        _offlineQueuePush({ type: 'state' });
-        showToast('warning', '⚠️ Reset local aplicado — Supabase se sincronizará al reconectar');
-      }
-    })();
+          setSyncStatus('synced', '✓ sincronizado');
+        } catch (err) {
+          console.error('[AI Tracker] confirmResetSessions: Supabase sync error:', err);
+          setSyncStatus('offline', '✕ sin conexión');
+          _offlineQueuePush({ type: 'state' });
+          showToast('warning', '⚠️ Reset local aplicado — Supabase se sincronizará al reconectar');
+        }
+      })();
+    }
   }
 
   closeResetSessionsModal();

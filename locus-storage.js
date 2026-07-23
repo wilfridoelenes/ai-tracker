@@ -1,4 +1,4 @@
-// [PP] mod:140 · autor:Rune · 2026-07-22 UTC-6
+// [PP] mod:141 · autor:Rune · 2026-07-22 22:18 UTC-6
 // INC-CAEL-0722-06: _subscribeRealtime() gateado con _REALTIME_ENABLED=false — el cliente
 // reintentaba suscripción indefinidamente contra canales sin publicación activa en Supabase
 // (Realtime desactivado del lado servidor desde 2026-07-08, ver _pp-strategy §4). Ver
@@ -858,6 +858,20 @@ export function getSupabaseUserId() {
 // proyecto) nunca disparaba. Expone solo el booleano — no el cliente ni el user object.
 export function isSupabaseAuthed() {
   return !!(_supabase && _supabaseUser);
+}
+
+// getSupabaseContext — INC-[pendiente-ID] (2026-07-23): mismo patrón que isSupabaseAuthed()/
+// getSupabaseUserId() de arriba, pero para callers que necesitan ejecutar sus propias queries
+// (delete/upsert multi-tabla) en vez de solo el booleano o el id — locus-session-save.js,
+// locus-session-parse.js, locus-contracts.js y locus-reports.js usaban typeof _supabase
+// !== 'undefined' (guard siempre falso — no importado, no global) o referenciaban _supabase/
+// _supabaseUser directo sin declarar (ReferenceError real en locus-reports.js:410/434, no
+// solo no-op). Expone únicamente { client, userId } — nunca el objeto _supabaseUser completo
+// (email, metadata quedan fuera, mismo criterio que getSupabaseUserId()). null si no hay
+// sesión autenticada — caller decide el fallback (mismo criterio que el guard que reemplaza).
+export function getSupabaseContext() {
+  if (!_supabase || !_supabaseUser) return null;
+  return { client: _supabase, userId: _supabaseUser.id };
 }
 
 // TKT1b · verifyConstraintsSync — herramienta de consola, sin uso en flujo de la app.

@@ -1,4 +1,4 @@
-// [PP] mod:72 · autor:Rune · 2026-07-17 11:20 UTC-6
+// [PP] mod:73 · autor:Rune · 2026-07-22 22:18 UTC-6
 // TKT2 (REQ CAEL-0717-01 · AC1-4, parte 3/3): _ckptMeta gana finnRelease: parsed.finnRelease
 //   || null — cierra la cadena de propagación de finn_release iniciada en
 //   locus-session-parse.js (mod:124, parseCheckpoint → ai._parsed.finnRelease) y consumida
@@ -111,7 +111,7 @@ import { _markRadarDirty, renderGlobalRadarSidebar, toggleRadarSidebar } from '.
 import { stopSessionTimer } from './locus-sesiones-utils.js';
 import { _getLocalStorageUsage } from './locus-sprint-project.js';
 import { _generateBacklogContent, _generateBacklogMd } from './locus-backlog-generator.js';
-import { LOCUS_KEYS, _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, saveImmediate, _mutateSessions } from './locus-storage.js'; // TKT4: _blogLog retirado — DocLog de duplicados ahora vive en _resolveCheckpointBatch (locus-session-parse.js) · TKT1 REQ-sessions-mutator: _mutateSessions agregado · TKT (REQ-[pendiente-ID] · consolidación sprint_proposal): setPendingSprintProposal retirado del import — la persistencia paralela que agregó se revierte, ver header mod nuevo
+import { LOCUS_KEYS, _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, getSupabaseContext, saveImmediate, _mutateSessions } from './locus-storage.js'; // TKT4: _blogLog retirado — DocLog de duplicados ahora vive en _resolveCheckpointBatch (locus-session-parse.js) · TKT1 REQ-sessions-mutator: _mutateSessions agregado · TKT (REQ-[pendiente-ID] · consolidación sprint_proposal): setPendingSprintProposal retirado del import — la persistencia paralela que agregó se revierte, ver header mod nuevo
 
 
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
@@ -826,9 +826,14 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   localStorage.removeItem('draft-' + id);
   localStorage.removeItem('draft-' + id + '-ts');
   // R-3: eliminar borrador de Supabase al guardar sesión
-  if (typeof _supabase !== 'undefined' && _supabase && typeof _supabaseUser !== 'undefined' && _supabaseUser) {
-    _supabase.from('tracker_docs').delete().eq('user_id', _supabaseUser.id).eq('key', 'draft-' + id)
-      .then(({ error }) => { if (error) console.warn('[AI Tracker] draft delete Supabase error:', error); });
+  // INC-[pendiente-ID]: typeof _supabase !== 'undefined' era guard siempre falso — _supabase
+  // no es global ni estaba importado en este módulo. Este delete nunca se ejecutaba.
+  {
+    const _sbCtx = getSupabaseContext();
+    if (_sbCtx) {
+      _sbCtx.client.from('tracker_docs').delete().eq('user_id', _sbCtx.userId).eq('key', 'draft-' + id)
+        .then(({ error }) => { if (error) console.warn('[AI Tracker] draft delete Supabase error:', error); });
+    }
   }
   const _taClear = document.getElementById('ingest-ta'); // CAEL-22
   // B-202605-NNN: no llamar parsePaste(id) aquí — parsePaste con ta.value='' puede re-disparar

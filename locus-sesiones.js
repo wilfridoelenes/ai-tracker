@@ -1,4 +1,4 @@
-// [PP] mod:51 · autor:Rune · 2026-07-17 11:20 UTC-6
+// [PP] mod:52 · autor:Rune · 2026-07-22 22:18 UTC-6
 // INC-[pendiente-ID]: avatarEl.textContent → innerHTML en _populateWorkerHeader() (L836) —
 // ai.avatar es markup SVG; con textContent se pintaba como texto crudo (path data visible
 // en pantalla, ver captura del founder). Mismo patrón ya usado en #pop-avatar.
@@ -29,7 +29,7 @@ import { closeLogCard, closePopup, openDetail, startRename, toggleInReview, togg
 // T-202606-058: import de locus-sprint-project eliminado — ciclo A↔B roto.
 // _getActiveProjectFilter · getProjectById · openProjModal · selectProjectFilter
 // consumidas via _sesSPCallbacks registry (registradas por locus-sprint-project en DOMContentLoaded).
-import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, getLastAISession, _findSession, save, getState, saveImmediate, _getCurrentSession, _isInSession, _resetWorker, getActiveSprints } from './locus-storage.js';
+import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, getLastAISession, _findSession, save, getState, saveImmediate, _getCurrentSession, _isInSession, _resetWorker, getActiveSprints, LOCUS_KEYS, getSupabaseContext, _relTs } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 import { esc } from './locus-ui-shell.js';
 import { archiveAI, closeCardMenu, confirmClear, deleteAI, openAddAI, openAvatarModal, toggleArchivedSection, toggleCardMenu } from './locus-workers.js';
@@ -1071,6 +1071,57 @@ function _populateIngestModalHeader(ai) {
     badgeEl.innerHTML = isInSession
       ? `<span class="sc-badge-dot"></span>${STATUS_LABELS.insession}`
       : STATUS_LABELS[state];
+  }
+}
+
+// _maybeRestoreDraft — REQ-restore-draft TKT2 (Rune), AC2/AC3/AC4. Llamada desde
+// _openIngestModal solo cuando el textarea queda vacío para el worker entrante (mismo
+// worker sin batch en curso, o worker distinto ya limpiado). Sin draft guardado → no-op,
+// el banner permanece is-hidden (default del shell de Nova, TKT1).
+function _maybeRestoreDraft(aiId, ta) {
+  const draftKey = LOCUS_KEYS.DRAFT_KEY_PREFIX + aiId;
+  const draftText = localStorage.getItem(draftKey);
+  if (!draftText) return;
+  ta.value = draftText;
+  handleInput(aiId);
+  const banner = document.getElementById('ingest-draft-banner');
+  const bannerText = document.getElementById('ingest-draft-banner-text');
+  if (banner && bannerText) {
+    // AC3 — edge case sin timestamp legado: nunca "hace NaN min", cae a texto sin sufijo.
+    const tsRaw = localStorage.getItem(draftKey + '-ts');
+    const ts = tsRaw ? parseInt(tsRaw, 10) : NaN;
+    bannerText.textContent = (tsRaw && !Number.isNaN(ts))
+      ? 'Borrador restaurado · ' + _relTs(ts)
+      : 'Borrador restaurado';
+    banner.classList.remove('is-hidden');
+  }
+}
+
+// _discardDraft — REQ-restore-draft TKT2 (Rune), AC5. Wired desde #ingest-draft-discard-btn
+// en _openIngestModal. Limpia las tres capas (textarea, localStorage, Supabase) — usa
+// getSupabaseContext() (INC-[pendiente-ID]) en vez del guard typeof _supabase muerto que
+// tenía el resto del ecosistema para este tipo de operación.
+function _discardDraft(aiId) {
+  if (!aiId) return;
+  const draftKey = LOCUS_KEYS.DRAFT_KEY_PREFIX + aiId;
+  localStorage.removeItem(draftKey);
+  localStorage.removeItem(draftKey + '-ts');
+  const _sbCtx = getSupabaseContext();
+  if (_sbCtx) {
+    _sbCtx.client.from('tracker_docs').delete().eq('user_id', _sbCtx.userId).eq('key', draftKey)
+      .then(({ error }) => { if (error) console.warn('[Locus] draft discard Supabase error:', error); });
+  }
+  const banner = document.getElementById('ingest-draft-banner');
+  if (banner) banner.classList.add('is-hidden');
+  const ta = document.getElementById('ingest-ta');
+  if (ta && ta.value) {
+    ta.value = '';
+    // Reusa el camino de limpieza ya existente (dot, wrap, estado del preview) — mismo
+    // efecto que si el founder hubiera vaciado el textarea a mano.
+    handleInput(aiId);
+  } else {
+    const dot = document.getElementById('draft-' + aiId);
+    if (dot) dot.className = 'draft-dot';
   }
 }
 

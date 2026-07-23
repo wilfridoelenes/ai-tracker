@@ -1,4 +1,4 @@
-// [PP] mod:134 · autor:Rune · 2026-07-22 UTC-6
+// [PP] mod:135 · autor:Rune · 2026-07-22 22:18 UTC-6
 // TKT3 (REQ CAEL-0721-01): los 3 puntos de construcción de tgItems nunca propagaban
 //   kill_criteria/next_role/design_intent/blocked_at/contract_update desde el ítem parseado —
 //   mismo patrón de pérdida ya corregido para draft (TKT1/REQ-202607-027) y contract_detail
@@ -347,7 +347,7 @@ import { _ctrMergeFromItem } from './locus-contracts.js';
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 import { _checkStorageQuota, _mergeBacklogWithProject, saveSession, _applyCheckpointBatch } from './locus-session-save.js'; // T-202606-032: saveSession para auto-trigger | TKT4: _applyCheckpointBatch — persistencia de batch, invocada solo en el callback de confirmación de showMergeDiffPanel (no en tiempo de evaluación del módulo, mismo patrón ya usado por _mergeBacklogWithProject en esta misma línea)
-import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, saveImmediate, _upsertSprint, LOCUS_KEYS, CANONICAL_PROJECTS, _PREFIX_MAP, getInfraVersionData } from './locus-storage.js';
+import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, getSupabaseContext, save, saveImmediate, _upsertSprint, LOCUS_KEYS, CANONICAL_PROJECTS, _PREFIX_MAP, getInfraVersionData } from './locus-storage.js';
 // T-202606-029: INFRA_VERSION_ACTIVE (constante) reemplazada por getInfraVersionActive() / setInfraVersionActive() — AC-4 de T-202606-027
 import { showToast, toast } from './locus-toast.js';
 
@@ -1699,19 +1699,26 @@ export function parsePaste(id) {
   if (text.trim()) {
     try {
       localStorage.setItem(draftKey, text);
+      // TKT2 (REQ-restore-draft) AC6: timestamp de guardado — _maybeRestoreDraft() lo usa
+      // para el sufijo "hace N min" del banner. Mismo bloque que el setItem del texto,
+      // sin función nueva.
+      localStorage.setItem(draftKey + '-ts', String(Date.now()));
     } catch (e) {
       // B-202605-NNN: QuotaExceededError — storage lleno. El draft no se guarda
       // pero el render del preview continúa sin interrupciones.
       _checkStorageQuota();
     }
     // R-3: persistir borrador en Supabase con debounce para no saturar en cada keystroke
+    // INC-[pendiente-ID]: typeof _supabase !== 'undefined' era guard siempre falso — este
+    // upsert nunca se ejecutaba, el draft nunca llegaba a Supabase pese al debounce.
     clearTimeout(window['_draftSbTimer_' + id]);
     window['_draftSbTimer_' + id] = setTimeout(() => {
-      if (typeof _supabase !== 'undefined' && _supabase && typeof _supabaseUser !== 'undefined' && _supabaseUser) {
+      const _sbCtx = getSupabaseContext();
+      if (_sbCtx) {
         const savedText = localStorage.getItem(draftKey);
         if (savedText) {
-          _supabase.from('tracker_docs').upsert(
-            [{ user_id: _supabaseUser.id, key: draftKey, value: { text: savedText, savedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
+          _sbCtx.client.from('tracker_docs').upsert(
+            [{ user_id: _sbCtx.userId, key: draftKey, value: { text: savedText, savedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
             { onConflict: 'user_id,key' }
           ).then(({ error }) => {
             if (error) _offlineQueuePush({ type: 'draft', aiId: id });
@@ -1723,6 +1730,7 @@ export function parsePaste(id) {
     if (dot) dot.className = 'draft-dot visible';
   } else {
     localStorage.removeItem(draftKey);
+    localStorage.removeItem(draftKey + '-ts'); // TKT2 (REQ-restore-draft) AC6 — sin huérfanos
     const dot = document.getElementById('draft-' + id);
     if (dot) dot.className = 'draft-dot';
     if (wrap) wrap.classList.remove('paste-wrap--valid');
