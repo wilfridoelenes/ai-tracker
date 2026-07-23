@@ -1,4 +1,4 @@
-/* [PP] mod:39 · autor:Nova · 2026-07-20 19:10 UTC-6 */
+/* [PP] mod:40 · autor:Nova · 2026-07-22 UTC-6 */
 /* DISC ejecutada: removidas .sess-row--latest, .sess-row--latest:hover y su regla
    descendiente .sess-row-summary--expanded — sin consumidor confirmado en JS/HTML. */
 /* [PP] mod:36 · autor:Nova · 2026-07-20 16:10 UTC-6 */
@@ -1207,7 +1207,19 @@
   opacity: 0;
   transform: scale(0.85);
   transition: opacity 0.2s ease, transform 0.2s ease;
-  pointer-events: none;
+  cursor: pointer;
+}
+
+/* REQ-restore-draft TKT1 (Nova): antes pointer-events:none — el badge ahora es
+   segundo punto de entrada a _openIngestModal (data-action="open-ingest" en el markup). */
+.draft-dot.visible:hover {
+  opacity: 1;
+}
+
+.draft-dot:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .draft-dot::before {
@@ -1227,6 +1239,36 @@
 .draft-dot.visible {
   opacity: 1;
   transform: scale(1);
+}
+
+/* REQ-restore-draft TKT1 (Nova): banner de restauración — mismo tono ámbar que .draft-dot */
+.ingest-draft-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  border-radius: var(--radius-md-plus);
+  background: rgb(245 158 11 / 12%);
+  border: 1px solid rgb(245 158 11 / 30%);
+}
+
+.ingest-draft-banner-text {
+  font-size: var(--text-2xs-plus);
+  color: var(--amber-text);
+  font-weight: 600;
+}
+
+.ingest-draft-discard-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--text-2xs-plus);
+  color: var(--amber-text);
+  text-decoration: underline;
+  padding: 0;
+  flex-shrink: 0;
 }
 
 /* === locus-tracker.js ===

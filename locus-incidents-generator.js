@@ -1,3 +1,13 @@
+// [PP] mod:7 · autor:Rune · 2026-07-22 UTC-6
+// TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-06 · contract_update: sí): _buildItemsMd()
+// refactorizada — el bloque por-ítem se extrae a _buildItemBlockMd(i, t), nueva función
+// interna. copyIncidentItemMd(code) agregada y exportada — arma el mismo bloque para un
+// solo ítem, consumida por el botón "Copiar ítem" de buildQIncItem() (locus-backlog-item.js).
+// Sin cambio de comportamiento en _generateIncidentsMd()/_buildItemsMd() — mismo output para
+// el export completo, verificar en QA que el snapshot de _${prefix}-incidents.md no cambia.
+// contract_detail: _buildItemBlockMd(i, t) → array de líneas, sin efectos secundarios, misma
+// fuente de datos (getIncidents()) que el resto del módulo.
+
 // [PP] mod:6 · autor:Rune · 2026-07-21 15:10 UTC-6
 // INC-[pendiente-ID] (fix — SyntaxError reportado por founder: locus-incidents-render.js:43 no
 // podía importar '_countClosedIncidents', ausente en este módulo): agrega el export faltante.
@@ -193,6 +203,34 @@ function _buildIndiceMd(active) {
   return lines.join('\n');
 }
 
+// _buildItemBlockMd(i, t) — bloque de un solo ítem, criterio de campos-presentes.
+// TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-06): extraída del forEach interno de
+// _buildItemsMd() — antes el criterio de qué campos imprimir vivía inline y sin
+// nombre propio. Ahora es la única fuente de ese criterio: _buildItemsMd() y
+// copyIncidentItemMd() (nueva, ver abajo) llaman esta misma función — ningún
+// consumidor duplica la lista de campos ni el orden. `t` se pasa explícito (no se
+// re-deriva con itemKind(i)) porque _buildItemsMd() ya lo tiene disponible del
+// agrupamiento por tipo — evita una segunda llamada redundante en el loop original.
+function _buildItemBlockMd(i, t) {
+  const lines = [];
+  lines.push(`#### \`${i.code}\` — ${i.title || '—'}`, '');
+  const status = t === 'CHG' ? i.status : incIncidentStatus(i);
+  lines.push(`- status: ${status || '—'}`);
+  const om = incOriginModule(i);
+  if (om) lines.push(`- origin_module: ${om}`);
+  if (Array.isArray(i.archivos) && i.archivos.length) lines.push(`- archivos: ${i.archivos.join(', ')}`);
+  const ca = incComportamientoActual(i);
+  if (ca) lines.push(`- comportamiento_actual: ${ca}`);
+  const rt = incResolutionType(i);
+  if (rt) lines.push(`- resolution_type: ${rt}`);
+  const dr = incDiscardReason(i);
+  if (dr) lines.push(`- discard_reason: ${dr}`);
+  const derived = incDerivedItems(i);
+  if (derived && derived.length) lines.push(`- derived_items: ${derived.join(', ')}`);
+  if (i.triggered_by) lines.push(`- triggered_by: ${i.triggered_by}`);
+  return lines;
+}
+
 // Sección '## Ítems' — cuerpo completo por ítem, TODOS los ítems (incluye closed/descartado,
 // a diferencia de '## Índice de estado' que es solo activos). Un bloque por tipo, mismo orden
 // que el índice. Campos: origin_module, archivos, comportamiento_actual, resolution_type,
@@ -214,26 +252,25 @@ function _buildItemsMd(all) {
       return;
     }
     byType[t].forEach(i => {
-      lines.push(`#### \`${i.code}\` — ${i.title || '—'}`, '');
-      const status = t === 'CHG' ? i.status : incIncidentStatus(i);
-      lines.push(`- status: ${status || '—'}`);
-      const om = incOriginModule(i);
-      if (om) lines.push(`- origin_module: ${om}`);
-      if (Array.isArray(i.archivos) && i.archivos.length) lines.push(`- archivos: ${i.archivos.join(', ')}`);
-      const ca = incComportamientoActual(i);
-      if (ca) lines.push(`- comportamiento_actual: ${ca}`);
-      const rt = incResolutionType(i);
-      if (rt) lines.push(`- resolution_type: ${rt}`);
-      const dr = incDiscardReason(i);
-      if (dr) lines.push(`- discard_reason: ${dr}`);
-      const derived = incDerivedItems(i);
-      if (derived && derived.length) lines.push(`- derived_items: ${derived.join(', ')}`);
-      if (i.triggered_by) lines.push(`- triggered_by: ${i.triggered_by}`);
-      lines.push('');
+      lines.push(..._buildItemBlockMd(i, t), '');
     });
   });
 
   return lines.join('\n');
+}
+
+// copyIncidentItemMd(code) — TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-06): bloque de
+// un solo ítem para copiar al portapapeles desde la card, sin exportar _PP-incidents.md
+// completo. Reusa _buildItemBlockMd() — mismo criterio de campos-presentes que el export
+// completo, sin duplicar la lista de campos. Busca en getIncidents() por code (misma
+// fuente de datos que el resto del módulo — invariant preservado). Retorna null si el
+// código no existe — caller (locus-incidents-render.js) decide el feedback de error.
+export function copyIncidentItemMd(code) {
+  const all = getIncidents() || [];
+  const item = all.find(i => i.code === code);
+  if (!item) return null;
+  const t = itemKind(item);
+  return _buildItemBlockMd(item, t).join('\n').trim();
 }
 
 // _countClosedIncidents() — export nuevo (INC fix, mod:6). Expone el mismo cálculo que

@@ -1096,12 +1096,23 @@ export function _openIngestModal(aiId) {
   const ta = document.getElementById('ingest-ta');
   if (ta) {
     if (_prevAiId !== aiId) ta.value = '';
+    // REQ-restore-draft TKT2 (Rune): si el textarea queda vacío para este worker (mismo
+    // worker sin batch en curso, o worker distinto ya limpiado arriba) y existe un draft
+    // guardado, se restaura automáticamente — ver invariant nuevo en contract_detail del TKT.
+    if (!ta.value) {
+      _maybeRestoreDraft(aiId, ta);
+    }
     ta.focus();
     if (!ta._ingestWired) {
       ta._ingestWired = true;
       ta.addEventListener('paste', () => handlePaste(overlay.dataset.aiId));
       ta.addEventListener('input', () => handleInput(overlay.dataset.aiId));
     }
+  }
+  const discardBtn = document.getElementById('ingest-draft-discard-btn');
+  if (discardBtn && !discardBtn._draftDiscardWired) {
+    discardBtn._draftDiscardWired = true;
+    discardBtn.addEventListener('click', () => _discardDraft(overlay.dataset.aiId));
   }
   // TKT3 (REQ CAEL-01): #ingest-process-batch-btn existe en el DOM desde TKT1, sin listener.
   // Guard ta._ingestWired ya cubre paste/input — este botón usa su propio guard porque vive

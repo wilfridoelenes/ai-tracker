@@ -1,4 +1,23 @@
+// [PP] mod:131 · autor:Rune · 2026-07-22 UTC-6
+// Fix inline (triggered_by análisis de rama Reactiva en locus-backlog-item.js, sesión sin
+// TKT activo): buildBacklogItem() — bloque "R padre" evaluaba (type === 'TKT' || type ===
+// 'INC'), rama INC inalcanzable desde el fix de creación/lookup ITIL (INC-[pendiente-ID]
+// arriba en este mismo archivo): un INC nunca llega a getItems()/ITEMS, vive en
+// getIncidents()/INCIDENTS y se renderiza exclusivamente vía buildQIncItem() (comentario
+// propio del builder: "No reutiliza buildBacklogItem"). Además parentId es exclusivo de TKT
+// (__BR-Ecosystem §5) — un INC nunca tendría parentId aunque llegara aquí. Condición reducida
+// a (type === 'TKT'). Sin cambio de comportamiento observable — código muerto, no lógica activa.
+// contract_update: no.
 // [PP] mod:130 · autor:Rune · 2026-07-22 UTC-6
+// TKT-A/TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-05/06): buildQIncItem() —
+// countdown SLA movido al header (junto a título), línea meta secundaria nueva
+// (origin_module + role/next_role, fallback "sin asignar", clickeable con guard
+// if(code)) y botón "Copiar ítem" (data-qi-action="qi-copy-item" — el handler y el
+// import de copyIncidentItemMd viven en locus-incidents-render.js, no aquí; este
+// archivo solo emite el botón con data-code, consistente con el patrón ya usado
+// por copy-code/qi-open-panel, cuyos handlers tampoco viven en este módulo).
+// Sin cambio de firma de buildQIncItem(item) — mismo contrato, solo HTML retornado.
+// [PP] mod:129 · autor:Rune · 2026-07-21 23:28 UTC-6
 // TKT (INC-[pendiente-ID] · descartado como destino universal ITIL): validateIncidentTransitions
 //   ahora acepta incidentStatus:'descartado' desde cualquier estado no-terminal para INC/PRB —
 //   BR-Core §6 lo declara sin restricción de origen ("Cualquier status → descartado"), pero
@@ -359,10 +378,6 @@
 // TKT-C2 (REQ-C): status 'promovida'→'promoted' en comparaciones de status (L99, L1022,
 //   L1612, L1630, L1892). Selector sprint: option icebox→value='' label 'Q-Backlog (sin sprint)'.
 //   Edge case: datos legacy con 'promovida' cubiertos por compatibilidad de lectura (ver L99).
-// Hallazgo fuera de scope resuelto en sesión (2026-07-22): compatibilidad de lectura con
-//   'promovida' de TKT-C2 retirada — BR-Execution §2 no admite conservarla sin período de
-//   gracia una vez Gen2 activo. Sin call site de escritura de 'promovida' en el repo — solo
-//   retiraba tolerancia muerta. Ver locus-backlog-core.js normalizeStatus() para el mismo fix.
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
@@ -383,7 +398,8 @@ import { _setBacklogModified } from './locus-docs.js';
 import { _gconfirmOpen } from './locus-modals.js';
 
 import { validateLifecycleTransitions } from './locus-session-save.js'; // T-202606-020
-import { incSlaPriority, incComportamientoActual, incIncidentStatus, SLA_RIESGO_WINDOW_MS } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil + TKT-[pendiente-ID] (SLA_RIESGO_WINDOW_MS centralizado, ex-literal en buildQIncItem)
+import { incSlaPriority, incComportamientoActual, incIncidentStatus, incOriginModule, SLA_RIESGO_WINDOW_MS } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil + TKT-[pendiente-ID] (SLA_RIESGO_WINDOW_MS centralizado, ex-literal en buildQIncItem) + TKT-A (REQ CAEL-0722-01, ref_id CAEL-0722-05): incOriginModule agregado — línea meta secundaria de la card
+
 
 import { render } from './locus-sesiones.js';
 
@@ -1208,7 +1224,7 @@ export function buildBacklogItem(item, opts = {}) {
     : '';
   // Cerradas: DISC promovida muestra badge en lugar de quick actions o ícono descartado
   // TKT-C2: 'promoted' (Gen2). Edge case: datos legacy 'promovida' también matchean.
-  const _isPPromovida = isIdea && item.status === 'promoted'; // 'promovida' legacy retirado 2026-07-22 — ver locus-backlog-core.js normalizeStatus()
+  const _isPPromovida = isIdea && (item.status === 'promoted' || item.status === 'promovida');
   const _pPromovidaRef = _isPPromovida && item.promovida_a ? item.promovida_a : null;
   const _pPromovidaBadge = _isPPromovida
     ? `<span class="item-p-badge item-p-badge--promovida" title="Idea promovida${_pPromovidaRef ? ' a ' + _pPromovidaRef : ''}">↗ promovida${_pPromovidaRef ? '<span class="item-p-badge-ref"> ' + esc(_pPromovidaRef) + '</span>' : ''}</span>`
@@ -1325,7 +1341,7 @@ export function buildBacklogItem(item, opts = {}) {
           <span class="bitem-meta-label">Sprint</span>
           <span class="idp-meta-value idp-meta-value--readonly">${item.sprint ? esc(_sprintDisplay(item.sprint)) : 'Q-Backlog (sin sprint)'}</span>
         </div>` : ''}
-        ${(type === 'TKT' || type === 'INC') ? (() => {
+        ${(type === 'TKT') ? (() => {
           const currentParent = item.parentId ? getItems().find(i => i.code === item.parentId) : null;
           const _rLabel = r => { const t = r.title || ''; return r.code + ' · ' + (t.length > 60 ? t.slice(0, 57) + '…' : t); };
           return `<div class="bitem-meta-cell">
@@ -2373,7 +2389,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
   const tmpSuggestions = [];
 
   // Orden de avance: pendiente < done < descartado (descartado solo vía confirmación)
-  const _statusRank = { pendiente: 0, discovery: 0, 'en-revision': 0.5, promoted: 0.8, done: 1, descartado: 2 }; // T-202606-032 / B-202606-016: rank 0.8 · TKT-202606-008: 'discovery' mismo rank que 'pendiente' — ítem activo sin avance de ciclo · 'promovida' legacy retirado 2026-07-22
+  const _statusRank = { pendiente: 0, discovery: 0, 'en-revision': 0.5, promoted: 0.8, promovida: 0.8, done: 1, descartado: 2 }; // T-202606-032 / B-202606-016: rank 0.8 · TKT-C2: 'promoted' Gen2 + 'promovida' legacy · TKT-202606-008: 'discovery' mismo rank que 'pendiente' — ítem activo sin avance de ciclo
 
   // B-202606-047: ordenar batch — REQ primero, luego TKT/INC, luego el resto.
   // Sin este orden, cuando REQ y sus TKT llegan en el mismo CHECKPOINT el find de parentId
@@ -3573,18 +3589,42 @@ export function buildQIncItem(item) {
   // Copy-code badge — patrón idéntico al Backlog principal (AC TKT-B2a AC2)
   const copyCodeHtml = `<span class="bitem-subline-code" data-action="copy-code" data-code="${esc(code)}" data-idx="-1" title="Click para copiar ID">${esc(code)}</span>`;
 
+  // TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-06): botón "Copiar ítem" — copia el bloque
+  // completo del ítem (mismo formato que _PP-incidents.md §Ítems) sin exportar el archivo
+  // entero. data-qi-action propio, distinto de copy-code (que solo copia el código).
+  const copyItemHtml = `<button type="button" class="qinc-item-copy-btn" data-qi-action="qi-copy-item" data-code="${esc(code)}" title="Copiar ítem completo" aria-label="Copiar contenido completo de ${esc(code)}">
+    <i class="ti ti-copy" aria-hidden="true"></i> Copiar ítem
+  </button>`;
+
+  // TKT-A (REQ CAEL-0722-01, ref_id CAEL-0722-05): línea meta secundaria — origin_module +
+  // role/next_role, con fallback "sin asignar" cuando ambos están ausentes. Clickeable,
+  // mismo guard que .qinc-item-header (if (code) import(...) en locus-incidents-render.js) —
+  // sin code, la línea no lleva data-qi-action ni atributos de interactividad.
+  const originModuleVal = incOriginModule(item);
+  const roleVal = item.next_role || item.role || '';
+  const metaSecondaryInteractive = code
+    ? ` data-qi-action="qi-open-panel" role="button" tabindex="0" aria-label="Abrir detalle de ${esc(code)}"`
+    : '';
+  const metaSecondaryHtml = `
+  <div class="qinc-item-meta-secondary"${metaSecondaryInteractive}>
+    <span><i class="ti ti-cube qinc-item-meta-secondary-icon" aria-hidden="true"></i>${esc(originModuleVal || 'sin asignar')}</span>
+    <span><i class="ti ti-user qinc-item-meta-secondary-icon" aria-hidden="true"></i>${esc(roleVal || 'sin asignar')}</span>
+  </div>`;
+
   return `
 <div class="qinc-item ${slaClass}" data-code="${esc(code)}" data-type="${esc(type)}">
   <div class="qinc-item-header" data-qi-action="qi-open-panel" role="button" tabindex="0" aria-label="Abrir detalle de ${esc(code)}">
     <span class="qinc-type-badge qinc-type-badge--${type.toLowerCase()}" title="${esc(typeLabel)}">${esc(type)}</span>
     ${copyCodeHtml}
     <span class="qinc-item-title">${esc(item.title || '(sin título)')}</span>
+    ${copyItemHtml}
+    ${slaCountdownHtml}
   </div>
   <div class="qinc-item-meta">
     ${incStatusBadge}
     ${slaPrioBadge}
-    ${slaCountdownHtml}
   </div>
+  ${metaSecondaryHtml}
   ${comportamientoHtml}
 </div>`.trim();
 }

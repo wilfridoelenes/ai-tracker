@@ -1,3 +1,10 @@
+// [PP] mod:4 · autor:Rune · 2026-07-22 UTC-6
+// TKT-A/TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-05/06): _attachQIncDelegation() gana
+// handler qi-copy-item (botón "Copiar ítem" de buildQIncItem(), locus-backlog-item.js) —
+// copia el bloque completo del ítem vía copyIncidentItemMd() (locus-incidents-generator.js),
+// con feedback is-copied/is-copy-error. qi-open-panel sin cambio de código — ahora también
+// recibido desde .qinc-item-meta-secondary (nueva), mismo selector data-qi-action.
+
 // [PP] mod:3 · autor:Rune · 2026-07-22 UTC-6
 // TKT (REQ CAEL-0722-01): renderQIncStats() ahora cuenta solo ítems activos
 // (_QINC_ACTIVE_STATUSES) en _countByType/_countByPri — un ítem resolved deja de sumar en los
@@ -45,7 +52,7 @@ import { buildQIncItem } from './locus-backlog-item.js';
 
 import { incSlaPriority, SLA_RIESGO_WINDOW_MS } from './locus-inc-fields.js';
 
-import { _generateIncidentsMd, _countClosedIncidents } from './locus-incidents-generator.js';
+import { _generateIncidentsMd, _countClosedIncidents, copyIncidentItemMd } from './locus-incidents-generator.js'; // TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-06): copyIncidentItemMd — botón "Copiar ítem" en _attachQIncDelegation
 
 import { _getActiveProjectFilter, _docPrefix, markIncidentsExported } from './locus-storage.js';
 
@@ -272,11 +279,33 @@ function _attachQIncDelegation(container) {
     // TKT (paridad IDP Q-INC, 2026-07-18): import dinámico — locus-backlog-panel.js ya importa
     // renderBacklogList de este archivo; un import estático de openItemPanel aquí crearía un
     // ciclo ESM. Mismo patrón ya documentado en locus-ui-shell.js (navigateToItem dinámico).
+    // TKT-A (REQ CAEL-0722-01, ref_id CAEL-0722-05): mismo trigger ahora también aplica a
+    // .qinc-item-meta-secondary — data-qi-action idéntico, sin lógica adicional necesaria.
     const openPanelTrigger = e.target.closest('[data-qi-action="qi-open-panel"]');
     if (openPanelTrigger) {
       const card = openPanelTrigger.closest('.qinc-item[data-code]');
       const code = card ? card.dataset.code : null;
       if (code) import('./locus-backlog-panel.js').then(m => m.openItemPanel(code));
+      return;
+    }
+
+    // --- qi-copy-item: copia el bloque completo del ítem al portapapeles ---
+    // TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-06): mismo patrón de feedback que copy-code
+    // (is-copied + timeout), con estado de error explícito si el clipboard falla (AC de
+    // error separado del happy path — permiso denegado o contexto no seguro).
+    const copyItemBtn = e.target.closest('[data-qi-action="qi-copy-item"]');
+    if (copyItemBtn) {
+      e.stopPropagation();
+      const code = copyItemBtn.dataset.code;
+      const content = code ? copyIncidentItemMd(code) : null;
+      if (!content) return;
+      navigator.clipboard.writeText(content).then(() => {
+        copyItemBtn.classList.add('is-copied');
+        setTimeout(() => copyItemBtn.classList.remove('is-copied'), 1500);
+      }).catch(() => {
+        copyItemBtn.classList.add('is-copy-error');
+        setTimeout(() => copyItemBtn.classList.remove('is-copy-error'), 1500);
+      });
       return;
     }
 

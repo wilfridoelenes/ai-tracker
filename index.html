@@ -1,4 +1,4 @@
-<!-- [PP] mod:149 · autor:Nova · 2026-07-21 UTC-6 -->
+<!-- [PP] mod:150 · autor:Nova · 2026-07-22 UTC-6 -->
 <!-- TKT1 (REQ CAEL-0720-02): #stats-bar + #filter-bar-status envueltos en #bl-header-unified
      — ver AC en TKT y CSS correspondiente en locus-backlog.css mod:111 (Nova). -->
 <!-- [PP] mod:146 · autor:Rune · 2026-07-19 UTC-6 -->
@@ -1506,6 +1506,12 @@
 
     <div class="ingest-modal-columns">
       <div class="ingest-modal-col ingest-modal-col--left">
+        <!-- ingest-draft-banner — REQ-restore-draft TKT1 (Nova): shell estático, visibilidad
+             por clase (BR-Execution §5). Contenido de texto lo puebla Rune en _openIngestModal. -->
+        <div class="ingest-draft-banner is-hidden" id="ingest-draft-banner">
+          <span class="ingest-draft-banner-text" id="ingest-draft-banner-text"></span>
+          <button class="ingest-draft-discard-btn" id="ingest-draft-discard-btn" type="button">Descartar</button>
+        </div>
         <div class="paste-ta-wrap">
           <textarea class="paste-ta" id="ingest-ta" rows="4" placeholder="Pega uno o más CHECKPOINTs aquí…"></textarea>
         </div>
