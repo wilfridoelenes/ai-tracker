@@ -1,4 +1,4 @@
-// [PP] mod:133 · autor:Rune · 2026-07-21 UTC-6
+// [PP] mod:134 · autor:Rune · 2026-07-22 UTC-6
 // TKT3 (REQ CAEL-0721-01): los 3 puntos de construcción de tgItems nunca propagaban
 //   kill_criteria/next_role/design_intent/blocked_at/contract_update desde el ítem parseado —
 //   mismo patrón de pérdida ya corregido para draft (TKT1/REQ-202607-027) y contract_detail
@@ -381,7 +381,7 @@ const TG_PARSER_CONFIG = {
     'en progreso':'🔄 En progreso', '🔄 en progreso':'🔄 En progreso',
     'in-progress':'🔄 En progreso', 'progreso':'🔄 En progreso',
     'descartado':'🗑 Descartado', '🗑 descartado':'🗑 Descartado',
-    'en-revision':'🔍 En revisión', 'en_revision':'🔍 En revisión', 'en revisión':'🔍 En revisión',
+    'en-revision':'🔍 En revisión',                                       // aliases 'en_revision'/'en revisión' retirados 2026-07-22 — ver locus-backlog-core.js normalizeStatus()
     'promoted':'🔁 Promovida', '🔁 promoted':'🔁 Promovida'                // T-202606-023 AC1+AC2
   }
 };
@@ -407,7 +407,7 @@ function statusLabel(raw) {
 //   'listo' → alias de 'done' (usado en TG_PARSER_CONFIG)
 //   'promoted' con type≠DISC → null (normalizeStatus devuelve 'pendiente' — override requerido)
 const _KNOWN_STATUS_INPUTS = new Set([
-  'done', 'en-revision', 'en_revision', 'en revisión', 'en-revisión',
+  'done', 'en-revision',
   'descartado', 'historico', 'histórico', 'pendiente', 'promoted',
   'listo',
   'bloqueado', // T-202606-031: válido solo para R — validación de rol en parsePaste

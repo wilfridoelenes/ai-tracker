@@ -1,4 +1,4 @@
-// [PP] mod:128 · autor:Rune · 2026-07-22 UTC-6
+// [PP] mod:129 · autor:Rune · 2026-07-22 UTC-6
 // Fix (founder, análisis de construcción): toggleCollapseAll() apuntaba a .version-group-body/
 // .version-collapse-arrow — clases previas a la unificación de renderSprintGroup() (REQ
 // Histórico unificado con Vista Lista de Backlog), que ya produce .bl-vl-sprint-body/
@@ -281,17 +281,23 @@ let currentFilter = 'all';
 // T-202606-047: normalizeStatus — punto canónico único de validación y normalización de status
 // Firma: normalizeStatus(raw: string, type?: string) → string
 // Consumidores: ITEMS IIFE · _normalizeCommonFields (TKT-202607-062) · locus-session-parse.js (T-202606-048)
+// Hallazgo fuera de scope resuelto en sesión (2026-07-22): aliases 'en_revision'/'en revisión'/
+//   'en-revisión' y 'promovida' retirados — BR-Execution §2 "Sin retrocompatibilidad" prohíbe
+//   conservar aliases de status de schema anterior una vez el nuevo está activo (Gen2, completo
+//   desde 2026-06-28; chk_status_by_type en Supabase ya rechaza estos valores desde 2026-07-22,
+//   ver _pp-strategy §5). Sin call site de escritura para ninguno de los dos — solo lectura/
+//   tolerancia muerta. Condiciones de resolución directa cumplidas: dueño presente (Rune) ·
+//   nivel Patch (sin cambio de comportamiento — nunca hubo escritura de estos valores) · sin
+//   bifurcación de founder.
 export function normalizeStatus(raw, type) {
   const s = (raw || '').trim().toLowerCase();
-  // Aliases de entrada conocidos
   let canonical;
-  if (s === 'en_revision' || s === 'en revisión' || s === 'en-revisión') canonical = 'en-revision';
   // Valores canónicos directos
-  else if (s === 'done')        canonical = 'done';
+  if (s === 'done')        canonical = 'done';
   else if (s === 'en-revision') canonical = 'en-revision';
   else if (s === 'descartado')  canonical = 'descartado';
   else if (s === 'historico')   canonical = 'historico';
-  else if (s === 'promovida' || s === 'promoted') canonical = (type === 'DISC') ? 'promoted' : 'pendiente';
+  else if (s === 'promoted') canonical = (type === 'DISC') ? 'promoted' : 'pendiente';
   else if (s === 'discovery') canonical = (type === 'DISC') ? 'discovery' : 'pendiente'; // INC-[pendiente-ID]: discovery solo válido para DISC — __BR-Ecosystem §5
   // TKT-202606-006: legado 'pendiente' (o status ausente/vacío) en DISC migra a 'discovery' — REQ-202606-002
   else if (s === 'pendiente' || s === '') canonical = (type === 'DISC') ? 'discovery' : 'pendiente';

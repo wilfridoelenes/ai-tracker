@@ -1,4 +1,4 @@
-// [PP] mod:129 · autor:Rune · 2026-07-21 23:28 UTC-6
+// [PP] mod:130 · autor:Rune · 2026-07-22 UTC-6
 // TKT (INC-[pendiente-ID] · descartado como destino universal ITIL): validateIncidentTransitions
 //   ahora acepta incidentStatus:'descartado' desde cualquier estado no-terminal para INC/PRB —
 //   BR-Core §6 lo declara sin restricción de origen ("Cualquier status → descartado"), pero
@@ -359,6 +359,10 @@
 // TKT-C2 (REQ-C): status 'promovida'→'promoted' en comparaciones de status (L99, L1022,
 //   L1612, L1630, L1892). Selector sprint: option icebox→value='' label 'Q-Backlog (sin sprint)'.
 //   Edge case: datos legacy con 'promovida' cubiertos por compatibilidad de lectura (ver L99).
+// Hallazgo fuera de scope resuelto en sesión (2026-07-22): compatibilidad de lectura con
+//   'promovida' de TKT-C2 retirada — BR-Execution §2 no admite conservarla sin período de
+//   gracia una vez Gen2 activo. Sin call site de escritura de 'promovida' en el repo — solo
+//   retiraba tolerancia muerta. Ver locus-backlog-core.js normalizeStatus() para el mismo fix.
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
@@ -1204,7 +1208,7 @@ export function buildBacklogItem(item, opts = {}) {
     : '';
   // Cerradas: DISC promovida muestra badge en lugar de quick actions o ícono descartado
   // TKT-C2: 'promoted' (Gen2). Edge case: datos legacy 'promovida' también matchean.
-  const _isPPromovida = isIdea && (item.status === 'promoted' || item.status === 'promovida');
+  const _isPPromovida = isIdea && item.status === 'promoted'; // 'promovida' legacy retirado 2026-07-22 — ver locus-backlog-core.js normalizeStatus()
   const _pPromovidaRef = _isPPromovida && item.promovida_a ? item.promovida_a : null;
   const _pPromovidaBadge = _isPPromovida
     ? `<span class="item-p-badge item-p-badge--promovida" title="Idea promovida${_pPromovidaRef ? ' a ' + _pPromovidaRef : ''}">↗ promovida${_pPromovidaRef ? '<span class="item-p-badge-ref"> ' + esc(_pPromovidaRef) + '</span>' : ''}</span>`
@@ -2369,7 +2373,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
   const tmpSuggestions = [];
 
   // Orden de avance: pendiente < done < descartado (descartado solo vía confirmación)
-  const _statusRank = { pendiente: 0, discovery: 0, 'en-revision': 0.5, promoted: 0.8, promovida: 0.8, done: 1, descartado: 2 }; // T-202606-032 / B-202606-016: rank 0.8 · TKT-C2: 'promoted' Gen2 + 'promovida' legacy · TKT-202606-008: 'discovery' mismo rank que 'pendiente' — ítem activo sin avance de ciclo
+  const _statusRank = { pendiente: 0, discovery: 0, 'en-revision': 0.5, promoted: 0.8, done: 1, descartado: 2 }; // T-202606-032 / B-202606-016: rank 0.8 · TKT-202606-008: 'discovery' mismo rank que 'pendiente' — ítem activo sin avance de ciclo · 'promovida' legacy retirado 2026-07-22
 
   // B-202606-047: ordenar batch — REQ primero, luego TKT/INC, luego el resto.
   // Sin este orden, cuando REQ y sus TKT llegan en el mismo CHECKPOINT el find de parentId
