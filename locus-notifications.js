@@ -1,3 +1,8 @@
+// [PP] mod:16 · autor:Rune · 2026-07-23 05:05 UTC-6
+// TKT2 (REQ CAEL-0722-01), blocked_at resuelto: "Restaurar por defecto" usa
+// _showAlertCfgResetConfirm()/_dismissAlertCfgConfirm() — réplica exacta del patrón D-03
+// (_showInlineConfirmDone/_dismissInlineConfirm, locus-backlog-core.js), localizado vía
+// Archivo.zip adjuntado por el founder. Ya no llama _notifConfigReset() directo al click.
 // [PP] mod:15 · autor:Rune · 2026-07-23 04:20 UTC-6
 // TKT2 (REQ CAEL-0722-01): openNotifConfig() reescrito — modal propio vía _gconfirmOpen()
 // en vez de togglear/scrollear el Radar Sidebar. Nueva _wireAlertCfgDelegation() scoped a
@@ -452,6 +457,48 @@ export function openNotifConfig() {
   _wireAlertCfgDelegation();
 }
 
+// D-03 (item-inline-confirm) — réplica exacta del patrón de _showInlineConfirmDone/
+// _dismissInlineConfirm en locus-backlog-core.js: mismas clases (item-inline-confirm,
+// __accept, __cancel, is-visible), mismo timing (auto-cancel 6s, transitionend con
+// fallback 400ms). No se importa la función original — es module-scoped ahí y está
+// anclada a .item[data-code]; aquí el ancla es .alertcfg-reset-wrap.
+function _showAlertCfgResetConfirm(btn) {
+  const wrap = btn.closest('.alertcfg-reset-wrap');
+  if (!wrap) return;
+  const existing = wrap.querySelector('.item-inline-confirm');
+  if (existing) existing.remove();
+
+  const confirmEl = document.createElement('div');
+  confirmEl.className = 'item-inline-confirm';
+  confirmEl.innerHTML =
+    '<button type="button" class="item-inline-confirm__accept">Restaurar</button>' +
+    '<button type="button" class="item-inline-confirm__cancel">Cancelar</button>';
+  wrap.appendChild(confirmEl);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => confirmEl.classList.add('is-visible'));
+  });
+
+  const autoCancel = setTimeout(() => _dismissAlertCfgConfirm(confirmEl), 6000);
+
+  confirmEl.querySelector('.item-inline-confirm__accept').addEventListener('click', () => {
+    clearTimeout(autoCancel);
+    _dismissAlertCfgConfirm(confirmEl);
+    _notifConfigReset();
+  });
+  confirmEl.querySelector('.item-inline-confirm__cancel').addEventListener('click', () => {
+    clearTimeout(autoCancel);
+    _dismissAlertCfgConfirm(confirmEl);
+  });
+}
+
+function _dismissAlertCfgConfirm(confirmEl) {
+  if (!confirmEl) return;
+  confirmEl.classList.remove('is-visible');
+  const fallback = setTimeout(() => confirmEl.remove(), 400);
+  confirmEl.addEventListener('transitionend', () => { clearTimeout(fallback); confirmEl.remove(); }, { once: true });
+}
+
 // TKT2: delegación scoped al contenedor del modal (#gconfirm-body-html) — reemplaza la
 // delegación que vivía en #global-radar-sidebar (locus-radar.js). Listener attach una sola
 // vez sobre el contenedor persistente; _gconfirmOpen() solo reescribe su innerHTML en cada
@@ -466,7 +513,7 @@ function _wireAlertCfgDelegation() {
     const el = e.target.closest('[data-action]');
     if (!el || el.dataset.action !== 'cfgReset') return;
     e.stopPropagation();
-    _notifConfigReset();
+    _showAlertCfgResetConfirm(el);
   });
 
   container.addEventListener('change', function(e) {
