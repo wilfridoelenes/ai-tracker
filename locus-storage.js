@@ -1,4 +1,4 @@
-// [PP] mod:139 · autor:Rune · 2026-07-22 UTC-6
+// [PP] mod:140 · autor:Rune · 2026-07-22 UTC-6
 // INC-CAEL-0722-06: _subscribeRealtime() gateado con _REALTIME_ENABLED=false — el cliente
 // reintentaba suscripción indefinidamente contra canales sin publicación activa en Supabase
 // (Realtime desactivado del lado servidor desde 2026-07-08, ver _pp-strategy §4). Ver
@@ -2765,7 +2765,18 @@ function _mergeSessionsFromRemote(sessResult) {
 // (1) syncState.isSaveInFlight() — salta el merge si hay upsert en vuelo (B-[pendiente-ID])
 // (2) TKT-fix-merge-gate — remoteActiveCount !== localCount detecta deletes ciegos a remoteMaxTs
 // (3) exclusión ITIL — filas INC/PRB/KE/CHG remanentes en tracker_items nunca se mergean aquí
-function _mergeItemsFromRemote(itemsResult, _itemsRef) {
+// INC-[pendiente-ID] fix (causa raíz, mod:140): async — antes disparaba _migrateItemTypes()
+// (que llama saveBacklog() sin await) y retornaba de inmediato. saveBacklog() toma
+// syncState.withSaveLock() en su primer tramo síncrono (antes de su propio primer await),
+// así que el lock quedaba tomado cuando _loadFromSupabase() (única llamadora, ver abajo)
+// continuaba en la siguiente línea a _mergeIncidentsFromRemote() — que revisa el mismo
+// lock global y descartaba el merge de tracker_incidents en silencio, en cada carga donde
+// shouldEvaluate era true (casi todas). Con `await _migrateItemTypes()` aquí, el caller
+// espera a que saveBacklog() completo (incluido el upsert de tracker_incidents que corre
+// fuera del lock, líneas ~1931-1962) se asiente antes de que _loadFromSupabase() continúe
+// — isSaveInFlight() vuelve a reflejar solo concurrencia externa real, no un lock que la
+// propia carga acaba de armar.
+async function _mergeItemsFromRemote(itemsResult, _itemsRef) {
   if (syncState.isSaveInFlight()) {
     logger.debug('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + syncState.getSaveInFlightCount() + ') hace ' + syncState.getSaveLockAgeMs() + 'ms — merge de tracker_items omitido en esta pasada.');
     return;
@@ -2867,7 +2878,7 @@ function _mergeItemsFromRemote(itemsResult, _itemsRef) {
 
         _itemsRef.length = 0;
         merged.forEach(it => _itemsRef.push(it));
-        _migrateItemTypes();
+        await _migrateItemTypes();
         try { localStorage.setItem(_tplKey('backlog-items'), JSON.stringify(_itemsRef)); } catch {}
       }
     } else {
@@ -3080,10 +3091,15 @@ export async function _loadFromSupabase() {
     // ── 5. Procesar items relacionales — T-202606-009 ────────────────────
     // CAEL-0718-08: lógica extraída a _mergeItemsFromRemote() — mismo comportamiento,
     // guards (saveInFlight, TKT-fix-merge-gate, exclusión ITIL) preservados íntegros.
-    _mergeItemsFromRemote(itemsResult, _itemsRef);
+    // INC-[pendiente-ID] fix: await agregado — ver comentario en la definición de la
+    // función (arriba en este mismo archivo) para la causa raíz completa.
+    await _mergeItemsFromRemote(itemsResult, _itemsRef);
 
     // ── 5b. Procesar incidentes relacionales — TKT-202607-044 (REQ-202607-015) ──────────
     // CAEL-0718-08: lógica extraída a _mergeIncidentsFromRemote() — mismo comportamiento.
+    // Corre después de que el await anterior garantiza que cualquier saveBacklog() disparado
+    // por la migración de items ya se asentó — isSaveInFlight() ya no puede reflejar un
+    // lock que este mismo _loadFromSupabase() acaba de armar un instante antes.
     _mergeIncidentsFromRemote(incidentsResult, _incidentsRef);
 
     // ── 6. Procesar docs vivos (context, htmlmap, plan, tmp-id-map, notes, user-prefs) ──

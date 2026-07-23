@@ -1,4 +1,4 @@
-// [PP] mod:127 · autor:Rune · 2026-07-22 UTC-6
+// [PP] mod:128 · autor:Rune · 2026-07-22 UTC-6
 // Fix (founder, análisis de construcción): toggleCollapseAll() apuntaba a .version-group-body/
 // .version-collapse-arrow — clases previas a la unificación de renderSprintGroup() (REQ
 // Histórico unificado con Vista Lista de Backlog), que ya produce .bl-vl-sprint-body/
@@ -2785,10 +2785,16 @@ export function _getCollapsedVersions()      { return collapsedVersions; }
 // ITEMS únicamente — ver _itemsRef en locus-storage.js) a _normalizeScrumItems para mantener
 // el contrato de datos sin duplicar lógica. Scope sin cambio respecto al stub anterior: solo
 // ITEMS — el call site que invoca esta función nunca operó sobre INCIDENTS.
+// INC-[pendiente-ID] fix (causa raíz): saveBacklog() se disparaba sin await — el único
+// call site real (_mergeItemsFromRemote en locus-storage.js) no podía esperar a que el
+// lock de syncState.withSaveLock() se soltara antes de que _loadFromSupabase() continuara
+// a _mergeIncidentsFromRemote(), que revisa ese mismo lock global. `return` expone la
+// promesa de saveBacklog() sin cambiar el contrato para el único caller — antes ignoraba
+// el valor de retorno (undefined), ahora puede optar por esperarlo.
 export function _migrateItemTypes() {
   if (typeof ITEMS === 'undefined') return;
   _setITEMS(_normalizeScrumItems(ITEMS));
-  saveBacklog();
+  return saveBacklog();
 }
 // B-202606-024: window.getItems eliminado — consumidores migrados a import o _getItemsFn()
 
