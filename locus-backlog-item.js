@@ -1,3 +1,13 @@
+// [PP] mod:132 · autor:Rune · 2026-07-23 UTC-6
+// TKT1 (REQ split-itil-item, ref_id CAEL-0722-07 · foundation, único archivo tocado):
+// _buildCommonItemFields() y TYPE_LABELS pasan de locales a exportadas — preparación para
+// que TKT2 mueva buildIncidentItem()/validateIncidentTransitions()/buildQIncItem() a un
+// módulo nuevo (locus-incidents-item.js) sin duplicar estas dos dependencias compartidas
+// con buildScrumItem()/buildBacklogItem(), que se quedan en este archivo. Sin cambio de
+// comportamiento — mismos consumidores locales, mismo valor. Corrección de discrepancia:
+// una sesión previa reportó este REQ como implementado ("Listo") sin que la separación
+// hubiera ocurrido — buildIncidentItem/validateIncidentTransitions/buildQIncItem seguían
+// en este archivo (verificado contra código real antes de retomar). contract_update: sí.
 // [PP] mod:131 · autor:Rune · 2026-07-22 UTC-6
 // Fix inline (triggered_by análisis de rama Reactiva en locus-backlog-item.js, sesión sin
 // TKT activo): buildBacklogItem() — bloque "R padre" evaluaba (type === 'TKT' || type ===
@@ -418,7 +428,7 @@ const _BLOCKED_DAYS = 14;
 export const _collapsedChildren = new Set();
 
 // Labels de tipo de ítem para display en UI
-const TYPE_LABELS = { REQ: 'Requerimiento', TKT: 'Ticket', INC: 'Incidente', DISC: 'Discovery', PRB: 'Problem', KE: 'Known Error', CHG: 'Change' }; // TKT-B2a: PRB/KE/CHG — ningún ítem ITIL muestra undefined en badge de tipo
+export const TYPE_LABELS = { REQ: 'Requerimiento', TKT: 'Ticket', INC: 'Incidente', DISC: 'Discovery', PRB: 'Problem', KE: 'Known Error', CHG: 'Change' }; // TKT-B2a: PRB/KE/CHG — ningún ítem ITIL muestra undefined en badge de tipo. TKT1 (REQ split-itil-item): exportada — buildQIncItem() la consume y se mueve a locus-incidents-item.js en TKT2
 
 // INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass consolidados en
 // locus-backlog-core.js — importadas arriba. Las copias locales generaban clases CSS
@@ -2144,7 +2154,13 @@ function validateIncidentTransitions(oldIncidentStatus, newIncidentStatus, itilT
 // TKT1 (REQ-refactor-item-shape-itil-scrum): campos comunes a Scrum (REQ/TKT/DISC) e ITIL
 // (INC/PRB/KE/CHG) — factorizado desde el _newItemObj único que existía antes de este TKT.
 // Extraído tal cual, sin cambio de valor ni de orden de evaluación.
-function _buildCommonItemFields(item, ctx) {
+// TKT1 (REQ split-itil-item, ref_id CAEL-0722-07 · foundation de la separación ITIL/Planeada):
+//   exportada — antes local. buildIncidentItem() (línea ~2250) la consume y se mueve a
+//   locus-incidents-item.js en TKT2; sin exportar aquí, ese módulo no podría construir el
+//   objeto común de campos compartidos (id/code/type/title/ac/parentId/etc.) sin duplicar
+//   ~35 líneas de lógica que buildScrumItem() también usa y debe seguir usando desde aquí.
+//   Sin cambio de comportamiento ni de firma — mismos 6 llamadores locales sin tocar.
+export function _buildCommonItemFields(item, ctx) {
   const { _incomingType, initialStatus, _resolvedParentId, _parentSprint, nowTs, sessionId } = ctx;
   return {
     id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2,6),
