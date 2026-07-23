@@ -273,8 +273,10 @@ export function renderQIncPanel() {
   const _qiQuery     = (_nsGetQuery('qinc') || '').trim().toLowerCase();
   // TKT1 (REQ CAEL-0723-03): ya no excluye 'closed' — antes moría aquí sin llegar nunca al
   // render (ver mod:8, header del archivo). Sigue excluyendo 'descartado'.
-  const _displayable = allQInc.filter(i => _qincEffectiveStatus(i) !== 'descartado'); — antes había dos ramas idénticas
-  // (allQInc.length===0 y _displayable.length===0). _displayable ya cubre ambos casos: si
+  const _displayable = allQInc.filter(i => _qincEffectiveStatus(i) !== 'descartado');
+
+  // TKT2 (mod:1, preexistente): único empty-state de "sin activos" — antes había dos ramas
+  // idénticas (allQInc.length===0 y _displayable.length===0). _displayable ya cubre ambos casos: si
   // allQInc está vacío, _displayable también lo está.
   if (!_displayable.length) {
     body.innerHTML = `
