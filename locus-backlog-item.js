@@ -1,3 +1,38 @@
+// [PP] mod:135 · autor:Rune · 2026-07-23 UTC-6
+// Hallazgo fuera de scope (resuelto en sesión — dueño presente, Patch, sin bifurcación de
+// founder): 2 bloques de comentario huérfanos al final del archivo, sin código asociado en
+// ningún punto de este módulo (verificado — grep). (1) banner "TKT-B2a: buildQIncItem()..."
+// documentaba la función que TKT2/TKT3 (mod:132-134) movieron a locus-incidents-item.js — no
+// viajó con ella, quedó describiendo código que ya no vive aquí. (2) comentario suelto
+// "T-202606-072: listeners shell:*" sin bloque de código bajo ningún nombre coincidente en
+// todo el archivo (única aparición de "shell:" en el módulo) — no se identificó origen ni
+// destino real, se retira por no aportar valor de referencia. Ambos retirados. Sin cambio de
+// comportamiento — solo comentarios. contract_update: no.
+// [PP] mod:134 · autor:Rune · 2026-07-23 UTC-6
+// TKT3 (REQ split-itil-item, ref_id CAEL-0723-02 · cierre — consumidor externo + puente
+// retirado): locus-incidents-render.js (mod:5) ya importa buildQIncItem directo de
+// locus-incidents-item.js — el puente de re-export declarado en mod:133 (línea del import de
+// buildIncidentItem/validateIncidentTransitions) queda sin consumidor conocido, retirado en
+// esta entrega. Verificado sin otro caller de buildQIncItem en este archivo (grep — solo
+// aparecía en comentarios). main.js no requiere cambio — locus-incidents-item.js resuelve
+// transitivo vía este archivo y locus-incidents-render.js, ambos ya importados ahí
+// (confirmado en sesión de TKT3, ver _Locus-module-contracts mod:114). El REQ split-itil-item
+// cierra con este TKT — sin deuda de puente permanente (AC2 del REQ). contract_update: sí —
+// ver CHECKPOINT (retiro de export, sin cambio de firma de ninguna función).
+// [PP] mod:133 · autor:Rune · 2026-07-23 UTC-6
+// TKT2 (REQ split-itil-item, ref_id CAEL-0722-08): buildIncidentItem, validateIncidentTransitions
+// (+ sus 3 tablas de transición _VALID_INCIDENT_TRANSITIONS/_VALID_PRB_TRANSITIONS/
+// _VALID_KE_TRANSITIONS) y buildQIncItem retirados de este archivo — viven ahora en
+// locus-incidents-item.js (nuevo, mod:1). Los 3 call sites internos (mergeBacklogFromTG
+// L2452/L2730, applyPatchesFromTG L3193) importan las 2 primeras del módulo nuevo.
+// buildQIncItem se re-exporta desde aquí como puente temporal (línea del import de
+// locus-inc-fields.js) — locus-incidents-render.js (consumidor externo real, no adjunto en
+// esta sesión) sigue resolviendo el símbolo desde esta ruta sin cambios, hasta TKT3.
+// Sin cambio de comportamiento en ninguna de las 3 funciones — trasplantadas tal cual.
+// Bloqueo declarado en el CHECKPOINT: TKT3 (actualizar import real en
+// locus-incidents-render.js, agregar <script>/import de locus-incidents-item.js en main.js,
+// retirar el puente de esta línea, actualizar _Locus-module-contracts) requiere ambos
+// archivos adjuntos — no están en esta sesión. contract_update: sí.
 // [PP] mod:132 · autor:Rune · 2026-07-23 UTC-6
 // TKT1 (REQ split-itil-item, ref_id CAEL-0722-07 · foundation, único archivo tocado):
 // _buildCommonItemFields() y TYPE_LABELS pasan de locales a exportadas — preparación para
@@ -408,7 +443,20 @@ import { _setBacklogModified } from './locus-docs.js';
 import { _gconfirmOpen } from './locus-modals.js';
 
 import { validateLifecycleTransitions } from './locus-session-save.js'; // T-202606-020
-import { incSlaPriority, incComportamientoActual, incIncidentStatus, incOriginModule, SLA_RIESGO_WINDOW_MS } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil + TKT-[pendiente-ID] (SLA_RIESGO_WINDOW_MS centralizado, ex-literal en buildQIncItem) + TKT-A (REQ CAEL-0722-01, ref_id CAEL-0722-05): incOriginModule agregado — línea meta secundaria de la card
+// TKT1 REQ-centralizar-accesores-itil + TKT-[pendiente-ID] (SLA_RIESGO_WINDOW_MS
+// centralizado, ex-literal en buildQIncItem) + TKT-A (REQ CAEL-0722-01, ref_id
+// CAEL-0722-05): incOriginModule agregado — línea meta secundaria de la card.
+// Corrección de ubicación (TKT3, REQ split-itil-item): este comentario documentaba el
+// import de abajo pero había quedado adjunto como sufijo del puente de re-export de
+// buildQIncItem, retirado en este TKT — reubicado sobre su import real.
+import { incSlaPriority, incComportamientoActual, incIncidentStatus, incOriginModule, SLA_RIESGO_WINDOW_MS } from './locus-inc-fields.js';
+// TKT2 (REQ split-itil-item, ref_id CAEL-0722-08): buildIncidentItem/validateIncidentTransitions
+// ahora viven en locus-incidents-item.js — únicos consumidores son los 3 call sites internos de
+// este archivo (mergeBacklogFromTG L2452/2730, applyPatchesFromTG L3193), sin fan-out externo
+// confirmado en module-contracts. TKT3 (REQ split-itil-item, ref_id CAEL-0723-02): puente
+// temporal de buildQIncItem retirado — locus-incidents-render.js ya importa directo de
+// locus-incidents-item.js.
+import { buildIncidentItem, validateIncidentTransitions } from './locus-incidents-item.js';
 
 
 import { render } from './locus-sesiones.js';
@@ -2077,79 +2125,6 @@ export async function _assignPendingIds(tgItems, seedSlugMap, unresolvedRefs) {
   return { items: resolvedItems, slugMap };
 }
 
-// TKT-PARSER-2a (REQ-[pendiente-ID]): tabla de pares válidos de transición ITIL.
-// Clave: incidentStatus origen. Valor: Set de incidentStatus destino permitidos desde ese origen.
-// Distinto de _VALID_INCIDENT_STATUS (locus-session-parse.js) — ese set valida pertenencia
-// del valor al vocabulario ITIL; esta tabla valida que el PAR origen→destino sea una
-// transición real del ciclo de vida (BR-Core §6), no solo que ambos valores existan.
-const _VALID_INCIDENT_TRANSITIONS = {
-  detected:    new Set(['assigned']),
-  assigned:    new Set(['in_progress']),
-  in_progress: new Set(['resolved', 'escalated_to_prb', 'escalated_to_chg']),
-  resolved:    new Set(['closed'])
-  // closed, escalated_to_prb, escalated_to_chg, descartado: sin transiciones salientes declaradas —
-  // estados terminales del ciclo dentro de este merge. Reabrir un INC closed no es un caso cubierto
-  // por este AC — fuera de scope de TKT-PARSER-2a.
-};
-
-// TKT1 (REQ CAEL-01): tabla de transiciones propia de PRB — BR-Core §6.
-// PRB no tiene status 'assigned' (a diferencia de INC) — nace directamente en 'detected'.
-const _VALID_PRB_TRANSITIONS = {
-  detected:    new Set(['in_progress']),
-  in_progress: new Set(['resolved']),
-  resolved:    new Set(['closed'])
-  // closed, descartado: estados terminales — sin transiciones salientes declaradas, mismo criterio
-  // que _VALID_INCIDENT_TRANSITIONS para closed. Fuera de scope de TKT1.
-};
-
-// TKT1 (REQ CAEL-01): tabla de transiciones propia de KE — BR-Core §6.
-// KE nace en 'active' — único estado no terminal del ciclo.
-const _VALID_KE_TRANSITIONS = {
-  active: new Set(['resolved', 'descartado'])
-  // resolved, descartado: estados terminales — sin transiciones salientes declaradas.
-};
-
-// TKT-PARSER-2a (REQ-[pendiente-ID]): valida un par (oldIncidentStatus, newIncidentStatus).
-// No usa VALID_TRANSITIONS (locus-session-save.js) — esa tabla es de status Scrum por tipo,
-// no de transiciones ITIL por par origen→destino. Devuelve {valid:true} o {valid:false, reason}.
-// TKT1 (REQ CAEL-01): parámetro `itilType` agregado — antes esta función validaba todo par
-// contra el vocabulario y la tabla de transiciones de INC, sin distinguir tipo. PRB y KE
-// comparten mecanismo pero tienen vocabulario y tabla de transiciones propios (BR-Core §6) —
-// aplicar la tabla de INC a un PRB rechazaba transiciones válidas de su propio ciclo
-// (ej. detected→in_progress). `itilType` es opcional y por defecto 'INC' — preserva el
-// comportamiento exacto de todo caller que no fue actualizado a pasar el tipo.
-function validateIncidentTransitions(oldIncidentStatus, newIncidentStatus, itilType = 'INC') {
-  const _statusSet = itilType === 'PRB' ? _VALID_PRB_STATUS
-    : itilType === 'KE' ? _VALID_KE_STATUS
-    : _VALID_INCIDENT_STATUS;
-  const _transitions = itilType === 'PRB' ? _VALID_PRB_TRANSITIONS
-    : itilType === 'KE' ? _VALID_KE_TRANSITIONS
-    : _VALID_INCIDENT_TRANSITIONS;
-  if (!_statusSet.has(oldIncidentStatus) || !_statusSet.has(newIncidentStatus)) {
-    // Valor fuera del vocabulario ITIL del tipo — ya debió rechazarse en _buildItilItem (locus-session-parse.js).
-    // Defensivo: no es una transición ITIL inválida en sí, es un valor inválido — no bloquear aquí.
-    return { valid: true };
-  }
-  // INC-[pendiente-ID] (gap detectado en auditoría Q-INC): 'descartado' es destino válido desde
-  // CUALQUIER estado no-terminal para los 3 tipos ITIL — BR-Core §6 lo declara sin restricción de
-  // origen ("Cualquier status → descartado | Con justificación explícita en el CHECKPOINT") para
-  // INC y PRB, y _VALID_KE_TRANSITIONS ya lo permitía para KE. Antes de este fix, solo KE tenía la
-  // transición declarada en su tabla — INC/PRB la rechazaban con "transición ITIL inválida" pese a
-  // estar autorizada por BR. Chequeo centralizado aquí (no replicado en las 3 tablas por-tipo) para
-  // que la regla transversal viva en un solo lugar — mismo criterio de causa raíz que ya motivó
-  // extraer _itilStatusSet/_itilStatusList en locus-session-parse.js. 'closed' NO se excluye como
-  // origen — BR-Core no declara excepción para closed, la regla es literal "cualquier status".
-  // discard_reason (obligatorio en items descartados, ver BR-Ecosystem §5) se valida en el punto
-  // de ingesta del patch, no aquí — esta función solo valida el par de estados.
-  if (newIncidentStatus === 'descartado' && oldIncidentStatus !== 'descartado' && itilType !== 'KE') {
-    return { valid: true };
-  }
-  const _allowed = _transitions[oldIncidentStatus];
-  if (!_allowed || !_allowed.has(newIncidentStatus)) {
-    return { valid: false, reason: `transición ITIL inválida: ${oldIncidentStatus} → ${newIncidentStatus}` };
-  }
-  return { valid: true };
-}
 
 // TKT1 (REQ-refactor-item-shape-itil-scrum): campos comunes a Scrum (REQ/TKT/DISC) e ITIL
 // (INC/PRB/KE/CHG) — factorizado desde el _newItemObj único que existía antes de este TKT.
@@ -2263,20 +2238,6 @@ function buildScrumItem(item, ctx) {
 // resolutionType. incidentStatus solo si el tipo es INC/PRB/KE — CHG usa vocabulario Scrum
 // (`status`), no declara incidentStatus (__BR-Ecosystem §4b). Mismos defaults que el objeto
 // único anterior — sin cambio de comportamiento.
-function buildIncidentItem(item, ctx) {
-  const { _incomingType, initialStatus } = ctx;
-  return {
-    ..._buildCommonItemFields(item, ctx),
-    queue: item.queue || null,
-    ...(['INC', 'PRB', 'KE'].includes(_incomingType) ? { incidentStatus: item.incidentStatus || initialStatus } : {}),
-    slaPriority: item.slaPriority || null,
-    slaDeadline: item.slaDeadline || null,
-    comportamientoActual: item.comportamientoActual || '',
-    originModule: item.originModule || null,
-    derivedItems: item.derivedItems || [],
-    resolutionType: item.resolutionType || null,
-  };
-}
 
 // ── T-098: Merge TRACKER-GLOBAL → getItems() en memoria ──
 // Llamado desde saveSession(). Acumula múltiples sesiones sin exportar.
@@ -3521,128 +3482,3 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
 
   return { patched, ignored: ignoredPatches };
 }
-
-
-
-// ---------------------------------------------------------------------------
-// TKT-B2a: buildQIncItem() — builder de card propio para Q-INC
-// No reutiliza buildBacklogItem: modelo de datos ITIL es distinto (incidentStatus,
-// slaPriority, slaDeadline, comportamientoActual vs status/sprint/parentId).
-// Exportada para consumo en locus-backlog-render.js (renderQIncPanel).
-// AC: sin referencias a item.status, item.sprint, item.parentId dentro de la función.
-// ---------------------------------------------------------------------------
-
-export function buildQIncItem(item) {
-  const type      = itemKind(item) || '';
-  const typeLabel = TYPE_LABELS[type] || type || '—';
-  const code      = item.code || item.id || '';
-
-  // Badge incidentStatus — '—' si ausente, sin crash
-  const incStatus    = incIncidentStatus(item) || '';
-  const incStatusBadge = incStatus
-    ? `<span class="qinc-badge qinc-badge--status">${esc(incStatus)}</span>`
-    : `<span class="qinc-badge qinc-badge--status qinc-badge--empty">—</span>`;
-
-  // Badge slaPriority — '—' si ausente, sin crash
-  const slaPrio      = incSlaPriority(item) || '';
-  const slaPrioBadge = slaPrio
-    ? `<span class="qinc-badge qinc-badge--sla qinc-badge--sla-${slaPrio}">${esc(slaPrio)}</span>`
-    : `<span class="qinc-badge qinc-badge--sla qinc-badge--empty">—</span>`;
-
-  const slaDeadline  = item.slaDeadline || item.sla_deadline || null;
-
-  // Clases SLA — mutuamente excluyentes (AC TKT-B2a AC4)
-  // Fix inline (TKT1, triggered_by [tmp:tkt-countdown-sla]): la rama --sla-riesgo no
-  // exigía slaPrio === 'high' — cualquier prioridad dentro de la ventana de 6h recibía
-  // la clase a nivel de card. Corregido para exigir 'high', igual que ya exigía la rama
-  // vencido. Calculado antes del countdown porque TKT1 lo consume abajo.
-  let slaClass = '';
-  if (slaDeadline) {
-    if (slaPrio === 'high' && slaDeadline < Date.now()) {
-      slaClass = 'qinc-item--sla-vencido';
-    } else if (slaPrio === 'high' && slaDeadline >= Date.now() && slaDeadline < Date.now() + SLA_RIESGO_WINDOW_MS) {
-      slaClass = 'qinc-item--sla-riesgo';
-    }
-  }
-
-  // Countdown slaDeadline — solo si presente
-  let slaCountdownHtml = '';
-  if (slaDeadline) {
-    const remaining = slaDeadline - Date.now();
-    if (remaining < 0) {
-      // Fix inline (TKT1): el modificador --vencido se aplicaba al span del countdown para
-      // CUALQUIER prioridad con deadline pasado, sin gate de slaPrio — contradice AC4 (medium/low
-      // sin --riesgo ni --vencido en el countdown). El texto "VENCIDO" se sigue mostrando para
-      // medium/low (no_incluye de TKT1 no pide removerlo), pero sin el modificador visual --vencido.
-      const vencidoClass = slaPrio === 'high' ? ' qinc-sla-countdown--vencido' : '';
-      slaCountdownHtml = `<span class="qinc-sla-countdown${vencidoClass}">VENCIDO</span>`;
-    } else {
-      const hrs = Math.floor(remaining / 3600000);
-      const min = Math.floor((remaining % 3600000) / 60000);
-      // TKT1 AC1/AC2: --riesgo espeja exactamente slaClass — mismo umbral, ya gateado a 'high' arriba.
-      const riesgoClass = slaClass === 'qinc-item--sla-riesgo' ? ' qinc-sla-countdown--riesgo' : '';
-      slaCountdownHtml = `<span class="qinc-sla-countdown${riesgoClass}">${hrs}h ${min}m</span>`;
-    }
-  }
-
-  // comportamientoActual expandible — togglable vía data-qi-action (AC TKT-B2a AC5)
-  // Fix INC (Q-INC render audit, 2026-07-18): antes el contenido era su propio trigger,
-  // pero CSS le aplicaba display:none por defecto — un elemento no renderizado no puede
-  // recibir click ni foco, comportamiento_actual nunca era alcanzable. Ahora el trigger es
-  // un <button> real y separado (activación por teclado nativa, sin keydown propio) que
-  // controla el contenido vía aria-expanded/aria-controls — mismo patrón semántico que
-  // .idp-section-toggle (locus-backlog-panel.js), CSS entregado por Nova (mod:102 de
-  // locus-backlog.css).
-  const comportamiento = incComportamientoActual(item) || '';
-  const comportId = `qinc-comport-${esc(code)}`;
-  const comportamientoHtml = comportamiento
-    ? `<button type="button" class="qinc-item-comportamiento-toggle" data-qi-action="qi-toggle-comportamiento" aria-expanded="false" aria-controls="${comportId}">
-    <span class="qinc-toggle-arrow">▸</span> Comportamiento actual
-  </button>
-  <div class="qinc-item-comportamiento" id="${comportId}">${esc(comportamiento)}</div>`
-    : '';
-
-  // Copy-code badge — patrón idéntico al Backlog principal (AC TKT-B2a AC2)
-  const copyCodeHtml = `<span class="bitem-subline-code" data-action="copy-code" data-code="${esc(code)}" data-idx="-1" title="Click para copiar ID">${esc(code)}</span>`;
-
-  // TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-06): botón "Copiar ítem" — copia el bloque
-  // completo del ítem (mismo formato que _PP-incidents.md §Ítems) sin exportar el archivo
-  // entero. data-qi-action propio, distinto de copy-code (que solo copia el código).
-  const copyItemHtml = `<button type="button" class="qinc-item-copy-btn" data-qi-action="qi-copy-item" data-code="${esc(code)}" title="Copiar ítem completo" aria-label="Copiar contenido completo de ${esc(code)}">
-    <i class="ti ti-copy" aria-hidden="true"></i> Copiar ítem
-  </button>`;
-
-  // TKT-A (REQ CAEL-0722-01, ref_id CAEL-0722-05): línea meta secundaria — origin_module +
-  // role/next_role, con fallback "sin asignar" cuando ambos están ausentes. Clickeable,
-  // mismo guard que .qinc-item-header (if (code) import(...) en locus-incidents-render.js) —
-  // sin code, la línea no lleva data-qi-action ni atributos de interactividad.
-  const originModuleVal = incOriginModule(item);
-  const roleVal = item.next_role || item.role || '';
-  const metaSecondaryInteractive = code
-    ? ` data-qi-action="qi-open-panel" role="button" tabindex="0" aria-label="Abrir detalle de ${esc(code)}"`
-    : '';
-  const metaSecondaryHtml = `
-  <div class="qinc-item-meta-secondary"${metaSecondaryInteractive}>
-    <span><i class="ti ti-cube qinc-item-meta-secondary-icon" aria-hidden="true"></i>${esc(originModuleVal || 'sin asignar')}</span>
-    <span><i class="ti ti-user qinc-item-meta-secondary-icon" aria-hidden="true"></i>${esc(roleVal || 'sin asignar')}</span>
-  </div>`;
-
-  return `
-<div class="qinc-item ${slaClass}" data-code="${esc(code)}" data-type="${esc(type)}">
-  <div class="qinc-item-header" data-qi-action="qi-open-panel" role="button" tabindex="0" aria-label="Abrir detalle de ${esc(code)}">
-    <span class="qinc-type-badge qinc-type-badge--${type.toLowerCase()}" title="${esc(typeLabel)}">${esc(type)}</span>
-    ${copyCodeHtml}
-    <span class="qinc-item-title">${esc(item.title || '(sin título)')}</span>
-    ${copyItemHtml}
-    ${slaCountdownHtml}
-  </div>
-  <div class="qinc-item-meta">
-    ${incStatusBadge}
-    ${slaPrioBadge}
-  </div>
-  ${metaSecondaryHtml}
-  ${comportamientoHtml}
-</div>`.trim();
-}
-
-// T-202606-072: listeners shell:* — desacoplamiento de módulos consumidores

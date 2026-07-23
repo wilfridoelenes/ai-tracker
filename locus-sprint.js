@@ -1,3 +1,30 @@
+// [PP] mod:111 · autor:Rune · 2026-07-22 UTC-6
+// Rediseño sub-tab Sprints — ad-hoc, instrucción directa del founder (sin REQ/TKT,
+// mismo tratamiento que CSS mod:64 de Nova, locus-sprint.css). design_intent:
+// sprint_subtab_redesign. _renderSpsActivo/_renderSpsProgramados/_renderSpsPausados/
+// _renderSpsCerrados migran del wrapper plano (<span class="sps-section-label"> +
+// contenido) a .sps-status-group/.sps-status-header/.sps-status-body (CSS entregado
+// por Nova). Q-INC excluido — tiene tab propio, por instrucción del founder.
+// Helpers nuevos: _spsGroupHtml()/_spsGroupEmptyHtml() generan el wrapper + empty
+// state; _spsAttachGroupToggle()/_spsGroupToggleHandler()/_spsGroupToggleKeydown()
+// manejan colapso por sección (estado en memoria — _SPS_GROUP_COLLAPSED, se resetea
+// a expandido en reload, mismo criterio que el resto de UI efímera del tab Sprint).
+// Cerrados — cambio de comportamiento, no solo de clase: _spsCerradosExpanded/
+// _spsCerradosToggle (expandir retro inline por fila) y el menú ··· (Ver retro
+// completa / Exportar .md — ambas acciones invocaban openSprintRetroView, ya
+// redundantes entre sí) se retiran. La fila completa (.sps-closed-row) es ahora
+// el control — click o Enter/Space invoca openSprintRetroView() directamente.
+// Consistente con el design_intent aprobado ("item-rows con acento lateral, mismo
+// lenguaje que las cards de Promoted en Q-DISC") — Promoted no lleva menú propio.
+// Bloqueo parcial: el bloque de métricas (.sps-stats-block/.sps-stat-cell, CSS ya
+// entregado) requiere shell HTML estático nuevo (Regla de separación HTML/JS,
+// BR-Execution §5 — elemento invariante, no debe generarse por JS) — index.html
+// no está adjunto en esta sesión. Ver CHECKPOINT: bloqueo explícito, sin este
+// archivo no se implementa esa parte (BR-Execution §2 — sin archivo, sin
+// entregable). Los 4 status-groups no dependen de index.html — los contenedores
+// #sps-activo/#sps-programados/#sps-pausados/#sps-cerrados ya existen y siguen
+// siendo los anchors; cada función sigue generando su innerHTML completo, mismo
+// patrón ya vigente en este archivo desde antes de este TKT.
 // [PP] mod:110 · autor:Rune · 2026-07-21 23:05 UTC-6
 // TKT CAEL-0721-06 (REQ CAEL-0721-05, parcial — JS completo, CSS pendiente de Nova):
 // _sprintItemHtml() distingue REQ orphaned de pendiente real — nueva clase
@@ -727,11 +754,11 @@ function _spsApplyDropdownFlip(menuBtn, dropdown) {
   }
 }
 
-// TKT5 (REQ-202607-100): wiring de apertura/cierre del menú ⋯ — antes
+// TKT5 (REQ-202607-100, histórico): wiring de apertura/cierre del menú ⋯ — antes
 // triplicado byte-a-byte en _renderSpsActivo (inline handler), _sppHandleClick
-// (Programados) y _spsCerradosHandleClick, difiriendo solo en el atributo
-// data-*-menu de cada sección (que el caller ya resolvió antes de invocar
-// este helper vía closest()). Encapsula: toggle de dropdown.hidden +
+// (Programados) y _spsCerradosHandleClick (Cerrados, retirado en mod:111 — el
+// rediseño de item-rows elimina el menú ··· de esa sección, ver _renderSpsCerrados).
+// Sigue vigente para Activo/Programados. Encapsula: toggle de dropdown.hidden +
 // aria-expanded + _spsApplyDropdownFlip() al abrir + listener de click-fuera
 // con auto-remove. No decide el atributo data-*-menu ni hace stopPropagation
 // — eso sigue siendo responsabilidad del caller (ver Cerrados, que necesita
@@ -756,6 +783,83 @@ function _spsWireDropdownToggle(menuBtn) {
   }, 0);
 }
 
+// ── Rediseño sub-tab Sprints — status-group wrapper (mod:111, design_intent:
+// sprint_subtab_redesign) ────────────────────────────────────────────────────
+// Reemplaza el <span class="sps-section-label"> plano de las 4 secciones por
+// .sps-status-group/.sps-status-header/.sps-status-body (CSS Nova, locus-sprint.css
+// mod:64). Un solo helper por las 4 funciones — evita duplicar el wrapper byte-a-byte
+// (mismo criterio que _spsWireDropdownToggle ya usado en este archivo).
+
+// Colapso por sección — estado en memoria, no persistido. Resetea a "todo expandido"
+// en cada reload, consistente con el resto de UI efímera del tab Sprint (menús,
+// edición inline). Claves: 'activo' | 'programados' | 'pausados' | 'cerrados'.
+const _SPS_GROUP_COLLAPSED = new Set();
+
+function _spsGroupHtml(key, title, count, headerModifier, bodyHtml) {
+  const collapsed = _SPS_GROUP_COLLAPSED.has(key);
+  return (
+    '<div class="sps-status-group' + (collapsed ? ' is-collapsed' : '') + '" data-sps-group="' + key + '">' +
+      '<div class="sps-status-header sps-status-header--' + headerModifier + '" role="button" tabindex="0" ' +
+        'aria-expanded="' + (!collapsed) + '" aria-controls="sps-status-body-' + key + '" data-sps-group-toggle="' + key + '">' +
+        '<div class="sps-status-header-meta">' +
+          '<span class="sps-status-title">' + _escHtml(title) + '</span>' +
+          '<span class="sps-status-count">' + count + '</span>' +
+        '</div>' +
+        '<span class="sps-status-chevron" aria-hidden="true">▼</span>' +
+      '</div>' +
+      '<div class="sps-status-body" id="sps-status-body-' + key + '">' + bodyHtml + '</div>' +
+    '</div>'
+  );
+}
+
+// Empty state — mismo patrón textual que .sps-empty/.qc-empty (título + hint
+// opcional), sin ícono — ninguna de las dos referencias declara clase de ícono.
+function _spsGroupEmptyHtml(title, hint) {
+  return (
+    '<div class="sps-status-empty">' +
+      '<p class="sps-status-empty-title">' + _escHtml(title) + '</p>' +
+      (hint ? '<p class="sps-status-empty-hint">' + _escHtml(hint) + '</p>' : '') +
+    '</div>'
+  );
+}
+
+// Toggle de colapso — clase is-collapsed vive en .sps-status-group; CSS ya
+// resuelve la rotación del chevron y el display:none del body (mod:64). JS solo
+// mueve la clase + aria-expanded + persiste la clave en _SPS_GROUP_COLLAPSED.
+function _spsGroupToggleHandler(e) {
+  const header = e.target.closest('[data-sps-group-toggle]');
+  if (!header) return;
+  const key = header.dataset.spsGroupToggle;
+  const group = header.closest('.sps-status-group');
+  if (!group) return;
+  const willCollapse = !group.classList.contains('is-collapsed');
+  group.classList.toggle('is-collapsed', willCollapse);
+  header.setAttribute('aria-expanded', String(!willCollapse));
+  if (willCollapse) _SPS_GROUP_COLLAPSED.add(key);
+  else _SPS_GROUP_COLLAPSED.delete(key);
+}
+
+function _spsGroupToggleKeydown(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const header = e.target.closest('[data-sps-group-toggle]');
+  if (!header) return;
+  e.preventDefault();
+  header.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+}
+
+// Idempotente — mismo patrón remove/add ya usado en todo el archivo. Se llama al
+// final de cada una de las 4 funciones de render, sobre el mismo container que ya
+// tiene sus propios listeners de sección (menú, edición inline, etc.) — ambos
+// coexisten porque cada handler filtra por su propio selector antes de actuar.
+function _spsAttachGroupToggle(container) {
+  if (!container) return;
+  container.removeEventListener('click', _spsGroupToggleHandler);
+  container.addEventListener('click', _spsGroupToggleHandler);
+  container.removeEventListener('keydown', _spsGroupToggleKeydown);
+  container.addEventListener('keydown', _spsGroupToggleKeydown);
+}
+// ── END status-group wrapper ─────────────────────────────────────────────────
+
 // ── T-202606-036 / T-202606-043: _renderSpsActivo — card del sprint activo ──
 //
 // T-202606-043: rediseño — card-header con menú ··· (Pausar · sep · Cerrar rojo),
@@ -770,12 +874,13 @@ function _renderSpsActivo() {
   const sprint = _getActiveSprint();
 
   if (!sprint) {
-    container.innerHTML =
-      '<span class="sps-section-label">Activo</span>' +
-      '<div class="sps-empty">' +
-        '<p>No hay sprint activo.</p>' +
-        '<p class="sps-empty-hint">La apertura de sprint se propone desde Cael (sprint_proposal) — no hay creación manual.</p>' +
-      '</div>';
+    container.innerHTML = _spsGroupHtml('activo', 'Activo', 0, 'activo',
+      _spsGroupEmptyHtml(
+        'No hay sprint activo.',
+        'La apertura de sprint se propone desde Cael (sprint_proposal) — no hay creación manual.'
+      )
+    );
+    _spsAttachGroupToggle(container);
     return;
   }
 
@@ -814,8 +919,7 @@ function _renderSpsActivo() {
   // T-202606-003: modificador visual para sprint pausado
   const pausadoCls = sprint.status === 'paused' ? ' sps-card--pausado' : '';
 
-  container.innerHTML =
-    '<span class="sps-section-label">Activo</span>' +
+  const _spsActivoCardHtml =
     '<div class="sps-card' + pausadoCls + '" data-sprint-id="' + _escHtml(id) + '">' +
       '<div class="sps-card-header">' +
         '<span class="sps-card-id font-mono">' + _escHtml(id) + '</span>' +
@@ -851,6 +955,8 @@ function _renderSpsActivo() {
       '</div>' +
     '</div>';
 
+  container.innerHTML = _spsGroupHtml('activo', 'Activo', 1, 'activo', _spsActivoCardHtml);
+
   // CSS Purity: variable de progreso via setProperty — único cálculo (pct),
   // único consumidor tras eliminación de .sps-progress-wrap muerto (TKT1 REQ CAEL-05,
   // 0 call sites de .sps-burndown-fill--complete/.sps-burndown-pct--complete verificado).
@@ -867,6 +973,7 @@ function _renderSpsActivo() {
   container.addEventListener('click', _spsActivoHandleClick);
   container.removeEventListener('keydown', _spsActivoHandleKeydown);
   container.addEventListener('keydown', _spsActivoHandleKeydown);
+  _spsAttachGroupToggle(container);
 }
 
 function _spsActivoHandleKeydown(e) {
@@ -986,13 +1093,12 @@ function _renderSpsProgramados() {
   // superseded — el comportamiento de "ocupar cero espacio" quedaba
   // inconsistente con Activo, que sí muestra mensaje).
   if (sprints.length === 0) {
-    container.innerHTML =
-      '<span class="sps-section-label">Programados' +
-        '<span class="sps-section-count">0</span>' +
-      '</span>' +
-      '<p class="sps-empty-line">Sin sprints programados</p>';
+    container.innerHTML = _spsGroupHtml('programados', 'Programados', 0, 'programados',
+      _spsGroupEmptyHtml('Sin sprints programados')
+    );
     container.classList.remove('is-hidden');
     container.removeEventListener('click', _sppHandleClick);
+    _spsAttachGroupToggle(container);
     return;
   }
 
@@ -1059,16 +1165,14 @@ function _renderSpsProgramados() {
       '</div>';
   }).join('');
 
-  // CAEL-02 (REQ CAEL-05, TKT5): .sps-section-count — pill de conteo hijo
-  // del label, después del texto. No oculta en 0 (ver guard de vacío arriba,
-  // que también incluye el span con valor '0') — .sps-section-label ya se
-  // renderiza en estado vacío en las 4 secciones, ocultar el pill en 0
-  // rompería esa consistencia (AC3, patch Cael sobre CAEL-02).
-  container.innerHTML =
-    '<span class="sps-section-label">Programados' +
-      '<span class="sps-section-count">' + sprints.length + '</span>' +
-    '</span>' +
-    '<div class="sps-card">' + rows + '</div>';
+  // CAEL-02 (REQ CAEL-05, TKT5, histórico): .sps-section-count — pill de conteo
+  // hijo del label. Superseded por mod:111 — el conteo vive ahora en
+  // .sps-status-count dentro de .sps-status-header (_spsGroupHtml), no en
+  // .sps-section-count. El criterio de fondo (no ocultar el conteo en 0,
+  // AC3 de CAEL-02) se conserva — _spsGroupHtml no oculta el count en 0.
+  container.innerHTML = _spsGroupHtml('programados', 'Programados', sprints.length, 'programados',
+    '<div class="sps-card">' + rows + '</div>'
+  );
 
   container.querySelectorAll('.sps-bd-mini-fill[data-sps-bd-pct]').forEach(function(fillEl) {
     fillEl.style.setProperty('--sbm-fill-width', fillEl.dataset.spsBdPct + '%');
@@ -1080,6 +1184,7 @@ function _renderSpsProgramados() {
   container.addEventListener('keydown', _sppHandleKeydown);
 
   _sppAttachDrag(container);
+  _spsAttachGroupToggle(container);
 }
 
 function _sppHandleKeydown(e) {
@@ -1920,10 +2025,11 @@ function _renderSpsPausados() {
   // founder detectó ausencia vía captura, ver locus-sprint.css mod:53 INC).
   // Empty state — línea muda, mismo patrón que Programados/Cerrados.
   if (paused.length === 0) {
-    container.innerHTML =
-      '<span class="sps-section-label">Pausados</span>' +
-      '<p class="sps-empty-line">Sin sprints pausados</p>';
+    container.innerHTML = _spsGroupHtml('pausados', 'Pausados', 0, 'pausados',
+      _spsGroupEmptyHtml('Sin sprints pausados')
+    );
     container.classList.remove('is-hidden');
+    _spsAttachGroupToggle(container);
     return;
   }
 
@@ -1988,7 +2094,7 @@ function _renderSpsPausados() {
     );
   }).join('');
 
-  container.innerHTML = '<span class="sps-section-label">Pausados</span>' + cards;
+  container.innerHTML = _spsGroupHtml('pausados', 'Pausados', paused.length, 'pausados', cards);
 
   // T-202606-008: listeners de botones Reactivar — AC-1/AC-2/AC-3
   container.querySelectorAll('.sps-btn-reactivar').forEach(function(btn) {
@@ -2004,23 +2110,25 @@ function _renderSpsPausados() {
       }
     });
   });
+  _spsAttachGroupToggle(container);
 }
 // ── END T-202606-041 / T-202606-008 ──────────────────────────────────────────
 
 // TKT-B1: _renderSpsHotfix, _spsHotfixHandleClick, _spsHotfixHandleKeydown eliminadas — Gen2 usa Q-INC
 
-// ── T-202606-039: _renderSpsCerrados — lista colapsada de sprints cerrados con retro inline ──
+// ── _renderSpsCerrados — item-rows de sprints cerrados con acento lateral (mod:111) ──
 //
+// Rediseño mod:111 (design_intent: sprint_subtab_redesign): reemplaza la fila
+// colapsable con retro inline (.sps-cerrados-row/-header/-retro, expand 0fr→1fr,
+// menú ··· con "Ver retro completa"/"Exportar .md") por .sps-closed-row — fila
+// plana con acento lateral, mismo lenguaje que las cards PROMOTED de Q-DISC.
+// La fila entera es el control: click o Enter/Space invoca openSprintRetroView()
+// directamente — colapsa las dos acciones del menú viejo, que ya invocaban la
+// misma función (ver histórico abajo). Sin retroDoc → chip .sps-closed-retro-pending
+// en vez del texto suelto "Retro no disponible" que tenía la fila plana anterior.
 // Renderiza en #sps-cerrados todos los sprints cerrados ordenados por closedAt desc.
-// Cada fila es colapsable — clic expande retro inline (patrón 0fr→1fr).
-// Exactamente un sprint expandido en todo momento. Clic en fila ya expandida colapsa.
-// Sin ítems: muestra línea muda inline (.sps-empty-line) — la sección no
-// desaparece. TKT4 (REQ-202607-100): antes de este TKT este comentario
-// describía el comportamiento deseado, pero el código hacía is-hidden
-// igual que Programados/Pausados — hallazgo #4 de la auditoría de rediseño.
-// Retro: contenido de sprint.retroDoc (texto plano, solo lectura). Sin retroDoc → 'Retro no disponible'.
-
-let _spsCerradosExpanded = null; // ID del sprint actualmente expandido
+// Sin ítems: empty state dentro de .sps-status-body (_spsGroupEmptyHtml) — la
+// sección no desaparece (TKT4 REQ-202607-100, comportamiento conservado).
 
 async function _renderSpsCerrados() {
   const container = document.getElementById('sps-cerrados');
@@ -2044,22 +2152,14 @@ async function _renderSpsCerrados() {
         })
     : [];
 
-  // TKT4 (REQ-202607-100): sin cerrados → línea muda visible, la sección
-  // no desaparece — comportamiento real, no solo el comentario aspiracional
-  // que tenía esta función antes de este TKT.
-  // Hallazgo resuelto en sesión (REQ CAEL-05): esta rama nunca renderizó
-  // .sps-section-label — mismo gap que mod:63 cerró para Pausados, aquí
-  // detectado en Cerrados durante CAEL-02. Agregado con .sps-section-count
-  // en '0', mismo criterio de no-ocultar-en-0 que la rama con datos.
   if (closed.length === 0) {
-    container.innerHTML =
-      '<span class="sps-section-label">Cerrados' +
-        '<span class="sps-section-count">0</span>' +
-      '</span>' +
-      '<p class="sps-empty-line">Sin sprints cerrados</p>';
+    container.innerHTML = _spsGroupHtml('cerrados', 'Cerrados', 0, 'cerrados',
+      _spsGroupEmptyHtml('Sin sprints cerrados')
+    );
     container.classList.remove('is-hidden');
-    container.removeEventListener('click', _spsCerradosHandleClick);
-    _spsCerradosExpanded = null;
+    container.removeEventListener('click', _spsCerradosRowClick);
+    container.removeEventListener('keydown', _spsCerradosRowKeydown);
+    _spsAttachGroupToggle(container);
     return;
   }
 
@@ -2095,150 +2195,58 @@ async function _renderSpsCerrados() {
       descartadoCnt = spItems.filter(i => i.status === 'descartado').length;
     }
 
-    // INC-[pendiente-ID]: 'label' se renderiza en sps-cerrados-label, junto a sps-cerrados-id
-    // (span separado, línea siguiente) — no debe re-incluir el id como prefijo o duplica
-    // visualmente el ID. Mismo criterio ya correcto en ssm-row-name.
     const label = sprint.label || sprint.name || sprint.id;
     const closedDate = sprint.closedAt
       ? new Date(sprint.closedAt).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' })
       : '—';
 
-    const isExpanded = _spsCerradosExpanded === sprint.id;
-
-    // Contenido de retro — texto plano, sin inputs
-    const retroContent = sprint.retroDoc
-      ? _escHtml(sprint.retroDoc)
-      : 'Retro no disponible';
+    // Chip de atención — reemplaza el texto suelto "Retro no disponible".
+    // Vacío (no el chip) cuando sí hay retroDoc — sin variante "tiene retro",
+    // Nova no declaró clase para ese caso (solo el estado de atención importa acá).
+    const retroPendingHtml = sprint.retroDoc
+      ? ''
+      : '<span class="sps-closed-retro-pending">Retro pendiente</span>';
 
     return (
-      '<div class="sps-cerrados-row' + (isExpanded ? ' is-expanded' : '') + '" data-sprint-id="' + _escHtml(sprint.id) + '">' +
-        '<div class="sps-cerrados-header" role="button" tabindex="0" aria-expanded="' + isExpanded + '" aria-controls="sps-cerrados-retro-' + _escHtml(sprint.id) + '">' +
-          '<span class="sps-cerrados-id">' + _escHtml(sprint.id) + '</span>' +
-          '<span class="sps-cerrados-label">' + _escHtml(label) + '</span>' +
-          '<span class="sps-cerrados-date">' + closedDate + '</span>' +
-          '<span class="pill-closed">Cerrado</span>' +
-          '<span class="sps-cerrados-counts">' +
-            '<span class="sps-count-done">' + doneCnt + ' done</span>' +
-            '<span class="sps-count-descartado">' + descartadoCnt + ' desc.</span>' +
-          '</span>' +
-          '<div class="sps-menu-wrap">' +
-            '<button class="sps-btn-menu" type="button" aria-label="Acciones sprint ' + _escHtml(sprint.id) + '" aria-expanded="false" aria-haspopup="true" data-sps-cerrados-menu>···</button>' +
-            '<div class="sps-dropdown" role="menu" aria-label="Acciones ' + _escHtml(sprint.id) + '" hidden>' +
-              '<button class="sps-dropdown-item" role="menuitem" type="button" data-sps-cerrados-action="ver-retro">Ver retro completa</button>' +
-              '<button class="sps-dropdown-item" role="menuitem" type="button" data-sps-cerrados-action="exportar">Exportar .md</button>' +
-            '</div>' +
-          '</div>' +
-          '<span class="sps-cerrados-chevron" aria-hidden="true">' + (isExpanded ? '▲' : '▼') + '</span>' +
-        '</div>' +
-        '<div class="sps-cerrados-retro" id="sps-cerrados-retro-' + _escHtml(sprint.id) + '">' +
-          '<div class="sps-cerrados-retro-inner">' +
-            '<pre class="sps-cerrados-retro-body">' + retroContent + '</pre>' +
-          '</div>' +
-        '</div>' +
+      '<div class="sps-closed-row" data-sprint-id="' + _escHtml(sprint.id) + '" role="button" tabindex="0" ' +
+        'aria-label="Ver retro de ' + _escHtml(sprint.id) + '">' +
+        '<span class="sps-closed-row-id">' + _escHtml(sprint.id) + '</span>' +
+        '<span class="pill-closed">Cerrado</span>' +
+        '<span class="sps-closed-row-label">' + _escHtml(label) + '</span>' +
+        '<span class="sps-closed-row-date">' + closedDate + '</span>' +
+        '<span class="sps-closed-row-done">' + doneCnt + ' done</span>' +
+        '<span class="sps-count-descartado">' + descartadoCnt + ' desc.</span>' +
+        retroPendingHtml +
       '</div>'
     );
   }).join('');
 
-  // CAEL-02 (REQ CAEL-05, TKT5): .sps-section-count — pill de conteo hijo
-  // del label. La rama de vacío (closed.length===0, arriba) también lo
-  // incluye desde esta misma sesión — hallazgo de label ausente ahí
-  // resuelto en conjunto con este TKT, no quedó como gap separado.
-  container.innerHTML =
-    '<span class="sps-section-label">Cerrados' +
-      '<span class="sps-section-count">' + closed.length + '</span>' +
-    '</span>' +
-    '<div class="sps-card">' + rows + '</div>';
+  container.innerHTML = _spsGroupHtml('cerrados', 'Cerrados', closed.length, 'cerrados', rows);
 
-  // Event delegation — clic y teclado en headers
-  container.removeEventListener('click', _spsCerradosHandleClick);
-  container.addEventListener('click', _spsCerradosHandleClick);
-  container.removeEventListener('keydown', _spsCerradosHandleKeydown);
-  container.addEventListener('keydown', _spsCerradosHandleKeydown);
+  // Event delegation — clic y teclado en filas. Sin menú ··· — la fila es el control único.
+  container.removeEventListener('click', _spsCerradosRowClick);
+  container.addEventListener('click', _spsCerradosRowClick);
+  container.removeEventListener('keydown', _spsCerradosRowKeydown);
+  container.addEventListener('keydown', _spsCerradosRowKeydown);
+  _spsAttachGroupToggle(container);
 }
 
-function _spsCerradosHandleClick(e) {
-  // T-202606-002: menú ⋯ — abrir/cerrar dropdown
-  const menuBtn = e.target.closest('[data-sps-cerrados-menu]');
-  if (menuBtn) {
-    e.stopPropagation(); // no propagar al header — evita toggle de expand
-    _spsWireDropdownToggle(menuBtn);
-    return;
-  }
-
-  // T-202606-002: acciones del dropdown
-  const actionBtn = e.target.closest('[data-sps-cerrados-action]');
-  if (actionBtn) {
-    e.stopPropagation();
-    const row = actionBtn.closest('[data-sprint-id]');
-    if (!row) return;
-    const sprintId = row.dataset.sprintId;
-    // Cerrar dropdown antes de ejecutar
-    const dropdown = actionBtn.closest('.sps-dropdown');
-    if (dropdown) { dropdown.hidden = true; }
-    const menuWrap = actionBtn.closest('.sps-menu-wrap');
-    if (menuWrap) {
-      const btn = menuWrap.querySelector('[data-sps-cerrados-menu]');
-      if (btn) btn.setAttribute('aria-expanded', 'false');
-    }
-    const act = actionBtn.getAttribute('data-sps-cerrados-action');
-    if (act === 'ver-retro' || act === 'exportar') {
-      openSprintRetroView(sprintId);
-    }
-    return;
-  }
-
-  const header = e.target.closest('.sps-cerrados-header');
-  if (!header) return;
-  const row = header.closest('[data-sprint-id]');
+function _spsCerradosRowClick(e) {
+  const row = e.target.closest('.sps-closed-row');
   if (!row) return;
-  _spsCerradosToggle(row.dataset.sprintId);
+  const sprintId = row.dataset.sprintId;
+  if (sprintId) openSprintRetroView(sprintId);
 }
 
-function _spsCerradosHandleKeydown(e) {
+function _spsCerradosRowKeydown(e) {
   if (e.key !== 'Enter' && e.key !== ' ') return;
-  const header = e.target.closest('.sps-cerrados-header');
-  if (!header) return;
-  const row = header.closest('[data-sprint-id]');
+  const row = e.target.closest('.sps-closed-row');
   if (!row) return;
   e.preventDefault();
-  _spsCerradosToggle(row.dataset.sprintId);
+  const sprintId = row.dataset.sprintId;
+  if (sprintId) openSprintRetroView(sprintId);
 }
-
-// AC-3/AC-4: toggle — exactamente un sprint expandido, colapsar anterior antes de expandir nuevo
-function _spsCerradosToggle(sprintId) {
-  const container = document.getElementById('sps-cerrados');
-  if (!container) return;
-
-  const prev = _spsCerradosExpanded;
-  const next = prev === sprintId ? null : sprintId;
-
-  // Colapsar anterior
-  if (prev) {
-    const prevRow = container.querySelector('[data-sprint-id="' + prev + '"]');
-    if (prevRow) {
-      const prevHeader = prevRow.querySelector('.sps-cerrados-header');
-      const prevChevron = prevRow.querySelector('.sps-cerrados-chevron');
-      if (prevHeader) prevHeader.setAttribute('aria-expanded', 'false');
-      if (prevChevron) prevChevron.textContent = '▼';
-      prevRow.classList.remove('is-expanded');
-    }
-  }
-
-  // Expandir nuevo (si es distinto al anterior)
-  if (next) {
-    const nextRow = container.querySelector('[data-sprint-id="' + next + '"]');
-    if (nextRow) {
-      const nextHeader = nextRow.querySelector('.sps-cerrados-header');
-      const nextChevron = nextRow.querySelector('.sps-cerrados-chevron');
-      if (nextHeader) nextHeader.setAttribute('aria-expanded', 'true');
-      if (nextChevron) nextChevron.textContent = '▲';
-      nextRow.classList.add('is-expanded');
-    }
-  }
-
-  _spsCerradosExpanded = next;
-}
-// ── END T-202606-039 / T-202606-002 ────────────────────────────────────────
+// ── END _renderSpsCerrados (mod:111) ─────────────────────────────────────────
 
 // ── T-202605-046: Listeners — spt-tab buttons ─────────────────────────────
 // Migrado desde index.html — reemplaza onclick inline en .spt-tab. Listener de
@@ -2246,7 +2254,8 @@ function _spsCerradosToggle(sprintId) {
 // TKT-202607-044: bloque de #sprint-manager-list (Ver retro / Marcar en curso, T-202605-050/
 // T-202605-134) eliminado — el contenedor no existe en index.html desde el rediseño
 // T-202606-036, que lo reemplazó por #sps-activo/#sps-programados/#sps-pausados/#sps-cerrados
-// sin migrar ni retirar este listener. Ver retro sigue disponible vía _spsCerradosHandleClick.
+// sin migrar ni retirar este listener. Ver retro sigue disponible — mod:111 la mueve
+// de _spsCerradosHandleClick (menú ···, retirado) a _spsCerradosRowClick (click de fila).
 
 document.addEventListener('DOMContentLoaded', function() {
   // Sub-tabs sprint: Ítems / Planificar / Sprints — T-202606-029

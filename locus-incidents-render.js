@@ -1,3 +1,14 @@
+// [PP] mod:5 · autor:Rune · 2026-07-23 UTC-6
+// TKT3 (REQ split-itil-item, ref_id CAEL-0723-02 · consumidor externo): import de
+// buildQIncItem actualizado de locus-backlog-item.js a locus-incidents-item.js — cierra el
+// consumidor externo que TKT2 dejó pendiente vía puente de re-export temporal (ver
+// locus-backlog-item.js mod:133). Sin cambio de comportamiento — misma función, misma firma,
+// solo cambia el módulo de origen. Los comentarios históricos de mods anteriores (2026-07-18 y
+// anteriores) que referencian "locus-backlog-item.js" para buildQIncItem se preservan sin
+// editar — describen el estado real del archivo en la fecha en que se escribieron, mismo
+// criterio de preservación histórica ya aplicado en el ecosistema (ver _pp-context §6, nota de
+// locus-backlog-historico.js).
+
 // [PP] mod:4 · autor:Rune · 2026-07-22 UTC-6
 // TKT-A/TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-05/06): _attachQIncDelegation() gana
 // handler qi-copy-item (botón "Copiar ítem" de buildQIncItem(), locus-backlog-item.js) —
@@ -48,7 +59,7 @@ import {
   _nsGetTypes, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset
 } from './locus-backlog-core.js';
 
-import { buildQIncItem } from './locus-backlog-item.js';
+import { buildQIncItem } from './locus-incidents-item.js';
 
 import { incSlaPriority, SLA_RIESGO_WINDOW_MS } from './locus-inc-fields.js';
 
