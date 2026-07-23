@@ -1,3 +1,13 @@
+// [PP] mod:6 · autor:Rune · 2026-07-23 UTC-6
+// Hallazgo fuera de scope (Nova, auditoría _Locus-css-ref mod:109): renderQIncStats() emitía
+// tc-${t.toLowerCase()} (tc-inc/tc-prb/tc-ke/tc-chg) — CSS solo define el compuesto en
+// mayúsculas (.stat-type-chip.tc-INC/.tc-PRB/.tc-KE/.tc-CHG, locus-backlog.css ~L610-690).
+// Selector de clase CSS es case-sensitive — nunca matcheaba. Corregido a tc-${t} (t ya llega
+// en mayúsculas desde el array literal ['INC','PRB','KE','CHG']). Sin cambio de firma, sin
+// cambio de markup salvo el casing de esta clase — data-qi-type y el resto de atributos no se
+// tocan. Resuelto en sesión (Patch, sin bifurcación de founder, dueño Rune ya presente en el
+// ciclo auto-orquestado) — ver criterio de resolución directa, __BR-Core.
+
 // [PP] mod:5 · autor:Rune · 2026-07-23 UTC-6
 // TKT3 (REQ split-itil-item, ref_id CAEL-0723-02 · consumidor externo): import de
 // buildQIncItem actualizado de locus-backlog-item.js a locus-incidents-item.js — cierra el
@@ -115,7 +125,7 @@ export function renderQIncStats() {
     <div class="qinc-stats-types">
       ${_qiTypes.size < 4 ? `<button class="stat-type-chip stat-type-chip--all" data-qi-action="qi-clear-types" title="Mostrar todos los tipos">✕</button>` : ''}
       ${[['INC','INC'],['PRB','PRB'],['KE','KE'],['CHG','CHG']].map(([t, label]) =>
-        `<button class="stat-type-chip tc-${t.toLowerCase()}${_qiTypes.has(t) ? ' active' : ''}" data-qi-action="qi-type" data-qi-type="${t}" title="Filtrar por tipo ${t}">\
+        `<button class="stat-type-chip tc-${t}${_qiTypes.has(t) ? ' active' : ''}" data-qi-action="qi-type" data-qi-type="${t}" title="Filtrar por tipo ${t}">\
 <span class="tc-count">${_countByType[t]}</span><span class="tc-label">${label}</span></button>`
       ).join('')}
     </div>

@@ -1,3 +1,10 @@
+// [PP] mod:7 · autor:Rune · 2026-07-23 UTC-6
+// Hallazgo fuera de scope (Nova, auditoría _Locus-css-ref mod:109): mismo bug que
+// locus-incidents-render.js mod:6 — tc-${t.toLowerCase()} (tc-req/tc-tkt) nunca matcheaba
+// .stat-type-chip.tc-REQ/.tc-TKT (case-sensitive). Corregido a tc-${t}. Solo afecta el panel
+// Q-Backlog (_typeChipDefs.qbacklog) — Q-DISC no declara chips de tipo (_typeChipDefs.qdisc
+// vacío), no impactado. Resuelto en sesión (Patch, sin bifurcación de founder).
+
 // [PP] mod:6 · autor:Rune · 2026-07-21 UTC-6
 // TKT3 (REQ-202607-010, design_intent: QBacklog-header-unified-homologacion): opts.statsBarId
 // opcional — separa el stats-bar de bodyId en un nodo propio. Sin statsBarId (qdisc),
@@ -297,7 +304,7 @@ export function _renderZonePanel(opts) {
     <div class="qinc-stats-bar" id="${bodyId}-stats-bar">
       ${opts.showTypeChips !== false && _typeChipDefs.length ? `<div class="qinc-stats-types">
         ${_typeChipDefs.map(([t, label]) =>
-          `<button class="stat-type-chip tc-${t.toLowerCase()}${_activeTypesZ0.has(t) ? ' active' : ''}" data-zp-action="zp-type" data-zp-type="${t}" title="Filtrar por tipo ${t}"><span class="tc-count">${_countByTypeZ[t] || 0}</span><span class="tc-label">${label}</span></button>`
+          `<button class="stat-type-chip tc-${t}${_activeTypesZ0.has(t) ? ' active' : ''}" data-zp-action="zp-type" data-zp-type="${t}" title="Filtrar por tipo ${t}"><span class="tc-count">${_countByTypeZ[t] || 0}</span><span class="tc-label">${label}</span></button>`
         ).join('')}
       </div>` : ''}
       <div class="qinc-stats-priority">
