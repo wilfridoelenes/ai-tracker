@@ -1,4 +1,4 @@
-// [PP] mod:126 · autor:Rune · 2026-07-21 22:40 UTC-6
+// [PP] mod:127 · autor:Rune · 2026-07-22 UTC-6
 // Fix (founder, análisis de construcción): toggleCollapseAll() apuntaba a .version-group-body/
 // .version-collapse-arrow — clases previas a la unificación de renderSprintGroup() (REQ
 // Histórico unificado con Vista Lista de Backlog), que ya produce .bl-vl-sprint-body/
@@ -597,7 +597,14 @@ let backlogSearchQuery = '';
 const _subtabNSDefaults = {
   qbacklog: {
     types:    ['REQ','TKT'],
-    statuses: ['pendiente','en-revision','done','descartado','promoted']
+    // INC-[pendiente-ID]: 'en-proceso'/'bloqueado'/'orphaned' agregados — estados válidos de
+    // REQ (__BR-Ecosystem §5) ausentes del default original. Un REQ en Q-Backlog que transiciona
+    // a 'en-proceso' (automático — primer TKT hijo sale de 'pendiente', ver __BR-Core §4) queda
+    // sin statusOk en _renderZonePanel y desaparece de la lista, aunque zoneItems/badge/chips de
+    // tipo sí lo cuentan (ninguno de los tres pasa por _activeStatusesZ). 'promoted' retirado —
+    // status exclusivo de DISC (__BR-Ecosystem §5), nunca alcanzable por REQ/TKT; era cruft sin
+    // efecto funcional, no parte del fix, pero incorrecto como declaración de estados válidos.
+    statuses: ['pendiente','en-proceso','en-revision','bloqueado','orphaned','done','descartado']
   },
   qdisc: {
     types:    ['DISC'],
