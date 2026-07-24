@@ -1,3 +1,8 @@
+// [PP] mod:54 · autor:Rune · 2026-07-24 UTC-6
+// INC-202607-006: #ingest-pill-project quedaba hardcodeado a "Locus" — no es duplicado de
+// #ingest-split-project (ese nodo muestra el nombre del WORKER, patrón AI Card/#worker-header,
+// no el proyecto canónico). Poblado ahora en _openIngestModal vía getActiveProject().name
+// (ya importado de locus-storage.js) — sin proyecto activo, queda vacío.
 // [PP] mod:53 · autor:Rune · 2026-07-23 19:23 UTC-6
 // TKT3 (CAEL-0723-04): retirado [data-action="interrupt"] del dot-menu — toggle de
 // interruptBtn, delegación B-202605-017 y case 'dismiss-interrupted' (código muerto,
@@ -1147,6 +1152,15 @@ export function _openIngestModal(aiId) {
   // TKT2 (REQ CAEL-0716-01) — gap declarado por Nova en TKT1: puebla el header compartido
   // del split view con el worker entrante en cada apertura (mismo aiId o distinto).
   _populateIngestModalHeader(getAI(aiId));
+  // INC-202607-006: #ingest-pill-project es el proyecto canónico activo (Alisto/CM/Locus/OB),
+  // distinto de #ingest-split-project (nombre del worker, ver _populateIngestModalHeader arriba).
+  // Sin proyecto activo (getActiveProject() → null) queda vacío — mismo criterio de tolerancia
+  // que el resto de call sites de getActiveProject() en este módulo.
+  const pillProjectEl = document.getElementById('ingest-pill-project');
+  if (pillProjectEl) {
+    const activeProj = getActiveProject();
+    pillProjectEl.textContent = activeProj ? activeProj.name : '';
+  }
   const ta = document.getElementById('ingest-ta');
   if (ta) {
     if (_prevAiId !== aiId) ta.value = '';
