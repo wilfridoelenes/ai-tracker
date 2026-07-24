@@ -1,3 +1,11 @@
+// [PP] mod:145 · autor:Rune · 2026-07-24 UTC-6
+// INC-[pendiente-ID]: _loadFromSupabase() nunca refrescaba el tab Analytics al terminar la carga
+// remota — Tracker/Radar/Backlog/Sprint sí tenían su dispatch/callback de re-render post-carga,
+// Analytics no. Si el tab se abría antes de que el batch (incluye tracker_sessions) terminara, el
+// empty-state quedaba congelado aunque llegaran cientos de sesiones reales. Fix: _renderAnalyticsFn
+// inyectado via _initApp (mismo patrón que _renderSprintTabFn) + llamada al cierre de
+// _loadFromSupabase(). Ver también locus-analytics-render.js mod:15 (fix relacionado, listener de
+// shell:render-analytics — mismo INC, causa distinta).
 // [PP] mod:144 · autor:Rune · 2026-07-24 UTC-6
 // TKT (REQ CAEL-0723-03): _mapRowToItem() — retirados sla_priority/incidentStatus/
 // resolutionType/derived_items/queue/slaDeadline. Ver detalle inline en la función.
@@ -241,6 +249,12 @@ let _migrateItemTypes = function() {};
 let _purgeStaleBacklogCache = function() { return 0; };
 // T-202606-006 T3: renderSprintTab inyectado via _initApp — ciclo storage ↔ sprint eliminado.
 let _renderSprintTabFn = function() {};
+// INC-[pendiente-ID]: mismo patrón que _renderSprintTabFn — inyectado via _initApp para evitar
+// ciclo ESM storage ↔ locus-analytics-render.js (que ya importa varias funciones de este módulo).
+// Sin este ref, _loadFromSupabase() nunca refrescaba el tab Analytics tras la carga remota —
+// si el tab se abría antes de que la carga terminara, el empty-state ("sin sesiones") quedaba
+// congelado aunque llegaran cientos de sesiones reales del servidor.
+let _renderAnalyticsFn = function() {};
 // No contiene lógica de UI, render, toast ni timer de sesión.
 
 // ── VARIABLES DE MÓDULO ───────────────────────────────────────────────────────
@@ -3299,6 +3313,11 @@ export async function _loadFromSupabase() {
     _dispatchBacklogRenderDirtyCoalesced();
     // B: re-render tab Sprint tras carga Supabase — evita empty state en refresh
     _renderSprintTabFn();
+    // INC-[pendiente-ID]: re-render tab Analytics tras carga Supabase — mismo motivo que
+    // _renderSprintTabFn arriba. Sin esto, si Analytics se abre antes de que el batch remoto
+    // (incluye tracker_sessions) termine, el empty-state queda congelado aunque getAllSessions()
+    // ya tenga datos tras el merge — nada volvía a marcar dirty ni a re-renderizar.
+    _renderAnalyticsFn();
     setSyncStatus('synced', '✓ sincronizado');
     // Opción A — habilitar _markUserAction() solo después de que la primera carga completa.
     // Cualquier save() que ocurra antes de este punto (renders post-auth, migraciones de
@@ -3505,6 +3524,9 @@ export function _initApp(opts = {}) {
   else logger.warn('[AI Tracker] _initApp: getIncidents no recibido en opts — usando fallback []');
   // T-202606-006 T3: renderSprintTab inyectado para eliminar window.renderSprintTab
   if (opts.renderSprintTab) _renderSprintTabFn = opts.renderSprintTab;
+  // INC-[pendiente-ID]: renderAnalytics inyectado — mismo patrón que renderSprintTab, evita
+  // ciclo storage ↔ locus-analytics-render.js.
+  if (opts.renderAnalytics) _renderAnalyticsFn = opts.renderAnalytics;
   // B-202606-028: marcar referencias inyectadas — _loadFromSupabase puede reintentar ahora.
   _appReady = true;
   // 1. Cargar estado desde localStorage en memoria (sin UI)

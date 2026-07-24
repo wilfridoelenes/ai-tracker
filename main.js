@@ -36,7 +36,7 @@ import { _getActiveProjectFilter, _initApp, _effectiveVersion, getProjectById, L
 import { _initUiShellRefs } from './locus-ui-shell.js';
 import './locus-analytics-core.js';
 import './locus-analytics-digest.js';
-import './locus-analytics-render.js';
+import { _markAnalyticsDirty, renderAnalytics } from './locus-analytics-render.js';
 import './locus-analytics-charts.js';
 import './locus-toast.js';
 import './locus-sesiones.js';
@@ -159,6 +159,12 @@ document.addEventListener('DOMContentLoaded', () => {
     purgeStaleBacklogCache: _purgeStaleBacklogCache,
     getProjectById,
     renderSprintTab,
+    // INC-[pendiente-ID]: renderAnalytics inyectado — mismo patrón que renderSprintTab arriba.
+    // _loadFromSupabase() lo invoca al terminar la carga remota para refrescar el tab Analytics
+    // si quedó con el empty-state congelado (abierto antes de que tracker_sessions terminara de
+    // mergear). _markAnalyticsDirty() es obligatorio antes de renderAnalytics() — mismo guard
+    // que usan los setters de locus-analytics-core.js.
+    renderAnalytics: () => { _markAnalyticsDirty(); renderAnalytics(); },
   });
 
   // T-202606-006 T3: inyectar refs en ui-shell — rompe ciclos ui-shell ↔ backlog-core y ui-shell ↔ session-hora

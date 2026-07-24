@@ -1,3 +1,12 @@
+// [PP] mod:137 · autor:Rune · 2026-07-24 UTC-6
+// TKT1 (REQ CAEL-0724-02 · ref_id CAEL-0724-03): _resolveCheckpointBatch — cada ítem de
+// tgItems/patchItems combinado en Paso 3 ahora lleva idx: b.idx (índice del bloque de origen
+// dentro de blocks). Antes idx solo existía en skipped y como variable local del forEach de
+// Paso 3, nunca expuesto en los ítems ya combinados. Habilita que mergeBacklogFromTG (TKT2,
+// locus-backlog-item.js) agrupe por bloque en el panel DIFF. Cambia el invariant documentado de
+// "batch de tamaño 1 → tgItems idéntico sin diferencia observable" (_Locus-module-contracts) —
+// ahora ese único ítem también lleva idx:0, diferencia esperada de este TKT, no regresión.
+// contract_update: sí — ver CHECKPOINT de TKT1.
 // [PP] mod:136 · autor:Rune · 2026-07-24 UTC-6
 // TKT (REQ CAEL-0724-01): retiro de KE residual — fusionado a PRB.root_cause_confirmed
 // (infra_version 51). _ITIL_TYPES ya no incluye 'KE'. _VALID_KE_STATUS/_KE_STATUS_LIST
@@ -2567,10 +2576,18 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
   }
 
   // Paso 3 (AC1/AC4): combinar — orden de bloques preserva orden de emisión.
+  // TKT1 (REQ CAEL-0724-02 · ref_id CAEL-0724-03): cada ítem combinado en tgItems/patchItems
+  //   ahora lleva idx: b.idx — antes se perdía en el spread, quedando solo a nivel de b (variable
+  //   local de este forEach, nunca expuesta). Sin este campo, mergeBacklogFromTG no tiene forma
+  //   de saber a qué bloque pertenece cada ítem ya combinado — gap que bloqueaba TKT2 (agrupar
+  //   por bloque en el panel DIFF). Mismo criterio que skipped ya usa desde TKT4 ({idx, type,
+  //   reason}) — se generaliza a los ítems que sí se combinan. No pisa un idx propio del ítem si
+  //   ya existiera uno (no hay caso real hoy, pero {...it, idx: b.idx} es explícito y no depende
+  //   de orden de propiedades).
   _parsedBlocks.forEach(b => {
     if (b.valid) {
-      _result.tgItems.push(...b.tgItems);
-      _result.patchItems.push(...b.patchItems); // TKT2: mismo criterio de orden que tgItems
+      _result.tgItems.push(...b.tgItems.map(it => ({ ...it, idx: b.idx })));
+      _result.patchItems.push(...b.patchItems.map(it => ({ ...it, idx: b.idx }))); // TKT2: mismo criterio de orden que tgItems
       // TKT1 (REQ CAEL-0718-01 · AC1): un _extractCkptMeta por bloque válido, mismo índice que
       //   su posición en _parsedBlocks — b.ckpt es el CHECKPOINT completo de ese bloque, no el
       //   tgItems combinado, por lo que metas[i] siempre corresponde 1:1 al bloque i-ésimo válido

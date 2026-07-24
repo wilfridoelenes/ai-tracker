@@ -2548,7 +2548,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
 
         if (newStatus === 'descartado') {
           // Descarte: encolar para confirmación — no persistir todavía
-          discarded.push({ code: item.code, desc: existing.title, from: oldStatus, reason: item.discardReason || existing.discardReason || '', ref: item.discardRef || existing.discardRef || '' });
+          discarded.push({ code: item.code, desc: existing.title, from: oldStatus, reason: item.discardReason || existing.discardReason || '', ref: item.discardRef || existing.discardRef || '', idx: item.idx });
           // No tocar existing todavía — se aplica en _confirmDiscard()
         } else if (newRank > oldRank) {
           // Avance: aplicar directo (no en dryRun)
