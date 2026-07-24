@@ -1,3 +1,13 @@
+// [PP] mod:36 · autor:Rune · 2026-07-24 UTC-6
+// TKT2 (REQ CAEL-0724-02): openSprints ahora incluye status 'programado' además de 'active'
+// (antes solo active — bloqueaba trabajo adelantado explícito, BR-Ecosystem §5). _sprintDestCard
+// distingue programado con .bl-plan-dest-sprint--programado + .bl-plan-dest-programado-badge
+// (mod:13 de locus-sprint-ui.css, Nova). _planCard(i, false, sprint.id) → _planCard(i, true,
+// sprint.id) en _sprintDestCard — items ya asignados a un sprint (active o programado) ahora
+// son draggable, habilitando drop directo Activos↔Planificados vía el mismo _planDrop genérico
+// (ya no distinguía origen, solo targetCol — sin cambio en _planDrop). Orden de openSprints:
+// active primero, luego programado por id — visual estable, sin tocar activationOrder real.
+// Sin cambio de firma en _planCard/_planDrop/_sprintDestCard. contract_update: no.
 // [PP] mod:35 · autor:Rune · 2026-07-18 01:30 UTC-6
 // Fix inline (limpieza de código muerto, DISC de mod:69 de module-contracts): comentario de
 //   módulo (L43 anterior) seguía describiendo "sprint selector bar" pese a que ese subsistema
@@ -83,7 +93,15 @@ export function _renderPlanningView(listEl, closeCallback) {
   const activeSprint = _getActiveSprint();
   const allSprints   = getActiveSprints();
   // T-202605-028: todos los sprints con status active son destinos válidos
-  const openSprints  = allSprints.filter(s => s.status === 'active');
+  // TKT2 (REQ CAEL-0724-02): programado también es destino válido — BR-Ecosystem §5 contempla
+  // trabajo adelantado explícito hacia sprint programado. Orden estable: active primero (isCurrent
+  // ya lo distingue visualmente igual), luego programado por id — sin tocar activationOrder real.
+  const openSprints  = allSprints
+    .filter(s => s.status === 'active' || s.status === 'programado')
+    .sort((a, b) => {
+      if (a.status !== b.status) return a.status === 'active' ? -1 : 1;
+      return String(a.id).localeCompare(String(b.id));
+    });
 
   // Columna izquierda: ítems pendientes sin sprint (no done, no descartado, no historico)
   // T-202605-024: '' o ausente es el valor canónico de "sin sprint asignado" — Q-Backlog
@@ -179,7 +197,10 @@ export function _renderPlanningView(listEl, closeCallback) {
   // Helper: bloque HTML de un sprint destino en columna derecha
   // T-202605-028: cada sprint activo es una zona de drop independiente con su data-plan-col = sprintId
   function _sprintDestCard(sprint) {
-    const isCurrent = activeSprint && sprint.id === activeSprint.id;
+    const isCurrent   = activeSprint && sprint.id === activeSprint.id;
+    // TKT2 (REQ CAEL-0724-02): programado nunca coincide con activeSprint — isCurrent ya lo
+    // excluye por construcción, sin condición adicional.
+    const isProgramado = sprint.status === 'programado';
     // TKT-[pendiente-ID]: patrón id · label — fallback a solo id si no hay label propio
     const displayName = sprint.label ? `${sprint.id} · ${sprint.label}` : sprint.id;
     const inSprint  = getItems().filter(i =>
@@ -188,13 +209,18 @@ export function _renderPlanningView(listEl, closeCallback) {
       i.status !== 'descartado' &&
       i.status !== 'historico'
     );
-    const cards = inSprint.map(i => _planCard(i, false, sprint.id)).join('') ||
+    // TKT2 (REQ CAEL-0724-02): draggable=true — antes false, bloqueaba drop directo
+    // Activos↔Planificados. _planDrop ya es genérico por targetCol, sin cambio ahí.
+    const cards = inSprint.map(i => _planCard(i, true, sprint.id)).join('') ||
       `<div class="bl-plan-empty">Sprint vacío — arrastra ítems aquí</div>`;
     const currentBadge = isCurrent
       ? `<span class="bl-plan-dest-current-badge" aria-label="Sprint en curso">en curso</span>`
+      : isProgramado
+      ? `<span class="bl-plan-dest-programado-badge" aria-label="Sprint programado">programado</span>`
       : '';
+    const stateClass = isCurrent ? ' bl-plan-dest-sprint--current' : isProgramado ? ' bl-plan-dest-sprint--programado' : '';
     // T-202606-091: header colapsable — data-action en el header completo, chevron visible
-    return `<div class="bl-plan-dest-sprint bl-plan-col${isCurrent ? ' bl-plan-dest-sprint--current' : ''}"
+    return `<div class="bl-plan-dest-sprint bl-plan-col${stateClass}"
                data-plan-col="${esc(sprint.id)}">
       <div class="bl-plan-col-header" data-action="bl-plan-dest-collapse">
         <span class="bl-plan-col-title">${esc(displayName)}</span>
