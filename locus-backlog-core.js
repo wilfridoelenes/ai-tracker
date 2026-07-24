@@ -1,4 +1,36 @@
-// [PP] mod:130 · autor:Rune · 2026-07-23 UTC-6
+// [PP] mod:131 · autor:Rune · 2026-07-23 UTC-6
+// TKT-202607-067 (REQ-202607-018, Effort 2, módulo crítico locus-backlog-core.js): retiro
+// completo de 'KE' del universo de tipos y cardinalidad-6 (fusión KE→PRB.root_cause_confirmed,
+// infra_version 51). Sitios corregidos: _GEN2_TYPES (línea ~331), _ITIL_SCRUM_INCOMPATIBLE
+// (~1820) y _ITIL_SCRUM_INCOMPATIBLE_DONE (~2173) sin 'KE' — CHG sigue como excepción vigente
+// en ambos guards. byType counter (~2439) sin clave KE. Cardinalidad: los 4 sitios reales de
+// activeTypes.size/(N - activeTypes.size) comparados contra 7 (toggleTypeFilter ===7,
+// updateTypeFilterUI clase s-types--all-active ===7, badge de conteo ×2, chip "mostrar todos"
+// <7) pasan a comparar contra 6 — grep de 'activeTypes.size' y '7 - activeTypes' en el archivo
+// completo tras el cambio no retorna ningún literal 7. Leyenda UI del popover de tipos (~2512)
+// y filtro de tipos excluidos en chips activos (~2890/2893) sin entrada 'KE'/'Known Errors'.
+// Comentario de _normalizeQincGate (~1355-1356) y comentarios adyacentes a los guards
+// actualizados en la misma pasada — consistencia, no gate de AC. INCIDENT_TYPES (línea 339)
+// ya no declaraba 'KE' desde antes de este TKT — sin cambio ahí. Ítem histórico con
+// type:'KE' persistido en Supabase sigue excluyéndose silenciosamente de itemKind()/byType
+// sin crash — comportamiento ya existente, verificado sin cambio de código adicional (AC de
+// error del TKT).
+// TKT6 (REQ-202607-018, ref_id CAEL-0723-07): mismo cambio de _GEN2_TYPES documentado arriba
+// — contract_detail declara signature_change:true (universo de validación de schema_version 2
+// pierde un elemento). sideEffect adicional declarado y verificado en esta pasada:
+// _getNextItemCode('KE', reservedCodes) tras el cambio ya no pasa el guard
+// !_GEN2_TYPES.includes(typeChar) (línea ~1683) — cae al console.warn de tipo no canónico
+// existente, código no generado. Ninguna rama nueva — mismo comportamiento que cualquier
+// typeChar inválido previo a este TKT, sin cambio de código en _getNextItemCode.
+// Impacto lateral de contrato: _GEN2_TYPES es consumida por locus-session-parse.js y
+// locus-backlog-item.js para validación de `type` en ingesta de CHECKPOINT — ninguno de los
+// dos archivos está adjunto en esta sesión; call sites no verificados contra código real.
+// Ver bloqueo declarado en el CHECKPOINT de cierre.
+// DDL requerido: no — este TKT no toca `schema_version`, `type` ni `status` de ítems del
+// backlog a nivel Supabase; `_GEN2_TYPES` es una constante de validación client-side, no una
+// columna ni constraint físico. `tracker_items_type_check`/`chk_status_by_type` ya excluyen
+// KE desde la auditoría de Supabase del 2026-07-22 (ver `_pp-strategy §5`) — sin acción
+// adicional aquí.
 // TKT1 (REQ CAEL-0723-01, ref_id CAEL-0723-01): isSlaClockPaused(item) agregada — determina
 // si el reloj SLA de un INC/PRB/CHG está pausado por un ítem derivado (REQ/DISC/CHG) aún
 // no-terminal (__BR-Core §6). Función pura, sin side effects — solo lectura vía getAnyItem().
@@ -328,7 +360,7 @@ export function normalizeStatus(raw, type) {
 //   locus-session-parse.js y locus-backlog-item.js. Ambos módulos ya importaban de
 //   locus-backlog-core.js — sin ciclo nuevo. locus-backlog-core.js no importa de
 //   ninguno de los dos.
-export const _GEN2_TYPES = ['REQ', 'TKT', 'DISC', 'INC', 'PRB', 'KE', 'CHG'];
+export const _GEN2_TYPES = ['REQ', 'TKT', 'DISC', 'INC', 'PRB', 'CHG'];
 
 // TKT-202607-005 (REQ-202607-003): discriminador real de destino en memoria.
 // BACKLOG_TYPES → viven en ITEMS. INCIDENT_TYPES → viven en INCIDENTS.
@@ -752,7 +784,7 @@ let _miViewRoleIndex = 0; // índice del rol activo en la rotación
 const _collapsedChildren = new Set();
 
 // T-049: window.state de filtros mixtos
-// TKT-A2: activeTypes por defecto incluye los 7 tipos Gen2 — PRB/KE/CHG no quedan
+// TKT-A2: activeTypes por defecto incluye los 6 tipos Gen2 — PRB/CHG no quedan
 // filtrados fuera por default aunque normalmente vivan en Q-INC, no en el Backlog regular.
 let activeTypes = new Set(['TKT','REQ','INC','DISC','PRB','CHG']);
 // T-202606-021: clave canónica para persistencia de activeStatuses
@@ -1352,8 +1384,8 @@ export function _newBacklogItem(fields) {
 // TKT-202607-062: pasada — gate de asignación a Q-INC. Extraída sin cambio de
 // comportamiento (misma AC de contrato que _normalizeSprintFields).
 function _normalizeQincGate(items) {
-  // TKT-A2: gate de asignación a Q-INC — solo INC/PRB/KE/CHG pueden vivir en queue [Prefijo]-Q-INC.
-  // BR-Core §6: Q-INC solo acepta INC/PRB/KE/CHG — ningún REQ, TKT ni DISC puede asignarse a Q-INC.
+  // TKT-A2: gate de asignación a Q-INC — solo INC/PRB/CHG pueden vivir en queue [Prefijo]-Q-INC.
+  // BR-Core §6: Q-INC solo acepta INC/PRB/CHG — ningún REQ, TKT ni DISC puede asignarse a Q-INC.
   items.forEach(item => {
     if (!item.queue || !item.queue.endsWith('-Q-INC')) return;
     const _qincTypes = ['INC', 'PRB', 'CHG'];
@@ -1568,7 +1600,7 @@ function clearTypeFilters() {
 }
 
 export function toggleTypeFilter(type) {
-  const allActive = activeTypes.size === 7; // TKT/REQ/DISC/INC/PRB/KE/CHG
+  const allActive = activeTypes.size === 6; // TKT/REQ/DISC/INC/PRB/CHG
   if (allActive) {
     // primer click: desactiva todos, activa solo el clickeado
     activeTypes = new Set([type]);
@@ -1606,7 +1638,7 @@ function updateTypeFilterUI() {
   });
   // B-UX: indicar visualmente cuando todos los tipos están activos = estado neutro "sin filtro"
   const sTypesEl = document.querySelector('.stat-card.s-types');
-  if (sTypesEl) sTypesEl.classList.toggle('s-types--all-active', activeTypes.size === 7);
+  if (sTypesEl) sTypesEl.classList.toggle('s-types--all-active', activeTypes.size === 6);
   window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
 }
 
@@ -1812,12 +1844,12 @@ export function setItemStatus(code, newStatus) {
   const item = getAnyItem(code);
   if (!item || item.status === newStatus) return;
 
-  // [tmp:tkt4-status-guard]: solo INC/PRB/KE — su ciclo de vida (detected/assigned/
+  // [tmp:tkt4-status-guard]: solo INC/PRB — su ciclo de vida (detected/assigned/
   // in_progress/resolved/closed/active) vive en incident_status, incompatible con el
   // vocabulario Scrum que el resto de esta función asume. CHG es la excepción dentro de
   // INCIDENT_TYPES: usa exactamente pendiente/en-revision/done/descartado per
   // __BR-Ecosystem §5 — debe seguir fluyendo por esta vía sin bloqueo.
-  const _ITIL_SCRUM_INCOMPATIBLE = ['INC', 'PRB', 'KE'];
+  const _ITIL_SCRUM_INCOMPATIBLE = ['INC', 'PRB'];
   if (_ITIL_SCRUM_INCOMPATIBLE.includes(itemKind(item))) {
     showToast('info', 'Status ITIL se cambia desde Q-INC', 'No disponible en este panel.');
     _resetStatusSelect(code, item.status);
@@ -2167,10 +2199,10 @@ export function _applyDoneStatus(code, authorized) {
   const item = getAnyItem(code);
   if (!item || item.status === 'done') return;
 
-  // [inline_fix triggered_by tkt4-status-guard]: mismo guard que setItemStatus — INC/PRB/KE
+  // [inline_fix triggered_by tkt4-status-guard]: mismo guard que setItemStatus — INC/PRB
   // nunca llegan a 'done' por esta vía (vocabulario incompatible, __BR-Ecosystem §5). CHG sí
   // puede — usa done como estado Scrum válido.
-  const _ITIL_SCRUM_INCOMPATIBLE_DONE = ['INC', 'PRB', 'KE'];
+  const _ITIL_SCRUM_INCOMPATIBLE_DONE = ['INC', 'PRB'];
   if (_ITIL_SCRUM_INCOMPATIBLE_DONE.includes(itemKind(item))) {
     setTimeout(() => showToast('info', `${code} — status ITIL se cambia desde Q-INC`, 'No disponible desde esta acción.'), 0);
     return;
@@ -2436,7 +2468,7 @@ export function renderStats() {
   });
 
   // Por tipo (sobre visibles)
-  const byType = {INC:0, TKT:0, REQ:0, DISC:0, PRB:0, KE:0, CHG:0};
+  const byType = {INC:0, TKT:0, REQ:0, DISC:0, PRB:0, CHG:0};
   visible.forEach(i => { const t = itemKind(i); if (t && byType[t] !== undefined) byType[t]++; });
 
   // Por effort (sobre visibles)
@@ -2499,17 +2531,17 @@ export function renderStats() {
       <!-- Separador -->
       <div class="stat-compact-sep"></div>
       <!-- Popover Tipos — TKT2 (REQ-clutter-backlog): consolida chips de tipo -->
-      <!-- INC-[tmp:inc-activetypechipcount]: _activeTypeChipCount = tipos EXCLUIDOS del filtro (7 - activeTypes.size).
-           Asunción declarada por Rune (sin AC del founder disponible): 0 cuando no hay filtro activo (los 7 tipos
-           seleccionados) — coincide con la condición ya usada en la línea del "✕ mostrar todos" (activeTypes.size < 7)
+      <!-- INC-[tmp:inc-activetypechipcount]: _activeTypeChipCount = tipos EXCLUIDOS del filtro (6 - activeTypes.size).
+           Asunción declarada por Rune (sin AC del founder disponible): 0 cuando no hay filtro activo (los 6 tipos
+           seleccionados) — coincide con la condición ya usada en la línea del "✕ mostrar todos" (activeTypes.size < 6)
            y con is-hidden aplicado cuando el valor es 0. Ver CHECKPOINT de cierre para detalle. -->
       <div class="blt-wrap">
         <button class="blt-trigger bl-toolbar-view-btn" id="bstats-types-btn" data-action="stats-toggle-types" aria-haspopup="true" aria-expanded="false" aria-controls="blt-popover" title="Filtrar por tipo">
-          Tipos ▾<span class="blt-badge${(7 - activeTypes.size) === 0 ? ' is-hidden' : ''}">${7 - activeTypes.size}</span>
+          Tipos ▾<span class="blt-badge${(6 - activeTypes.size) === 0 ? ' is-hidden' : ''}">${6 - activeTypes.size}</span>
         </button>
         <div class="blt-popover" id="blt-popover" role="menu" hidden>
-          ${activeTypes.size < 7 ? `<span class="stat-type-chip stat-type-chip--all" data-action="stats-clear-types" title="Mostrar todos los tipos">✕ mostrar todos</span>` : ''}
-          ${[['INC','INC','Incidentes'],['TKT','TKT','Tickets técnicos'],['REQ','REQ','Requerimientos / epics'],['PRB','PRB','Problems — causa raíz'],['KE','KE','Known Errors'],['CHG','CHG','Changes estructurales']].map(([t,label,hint]) =>
+          ${activeTypes.size < 6 ? `<span class="stat-type-chip stat-type-chip--all" data-action="stats-clear-types" title="Mostrar todos los tipos">✕ mostrar todos</span>` : ''}
+          ${[['INC','INC','Incidentes'],['TKT','TKT','Tickets técnicos'],['REQ','REQ','Requerimientos / epics'],['PRB','PRB','Problems — causa raíz'],['CHG','CHG','Changes estructurales']].map(([t,label,hint]) =>
             byType[t] > 0 ? `<span class="stat-type-chip tc-${t}${activeTypes.has(t) ? ' active' : ''}" data-action="stats-type-filter" data-type="${t}" title="${hint} — click para filtrar">
               <span class="tc-count">${byType[t]}</span><span class="tc-label">${label}</span>
             </span>` : ''
@@ -2886,11 +2918,11 @@ function _getActiveFilterChips() {
 
   // Rol eliminado — TKT1 REQ1 S'02 (activeRoleFilter ya no existe)
 
-  // Tipos excluidos (cuando activeTypes no tiene los 7) — TKT3 REQ1 S'02: PRB/KE/CHG agregados
-  ['TKT', 'REQ', 'INC', 'DISC', 'PRB', 'KE', 'CHG'].forEach(function (t) {
+  // Tipos excluidos (cuando activeTypes no tiene los 6) — TKT3 REQ1 S'02: PRB/CHG agregados
+  ['TKT', 'REQ', 'INC', 'DISC', 'PRB', 'CHG'].forEach(function (t) {
     if (!activeTypes.has(t)) {
       const _tLabel = t === 'TKT' ? 'Sin Tickets' : t === 'REQ' ? 'Sin Reqs' : t === 'INC' ? 'Sin Incidentes'
-        : t === 'DISC' ? 'Sin Ideas' : t === 'PRB' ? 'Sin Problems' : t === 'KE' ? 'Sin Known Errors' : 'Sin Changes';
+        : t === 'DISC' ? 'Sin Ideas' : t === 'PRB' ? 'Sin Problems' : 'Sin Changes';
       chips.push({ label: _tLabel, key: 'type:!' + t, removeFn: (function (_t) {
         return () => toggleTypeFilter(_t);
       }(t)) });
