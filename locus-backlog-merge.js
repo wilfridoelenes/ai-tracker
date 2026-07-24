@@ -1,4 +1,12 @@
-// [PP] mod:62 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:63 · autor:Rune · 2026-07-24 UTC-6
+// TKT-202607-078 (AC corregido — Opción C): _buildAttributedCardsBlock filtra
+// created/advanced/updated/createdAndClosed/retroceso/discarded por idx===bloque y renderiza
+// el detalle completo de cada ítem (reusando _card/_retrocedoRow/_discardRow existentes) en
+// vez de solo listar flags como texto. Badge por bloque (.mdiff-block-badge--ok/--flag/--skipped,
+// TKT-077/Nova) según haya ítems con retroceso/descarte, ítems sin flag, o ningún ítem filtrado.
+// GAP registrado: el criterio 'skipped' se infiere de ausencia de ítems filtrados — el campo
+// real que locus-session-parse.js usa para marcar bloque inválido no está verificado en esta
+// sesión (archivo no adjunto). Ver CHECKPOINT.
 // Fix de regresión (hallazgo de Finn, Momento 1 de TKT-202607-076): _resolveCheckpointBatch
 // (locus-session-parse.js, TKT1/REQ CAEL-0724-02) ahora agrega idx a cada objeto de tgItems
 // Y patchItems para permitir agrupar por bloque en el panel DIFF. _buildPatchCard enumera
@@ -959,26 +967,74 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     return { html, hasRelease: true };
   };
 
+  // TKT-078 (AC corregido — Opción C, 2026-07-24): detalle completo de ítems por bloque,
+  // filtrando las listas ya clasificadas por idx (propagado en TKT2/mergeBacklogFromTG y
+  // TKT1/_resolveCheckpointBatch) contra el índice del bloque — sin tocar la clasificación
+  // de diff ni reestructurar sectionsHtml combinado. Función pura de presentación: no muta
+  // los arrays del diff, no invoca mergeBacklogFromTG ni applyPatchesFromTG.
+  // no_incluye (TKT-078): sin botón de aprobación granular por bloque · sin deshabilitar
+  // interacción con tarjetas fuera de orden · sin clase CSS nueva fuera de lo declarado por
+  // Nova en TKT-077 (.mdiff-block-badge--ok/--flag/--skipped).
+  const _itemsForBlockIdx = idx => {
+    const _pick = (arr, builder) => (Array.isArray(arr) ? arr : [])
+      .filter(i => i && i.idx === idx)
+      .map(builder);
+    return [
+      ..._pick(diff.created, i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'), _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))),
+      ..._pick(diff.advanced, i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), _depsHtml(i.dependsOn), undefined, i.sprint, i.type || _itemKindFn({ code: i.code }))),
+      ..._pick(diff.updated, i => _card(i.code, i.desc, 'accent', _pill('updated', '✎ actualizado'), _fieldChips(i.changes) + _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))),
+      ..._pick(diff.createdAndClosed, i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado') + _pill('advanced', 'pendiente → done'), `<div class="mdiff-change-hint">Creado y cerrado en esta sesión</div>` + _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))),
+      ..._pick(diff.retroceso, (i) => _retrocedoRow(i, i.idx)),
+      ..._pick(diff.discarded, (i) => _discardRow(i, i.idx)),
+    ];
+  };
+
+  // Clasificación del badge (Nova, TKT-077 — .mdiff-block-badge--ok/--flag/--skipped):
+  // 'flag' si el bloque aportó algún retroceso/descarte (requiere atención), 'skipped' si el
+  // filtro por idx no produjo ningún ítem en ninguna categoría (bloque inválido/no leído),
+  // 'ok' en cualquier otro caso con ítems.
+  // GAP DE VERIFICACIÓN: el nombre exacto y shape del campo que locus-session-parse.js usa
+  // para marcar un bloque como inválido/no leído (ej. meta.skipped / meta.skippedReason) no
+  // está confirmado — ese archivo no está adjunto en esta sesión. La clasificación 'skipped'
+  // de abajo se infiere solo de la ausencia de ítems filtrados, sin leer un campo de razón
+  // explícito. Verificar contra locus-session-parse.js antes de dar TKT-078 por done.
+  const _blockBadge = (idx, itemsHtmlArr) => {
+    if (!itemsHtmlArr.length) return { cls: 'skipped', label: 'no leído' };
+    const _hasFlag = (Array.isArray(diff.retroceso) && diff.retroceso.some(i => i && i.idx === idx))
+      || (Array.isArray(diff.discarded) && diff.discarded.some(i => i && i.idx === idx));
+    return _hasFlag ? { cls: 'flag', label: 'atención' } : { cls: 'ok', label: 'ok' };
+  };
+
   const _buildAttributedCardsBlock = () => {
     if (!_ckptMetas || _ckptMetas.length < 2) return '';
 
-    return _ckptMetas.map(meta => {
+    return _ckptMetas.map((meta, idx) => {
       const _narrativeHtml = _buildAttributedNarrativeRows(meta);
       const _releaseInfo   = _buildAttributedFinnReleaseHtml(meta);
+      const _itemCards     = _itemsForBlockIdx(idx);
+      const _badge         = _blockBadge(idx, _itemCards);
 
-      // Bloque sin ningún campo narrativo ni finn_release → no genera tarjeta (mismo criterio
-      // que hoy: ausencia total, sin hueco visual).
-      if (!_narrativeHtml && !_releaseInfo.hasRelease) return '';
+      // Bloque sin ningún campo narrativo, sin finn_release y sin ítems filtrados → no genera
+      // tarjeta (mismo criterio que hoy: ausencia total, sin hueco visual).
+      if (!_narrativeHtml && !_releaseInfo.hasRelease && !_itemCards.length) return '';
 
       const _attrRow = `<div class="mdiff-narrative-row">
         <span class="mdiff-narrative-label">${esc(meta.rol || '')}</span>
         <span class="mdiff-narrative-value">${esc(meta.titulo || '')}</span>
+        <span class="mdiff-block-badge mdiff-block-badge--${_badge.cls}">${esc(_badge.label)}</span>
       </div>`;
+
+      // Estado de error (AC-3): bloque cuyo filtro por idx no produce ningún ítem en ninguna
+      // categoría → solo el badge 'no leído', sin sección de detalle vacía.
+      const _itemsBlockHtml = _itemCards.length
+        ? `<div class="mdiff-section-body">${_itemCards.join('')}</div>`
+        : '';
 
       return `<div class="mdiff-narrative-section">
         ${_attrRow}
         ${_releaseInfo.html}
         ${_narrativeHtml}
+        ${_itemsBlockHtml}
       </div>`;
     }).join('');
   };

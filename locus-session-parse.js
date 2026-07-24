@@ -1,3 +1,11 @@
+// [PP] mod:138 · autor:Rune · 2026-07-24 UTC-6
+// TKT-078 (REQ-202607-022, ref_id CAEL-0724-05): _resolveCheckpointBatch — cada entrada de
+// metas ahora lleva idx: b.idx (spread sobre el objeto de _extractCkptMeta). Antes metas[i]
+// dependía de que el consumidor asumiera correspondencia 1:1 con la posición secuencial de
+// bloques válidos — divergía de b.idx (posición real en _parsedBlocks) en batches con bloques
+// inválidos intercalados. Mismo patrón que TKT1 (idx en tgItems/patchItems) y skipped (idx desde
+// TKT4). Sin cambio de firma pública — metas sigue siendo array, solo gana un campo por entrada.
+// contract_update: sí — ver CHECKPOINT de este TKT.
 // [PP] mod:137 · autor:Rune · 2026-07-24 UTC-6
 // TKT1 (REQ CAEL-0724-02 · ref_id CAEL-0724-03): _resolveCheckpointBatch — cada ítem de
 // tgItems/patchItems combinado en Paso 3 ahora lleva idx: b.idx (índice del bloque de origen
@@ -2588,11 +2596,20 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
     if (b.valid) {
       _result.tgItems.push(...b.tgItems.map(it => ({ ...it, idx: b.idx })));
       _result.patchItems.push(...b.patchItems.map(it => ({ ...it, idx: b.idx }))); // TKT2: mismo criterio de orden que tgItems
-      // TKT1 (REQ CAEL-0718-01 · AC1): un _extractCkptMeta por bloque válido, mismo índice que
-      //   su posición en _parsedBlocks — b.ckpt es el CHECKPOINT completo de ese bloque, no el
-      //   tgItems combinado, por lo que metas[i] siempre corresponde 1:1 al bloque i-ésimo válido
-      //   independiente de cuántos tgItems aporte ese bloque.
-      _result.metas.push(_extractCkptMeta(b.ckpt));
+      // TKT1 (REQ CAEL-0718-01 · AC1): un _extractCkptMeta por bloque válido — b.ckpt es el
+      //   CHECKPOINT completo de ese bloque, no el tgItems combinado.
+      // TKT-078 (REQ-202607-022, ref_id CAEL-0724-05): idx: b.idx agregado explícitamente.
+      //   El comentario anterior asumía "metas[i] siempre corresponde 1:1 al bloque i-ésimo
+      //   válido" — cierto solo si no hay bloques inválidos intercalados entre bloques válidos:
+      //   la posición secuencial en metas (i = conteo de bloques válidos vistos hasta ahora) puede
+      //   divergir de b.idx (posición real del bloque dentro de _parsedBlocks/blocks) en cuanto
+      //   un batch mezcla bloques válidos e inválidos. tgItems/patchItems ya llevan idx: b.idx
+      //   desde TKT1 de este mismo REQ — metas quedaba como la única pieza del resultado de
+      //   _resolveCheckpointBatch sin idx propio, forzando al consumidor (TKT2/TKT3, panel de
+      //   detalle por bloque) a asumir el índice de array en vez de leerlo del objeto. Mismo
+      //   criterio ya usado en skipped desde TKT4 ({idx, type, reason}) — se generaliza a metas.
+      //   No pisa un campo propio de _extractCkptMeta (sin colisión — verificado, ver función).
+      _result.metas.push({ ...(_extractCkptMeta(b.ckpt)), idx: b.idx });
     }
   });
 

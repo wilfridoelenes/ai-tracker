@@ -1,3 +1,12 @@
+// [PP] mod:139 · autor:Rune · 2026-07-24 UTC-6
+// TKT-078 (REQ-202607-022, ref_id CAEL-0724-05): mergeBacklogFromTG — idx (propagado a cada
+// ítem de tgItems por _resolveCheckpointBatch/TKT-076, locus-session-parse.js) ahora se
+// conserva en TODAS las categorías de clasificación, no solo discarded (ya lo tenía desde una
+// sesión previa): advanced, retroceso, updated, created, createdAndClosed, y las 7 variantes
+// de ignored (tipo-invalido, duplicado, ya-en-status, sin-status, sin-cambios, req-sin-tkt,
+// qdisc-limite). Sin esto, showMergeDiffPanel (TKT-078, locus-backlog-merge.js) no podía
+// filtrar por bloque salvo para descartes — gap que habría dejado el detalle por bloque
+// incompleto para el resto de categorías. contract_update: sí — ver CHECKPOINT de TKT-078.
 // [PP] mod:138 · autor:Rune · 2026-07-24 UTC-6
 // Fix (triggered_by INC-202607-005, causa raíz aislada durante diagnóstico — el síntoma
 // original de 'ac' no persistiendo no tuvo causa raíz confirmada en applyPatchesFromTG,
@@ -2428,7 +2437,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
 
   tgItems.forEach(item => {
     if (!item.code) return;
-    if (item._invalidType) { ignored.push({ code: item.code || '[sin-código]', reason: 'tipo-invalido', desc: item.title }); return; }
+    if (item._invalidType) { ignored.push({ code: item.code || '[sin-código]', reason: 'tipo-invalido', desc: item.title, idx: item.idx }); return; }
     if (item._duplicate) {
       // B-202605-XXX: ítem duplicado (título matchea existente via _assignPendingIds) —
       // aunque se ignore para status/creación, si trae AC se mergean sobre el existente.
@@ -2443,7 +2452,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
           changed = true;
         }
       }
-      ignored.push({ code: '[pendiente-ID]', reason: 'duplicado', desc: item.title, existingCode: item._existingCode || '' });
+      ignored.push({ code: '[pendiente-ID]', reason: 'duplicado', desc: item.title, existingCode: item._existingCode || '', idx: item.idx });
       return;
     }
 
@@ -2565,10 +2574,10 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
             // TKT1 (REQ-202607-021): _syncParentRStatus reemplaza a _checkAndAdvanceParentR — fuente única
             _syncParentRStatus(item.code, newStatus);
           }
-          advanced.push({ code: item.code, desc: existing.title, from: oldStatus, to: newStatus });
+          advanced.push({ code: item.code, desc: existing.title, from: oldStatus, to: newStatus, idx: item.idx });
         } else if (newRank < oldRank) {
           // Retroceso: encolar para confirmación — no persistir todavía
-          retroceso.push({ code: item.code, desc: existing.title, from: oldStatus, to: newStatus });
+          retroceso.push({ code: item.code, desc: existing.title, from: oldStatus, to: newStatus, idx: item.idx });
           // No tocar existing todavía — se aplica en _confirmRetroceso()
         }
         // newRank === oldRank: status idéntico al existente — ignorar silenciosamente (B-202605-086)
@@ -2706,18 +2715,18 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
               from: (c.from === '—' || c.from === undefined || c.from === null) ? null : c.from,
               to: c.to
             }));
-          updated.push({ code: item.code, desc: existing.title, changes: changesForPanel, change: changes.map(c => c.field).join(' · '), parent: item.parentId || null });
+          updated.push({ code: item.code, desc: existing.title, changes: changesForPanel, change: changes.map(c => c.field).join(' · '), parent: item.parentId || null, idx: item.idx });
         }
       } else if (!advanced.find(a => a.code === item.code) && !retroceso.find(r => r.code === item.code) && !discarded.find(d => d.code === item.code)) {
         // Distinguir: ya tenía ese status (ok) vs no hubo cambio de status porque no llegó uno válido
         const noStatusIncoming = !item.status || item.status === 'pendiente'; // T-202606-034: item.status ya canónico — comparación directa
         const alreadyInStatus = newStatus === oldStatus;
         if (alreadyInStatus && !noStatusIncoming) {
-          ignored.push({ code: item.code, reason: 'ya-en-status', desc: existing.title, status: oldStatus });
+          ignored.push({ code: item.code, reason: 'ya-en-status', desc: existing.title, status: oldStatus, idx: item.idx });
         } else if (noStatusIncoming) {
-          ignored.push({ code: item.code, reason: 'sin-status', desc: existing.title });
+          ignored.push({ code: item.code, reason: 'sin-status', desc: existing.title, idx: item.idx });
         } else {
-          ignored.push({ code: item.code, reason: 'sin-cambios', desc: existing.title });
+          ignored.push({ code: item.code, reason: 'sin-cambios', desc: existing.title, idx: item.idx });
         }
       }
     } else {
@@ -2744,7 +2753,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
           // AC2 edge: aplica solo a REQ nuevos — este bloque ya vive dentro de la rama "!existing".
           const _reqIdentifier = item.title || _rCode;
           const _msg = `CHECKPOINT bloqueado: REQ ${_reqIdentifier} emitido sin TKTs hijos. Un REQ debe nacer con al menos TKT1 declarado. Adjuntar CHECKPOINT corregido.`;
-          ignored.push({ code: _rCode, reason: 'req-sin-tkt', desc: item.title || '' });
+          ignored.push({ code: _rCode, reason: 'req-sin-tkt', desc: item.title || '', idx: item.idx });
           // AC4: bloqueo es por ítem — no return de todo mergeBacklogFromTG, solo de este forEach.
           // Toast solo en la corrida real — la corrida dry-run (preview del DIFF) ya refleja
           // la exclusión vía diff.ignored, sin duplicar el aviso.
@@ -2764,7 +2773,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
         const _activeDiscCount = getItems().filter(_isQDiscActive).length;
         if (_activeDiscCount >= QDISC_ACTIVE_LIMIT) {
           const _qdMsg = `Q-DISC al límite (${QDISC_ACTIVE_LIMIT}/${QDISC_ACTIVE_LIMIT}) — descarta o promueve antes de agregar`;
-          ignored.push({ code: item.code, reason: 'qdisc-limite', desc: item.title || '' });
+          ignored.push({ code: item.code, reason: 'qdisc-limite', desc: item.title || '', idx: item.idx });
           if (!_dryRun) showToast('error', 'Q-DISC al límite', _qdMsg);
           _blogLog('qdisc-limite', item.code || '', _qdMsg, 'backlog');
           return; // no se crea en el backlog
@@ -2850,9 +2859,9 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
       // INC-202607-004). Fix: propagar parentId/sprint/type/dependsOn ya normalizados en
       // item — sin volver a resolver nada, solo dejar de perder el dato entre el merge y el render.
       if (initialStatusForGroup === 'done') {
-        createdAndClosed.push({ code: item.code, desc: item.title, _wasAssigned: isNew, parent: item.parentId || null, sprint: item.sprint || '', type: itemKind(item), dependsOn: Array.isArray(item.dependsOn) ? item.dependsOn : [] });
+        createdAndClosed.push({ code: item.code, desc: item.title, _wasAssigned: isNew, parent: item.parentId || null, sprint: item.sprint || '', type: itemKind(item), dependsOn: Array.isArray(item.dependsOn) ? item.dependsOn : [], idx: item.idx });
       } else {
-        created.push({ code: item.code, desc: item.title, _wasAssigned: isNew, parent: item.parentId || null, sprint: item.sprint || '', type: itemKind(item), dependsOn: Array.isArray(item.dependsOn) ? item.dependsOn : [] });
+        created.push({ code: item.code, desc: item.title, _wasAssigned: isNew, parent: item.parentId || null, sprint: item.sprint || '', type: itemKind(item), dependsOn: Array.isArray(item.dependsOn) ? item.dependsOn : [], idx: item.idx });
       }
     }
     // Actualizar contadores en backlog-meta (no en dryRun)
