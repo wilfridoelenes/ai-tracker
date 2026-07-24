@@ -1,3 +1,11 @@
+// [PP] mod:22 · autor:Rune · 2026-07-24 UTC-6
+// TKT-202607-096 (REQ-202607-029): mod ausente en el MAP generado ya no se enmascara como
+// mod:1 — declara 'sin-header ⚠️' explícito (OBDS §8). mod real 0 sigue distinguiéndose de
+// ausencia (chequeo !== null && !== undefined preexistente, sin cambio de criterio).
+// [PP] mod:21 · autor:Rune · 2026-07-24 UTC-6
+// TKT-202607-095 (REQ-202607-029): línea infra_version del header del MAP ahora lee
+// getInfraVersionData() (locus-storage.js) con fallback en cascada a proj.infraVersion y a
+// literal de ausencia — ver AC1-AC4 del TKT. Import de getInfraVersionData agregado.
 // [PP] mod:20 · autor:Rune · 2026-07-24 UTC-6
 // Fix inline (TKT-202607-094): comentario de mod:19 citaba "REQ CAEL-0724-01" — código incorrecto,
 // ese ref_id/REQ corresponde a un trabajo distinto (limpieza de import muerto, ver _pp-context §6).
@@ -48,7 +56,7 @@ import { buildBacklogMd } from './locus-session-save.js';
 import { getProjContext } from './locus-proj-core.js';
 import { _generateFullHistoryContent, exportBacklogMd, exportContextMd, exportFullHistoryMd } from './locus-backlog-generator.js';
 import { _generateIncidentsMd } from './locus-incidents-generator.js'; // TKT2 (REQ CAEL-0720-01): rama Reactiva, generador dedicado — no genera contenido aquí
-import { _docPrefix, _effectiveVersion, _tplKey, getAISessions, getActiveProject, getActiveSprints, save } from './locus-storage.js';
+import { _docPrefix, _effectiveVersion, _tplKey, getAISessions, getActiveProject, getActiveSprints, getInfraVersionData, save } from './locus-storage.js';
 import { showToast, showToastInline, toast } from './locus-toast.js';
 import { render } from './locus-sesiones.js';
 
@@ -902,22 +910,37 @@ function _generateMap(ver) {
 
   let md = `# ${_mgCanonicalMapName(project, version)}\n`;
   md += `<!-- Versión: ${version} | Actualizado: ${now} UTC-6 | Proyecto: ${project} | Status: ${mapStatus} -->\n`;
-  // T-202606-147: segunda línea de header — infra_version leído automáticamente desde proj.infraVersion
-  // T4 ([pendiente-ID]): si infraVersion está ausente, undefined, null o vacía tras trim — emitir
-  // literal de ausencia en vez de omitir la línea. La línea es siempre la 3ª del header, sin excepción.
-  // Formato canónico OB-Strategy §5b: <!-- **infra_version: [N]** | BR-Core vX.X · ... -->
-  const _ivProj = getActiveProject();
-  const _ivRaw = (_ivProj && _ivProj.infraVersion) ? String(_ivProj.infraVersion).trim() : '';
-  if (_ivRaw) {
-    md += `<!-- **infra_version: ${_ivRaw}** -->\n`;
+  // TKT-202607-095 (REQ-202607-029): segunda línea de header — infra_version leído desde
+  // getInfraVersionData() (locus-storage.js) en vez de proj.infraVersion — proj.infraVersion es
+  // solo el número agregado, sin las 4 sub-versiones que el formato canónico exige (OB-Strategy §5b).
+  // Formato canónico: <!-- **infra_version: [N]** | BR-Core v[X] · BR-Ecosystem v[X] · BR-Execution v[X] · OB-Strategy v[X] -->
+  // Fallback en cascada, la línea es siempre la 3ª del header, sin excepción:
+  //   1. infraVersionData completo → línea con sufijo de las 4 sub-versiones; sub-versión individual
+  //      ausente → 'v—' en su posición, sin omitir el segmento ni truncar la línea.
+  //   2. sin infraVersionData pero proj.infraVersion con número real → línea parcial ya vigente
+  //      (solo número, sin sufijo) — comportamiento previo, conservado como fallback.
+  //   3. sin ningún dato → literal de ausencia (comportamiento previo, sin regresión).
+  const _ivData = getInfraVersionData();
+  if (_ivData && _ivData.infraVersion) {
+    const _svFmt = k => (_ivData[k] ? `v${_ivData[k]}` : 'v—');
+    md += `<!-- **infra_version: ${_ivData.infraVersion}** | BR-Core ${_svFmt('brCore')} · BR-Ecosystem ${_svFmt('brEcosystem')} · BR-Execution ${_svFmt('brExecution')} · OB-Strategy ${_svFmt('obStrategy')} -->\n`;
   } else {
-    md += `<!-- infra_version: no declarada en proyecto -->\n`;
+    const _ivProj = getActiveProject();
+    const _ivRaw = (_ivProj && _ivProj.infraVersion) ? String(_ivProj.infraVersion).trim() : '';
+    if (_ivRaw) {
+      md += `<!-- **infra_version: ${_ivRaw}** -->\n`;
+    } else {
+      md += `<!-- infra_version: no declarada en proyecto -->\n`;
+    }
   }
   md += '\n';
 
   files.forEach(f => {
     const changedStr = f.changed_in ? f.changed_in : '—';
-    const modStr = f.mod !== null && f.mod !== undefined ? String(f.mod) : '1'; // T-202606-145 F-02 · gap G1: CSS sin header emite mod:1 como inicial
+    // TKT-202607-096 (REQ-202607-029): mod ausente (null/undefined) ya no se enmascara como '1' —
+    // declara 'sin-header ⚠️' explícito (OBDS §8). mod real 0 se distingue de ausencia — mismo
+    // chequeo !== null && !== undefined ya vigente, solo cambia el valor del else branch.
+    const modStr = f.mod !== null && f.mod !== undefined ? String(f.mod) : 'sin-header ⚠️';
     md += `## ${f.name}\n`;
     md += `**Líneas:** ${f.lines} · **mod:** ${modStr} · **Size:** ${f.size_signal} · **Changed in:** ${changedStr}\n\n`;
 

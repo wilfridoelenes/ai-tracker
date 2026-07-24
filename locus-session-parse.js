@@ -1,4 +1,9 @@
-// [PP] mod:139 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:140 · autor:Rune · 2026-07-24 UTC-6
+// INC-[pendiente-ID] (Variante ligera): char counter del modal de ingesta nunca se actualizaba —
+//   buscaba 'cc-'+id (patrón por-Worker legacy, pre-CAEL-22), id que no existe en el DOM. El
+//   elemento real es global: #ingest-char-counter (index.html L1572), mismo patrón que
+//   #ingest-block-count. Fix: id fijo, sin sufijo por Worker — consistente con el resto de
+//   elementos ya unificados del modal (#ingest-ta, #ingest-block-count).
 // TKT1 (REQ CAEL-0724-02, DISC-202607-029): _renderIngestResultItems() — badge de tipo por fila,
 // reusa _GEN2_TYPES ya importado (fuente única de tipos válidos, evita duplicar el array) para
 // distinguir reconocido/no-reconocido. Sufijo de clase usa item.type verbatim — sin toLowerCase()/
@@ -1698,7 +1703,7 @@ export function parsePaste(id) {
   }
   const _discrepancy = rawTotal > 0 && rawTotal !== parsedTotal ? { raw: rawTotal, parsed: parsedTotal } : null;
 
-  const cc = document.getElementById('cc-' + id);
+  const cc = document.getElementById('ingest-char-counter');
   if (cc) {
     const len = text.length;
     cc.textContent = len > 0 ? `${len} caracteres` : '';
