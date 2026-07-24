@@ -1,3 +1,13 @@
+/* [PP] mod:13 · autor:Nova · 2026-07-24 UTC-6 */
+/* TKT1 (REQ CAEL-0724-02): .bl-plan-dest-programado-badge — distingue sprints programado dentro
+   de .bl-plan-dest-list, reusando el patrón ya vigente de T-202605-028 (.bl-plan-dest-sprint,
+   .bl-plan-dest-current-badge, drag-over per-card ya soportado) en vez de introducir una
+   estructura de dos grupos nueva. Desviación del wireframe aprobado por el founder (que mostraba
+   "Activos"/"Planificados" como bloques separados) — la lista plana existente ya resuelve el
+   mismo problema visual (sprint activo vs. sprint destino adicional) sin duplicar layout; ver
+   CHECKPOINT de esta sesión para la justificación completa. Reuso de --blue/--blue-text
+   (semántica "programado" ya establecida en .sprint-badge-programado, §Sprint groups y badges)
+   — sin token nuevo. */
 /* [PP] mod:12 · autor:Nova · 2026-07-20 19:10 UTC-6 */
 /* TKT2 (REQ corregir-css-purity): adopción retroactiva de mod:8/mod:9 — founder decidió
    adoptar tal cual el CSS entregado por Rune (.bl-plan-card--done, .bl-plan-done-group/
@@ -425,6 +435,16 @@
   border-bottom-color: var(--accent-border, color-mix(in srgb, var(--accent) 20%, transparent));
 }
 
+/* Sprint programado — mismo tratamiento que --current, tono --blue */
+.bl-plan-dest-sprint--programado {
+  border-color: var(--blue-border, color-mix(in srgb, var(--blue) 30%, transparent));
+}
+
+.bl-plan-dest-sprint--programado .bl-plan-col-header {
+  background: color-mix(in srgb, var(--blue) 6%, var(--surface3));
+  border-bottom-color: var(--blue-border, color-mix(in srgb, var(--blue) 20%, transparent));
+}
+
 /* Badge "en curso" */
 .bl-plan-dest-current-badge {
   font-size: 10px;
@@ -433,6 +453,20 @@
   text-transform: uppercase;
   color: var(--accent-text);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  flex-shrink: 0;
+}
+
+/* Badge "programado" — mismo componente local que --current-badge, tono --blue
+   (semántica ya establecida en .sprint-badge-programado) en vez de --accent */
+.bl-plan-dest-programado-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--blue-text);
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
   border-radius: var(--radius-sm);
   padding: 2px 6px;
   flex-shrink: 0;
