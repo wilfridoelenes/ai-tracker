@@ -1,3 +1,13 @@
+// [PP] mod:16 · autor:Rune · 2026-07-24 UTC-6
+// INC-[pendiente-ID] (mismo INC que mod:15, causa 3): _buildCumulativeFlowChart() se invoca en
+// este archivo (línea del gráfico de flujo acumulativo) sin import — la función vive en
+// locus-analytics-digest.js, exportada, pero main.js solo importa ese módulo como side-effect
+// (sin named imports) y este archivo nunca la trajo. ReferenceError en runtime — no detectado
+// hasta que el fix de mod:15 (listener shell:render-analytics) + el fix de locus-storage.js
+// mod:145 (refresh post-carga async) permitieron que renderAnalytics() corriera completo por
+// primera vez en producción. Mismo patrón de gap doc-vs-código que mod:11/13/14 de este archivo
+// (comentario documentaba el consumo de la función sin que el import correspondiente existiera).
+// Fix: import { _buildCumulativeFlowChart } from './locus-analytics-digest.js' agregado.
 // [PP] mod:15 · autor:Rune · 2026-07-24 UTC-6
 // INC-[pendiente-ID]: listener de 'shell:render-analytics' no existía en ningún módulo — switchTab
 // lo despachaba desde siempre, pero renderAnalytics() nunca se conectó a ese evento. Tab Analytics
@@ -45,6 +55,7 @@ import { _getActiveProjectFilter, getAllProjectsSprints, getAllSessions, getProj
 
 import { esc, getCurrentTab, switchTab } from './locus-ui-shell.js';
 import { itemKind } from './locus-backlog-core.js'; // TKT-D1: itemKind(item) — clasificación Gen2, no letra Gen1
+import { _buildCumulativeFlowChart } from './locus-analytics-digest.js'; // INC-[pendiente-ID]: import faltante — la función se invoca en la línea del gráfico de flujo acumulativo sin haberse importado nunca desde locus-analytics-digest.js. ReferenceError no visible en producción hasta que el fix de wiring de renderAnalytics (mod:15/mod:16 de este archivo, mismo INC previo) permitió que renderAnalytics() corriera completo por primera vez.
 
 // locus-analytics-render.js
 // Responsabilidad: renderAnalytics — función principal del tab de analytics.
