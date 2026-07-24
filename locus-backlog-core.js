@@ -1,3 +1,11 @@
+// [PP] mod:134 · autor:Rune · 2026-07-24 UTC-6
+// INC-202607-XXX (triggered_by: reporte directo del founder — screenshot Backlog Vista Lista):
+// renderStats() — backlogCount ahora suma 'en-proceso' y 'bloqueado' además de 'pendiente'.
+// Antes, un REQ en cualquiera de esos dos estados era visible en la lista (statusOk ya los
+// trata como siempre-contables desde QA-0724-01/03) pero no sumaba en ningún bucket del
+// stats-bar — total quedaba por debajo del conteo real. Sin cambio de firma, sin nueva
+// dependencia CSS, sin impacto en enRevisionCount/done.
+
 // [PP] mod:133 · autor:Rune · 2026-07-24 UTC-6
 // INC (ref_id QA-0724-01): renderStats() — statusOk trata 'bloqueado' como siempre-visible,
 // consistente con el mismo fix en locus-backlog-render.js (_renderVistaLista). Sin cambio de
@@ -2505,7 +2513,14 @@ export function renderStats() {
 
 
   // T-202606-096: universo canónico — activos = countableItems (pendiente + en-revision + done)
-  const backlogCount    = countableItems.filter(i => i.status === 'pendiente').length;
+  // INC-202607-XXX: 'en-proceso' y 'bloqueado' sumados al bucket "pendientes" — mismo criterio
+  // que 'visible' (statusOk, arriba en esta función) ya trata a ambos como siempre-contables.
+  // Antes de este fix, un REQ en 'en-proceso' (transición automática al iniciar el primer TKT
+  // hijo, __BR-Core §4) o 'bloqueado' aparecía en la lista renderizada pero no sumaba en ningún
+  // bucket del stats-bar (ni pendientes, ni en revisión, ni hechos) — total quedaba por debajo
+  // del conteo real de ítems visibles. Caso real: REQ-202607-022 en 'en-proceso' con hijo
+  // TKT-202607-086 'pendiente' — founder reportó "1 pendientes 3 hechos" sin reflejar el REQ.
+  const backlogCount    = countableItems.filter(i => i.status === 'pendiente' || i.status === 'en-proceso' || i.status === 'bloqueado').length;
   const enRevisionCount = countableItems.filter(i => i.status === 'en-revision').length;
   const done            = countableItems.filter(i => i.status === 'done').length;
   // T-202606-048 AC 6: done/total sobre sprint activo
