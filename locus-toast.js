@@ -1,4 +1,6 @@
-// [PP] mod:3 · autor:Rune · 2026-07-08 12:00 UTC-6
+// [PP] mod:4 · autor:Rune · 2026-07-24 09:40 UTC-6
+// REQ CAEL-0724-02, TKT1: _TOAST_ICONS cubre los 8 tipos — confirm/copy/neutral
+// ya no caen al fallback 'ℹ'. TKT2: dismiss usa ti-x (Tabler, ya cargado en index.html).
 import { esc } from './locus-ui-shell.js';
 // locus-toast.js
 // Última actualización: 2026-05-19 00:00 UTC-6
@@ -6,7 +8,7 @@ import { esc } from './locus-ui-shell.js';
 // Carga antes que cualquier módulo que llame funciones toast.
 
 // Toast stack system — múltiples toasts simultáneos con spring animation
-const _TOAST_ICONS = { success: '✓', download: '↓', info: 'ℹ', warning: '⚠', error: '✕' };
+const _TOAST_ICONS = { success: '✓', download: '↓', info: 'ℹ', warning: '⚠', error: '✕', confirm: '✔', copy: '⧉', neutral: '•' };
 // T-202604-229: duraciones base por tipo; 0 = sin auto-dismiss
 // T-202604-279: duraciones calibradas — base mínima + 40ms/char sobre el mínimo
 //   success : mín 2000ms + 40ms/char
@@ -60,7 +62,7 @@ export function _toastRender(type, title, body, base, onClick) {
       `<span class="toast-title">${titleHtml}</span>` +
       (bodyHtml ? `<span class="toast-body">${bodyHtml}</span>` : '') +
     `</span>` +
-    `<button class="toast-dismiss" aria-label="Cerrar notificación">×</button>` +
+    `<button class="toast-dismiss" aria-label="Cerrar notificación"><i class="ti ti-x" aria-hidden="true"></i></button>` +
     progressHtml;
 
   el.querySelector('.toast-dismiss').addEventListener('click', (e) => {

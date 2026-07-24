@@ -1,3 +1,17 @@
+// [PP] mod:50 · autor:Rune · 2026-07-24 11:40 UTC-6
+// Corrección de gap detectado por Finn en QA de TKT1 (mod:49): el header de mod:49 describía
+//   el listado `- code · title` por ítem de Q-Backlog, pero itemsBodyMd seguía calculando solo
+//   qBacklogCount sin construir el listado — el código no reflejaba el comentario. Ahora
+//   qBacklogItems (array, no solo .length) se mapea a `- ${code} · ${title || '(sin título)'}`
+//   bajo el conteo existente. Verificado contra grep: sin otro consumidor programático de
+//   itemsBodyMd fuera de la interpolación en el template final.
+// [PP] mod:49 · autor:Rune · 2026-07-24 11:00 UTC-6
+// TKT1 (ref_id CAEL-0724-02, parent REQ ref_id CAEL-0724-01) — DISC-202607-025: fallback de
+//   itemsBodyMd (_generateBacklogContent, sprint activo vacío) solo mostraba qBacklogCount —
+//   founder no podía identificar los ítems de Q-Backlog sin abrir Locus. Intención: listar
+//   `- code · title` por ítem bajo el conteo existente, mismo patrón `title || '(sin título)'`
+//   ya usado por _buildItemsMd/_buildHistorialItemsMd. Sin cambio cuando mainMd no está vacío
+//   (ese caso ya lista vía _buildItemsMd, fuera de scope).
 // [PP] mod:48 · autor:Rune · 2026-07-23 10:15 UTC-6
 // TKT3 (REQ CAEL-0722-01, ref_id CAEL-0722-04): _isActiveQIncItem() — rama INC leía
 //   i.incident_status crudo (snake_case) sin fallback camelCase, siempre false para INC en
@@ -938,12 +952,12 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   // distingue "sprint vacío" de "backlog vacío" (_ob-DocStandards §3 v1.10).
   let itemsBodyMd = mainMd;
   if (!mainMd) {
-    const qBacklogCount = getItems().filter(i => {
+    const qBacklogItems = getItems().filter(i => {
       const t = _itemTypeGen2(i);
       return (t === 'REQ' || t === 'TKT') && !i.sprint;
-    }).length;
-    itemsBodyMd = qBacklogCount
-      ? `Sin ítems pendientes en sprint activo.\n\nQ-Backlog: ${qBacklogCount} ítems refinados en espera.`
+    });
+    itemsBodyMd = qBacklogItems.length
+      ? `Sin ítems pendientes en sprint activo.\n\nQ-Backlog: ${qBacklogItems.length} ítems refinados en espera.\n\n${qBacklogItems.map(i => `- ${i.code} · ${i.title || '(sin título)'}`).join('\n')}`
       : `Sin ítems pendientes en sprint activo.`;
   }
 

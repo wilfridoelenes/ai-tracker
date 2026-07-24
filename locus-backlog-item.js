@@ -1,3 +1,17 @@
+// [PP] mod:138 · autor:Rune · 2026-07-24 UTC-6
+// Fix (triggered_by INC-202607-005, causa raíz aislada durante diagnóstico — el síntoma
+// original de 'ac' no persistiendo no tuvo causa raíz confirmada en applyPatchesFromTG,
+// INC-202607-005 cerrado descartado/obsoleto por decisión del founder): blocked_at (snake_case,
+// schema __BR-Ecosystem §8) no tenía alias a blockedAt (campo interno) — patch.blocked_at
+// sobrevivía crudo al Object.keys(patch) del loop y caía en el catch-all genérico (L~3506, ver
+// más abajo), que excluye incoming === null. Un patch con blocked_at: null — el valor exacto que
+// BR-Ecosystem §8 documenta para "retomar" un TKT — nunca se aplicaba: el TKT quedaba bloqueado
+// indefinidamente pese al patch de retomada, sin error visible ni en DocLog. Fix en dos partes:
+// (1) alias blocked_at→blockedAt + delete del original, mismo patrón que patch.parent→parentId;
+// (2) rama propia para field==='blockedAt' que sí permite null como valor aplicable — el resto
+// de campos genéricos tratan null como "sin valor, no tocar", este campo lo trata como "limpiar".
+// contract_update: no — blockedAt ya era campo interno reconocido (ver buildCommonItemFields,
+// línea ~2193); este fix solo cierra el camino de aplicación vía patch, no cambia su forma.
 // [PP] mod:137 · autor:Rune · 2026-07-24 UTC-6
 // Fix INC producción: SyntaxError en carga de módulo — import de _VALID_INCIDENT_STATUS/
 // _VALID_PRB_STATUS/_VALID_KE_STATUS desde locus-session-parse.js sin uso real en este
@@ -3121,6 +3135,18 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
     // obligatorio bajo el modelo nuevo, no solo higiene de campo legacy.
     if (patch.parent) { if (!patch.parentId) patch.parentId = patch.parent; delete patch.parent; }
 
+    // INC-202607-005 fix (parte 1/2): alias blocked_at (snake_case, schema __BR-Ecosystem §8) →
+    // blockedAt (campo interno) — antes ausente de todo alias, a diferencia de los 7 campos ITIL
+    // y de parent/parentId. Sin este alias, patch.blocked_at sobrevivía crudo al Object.keys(patch)
+    // del loop de aplicación y caía en el bloque genérico del final (L~3494), que excluye
+    // explícitamente incoming === null — exactamente el valor que BR-Ecosystem §8 documenta para
+    // "retomar" un TKT (blocked_at: null). Mismo criterio alias-y-delete que patch.parent arriba:
+    // el campo original no debe sobrevivir al loop como propiedad suelta no consumida.
+    if (patch.blocked_at !== undefined) {
+      if (patch.blockedAt === undefined) patch.blockedAt = patch.blocked_at;
+      delete patch.blocked_at;
+    }
+
     // INC-202607-XXX (triggered_by TKT-202607-029/030) + DISC de auditoría cerrada: parentId,
     // triggeredBy, origenDisc y dependsOn (array) resueltos con el mismo helper — antes solo
     // parentId tenía resolución parcial (slugMap para strings, sin guardrail de objeto); los
@@ -3488,6 +3514,20 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
       if (field === 'parentId' && itemKind(existing) !== 'TKT') {
         if (incoming !== undefined && incoming !== null) {
           _blogLog('parentId-ignorado', code, 'parentId ignorado en patch: ' + (itemKind(existing) || 'tipo desconocido') + ' no puede tener parent — solo TKT (__BR-Ecosystem §5). parentId recibido: ' + incoming, 'backlog');
+        }
+        return;
+      }
+      // INC-202607-005 fix (parte 2/2): blockedAt — rama propia porque null es un valor válido
+      // y esperado (limpiar bloqueo al retomar un TKT, BR-Ecosystem §8: "Al retomar — Rune
+      // parchea blocked_at: null al iniciar"), a diferencia del resto de campos genéricos donde
+      // null significa "sin valor, no tocar". El catch-all de abajo excluye incoming === null
+      // por diseño — sin esta rama, blockedAt: null nunca se aplicaba, dejando el TKT bloqueado
+      // indefinidamente pese al patch de retomada. incoming !== current cubre tanto el caso de
+      // fijar un AC nuevo (string) como el de limpiarlo (null).
+      if (field === 'blockedAt') {
+        if (incoming !== current) {
+          changes.push({ field: 'blockedAt', from: current !== undefined ? current : '—', to: incoming === undefined ? null : incoming });
+          existing.blockedAt = (incoming === undefined) ? null : incoming;
         }
         return;
       }

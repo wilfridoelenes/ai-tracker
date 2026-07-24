@@ -1,4 +1,10 @@
-/* [PP] mod:4 · autor:Nova · 2026-07-20 19:10 UTC-6 */
+/* [PP] mod:6 · autor:Nova · 2026-07-24 10:05 UTC-6 */
+/* REQ CAEL-0724-02 (toast — corrección semántica + render): TKT1 tokens dedicados
+   t-confirm (--blue-*)/t-copy (color-mix + --pink), title override incluye t-confirm.
+   TKT2 .toast-icon como chip (color-mix currentColor), .toast-progress 2px→3px/opacity .20→.36. */
+/* mod:6 — TKT correctivo (t-copy → --pink): mod:5 dejó .toast-item.t-copy (bg/border/color) en
+   --pink pero .toast-item.t-copy::before seguía en --purple (borrowed) — hallazgo de Finn en QA.
+   Corregido: ::before también en --pink. Fix completo en las 4 declaraciones de t-copy. */
 /* TKT1 (REQ corregir-css-purity): header corregido — mod:1 declaraba autor:Rune sobre split
    mecánico de locus-modals.css mod:7 (TKT1 de REQ split, 2026-07-05), sin decisión de estilo
    nueva. Contenido auditado y adoptado sin cambios — solo corrección de atribución. */
@@ -82,10 +88,16 @@
 }
 
 .toast-icon {
-  font-size: var(--text-md);
+  font-size: var(--text-sm);
   line-height: 1;
   flex-shrink: 0;
-  margin-top: 1px;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, currentColor 15%, transparent);
 }
 
 .toast-msg {
@@ -172,15 +184,15 @@
 }
 
 .toast-item.t-confirm {
-  background: var(--c-won-bg);
-  border-color: var(--c-won-border);
-  color: var(--text2);
+  background: var(--blue-dim);
+  border-color: var(--blue-border);
+  color: var(--blue-text);
 }
 
 .toast-item.t-copy {
-  background: var(--c-pulido-bg);
-  border-color: var(--c-pulido-border);
-  color: var(--c-pulido-text);
+  background: color-mix(in srgb, var(--pink) 12%, transparent);
+  border-color: color-mix(in srgb, var(--pink) 35%, transparent);
+  color: var(--pink);
 }
 
 .toast-item.t-neutral {
@@ -194,7 +206,8 @@
 .toast-item.t-download .toast-title,
 .toast-item.t-error .toast-title,
 .toast-item.t-warning .toast-title,
-.toast-item.t-copy .toast-title {
+.toast-item.t-copy .toast-title,
+.toast-item.t-confirm .toast-title {
   color: inherit;
 }
 
@@ -220,11 +233,11 @@
 }
 
 .toast-item.t-confirm::before {
-  background: var(--c-won-border);
+  background: var(--blue-border);
 }
 
 .toast-item.t-copy::before {
-  background: var(--c-pulido-border);
+  background: var(--pink);
 }
 
 .toast-item.t-neutral::before {
@@ -240,12 +253,6 @@
 :root[data-theme="light"] .toast-item.t-neutral {
   background: var(--surface);
   border-color: var(--border2);
-}
-
-:root[data-theme="light"] .toast-item.t-confirm {
-  background: var(--surface);
-  border-color: var(--border2);
-  color: var(--text2);
 }
 
 /* ── T-202604-226: Progress bar auto-dismiss ── */
@@ -666,11 +673,12 @@
   position: absolute;
   bottom: 0;
   left: 0;
-  height: 2px;
+  height: 3px;
   width: 100%;
   transform-origin: left;
   background: currentcolor;
-  opacity: 0.20;
+  opacity: 0.36;
+  border-radius: 0 2px 2px 0;
   animation: toast-shrink var(--toast-duration, 3s) linear forwards;
   animation-play-state: var(--toast-play-state, running);
 }
