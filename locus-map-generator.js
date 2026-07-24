@@ -1,10 +1,15 @@
+// [PP] mod:20 · autor:Rune · 2026-07-24 UTC-6
+// Fix inline (TKT-202607-094): comentario de mod:19 citaba "REQ CAEL-0724-01" — código incorrecto,
+// ese ref_id/REQ corresponde a un trabajo distinto (limpieza de import muerto, ver _pp-context §6).
+// El trabajo de naming descrito abajo pertenece a REQ-202607-029 / TKT-202607-094 (ref_id de creación:
+// CAEL-0724-02). Corregido a los códigos reales — sin cambio de comportamiento.
 // [PP] mod:19 · autor:Rune · 2026-07-24 UTC-6
-// TKT1 (REQ CAEL-0724-01 · Normalización MAP): naming canónico del archivo/header del MAP unificado
+// TKT-202607-094 (REQ-202607-029 · Normalización MAP): naming canónico del archivo/header del MAP unificado
 // en _mgCanonicalMapName(prefix, version) → `_${prefix}-map-${version}.md`. Reemplaza el patrón
 // `${prefix}-MAP_${version}.md` en 6 call sites: header interno del md, preview inicial del modal,
 // preview al soltar .md con versión detectada, entrada 'map' de _mgShowPreview, nombre de descarga
 // individual, y nombre dentro del ZIP. No toca CONTEXT/BACKLOG/SPRINT-REVIEW/BACKLOG-FULL — mismo
-// patrón de naming incorrecto ahí, fuera de scope de este TKT (ver REQ CAEL-0724-01 no_incluye).
+// patrón de naming incorrecto ahí, fuera de scope de este TKT (ver REQ-202607-029 no_incluye).
 // [PP] mod:18 · autor:Rune · 2026-07-20 11:35 UTC-6
 // TKT2 (REQ CAEL-0720-01): import _generateIncidentsMd + integración en generateDocuments()/
 // _mgShowPreview()/_doConfirmGenerate() — sin versión en el archivo de incidents, ver AC-3.
