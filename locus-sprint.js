@@ -1,4 +1,4 @@
-// [PP] mod:112 · autor:Rune · 2026-07-23 UTC-6
+// [PP] mod:113 · autor:Rune · 2026-07-24 UTC-6
 // Cierra el bloqueo parcial declarado en mod:111 (index.html no adjunto en esa sesión):
 // _renderSpsStatsBlock() puebla el shell estático #sps-stats-block (index.html mod:151,
 // 4 celdas fijas Activo/Programados/Pausados/Cerrados) — solo actualiza textContent de
@@ -1152,9 +1152,10 @@ function _renderSpsProgramados() {
     let total = 0;
     let done  = 0;
     let advDone = 0; // ítems ya done en un sprint programado = adelantados
+    let spItems = []; // INC-[pendiente-ID]: sacado del if-block — TKT3 (L1175) lo consume fuera del scope original
     if (Array.isArray(getItems())) {
       const _sid = _spIdBase(id);
-      const spItems = getItems().filter(function(i) {
+      spItems = getItems().filter(function(i) {
         const t = i.type || (i.code ? i.code.charAt(0) : '');
         return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
           (['REQ','TKT'].includes(itemKind({type:t}))) &&
