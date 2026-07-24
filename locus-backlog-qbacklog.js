@@ -1,3 +1,7 @@
+// [PP] mod:5 · autor:Rune · 2026-07-23 22:15 UTC-6
+// TKT-202607-072 (REQ-202607-019): showDraftGroup:true + isZoneBroad:_isQBacklog agregados a la
+// llamada de _renderZonePanel — habilita el grupo de ítems draft:true en este panel. Sin cambio
+// de comportamiento fuera de eso.
 // [PP] mod:4 · autor:Rune · 2026-07-21 UTC-6
 // TKT3 (REQ-202607-010): renderQBacklogPanel declara statsBarId:'qbacklog-stats-bar' —
 // habilita la separación de nodos en _renderZonePanel (locus-backlog-zone-engine.js mod:6).
@@ -19,7 +23,7 @@
 // auditoría del REQ), pero su IIFE de listener y su llamada a _attachDoneGroupToggle deben
 // ejecutar al cargar la app.
 
-import { _isQBacklogActive } from './locus-backlog-core.js';
+import { _isQBacklogActive, _isQBacklog } from './locus-backlog-core.js';
 import { _renderZonePanel, _attachDoneGroupToggle } from './locus-backlog-zone-engine.js';
 
 // B-202606-052 → TKT-C1: renderQBacklogPanel — sub-tab Backlog (Q-Backlog: REQ/TKT).
@@ -35,7 +39,12 @@ export function renderQBacklogPanel() {
     nsKey: 'qbacklog',
     isZone: _isQBacklogActive,
     showTypeChips: true,
-    emptyTitle: 'No hay ítems pendientes'
+    emptyTitle: 'No hay ítems pendientes',
+    // TKT-202607-072 (REQ-202607-019): showDraftGroup habilita el grupo colapsable de
+    // draft:true. isZoneBroad es _isQBacklog (sin la condición !i.draft de _isQBacklogActive) —
+    // exclusivo de Q-Backlog, Q-DISC no declara ninguno de los dos.
+    showDraftGroup: true,
+    isZoneBroad: _isQBacklog
   });
 }
 

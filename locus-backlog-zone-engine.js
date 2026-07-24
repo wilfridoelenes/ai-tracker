@@ -1,3 +1,11 @@
+// [PP] mod:10 · autor:Rune · 2026-07-23 22:15 UTC-6
+// TKT-202607-072 (REQ-202607-019): grupo de drafts (draft:true) agregado a _renderZonePanel —
+// gateado por opts.showDraftGroup + opts.isZoneBroad (opcionales, sin default). Sin ambos, cero
+// cambio de comportamiento — qdisc no los declara. getItems() confirmado sin filtrar draft (
+// locus-backlog-core.js); la exclusión de vistas activas vive en _isQBacklogActive (!i.draft) —
+// draftItems se deriva filtrando getItems() con el predicado amplio (_isQBacklog, sin ese
+// !i.draft) que qbacklog.js pasa como isZoneBroad. contract_update: sí — _renderZonePanel gana
+// dos opts nuevos, opcionales, sin cambio de firma para callers existentes.
 // [PP] mod:9 · autor:Rune · 2026-07-23 21:40 UTC-6
 // TKT1 (REQ-[pendiente-ID] Empty state bloque Terminados): _renderDoneGroup no tenía rama
 // visual para doneItems.length === 0 — bodyEl.innerHTML quedaba en '' (bloque en blanco al
@@ -122,6 +130,66 @@ function _renderDoneGroup(prefix, doneItems) {
         <div class="empty-state-title">Sin ítems terminados aún</div>
         <div class="empty-state-hint">Los ítems que lleguen a done en este sprint aparecerán aquí.</div>
       </div>`;
+}
+
+// TKT-202607-072 (REQ-202607-019): construye el grupo colapsable de ítems draft:true —
+// dinámico, sin shell estático en index.html (a diferencia de .bl-done-group). Agrupa REQ→hijos
+// igual que el resto del panel: un TKT hijo cuyo REQ padre NO está en `items` (padre no-draft,
+// solo el hijo lo es) se muestra como raíz dentro de este grupo — AC edge case del TKT, no se
+// inventa nesting bajo un REQ que no pertenece al set draft. Retorna '' con items vacío — AC-1,
+// el grupo completo se omite del DOM, sin placeholder de estado vacío (a propósito, distinto de
+// .qdisc-status-body que sí lo tiene).
+function _draftGroupHtml(items) {
+  if (!items.length) return '';
+  const childMap = _buildChildMap(items);
+  const rCodes = new Set(items.filter(i => itemKind(i) === 'REQ').map(i => i.code));
+  const rootItems = items.filter(i => !i.parentId || !rCodes.has(i.parentId));
+  let rows = '';
+  const _row = (item, isChild) => `<div class="qbacklog-draft-row${isChild ? ' qbacklog-draft-row--child' : ''}">
+      <span class="item-type-pill ${itemKind(item)}">${itemKind(item)}</span>
+      <span>${item.code} · ${(item.title || '').replace(/</g, '&lt;')}</span>
+    </div>`;
+  rootItems.forEach(item => {
+    rows += _row(item, false);
+    (childMap.get(item.code) || []).forEach(child => { rows += _row(child, true); });
+  });
+  return `
+    <div class="qbacklog-draft-group">
+      <div class="qbacklog-draft-header" data-action="toggle-draft-group" tabindex="0" role="button" aria-expanded="true">
+        <div class="qbacklog-draft-header-meta">
+          <span class="qbacklog-draft-title">Pendiente de validación Finn</span>
+          <span class="qbacklog-draft-count">${items.length}</span>
+        </div>
+        <span class="qbacklog-draft-chevron">▾</span>
+      </div>
+      <div class="qbacklog-draft-body">${rows}</div>
+    </div>`;
+}
+
+// TKT-202607-072: toggle del grupo de drafts — delegado sobre `body`, adjuntado una sola vez por
+// nodo (el nodo #[bodyId] persiste entre renders, solo su innerHTML se reemplaza — mismo criterio
+// que el guard _zpDelegationAttached de la stats-bar, más abajo en esta función). Enter/Space
+// además de click — header es role="button" tabindex="0" (AC accesibilidad del TKT1/Nova).
+function _attachDraftGroupToggle(body) {
+  if (body._zpDraftDelegationAttached) return;
+  body._zpDraftDelegationAttached = true;
+  const _toggle = header => {
+    const group = header.closest('.qbacklog-draft-group');
+    if (!group) return;
+    const collapsed = group.classList.toggle('is-collapsed');
+    header.setAttribute('aria-expanded', String(!collapsed));
+  };
+  body.addEventListener('click', e => {
+    const header = e.target.closest('.qbacklog-draft-header');
+    if (header) _toggle(header);
+  });
+  body.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const header = e.target.closest('.qbacklog-draft-header');
+    if (!header) return;
+    e.preventDefault();
+    _toggle(header);
+  });
 }
 
 // Toggle de colapso del bloque "Terminados" — header y body son estáticos (index.html), el
@@ -272,6 +340,16 @@ export function _renderZonePanel(opts) {
   const activeZoneItems = hasDoneState ? zoneItems.filter(i => i.status !== 'done') : zoneItems;
   if (hasDoneState) _renderDoneGroup(nsKey, doneZoneItems);
 
+  // TKT-202607-072 (REQ-202607-019): draftItems — universo aparte de zoneItems (isZone ya excluye
+  // draft:true por diseño, ver _isQBacklogActive). Requiere opts.isZoneBroad (predicado amplio,
+  // sin la condición !i.draft) además de opts.showDraftGroup — sin ambos, [] y sin cambio de
+  // comportamiento (qdisc no los declara).
+  const draftItems = (opts.showDraftGroup && opts.isZoneBroad)
+    ? getItems().filter(i => opts.isZoneBroad(i) && i.draft === true && i.status !== 'descartado' && i.status !== 'historico')
+    : [];
+  if (opts.showDraftGroup) _attachDraftGroupToggle(body);
+  const _draftGroupHtmlStr = _draftGroupHtml(draftItems);
+
   // TKT2 (REQ CAEL-0721-01): cálculo de _statsBarHtml movido antes del early-return por
   // activeZoneItems vacío (antes solo corría con ítems activos > 0 — el stats-bar desaparecía
   // por completo con Q-Backlog/Q-DISC sin ítems, único camino de _renderZonePanel sin
@@ -367,7 +445,7 @@ export function _renderZonePanel(opts) {
         <div class="empty-state-icon">${_emptyIcon}</div>
         <div class="empty-state-title">${emptyTitle}</div>
         ${_emptyHintHtml}
-      </div>`;
+      </div>` + _draftGroupHtmlStr;
     return;
   }
 
@@ -427,7 +505,7 @@ export function _renderZonePanel(opts) {
         <div class="empty-state-icon">${_emptyIcon}</div>
         <div class="empty-state-title">${emptyTitle}</div>
         <div class="empty-state-hint">Ningún ítem coincide con el filtro activo.</div>
-      </div>`;
+      </div>` + _draftGroupHtmlStr;
     // TKT self-heal-qbacklog: un REQ self-healed (ej. pendiente → en-proceso) puede quedar fuera
     // del filtro activo (ej. filtro de status por 'pendiente') y este early-return se alcanza
     // antes del trigger de saveBacklog al final de la función — sin este disparo, la corrección
@@ -469,7 +547,7 @@ export function _renderZonePanel(opts) {
   });
   html += '</div>';
 
-  body.innerHTML = _bodyPrefixHtml + html;
+  body.innerHTML = _bodyPrefixHtml + html + _draftGroupHtmlStr;
 
   // TKT self-heal-qbacklog: 1 sola escritura por pase de render, sin importar cuántos REQs se
   // corrigieron arriba — mismo criterio de batching que _renderVistaLista. No await — el DOM ya
