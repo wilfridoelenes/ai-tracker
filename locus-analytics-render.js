@@ -1,3 +1,8 @@
+// [PP] mod:15 · autor:Rune · 2026-07-24 UTC-6
+// INC-[pendiente-ID]: listener de 'shell:render-analytics' no existía en ningún módulo — switchTab
+// lo despachaba desde siempre, pero renderAnalytics() nunca se conectó a ese evento. Tab Analytics
+// quedaba en blanco en todo primer render. Fix: window.addEventListener('shell:render-analytics', ...)
+// agregado antes del bloque de delegation existente — ver comentario en el sitio del fix.
 // [PP] mod:14 · autor:Rune · 2026-07-13 UTC-6
 // INC-[pendiente-ID] fix real aplicado: mod:13 documentó "getCurrentTab importado" pero
 // el import y el reemplazo del guard nunca se escribieron en el código — típeo de sesión
@@ -1134,6 +1139,18 @@ function _getAnalyticsAIs() {
 // renderRanking y renderStreak eliminados — reemplazados por KPI cards en renderAnalytics v2
 
 // ── T-042: Heatmap de actividad por día de la semana ──
+
+// INC-[pendiente-ID]: switchTab('analytics') despacha 'shell:render-analytics' (locus-ui-shell.js
+// L206) desde la primera versión del tab — pero ningún módulo tenía addEventListener para ese
+// evento. renderAnalytics() solo se invocaba desde los setters de locus-analytics-core.js
+// (filtros/comparación/período) y desde locus-proj-core.js/locus-sprint-project.js al cambiar
+// proyecto/sprint estando ya en el tab — nunca al entrar por primera vez. #tab-analytics-inner
+// quedaba vacío en todo primer render del tab, en cualquier sesión. Fix: listener wired al mismo
+// evento que el comentario de switchTab() ya declaraba (gap doc-vs-código, mismo patrón que
+// mod:13/mod:14 de este archivo). _markAnalyticsDirty() es obligatorio antes de renderAnalytics()
+// — el guard `if (!_analyticsDirty) return;` (línea ~59) hace no-op sin él, mismo patrón que usan
+// los setters de locus-analytics-core.js.
+window.addEventListener('shell:render-analytics', () => { _markAnalyticsDirty(); renderAnalytics(); });
 
 // ── T8: Delegation — #tab-analytics-inner ────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
