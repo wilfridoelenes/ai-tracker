@@ -1,3 +1,9 @@
+// [PP] mod:3 · autor:Rune · 2026-07-24 UTC-6
+// TKT (REQ CAEL-0724-01): retiro de KE residual — fusionado a PRB.root_cause_confirmed
+// (infra_version 51). Import de _VALID_KE_STATUS retirado. _VALID_KE_TRANSITIONS retirada
+// completa. validateIncidentTransitions() sin ramas itilType==='KE' — solo PRB/default INC.
+// buildIncidentItem() sin 'KE' en la lista de tipos que setean incidentStatus. Sin cambio de
+// comportamiento para itilType 'INC'/'PRB' — verificado, mismos resultados exactos.
 // [PP] mod:2 · autor:Rune · 2026-07-24 UTC-6
 // TKT3 (REQ CAEL-0723-01, ref_id CAEL-0723-01): buildQIncItem() — slaClass (vencido/riesgo)
 // gateado por isSlaClockPaused(item) (locus-backlog-core.js). No toca slaPrioBadge,
@@ -22,7 +28,7 @@ import { _buildCommonItemFields, TYPE_LABELS } from './locus-backlog-item.js';
 import { esc } from './locus-ui-shell.js';
 import { itemKind, isSlaClockPaused } from './locus-backlog-core.js'; // TKT3 (REQ CAEL-0723-01, ref_id CAEL-0723-01): isSlaClockPaused agregado — gatea clases SLA en buildQIncItem()
 import { incSlaPriority, incComportamientoActual, incIncidentStatus, incOriginModule, SLA_RIESGO_WINDOW_MS } from './locus-inc-fields.js';
-import { _VALID_INCIDENT_STATUS, _VALID_PRB_STATUS, _VALID_KE_STATUS } from './locus-session-parse.js';
+import { _VALID_INCIDENT_STATUS, _VALID_PRB_STATUS } from './locus-session-parse.js';
 
 // TKT-PARSER-2a (REQ-[pendiente-ID]): tabla de pares válidos de transición ITIL.
 // Clave: incidentStatus origen. Valor: Set de incidentStatus destino permitidos desde ese origen.
@@ -49,12 +55,9 @@ const _VALID_PRB_TRANSITIONS = {
   // que _VALID_INCIDENT_TRANSITIONS para closed. Fuera de scope de TKT1.
 };
 
-// TKT1 (REQ CAEL-01): tabla de transiciones propia de KE — BR-Core §6.
-// KE nace en 'active' — único estado no terminal del ciclo.
-const _VALID_KE_TRANSITIONS = {
-  active: new Set(['resolved', 'descartado'])
-  // resolved, descartado: estados terminales — sin transiciones salientes declaradas.
-};
+// TKT (REQ CAEL-0724-01): _VALID_KE_TRANSITIONS retirada — KE fusionado a PRB.root_cause_confirmed
+// (infra_version 51), type:'KE' ya no alcanza este archivo desde que _GEN2_TYPES lo excluye
+// (TKT-202607-067, locus-backlog-core.js mod:131) — tabla era código muerto.
 
 // TKT-PARSER-2a (REQ-[pendiente-ID]): valida un par (oldIncidentStatus, newIncidentStatus).
 // No usa VALID_TRANSITIONS (locus-session-save.js) — esa tabla es de status Scrum por tipo,
@@ -67,10 +70,8 @@ const _VALID_KE_TRANSITIONS = {
 // comportamiento exacto de todo caller que no fue actualizado a pasar el tipo.
 export function validateIncidentTransitions(oldIncidentStatus, newIncidentStatus, itilType = 'INC') {
   const _statusSet = itilType === 'PRB' ? _VALID_PRB_STATUS
-    : itilType === 'KE' ? _VALID_KE_STATUS
     : _VALID_INCIDENT_STATUS;
   const _transitions = itilType === 'PRB' ? _VALID_PRB_TRANSITIONS
-    : itilType === 'KE' ? _VALID_KE_TRANSITIONS
     : _VALID_INCIDENT_TRANSITIONS;
   if (!_statusSet.has(oldIncidentStatus) || !_statusSet.has(newIncidentStatus)) {
     // Valor fuera del vocabulario ITIL del tipo — ya debió rechazarse en _buildItilItem (locus-session-parse.js).
@@ -78,17 +79,18 @@ export function validateIncidentTransitions(oldIncidentStatus, newIncidentStatus
     return { valid: true };
   }
   // INC-[pendiente-ID] (gap detectado en auditoría Q-INC): 'descartado' es destino válido desde
-  // CUALQUIER estado no-terminal para los 3 tipos ITIL — BR-Core §6 lo declara sin restricción de
-  // origen ("Cualquier status → descartado | Con justificación explícita en el CHECKPOINT") para
-  // INC y PRB, y _VALID_KE_TRANSITIONS ya lo permitía para KE. Antes de este fix, solo KE tenía la
-  // transición declarada en su tabla — INC/PRB la rechazaban con "transición ITIL inválida" pese a
-  // estar autorizada por BR. Chequeo centralizado aquí (no replicado en las 3 tablas por-tipo) para
+  // CUALQUIER estado no-terminal para INC/PRB — BR-Core §6 lo declara sin restricción de
+  // origen ("Cualquier status → descartado | Con justificación explícita en el CHECKPOINT").
+  // Antes de este fix, INC/PRB la rechazaban con "transición ITIL inválida" pese a estar
+  // autorizada por BR. Chequeo centralizado aquí (no replicado en las tablas por-tipo) para
   // que la regla transversal viva en un solo lugar — mismo criterio de causa raíz que ya motivó
   // extraer _itilStatusSet/_itilStatusList en locus-session-parse.js. 'closed' NO se excluye como
   // origen — BR-Core no declara excepción para closed, la regla es literal "cualquier status".
   // discard_reason (obligatorio en items descartados, ver BR-Ecosystem §5) se valida en el punto
   // de ingesta del patch, no aquí — esta función solo valida el par de estados.
-  if (newIncidentStatus === 'descartado' && oldIncidentStatus !== 'descartado' && itilType !== 'KE') {
+  // TKT (REQ CAEL-0724-01): condición `&& itilType !== 'KE'` retirada — KE fusionado a
+  // PRB.root_cause_confirmed (infra_version 51), ya no existe itilType 'KE' que excluir.
+  if (newIncidentStatus === 'descartado' && oldIncidentStatus !== 'descartado') {
     return { valid: true };
   }
   const _allowed = _transitions[oldIncidentStatus];
@@ -103,7 +105,7 @@ export function buildIncidentItem(item, ctx) {
   return {
     ..._buildCommonItemFields(item, ctx),
     queue: item.queue || null,
-    ...(['INC', 'PRB', 'KE'].includes(_incomingType) ? { incidentStatus: item.incidentStatus || initialStatus } : {}),
+    ...(['INC', 'PRB'].includes(_incomingType) ? { incidentStatus: item.incidentStatus || initialStatus } : {}),
     slaPriority: item.slaPriority || null,
     slaDeadline: item.slaDeadline || null,
     comportamientoActual: item.comportamientoActual || '',

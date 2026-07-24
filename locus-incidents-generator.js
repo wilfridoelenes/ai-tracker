@@ -1,3 +1,20 @@
+// [PP] mod:8 · autor:Rune · 2026-07-23 UTC-6
+// TKT-202607-065 (REQ-202607-018): retiro completo de 'KE' del universo de tipos ITIL activos
+// (fusión KE→PRB.root_cause_confirmed, infra_version 51). _isActiveIncident() sin rama KE —
+// itemKind()==='KE' cae al `return false` final, sin excepción. _buildIndiceMd() sin bloque
+// '### KE' ni clave byType.KE — comentario de columnas por tipo actualizado a 3 tipos (antes
+// 4). _buildItemsMd() sin clave byType.KE — nunca se poblaba de todas formas, ya que itera
+// sobre INCIDENT_TYPES (locus-backlog-core.js, sin 'KE' desde antes de este REQ), retirada
+// por consistencia. Línea Q-INC (`**Q-INC:** INC=N · PRB=N · CHG=N activos`) sin token KE —
+// counts sin clave KE. AC de error verificado: ítem histórico con type:'KE' persistido en
+// Supabase — itemKind(i) devuelve 'KE', byType['KE'] es undefined en ambas funciones builder,
+// `if (byType[t])` falsy, el ítem se excluye del render sin crash — no se migra, comportamiento
+// idéntico al ya vigente para cualquier tipo no reconocido por byType. Sin cambio de firma en
+// ninguna función exportada — signature_change: false. Comentarios de mod-log históricos
+// (líneas 33/46/54/59-60) describen el estado del sistema en TKTs anteriores — no se reescriben,
+// mismo criterio ya aplicado al resto del ecosistema (registro histórico, no estado activo).
+// DDL requerido: no — mismo criterio que locus-backlog-core.js mod:131 y locus-session-parse.js
+// mod:136 (sin columna ni constraint físico afectados).
 // [PP] mod:7 · autor:Rune · 2026-07-22 UTC-6
 // TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-06 · contract_update: sí): _buildItemsMd()
 // refactorizada — el bloque por-ítem se extrae a _buildItemBlockMd(i, t), nueva función
@@ -78,7 +95,7 @@ import {
 const _SLA_ORDER = { high: 0, medium: 1, low: 2 };
 
 // Clasificación de "activo" por tipo — misma semántica de __BR-Ecosystem §5 (Agrupación UI
-// de status por grupo) y __BR-Core §6 (ciclos de vida ITIL), aplicada a INC/PRB/KE/CHG.
+// de status por grupo) y __BR-Core §6 (ciclos de vida ITIL), aplicada a INC/PRB/CHG.
 // CHG es la única excepción de vocabulario (usa status, no incident_status — §4b).
 function _isActiveIncident(i) {
   const t = itemKind(i);
@@ -86,7 +103,6 @@ function _isActiveIncident(i) {
   const st = incIncidentStatus(i);
   if (t === 'INC') return !!st && st !== 'closed' && st !== 'descartado';
   if (t === 'PRB') return st === 'detected' || st === 'in_progress' || st === 'resolved';
-  if (t === 'KE')  return st === 'active';
   return false;
 }
 
@@ -140,13 +156,13 @@ function _riesgoTag(i) {
   return '';
 }
 
-// Sección '## Índice de estado' — un bloque por tipo. sla_priority uniforme en los 4 (TKT2,
+// Sección '## Índice de estado' — un bloque por tipo. sla_priority uniforme en los 3 (TKT2,
 // _ob-DocStandards §3b v1.16): INC: código/título/status/priority/deadline/resolution_type ·
-// PRB: código/título/status/priority/derived_items · KE: código/título/status/priority/
-// comportamiento_actual · CHG: código/título/status/priority/derived_items.
+// PRB: código/título/status/priority/derived_items · CHG: código/título/status/priority/
+// derived_items.
 // Tipo sin ítems activos declara 'ninguno' — nunca se omite.
 function _buildIndiceMd(active) {
-  const byType = { INC: [], PRB: [], KE: [], CHG: [] };
+  const byType = { INC: [], PRB: [], CHG: [] };
   active.forEach(i => {
     const t = itemKind(i);
     if (byType[t]) byType[t].push(i);
@@ -173,17 +189,6 @@ function _buildIndiceMd(active) {
     byType.PRB.forEach(i => {
       const derived = incDerivedItems(i);
       lines.push(`| \`${i.code}\` | ${i.title || '—'} | ${incIncidentStatus(i) || '—'} | ${incSlaPriority(i) || '—'} | ${derived && derived.length ? derived.join(', ') : '—'} |`);
-    });
-    lines.push('');
-  }
-
-  lines.push('### KE', '');
-  if (!byType.KE.length) {
-    lines.push('ninguno', '');
-  } else {
-    lines.push('| Código | Título | Status | Priority | comportamiento_actual (workaround activo) |', '|---|---|---|---|---|');
-    byType.KE.forEach(i => {
-      lines.push(`| \`${i.code}\` | ${i.title || '—'} | ${incIncidentStatus(i) || '—'} | ${incSlaPriority(i) || '—'} | ${incComportamientoActual(i) || '—'} |`);
     });
     lines.push('');
   }
@@ -237,7 +242,7 @@ function _buildItemBlockMd(i, t) {
 // discard_reason — solo se imprime la línea del campo si el ítem lo declara (no listar
 // campos ausentes como '—' aquí; el índice ya cubre ese caso de forma tabular).
 function _buildItemsMd(all) {
-  const byType = { INC: [], PRB: [], KE: [], CHG: [] };
+  const byType = { INC: [], PRB: [], CHG: [] };
   all.forEach(i => {
     const t = itemKind(i);
     if (byType[t]) byType[t].push(i);
@@ -298,7 +303,7 @@ export function _generateIncidentsMd() {
   const projName = proj ? (proj.name || 'Sin proyecto') : 'Sin proyecto';
   const updated = _nowUtc6Str();
 
-  const counts = { INC: 0, PRB: 0, KE: 0, CHG: 0 };
+  const counts = { INC: 0, PRB: 0, CHG: 0 };
   active.forEach(i => {
     const t = itemKind(i);
     if (counts[t] !== undefined) counts[t]++;
@@ -316,7 +321,7 @@ export function _generateIncidentsMd() {
   md += `| Generado por | Locus — exportado desde app |\n`;
   md += '\n---\n\n';
 
-  md += `**Q-INC:** INC=${counts.INC} · PRB=${counts.PRB} · KE=${counts.KE} · CHG=${counts.CHG} activos\n\n`;
+  md += `**Q-INC:** INC=${counts.INC} · PRB=${counts.PRB} · CHG=${counts.CHG} activos\n\n`;
 
   md += _buildIndiceMd(active);
   md += '\n---\n\n';

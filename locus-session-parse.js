@@ -1,3 +1,12 @@
+// [PP] mod:136 · autor:Rune · 2026-07-24 UTC-6
+// TKT (REQ CAEL-0724-01): retiro de KE residual — fusionado a PRB.root_cause_confirmed
+// (infra_version 51). _ITIL_TYPES ya no incluye 'KE'. _VALID_KE_STATUS/_KE_STATUS_LIST
+// retiradas (exports). Rama 'KE' de _buildItilItem retirada (alerta ke-sin-comportamiento-actual
+// ya no aplica). _itilStatusSet/_itilStatusList sin rama KE. 3 mensajes de error corregidos
+// (líneas ~471/1375/2275, antes listaban KE como valor válido) — código ya era inalcanzable
+// vía _validTypes=_GEN2_TYPES desde TKT-202607-067 (locus-backlog-core.js mod:131), este TKT
+// alinea el texto visible al founder y retira el resto del código muerto. Sin cambio de
+// comportamiento para REQ/TKT/DISC/INC/PRB/CHG — verificado, mismos resultados exactos.
 // [PP] mod:135 · autor:Rune · 2026-07-22 22:18 UTC-6
 // TKT3 (REQ CAEL-0721-01): los 3 puntos de construcción de tgItems nunca propagaban
 //   kill_criteria/next_role/design_intent/blocked_at/contract_update desde el ítem parseado —
@@ -424,7 +433,7 @@ const _VALID_STATUSES_GATE = ['done', 'pendiente', 'descartado', 'en-revision'];
 // TKT1 (REQ-[pendiente-ID]): _GEN2_TYPES movida a locus-backlog-core.js — fuente única,
 // importada abajo junto al resto de imports de ese módulo. Sin cambio de valor ni de uso.
 // Tipos cuyo ciclo de vida vive en incident_status (ITIL) — nunca en status (Scrum).
-const _ITIL_TYPES = new Set(['INC', 'PRB', 'KE', 'CHG']);
+const _ITIL_TYPES = new Set(['INC', 'PRB', 'CHG']);
 // Valores válidos de incident_status — BR-Core §6.
 // TKT-PARSER-2a (REQ-[pendiente-ID]): exportadas — locus-backlog-item.js las consume para
 // validar transiciones ITIL en mergeBacklogFromTG sin duplicar la tabla.
@@ -441,8 +450,6 @@ export const _VALID_PRB_STATUS = new Set([
   'detected', 'in_progress', 'resolved', 'closed', 'descartado'
 ]);
 export const _PRB_STATUS_LIST = 'detected · in_progress · resolved · closed · descartado';
-export const _VALID_KE_STATUS = new Set(['active', 'resolved', 'descartado']);
-export const _KE_STATUS_LIST = 'active · resolved · descartado';
 
 // Mensaje canónico BR-Core §6 — REQ/TKT/DISC no pueden asignarse a Q-INC.
 function _isQIncQueue(queue) {
@@ -470,7 +477,7 @@ function _resolveItilQueue(it, projectName, ckptTitulo) {
   if (!_ITIL_TYPES.has(it.type)) {
     // REQ/TKT/DISC nunca debe declarar una queue de Q-INC.
     if (_isQIncQueue(_rawQueue)) {
-      return { error: `Q-INC solo acepta INC/PRB/KE/CHG — ${it.type} ${it.code || '[pendiente-ID]'} no puede asignarse a esta zona` };
+      return { error: `Q-INC solo acepta INC/PRB/CHG — ${it.type} ${it.code || '[pendiente-ID]'} no puede asignarse a esta zona` };
     }
     return { queue: _rawQueue || null };
   }
@@ -562,20 +569,9 @@ function _buildItilItem(it, ckptHeaderRole, projectName, ckptTitulo) {
     }
   }
 
-  // TKT-202607-004 AC2/AC3: KE sin comportamiento_actual → obligatorio (workaround activo,
-  // __BR-Ecosystem §5), pero a diferencia de INC no bloquea la ingesta — solo alerta en DocLog.
-  // El KE se persiste igual, con comportamientoActual: null.
-  if (it.type === 'KE') {
-    const _comportamientoKE = (it.comportamiento_actual || '').trim();
-    if (!_comportamientoKE) {
-      _blogLog(
-        'ke-sin-comportamiento-actual',
-        it.code || '[pendiente-ID]',
-        `KE ${it.code || '[pendiente-ID]'} sin comportamiento_actual — campo obligatorio.`,
-        'backlog'
-      );
-    }
-  }
+  // TKT (REQ CAEL-0724-01): rama 'KE' sin comportamiento_actual retirada — KE fusionado a
+  // PRB.root_cause_confirmed (infra_version 51), type:'KE' ya no alcanza este punto desde que
+  // _GEN2_TYPES lo excluye (TKT-202607-067, locus-backlog-core.js mod:131) — código muerto.
   const _q = _resolveItilQueue(it, projectName, ckptTitulo);
   if (_q.error) return { error: _q.error };
 
@@ -621,15 +617,16 @@ function _buildItilItem(it, ckptHeaderRole, projectName, ckptTitulo) {
   };
 }
 
-// TKT-PARSER-2b: helpers de vocabulario por tipo ITIL — INC/PRB/KE únicamente (CHG no pasa por aquí).
+// TKT-PARSER-2b: helpers de vocabulario por tipo ITIL — INC/PRB únicamente (CHG no pasa por aquí).
+// TKT (REQ CAEL-0724-01): rama 'KE' retirada — KE fusionado a PRB.root_cause_confirmed
+// (infra_version 51). _GEN2_TYPES ya no incluye 'KE' desde TKT-202607-067 (locus-backlog-core.js
+// mod:131), por lo que type:'KE' nunca alcanzaba este punto — código muerto retirado.
 function _itilStatusSet(type) {
   if (type === 'PRB') return _VALID_PRB_STATUS;
-  if (type === 'KE') return _VALID_KE_STATUS;
   return _VALID_INCIDENT_STATUS; // INC
 }
 function _itilStatusList(type) {
   if (type === 'PRB') return _PRB_STATUS_LIST;
-  if (type === 'KE') return _KE_STATUS_LIST;
   return _INCIDENT_STATUS_LIST; // INC
 }
 
@@ -1384,7 +1381,7 @@ export function parsePaste(id) {
           break;
         }
         if (!_validTypes.includes(_it.type)) {
-          _itemError = `Ítem [${_i}]: type inválido "${_it.type}". Valores válidos: REQ · TKT · DISC · INC · PRB · KE · CHG`;
+          _itemError = `Ítem [${_i}]: type inválido "${_it.type}". Valores válidos: REQ · TKT · DISC · INC · PRB · CHG`;
           break;
         }
         // REQ-[pendiente-ID]: ítems ITIL (INC/PRB/KE/CHG) — ciclo de vida vive en incident_status,
@@ -2284,7 +2281,7 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
       break;
     }
     if (!_validTypes.includes(it.type)) {
-      itemError = `Ítem [${i}]: type inválido "${it.type}". Válidos: REQ · TKT · DISC · INC · PRB · KE · CHG`;
+      itemError = `Ítem [${i}]: type inválido "${it.type}". Válidos: REQ · TKT · DISC · INC · PRB · CHG`;
       break;
     }
     if (_ITIL_TYPES.has(it.type)) {
