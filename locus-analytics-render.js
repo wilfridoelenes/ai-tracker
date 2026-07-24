@@ -1,3 +1,17 @@
+// [PP] mod:18 · autor:Rune · 2026-07-24 UTC-6
+// Hallazgo fuera de scope — resuelto en sesión (Excepción de resolución directa: dueño presente,
+// Patch, sin bifurcación de founder): _esc(o.code) en la fila de outliers de Cycle Time era typo
+// de esc(o.code) — _esc nunca se declaró ni importó en ningún módulo de Analytics. esc ya está
+// importada (locus-ui-shell.js) y se usa correctamente dos tokens después en la misma línea.
+// Detectado en auditoría preventiva del mismo patrón de gap doc-vs-código de causas 1/3/4 del
+// INC de esta tanda — no reportado por el founder, encontrado por escaneo heurístico de
+// identificadores sin declarar/importar contra el archivo completo.
+// [PP] mod:17 · autor:Rune · 2026-07-24 UTC-6
+// INC-[pendiente-ID] (mismo INC que mod:15/16, causa 4): _PROD_MIN_SESSIONS se consumía bare en
+// el subtítulo de Patrones de productividad — const de módulo en locus-analytics-charts.js,
+// nunca exportada ni importada aquí. ReferenceError en runtime, mismo patrón de gap doc-vs-código
+// que causas 1 y 3 de este mismo INC. Fix: export agregado en locus-analytics-charts.js (mod:6) +
+// import agregado al bloque ya existente de ese módulo en este archivo.
 // [PP] mod:16 · autor:Rune · 2026-07-24 UTC-6
 // INC-[pendiente-ID] (mismo INC que mod:15, causa 3): _buildCumulativeFlowChart() se invoca en
 // este archivo (línea del gráfico de flujo acumulativo) sin import — la función vive en
@@ -44,7 +58,7 @@
 // _closedForProj en charts.js) no se había propagado a _cycleTimeData (2 sitios) ni a
 // _buildForecastData (1 sitio) — seguían leyendo backlog-items-{id} crudo. Fix: _activeAndHistoricoItems
 // con el mismo criterio done/historico de core.js.
-import { renderCheckpointsByProject, renderHeatmap, renderHourly, renderProductivityPatterns } from './locus-analytics-charts.js';
+import { _PROD_MIN_SESSIONS, renderCheckpointsByProject, renderHeatmap, renderHourly, renderProductivityPatterns } from './locus-analytics-charts.js';
 import { _activeAndHistoricoItems, _analyticsPeriod, _cfProjId, _cfTypeFilter, _closedItemsInRange, _compareProjectIdA, _compareProjectIdB, _delta, _getIntervalsInPeriod, _getPeriodBounds, _openedItemsInRange, _periodLabel, _posTooltip, _prevPeriodLabel, _sessInRange, clearComparison, exportWeeklySummary, getAnalyticsColor, getTooltip, hideAnalyticsTooltip, refreshAnalyticsHistoricoCache, sessionDateKey, setAnalyticsPeriod, setCfProject, setCfType, setCompareProjectA, setCompareProjectB } from './locus-analytics-core.js';
 
 import { navigateToItem } from './locus-item-navigator.js'; // TKT1 (REQ CAEL-04): reubicado — antes en locus-backlog-sprints.js
@@ -698,7 +712,7 @@ export async function renderAnalytics() {
     return outliers.map(o => {
       const kindOut = itemKind({ type: o.itemType });
       const typeClass = kindOut ? `ct-pill-${kindOut.toLowerCase()}` : 'ct-pill-inc';
-      return `<button class="ct-outlier-row" data-action="analytics-goto-item" data-item-code="${_esc(o.code)}" title="Ir al ítem">
+      return `<button class="ct-outlier-row" data-action="analytics-goto-item" data-item-code="${esc(o.code)}" title="Ir al ítem">
         <span class="ct-outlier-code ct-pill ${typeClass}">${esc(o.code)}</span>
         <span class="ct-outlier-title">${esc(o.title.length > 42 ? o.title.slice(0, 42) + '…' : o.title)}</span>
         <span class="ct-outlier-days">${o.days}d</span>
