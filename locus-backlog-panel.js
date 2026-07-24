@@ -1,4 +1,4 @@
-// [PP] mod:31 · autor:Rune · 2026-07-19 UTC-6
+// [PP] mod:32 · autor:Rune · 2026-07-24 UTC-6
 // INC-CAEL-0718-01: agregado window.addEventListener('shell:close-item-panel', closeItemPanel)
 // — el evento que switchTab()/switchSubTab() (locus-ui-shell.js) despachan desde mod:44 nunca
 // tuvo consumidor real. Ver detalle completo junto a closeItemPanel(). Sin cambio de firma,
@@ -405,7 +405,7 @@ function _itemPanelEscHandler(e) {
 // conserva el resto (meta grid, AC, dependencias, origen) hasta que TKT2-4
 // introduzcan los slots por familia. Markup idéntico al previo a este TKT —
 // sin cambio de comportamiento observable.
-const _IDP_TYPE_NAMES = { TKT: 'Ticket', REQ: 'Requerimiento', INC: 'Incidente', DISC: 'Discovery', PRB: 'Problema', KE: 'Known Error', CHG: 'Cambio' };
+const _IDP_TYPE_NAMES = { TKT: 'Ticket', REQ: 'Requerimiento', INC: 'Incidente', DISC: 'Discovery', PRB: 'Problema', CHG: 'Cambio' };
 
 function _buildIdpCore(item, type) {
   // AC error: item ausente → mismo estado vacío que hoy (openItemPanel ya filtra
@@ -540,7 +540,7 @@ function _renderItemPanel(item) {
   // [tmp:tkt4-status-guard]: solo INC/PRB/KE — badge de solo lectura, mismo patrón que DISC.
   // CHG es la excepción dentro de INCIDENT_TYPES: usa vocabulario Scrum real
   // (pendiente/en-revision/done/descartado, __BR-Ecosystem §5) — sigue con el <select> normal.
-  const _ITIL_SCRUM_INCOMPATIBLE = ['INC', 'PRB', 'KE'];
+  const _ITIL_SCRUM_INCOMPATIBLE = ['INC', 'PRB'];
   const _incidentStatusLabels = {
     detected: '● detected', assigned: '● assigned', in_progress: '● in_progress',
     resolved: '✓ resolved', closed: '✓ closed',
