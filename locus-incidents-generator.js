@@ -1,3 +1,17 @@
+// [PP] mod:10 · autor:Rune · 2026-07-24 11:20 UTC-6
+// TKT-202607-087 (parent: REQ-202607-018, gap de integración detectado por Finn en Momento 2 —
+// cierre de REQ): _isActiveIncident() agrega 'root_cause_confirmed' al set activo de PRB — antes
+// solo detected/in_progress/resolved. El retiro de la rama KE en mod:8 (TKT-202607-065) eliminó el
+// tipo separado sin trasladar su semántica de "activo" al estado que lo absorbió (PRB.root_cause_
+// confirmed, infra_version 51), dejando a todo PRB en ese status fuera de '## Índice de estado' y
+// sin contar en 'PRB=N' de '## Estado actual' — pese a que __BR-Ecosystem §5 (Agrupación UI de
+// status por grupo) declara root_cause_confirmed como "Activo ITIL" para PRB, y a que
+// _ob-DocStandards §3b exige explícitamente que un PRB en ese status sea "visible en el Índice de
+// estado", no solo en el ítem completo. Único cambio: una condición adicional en el OR de la rama
+// PRB de _isActiveIncident(). closed/descartado siguen retornando false — sin regresión sobre el
+// filtro ya vigente. Sin cambio de firma — signature_change: false. contract_update: sí (ver
+// contract_detail de TKT-202607-087) — side effect declarado: cambia el conjunto `active` que
+// consumen _buildIndiceMd() y counts.PRB en _generateIncidentsMd().
 // [PP] mod:9 · autor:Rune · 2026-07-24 UTC-6
 // TKT2 (parent: REQ-202607-018): alinea _generateIncidentsMd()/_buildIndiceMd() a
 // _ob-DocStandards §3b. (1) Header '## Estado actual' agregado antes de la línea
@@ -118,7 +132,7 @@ function _isActiveIncident(i) {
   if (t === 'CHG') return i.status === 'pendiente' || i.status === 'en-revision';
   const st = incIncidentStatus(i);
   if (t === 'INC') return !!st && st !== 'closed' && st !== 'descartado';
-  if (t === 'PRB') return st === 'detected' || st === 'in_progress' || st === 'resolved';
+  if (t === 'PRB') return st === 'detected' || st === 'in_progress' || st === 'root_cause_confirmed' || st === 'resolved';
   return false;
 }
 

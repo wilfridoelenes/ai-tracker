@@ -1,3 +1,8 @@
+// [PP] mod:65 · autor:Rune · 2026-07-24 UTC-6
+// TKT-202607-078 — fix devuelto por Finn: _blockBadge usaba label estático 'atención' para el
+// estado 'con flags'; AC3 real de TKT-202607-077 exige conteo dinámico ("2 flags"). Corregido
+// a flagCount = retroceso.filter(idx) + discarded.filter(idx), singular/plural 'flag'/'flags'.
+// Label 'ok' renombrado a 'sin flags' — alineado al nombre del AC1 de TKT-077.
 // [PP] mod:64 · autor:Rune · 2026-07-24 UTC-6
 // TKT-202607-078 — fix de 2 bugs devueltos por Finn (Momento 1) sobre AC corregido por Cael:
 // (1) _buildAttributedCardsBlock ahora filtra por meta.idx explícito en vez del índice de
@@ -1012,9 +1017,13 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // meta. 'ok' en cualquier otro caso con ítems.
   const _blockBadge = (metaIdx, itemsHtmlArr) => {
     if (!itemsHtmlArr.length) return { cls: 'skipped', label: 'no leído' };
-    const _hasFlag = (Array.isArray(diff.retroceso) && diff.retroceso.some(i => i && i.idx === metaIdx))
-      || (Array.isArray(diff.discarded) && diff.discarded.some(i => i && i.idx === metaIdx));
-    return _hasFlag ? { cls: 'flag', label: 'atención' } : { cls: 'ok', label: 'ok' };
+    // AC3 de TKT-202607-077 (verificado por Finn contra AC literal, no solo contra la
+    // interpretación previa): el badge 'con flags' muestra el conteo real, ej. "2 flags" — no
+    // un texto fijo. flagCount = retroceso + discarded de este bloque específico.
+    const _flagCount = (Array.isArray(diff.retroceso) ? diff.retroceso.filter(i => i && i.idx === metaIdx).length : 0)
+      + (Array.isArray(diff.discarded) ? diff.discarded.filter(i => i && i.idx === metaIdx).length : 0);
+    if (!_flagCount) return { cls: 'ok', label: 'sin flags' };
+    return { cls: 'flag', label: `${_flagCount} flag${_flagCount === 1 ? '' : 's'}` };
   };
 
   const _buildAttributedCardsBlock = () => {

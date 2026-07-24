@@ -1,3 +1,31 @@
+// [PP] mod:141 · autor:Rune · 2026-07-24 UTC-6
+// TKT1 (REQ CAEL-0724-10, ref_id CAEL-0724-10): retirado 'KE' de los 6 arrays literales de
+// gating ITIL — _skipScrumGate (L2529), _isItilExisting (L2565), gate incidentStatus-status
+// (L3286), gate field==='incidentStatus' (L3357), no-op de priority (L3527), no-op de campos
+// ITIL exclusivos (L3544). Cierra el residuo que la entrada previa de _Locus-module-contracts
+// declaraba falsamente cerrado (ver mod:127 de ese doc, mismo hilo) — 'KE' era inalcanzable en
+// los 6 puntos desde la fusión KE→PRB.root_cause_confirmed (infra_version 51, _GEN2_TYPES sin
+// esa clave desde locus-backlog-core.js mod:131). Sin cambio de comportamiento para INC/PRB/CHG
+// reales — mismos 3/4 elementos restantes en cada array, mismo orden de evaluación. Grep
+// exhaustivo post-cambio: 0 ocurrencias de 'KE' en código ejecutable de este archivo.
+// [PP] mod:140 · autor:Rune · 2026-07-24 UTC-6
+// TKT4 (TKT-202607-068, REQ-202607-018): último residuo vivo del vocabulario KE en este
+// archivo — cerrado. (1) TYPE_LABELS: entrada 'KE' retirada — ya inalcanzable desde que
+// itemKind() no puede resolver 'KE' (_GEN2_TYPES, locus-backlog-core.js mod:131). Fallback
+// `type || '—'` en los 2 consumidores (buildBacklogItem local, buildQIncItem vía import
+// desde locus-incidents-item.js) cubre el caso sin cambio de comportamiento observable.
+// (2) _isChildDone(): rama `itemKind(item)==='KE' && incident_status==='resolved'` retirada
+// (también inalcanzable por el mismo motivo — AC3 del TKT, sin regresión) y reemplazada por
+// rama propia `itemKind(item)==='PRB' && incident_status==='resolved'` → true (AC2 del TKT) —
+// un PRB en 'resolved' (fix implementado, pendiente de verificación de Finn hacia 'closed',
+// __BR-Core §6) cuenta como hijo completo para el % de progreso del REQ en _buildChildrenBlock(),
+// mismo criterio que antes aplicaba a KE 'resolved' antes de la fusión KE→PRB.root_cause_confirmed
+// (infra_version 51). AC4 (línea ~935, INCIDENT_TYPES.includes('PRB') en _buildChildrenBlock)
+// verificado sin regresión — INCIDENT_TYPES se importa de locus-backlog-core.js, no tocado por
+// este TKT, ya incluye PRB desde la migración de _GEN2_TYPES (TKT6/REQ-202607-018, mod:131 de
+// ese archivo). Sin cambio de firma en ninguna de las dos funciones — ambas locales/no exportadas
+// salvo TYPE_LABELS (export sin cambio de forma, solo contenido). contract_update: sí — ver
+// CHECKPOINT de TKT4.
 // [PP] mod:139 · autor:Rune · 2026-07-24 UTC-6
 // TKT-078 (REQ-202607-022, ref_id CAEL-0724-05): mergeBacklogFromTG — idx (propagado a cada
 // ítem de tgItems por _resolveCheckpointBatch/TKT-076, locus-session-parse.js) ahora se
@@ -509,7 +537,7 @@ const _BLOCKED_DAYS = 14;
 export const _collapsedChildren = new Set();
 
 // Labels de tipo de ítem para display en UI
-export const TYPE_LABELS = { REQ: 'Requerimiento', TKT: 'Ticket', INC: 'Incidente', DISC: 'Discovery', PRB: 'Problem', KE: 'Known Error', CHG: 'Change' }; // TKT-B2a: PRB/KE/CHG — ningún ítem ITIL muestra undefined en badge de tipo. TKT1 (REQ split-itil-item): exportada — buildQIncItem() la consume y se mueve a locus-incidents-item.js en TKT2
+export const TYPE_LABELS = { REQ: 'Requerimiento', TKT: 'Ticket', INC: 'Incidente', DISC: 'Discovery', PRB: 'Problem', CHG: 'Change' }; // TKT-B2a: PRB/CHG — ningún ítem ITIL muestra undefined en badge de tipo. TKT1 (REQ split-itil-item): exportada — buildQIncItem() la consume y se mueve a locus-incidents-item.js en TKT2. TKT4 (TKT-202607-068, REQ-202607-018): entrada 'KE' retirada — fusión KE→PRB.root_cause_confirmed (infra_version 51); itemKind() ya no puede resolver a 'KE' desde _GEN2_TYPES (locus-backlog-core.js mod:131), la clave era inalcanzable. Fallback `type || '—'`/`type` en ambos consumidores (buildBacklogItem local, buildQIncItem vía import) cubre cualquier valor no mapeado sin cambio de comportamiento observable.
 
 // INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass consolidados en
 // locus-backlog-core.js — importadas arriba. Las copias locales generaban clases CSS
@@ -912,7 +940,13 @@ export function _attachBacklogDnD() {
 function _isChildDone(item) {
   if (item.status === 'done') return true;
   if (item.incident_status === 'closed') return true; // INC/PRB
-  if (itemKind(item) === 'KE' && item.incident_status === 'resolved') return true;
+  // TKT4 (TKT-202607-068, REQ-202607-018): rama KE retirada — fusión KE→PRB.root_cause_confirmed
+  // (infra_version 51), itemKind() ya no puede resolver a 'KE' (_GEN2_TYPES sin esa clave desde
+  // locus-backlog-core.js mod:131), la rama era inalcanzable desde antes de este TKT. Reemplazada
+  // por rama propia de PRB — un PRB en 'resolved' (fix implementado, pendiente de verificación de
+  // Finn hacia 'closed', __BR-Core §6) cuenta como hijo completo para el progreso del REQ, mismo
+  // criterio que antes aplicaba a KE 'resolved' antes de la fusión.
+  if (itemKind(item) === 'PRB' && item.incident_status === 'resolved') return true;
   return false;
 }
 
@@ -2502,7 +2536,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
       // vocabulario. La validación real de estos 3 tipos vive en el bloque ITIL dedicado de abajo
       // (validateIncidentTransitions). CHG no se excluye — su vocabulario es Scrum-compatible
       // (pendiente/en-revision/done/descartado) y este bloque lo valida correctamente.
-      const _skipScrumGate = ['INC', 'PRB', 'KE'].includes(itemKind(existing));
+      const _skipScrumGate = ['INC', 'PRB'].includes(itemKind(existing));
       if (!_skipScrumGate && newStatus && newStatus !== oldStatus && !item._noStatus) {
         const _existingKind = itemKind(existing);
         if (_existingKind !== null) {
@@ -2538,7 +2572,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
       // (validateIncidentTransitions). CHG sí pasa por el bloque Scrum (vocabulario compatible)
       // y no entra a esta rama de incidentStatus porque no lo declara.
       const _existingKindItil = itemKind(existing);
-      const _isItilExisting = ['INC', 'PRB', 'KE', 'CHG'].includes(_existingKindItil);
+      const _isItilExisting = ['INC', 'PRB', 'CHG'].includes(_existingKindItil);
       let _noIncidentStatus = false;
       if (_isItilExisting && item.incidentStatus && item.incidentStatus !== existing.incidentStatus) {
         // TKT1 (REQ CAEL-01): _existingKindItil pasado como itilType — antes siempre validaba
@@ -3259,7 +3293,7 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
         // del vocabulario. CHG no se excluye — usa status con vocabulario Scrum por diseño
         // (BR-Ecosystem §4b, excepción de vocabulario), no tiene incidentStatus paralelo.
         const _statusPatchKind = itemKind(existing);
-        if (['INC', 'PRB', 'KE'].includes(_statusPatchKind)) {
+        if (['INC', 'PRB'].includes(_statusPatchKind)) {
           _blogLog(
             'patch-status-en-itil-ignorado',
             code,
@@ -3330,7 +3364,7 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
       if (field === 'incidentStatus') {
         // INC-[pendiente-ID]: incidentStatus solo aplica a tipos ITIL — no-op silencioso en el resto
         const _patchItilKind = itemKind(existing);
-        if (!['INC', 'PRB', 'KE'].includes(_patchItilKind)) return;
+        if (!['INC', 'PRB'].includes(_patchItilKind)) return;
         if (incoming && incoming !== existing.incidentStatus) {
           // TKT1 (REQ CAEL-01): _patchItilKind pasado como itilType — antes siempre validaba
           // contra la tabla de INC, sin distinguir PRB/KE.
@@ -3500,7 +3534,7 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
       // sla_priority." El bloque genérico de abajo no distinguía tipo — un patch con
       // priority sobre un INC lo aplicaba igual. No-op explícito agregado, sin log (silencioso
       // por spec — el patch no es un error, solo no aplica a este tipo de ítem).
-      if (field === 'priority' && ['INC', 'PRB', 'KE', 'CHG'].includes(itemKind(existing))) {
+      if (field === 'priority' && ['INC', 'PRB', 'CHG'].includes(itemKind(existing))) {
         return;
       }
       // TKT3 (REQ CAEL-0720-1x): parentId exclusivo de TKT (__BR-Ecosystem §5) — mismo gate que
@@ -3517,7 +3551,7 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
       // restricción. No-op silencioso, sin log — el campo simplemente no aplica a este tipo, no
       // es un error del emisor (mismo criterio que el no-op de priority).
       if (['slaPriority', 'slaDeadline', 'resolutionType', 'comportamientoActual', 'originModule', 'derivedItems'].includes(field)
-          && !['INC', 'PRB', 'KE', 'CHG'].includes(itemKind(existing))) {
+          && !['INC', 'PRB', 'CHG'].includes(itemKind(existing))) {
         return;
       }
       if (field === 'parentId' && itemKind(existing) !== 'TKT') {
