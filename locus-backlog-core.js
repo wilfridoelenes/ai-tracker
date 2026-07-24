@@ -336,7 +336,7 @@ export const _GEN2_TYPES = ['REQ', 'TKT', 'DISC', 'INC', 'PRB', 'KE', 'CHG'];
 // 7 tipos consumido por locus-backlog-item.js/locus-session-parse.js para validación,
 // no para discriminar array de destino.
 export const BACKLOG_TYPES = ['REQ', 'TKT', 'DISC'];
-export const INCIDENT_TYPES = ['INC', 'PRB', 'KE', 'CHG'];
+export const INCIDENT_TYPES = ['INC', 'PRB', 'CHG'];
 
 var ITEMS = (() => { // ESM-B: var para evitar TDZ en grafo circular — migrar a módulo de estado en PP-S-10
   // T-202604-006: leer clave por proyecto activo sin depender de _tplKey (aún no definida)
@@ -654,7 +654,7 @@ const _subtabNSDefaults = {
     statuses: ['discovery','pendiente','en-revision','done','descartado','promoted']
   },
   qinc: {
-    types:    ['INC','PRB','KE','CHG'],
+    types:    ['INC','PRB','CHG'],
     statuses: ['detected','assigned','in_progress','resolved','closed','escalated_to_prb','escalated_to_chg','descartado']
   }
 };
@@ -754,7 +754,7 @@ const _collapsedChildren = new Set();
 // T-049: window.state de filtros mixtos
 // TKT-A2: activeTypes por defecto incluye los 7 tipos Gen2 — PRB/KE/CHG no quedan
 // filtrados fuera por default aunque normalmente vivan en Q-INC, no en el Backlog regular.
-let activeTypes = new Set(['TKT','REQ','INC','DISC','PRB','KE','CHG']);
+let activeTypes = new Set(['TKT','REQ','INC','DISC','PRB','CHG']);
 // T-202606-021: clave canónica para persistencia de activeStatuses
 const _ACTIVE_STATUSES_KEY = 'locus-active-statuses';
 function _loadActiveStatuses() {
@@ -1356,13 +1356,13 @@ function _normalizeQincGate(items) {
   // BR-Core §6: Q-INC solo acepta INC/PRB/KE/CHG — ningún REQ, TKT ni DISC puede asignarse a Q-INC.
   items.forEach(item => {
     if (!item.queue || !item.queue.endsWith('-Q-INC')) return;
-    const _qincTypes = ['INC', 'PRB', 'KE', 'CHG'];
+    const _qincTypes = ['INC', 'PRB', 'CHG'];
     const _type = itemKind(item);
     if (!_qincTypes.includes(_type)) {
       _blogLog(
         'qinc-rejected',
         item.code || '(sin código)',
-        `Q-INC solo acepta INC/PRB/KE/CHG — ${_type || item.type} ${item.code || '(sin código)'} no puede asignarse a esta zona`,
+        `Q-INC solo acepta INC/PRB/CHG — ${_type || item.type} ${item.code || '(sin código)'} no puede asignarse a esta zona`,
         'backlog'
       );
       delete item.queue; // tipo no válido para Q-INC — queue limpiado
@@ -1562,7 +1562,7 @@ export function itemKind(item) {
 // T-049 (histórico): versión original operaba sobre T/R/B/P
 // B-202604-146: reset explícito de filtros de tipo
 function clearTypeFilters() {
-  activeTypes = new Set(['TKT','REQ','INC','DISC','PRB','KE','CHG']);
+  activeTypes = new Set(['TKT','REQ','INC','DISC','PRB','CHG']);
   updateTypeFilterUI();
   window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
 }
@@ -1575,7 +1575,7 @@ export function toggleTypeFilter(type) {
   } else if (activeTypes.has(type)) {
     // click en activo: si es el único, restaura todos
     if (activeTypes.size === 1) {
-      activeTypes = new Set(['TKT','REQ','INC','DISC','PRB','KE','CHG']);
+      activeTypes = new Set(['TKT','REQ','INC','DISC','PRB','CHG']);
     } else {
       activeTypes.delete(type);
     }
@@ -1597,7 +1597,7 @@ export function toggleTypeFilter(type) {
 }
 function updateTypeFilterUI() {
   // [tmp:tkt-typefilter-gen2]: iteración sobre 7 códigos Gen2 — Gen1 (T/R/B/P) eliminados
-  ['REQ','TKT','INC','DISC','PRB','KE','CHG'].forEach(t => {
+  ['REQ','TKT','INC','DISC','PRB','CHG'].forEach(t => {
     const btn = document.getElementById('ftype-' + t);
     if (btn) btn.classList.toggle('active', activeTypes.has(t));
     // chips accionables en stats bar
@@ -2589,7 +2589,7 @@ export function toggleSectionGroup(key) {
 
 // T-109: limpiar todos los filtros
 export function clearAllFilters() {
-  activeTypes = new Set(['TKT','REQ','INC','DISC','PRB','KE','CHG']);
+  activeTypes = new Set(['TKT','REQ','INC','DISC','PRB','CHG']);
   activeStatuses = new Set(['pendiente', 'en-revision']);
   try { localStorage.removeItem(_ACTIVE_STATUSES_KEY); } catch {} // T-202606-021: reset persiste
   activeEfforts = new Set([1, 2, 3]); // T-071
