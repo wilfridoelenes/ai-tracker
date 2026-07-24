@@ -1,3 +1,13 @@
+// [PP] mod:62 · autor:Rune · 2026-07-24 UTC-6
+// Fix de regresión (hallazgo de Finn, Momento 1 de TKT-202607-076): _resolveCheckpointBatch
+// (locus-session-parse.js, TKT1/REQ CAEL-0724-02) ahora agrega idx a cada objeto de tgItems
+// Y patchItems para permitir agrupar por bloque en el panel DIFF. _buildPatchCard enumera
+// TODAS las claves propias de patchItem vía Object.keys() para construir la lista de "campos
+// que cambian" — sin este fix, idx aparecía como cambio falso ("idx: (código no encontrado) →
+// N") en la tarjeta de preview de cualquier patch dentro de un batch de 2+ CHECKPOINTs. 'idx'
+// agregado a _PATCH_BLACKLIST — mismo criterio que 'type'/'code'/'schema_version'/'ref_id'/
+// 'intencion'/'kill_criteria': es marcador de infraestructura del batch, no un campo del ítem
+// que el founder deba ver como "cambiado". contract_update: sí — ver CHECKPOINT de TKT-076.
 // [PP] mod:61 · autor:Rune · 2026-07-20 21:40 UTC-6
 // TKT2 (REQ CAEL-0720-02 · fix sobre mod:60): bug reportado por Finn en auditoría —
 // _mdiffUnresolvedRemove no revertía target[field] cuando field es array (dependsOn), porque
@@ -602,7 +612,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // CAEL-0720-01 TKT1: campos no patcheables de __BR-Ecosystem §8 — nunca generan chip. 'type'
   // incluido porque en el objeto patch su valor es siempre 'patch' (marcador de instrucción del
   // parser), no el tipo del ítem — mostrarlo como campo que "cambia" sería ruido, no información.
-  const _PATCH_BLACKLIST = ['type', 'code', 'schema_version', 'ref_id', 'intencion', 'kill_criteria'];
+  const _PATCH_BLACKLIST = ['type', 'code', 'schema_version', 'ref_id', 'intencion', 'kill_criteria', 'idx'];
   // Función pura — no invoca mergeBacklogFromTG ni applyPatchesFromTG, solo lee patchItem y
   // existingItem para construir el string HTML. El lookup de existingItem lo resuelve el caller
   // (map sobre _patchItems, ver bloque de sección 'patches' más abajo) vía getAnyItem(code) —

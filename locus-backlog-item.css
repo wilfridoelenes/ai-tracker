@@ -1,3 +1,10 @@
+/* [PP] mod:74 · autor:Nova · 2026-07-24 UTC-6 */
+/* TKT-202607-077 (REQ-202607-022, ref_id CAEL-0724-04): familia .mdiff-block-badge — 3
+   modificadores (ok/flag/skipped) para el badge de estado por tarjeta atribuida en el Panel
+   de Revisión (#merge-diff-overlay), consumidos por TKT-078 vía idx (TKT-076). Sin tokens
+   nuevos — reuso exclusivo de --green/--green-text, --amber/--amber-text, --red/--red-text,
+   --bg-danger-subtle, --radius-pill, --text-xs, todos ya definidos y verificados WCAG AA.
+   Mismo patrón que .spi-item-status--en-revision (color-mix 10%/28% + token -text). */
 /* [PP] mod:73 · autor:Nova · 2026-07-23 19:23 UTC-6 */
 /* Corrección Patch (Opción A, founder aprobó "Ok adelante A"): .correct-hora-wip-check usaba
    --amber/--amber-text — tokens de otro estado semántico. WIP corresponde a ai.interrupted,
@@ -4530,3 +4537,34 @@ body {
 }
 
 /* ══ END mdiff-unresolved ══ */
+
+/* ══ mdiff-block-badge — TKT-202607-077 (REQ-202607-022) ══ */
+/* Badge de estado por tarjeta atribuida — 3 estados: sin flags / con flags / no leído.
+   Consumido por TKT-078 (render de sub-diff por bloque, usando idx de TKT-076). */
+.mdiff-block-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-xs);
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+}
+
+.mdiff-block-badge--ok {
+  background: color-mix(in srgb, var(--green) 10%, transparent);
+  color: var(--green-text);
+  border-color: color-mix(in srgb, var(--green) 28%, transparent);
+}
+
+.mdiff-block-badge--flag {
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
+  color: var(--amber-text);
+  border-color: color-mix(in srgb, var(--amber) 28%, transparent);
+}
+
+.mdiff-block-badge--skipped {
+  background: var(--bg-danger-subtle);
+  color: var(--red-text);
+  border-color: color-mix(in srgb, var(--red) 28%, transparent);
+}
+/* ══ END mdiff-block-badge ══ */
