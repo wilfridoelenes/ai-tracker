@@ -1,4 +1,8 @@
-// [PP] mod:52 · autor:Rune · 2026-07-22 22:18 UTC-6
+// [PP] mod:53 · autor:Rune · 2026-07-23 19:23 UTC-6
+// TKT3 (CAEL-0723-04): retirado [data-action="interrupt"] del dot-menu — toggle de
+// interruptBtn, delegación B-202605-017 y case 'dismiss-interrupted' (código muerto,
+// sin trigger de markup) eliminados. Import de confirmInterruptInline/dismissInterrupted
+// limpiado. El checkbox de WIP (TKT1/TKT2) reemplaza esta acción.
 // INC-[pendiente-ID]: avatarEl.textContent → innerHTML en _populateWorkerHeader() (L836) —
 // ai.avatar es markup SVG; con textContent se pintaba como texto crudo (path data visible
 // en pantalla, ver captura del founder). Mismo patrón ya usado en #pop-avatar.
@@ -36,7 +40,7 @@ import { archiveAI, closeCardMenu, confirmClear, deleteAI, openAddAI, openAvatar
 
 import { downloadReport } from './locus-reports.js';
 
-import { openQuickCapture, confirmInterruptInline, dismissInterrupted } from './locus-sesiones-capture.js'; // T-202606-089 AC-3
+import { openQuickCapture } from './locus-sesiones-capture.js'; // T-202606-089 AC-3
 
 import { STATUS_LABELS, handlePaste, handleInput, _processIngestBatch } from './locus-session-parse.js';
 // T-202606-058: registry extraído a locus-sesiones-registry.js (módulo sin dependencias).
@@ -932,10 +936,9 @@ function _populateWorkerHeader(ai) {
     if (dropdown) dropdown.id = 'dotmenu-' + ai.id;
     wrap.querySelectorAll('[data-action]').forEach(el => { el.dataset.aiId = ai.id; });
 
-    // interrupt (disponible) vs corregir-hora (agotada) — mutuamente excluyentes, igual que buildCard
-    const interruptBtn = wrap.querySelector('[data-action="interrupt"]');
+    // corregir-hora (agotada) — TKT3 (CAEL-0723-04): 'interrupt' retirado del dot-menu, el
+    // checkbox de WIP en Quick Capture / modal "Editar worker agotado" reemplaza esta acción.
     const correctHoraBtn = wrap.querySelector('[data-action="dot-correct-hora"]');
-    if (interruptBtn) interruptBtn.classList.toggle('is-hidden', !isAvail);
     if (correctHoraBtn) correctHoraBtn.classList.toggle('is-hidden', isAvail);
 
     // descargar reporte — deshabilitado con <2 sesiones, igual que buildCard
@@ -1194,22 +1197,9 @@ export function _openIngestModal(aiId) {
 // T-202606-085: re-export para preservar compatibilidad — implementación movida a locus-sesiones-utils.js
 export { _hoyMsUntilReset, _hoyCountdownLabel } from './locus-sesiones-utils.js';
 
-// ── B-202605-017: Delegación para [data-action="interrupt"] ──
-// Reemplaza onclick="confirmInterruptInline('${ai.id}',this)" en el template del dropdown.
-// Delegación en #tab-sesiones (contenedor estático raíz) — el dotmenu es dinámico.
-document.addEventListener('DOMContentLoaded', () => {
-  const tabSesiones = document.getElementById('tab-sesiones');
-  if (tabSesiones) {
-    tabSesiones.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-action="interrupt"]');
-      if (btn) {
-        const aiId = btn.dataset.aiId;
-        if (aiId) confirmInterruptInline(aiId, btn);
-      }
-    });
-  }
-});
-// ── END B-202605-017 ──
+// ── B-202605-017 — retirada (TKT3, CAEL-0723-04): la acción [data-action="interrupt"] ya
+// no existe en el dot-menu (ver index.html mod:154) — reemplazada por el checkbox de WIP en
+// Quick Capture (TKT1) y en el modal "Editar worker agotado" (TKT2). Delegación eliminada.
 
 // ── T-202605-057: Delegación dblclick — sc-avatar → startRename ──────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -1286,10 +1276,6 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'open-quick-capture':
         e.stopPropagation();
         openQuickCapture(aiId);
-        break;
-      // Interrupted banner
-      case 'dismiss-interrupted':
-        dismissInterrupted(aiId);
         break;
       // Popup ref pill (stopPropagation)
       case 'open-detail-stop':

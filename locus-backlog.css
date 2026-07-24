@@ -1,4 +1,7 @@
-/* [PP] mod:121 · autor:Nova · 2026-07-22 UTC-6 */
+/* [PP] mod:122 · autor:Nova · 2026-07-23 19:23 UTC-6 */
+/* Limpieza inline (resolución directa — dueña presente, Patch, sin bifurcación de founder):
+   .dot-confirm-row/-label/-ok/-cancel retirado — código muerto, ver hallazgo de Rune
+   (CHECKPOINT TKT1/TKT2/TKT3 CAEL-0723-02/03/04). */
 /* TKT-A/TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-05/06): .qinc-item.qinc-item--sla-vencido
    gana border-left:3px solid var(--red-border) (mismo token que .worker-header-unlock).
    .qinc-item-meta-secondary nueva — línea origin_module/role, clickeable, reusa tratamiento
@@ -2508,51 +2511,13 @@
    .card-dot-divider/.card-dot-dropdown .danger-zone eliminado — superseded por
    locus-sesiones-card.css (B-202605-020, portal position:fixed + --card-menu-top/-left).
    Cero consumidor en index.html ni en ningún otro .css del codebase — confirmado con grep
-   completo antes de eliminar. .dot-confirm-row se conserva — consumidor activo declarado
-   abajo. Ver _Locus-css-ref §AI Card rediseño — familia sc-* + card-dot-* (ya documentaba
-   solo la versión viva de locus-sesiones-card.css). */
+   completo antes de eliminar. Ver _Locus-css-ref §AI Card rediseño — familia sc-* + card-dot-*
+   (ya documentaba solo la versión viva de locus-sesiones-card.css). */
 
-/* T-093: inline confirm row */
-.dot-confirm-row {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 10px;
-  background: rgb(232 168 50 / 7%);
-  border-top: 1px solid rgb(232 168 50 / 20%);
-  border-bottom: 1px solid rgb(232 168 50 / 20%);
-}
-
-.dot-confirm-label {
-  font-size: var(--text-xs);
-  color: var(--amber-text);
-  flex: 1;
-}
-
-.dot-confirm-ok {
-  font-size: var(--text-xs);
-  padding: 2px 8px;
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--amber);
-  background: rgb(232 168 50 / 15%);
-  color: var(--amber-text);
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.dot-confirm-ok:hover {
-  background: rgb(232 168 50 / 30%);
-}
-
-.dot-confirm-cancel {
-  font-size: var(--text-xs);
-  padding: 2px 7px;
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--border2);
-  background: transparent;
-  color: var(--text2);
-  cursor: pointer;
-}
+/* .dot-confirm-row/-label/-ok/-cancel retirado (limpieza inline, TKT3 CAEL-0723-04):
+   único consumidor era confirmInterruptInline() (locus-sesiones-capture.js), retirada al
+   eliminar 'Interrumpir' del dot-menu — reemplazado por el checkbox de WIP (CAEL-0723-02/03).
+   Confirmado sin consumidor en JS/HTML antes de eliminar (grep repo-wide, cero coincidencias). */
 /* T-202604-004: Card protagonista */
 .card.focus-active {
   box-shadow: 0 8px 40px rgb(0 0 0 / 60%), 0 0 0 1px var(--accent-border);

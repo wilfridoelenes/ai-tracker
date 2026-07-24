@@ -1,12 +1,15 @@
-// [PP] mod:18 · autor:Rune · 2026-07-17 15:40 UTC-6
+// [PP] mod:19 · autor:Rune · 2026-07-23 19:23 UTC-6
 // locus-sesiones-capture.js
-// Responsabilidad: Quick Capture modal (stepper de 2 pasos) + Sesión interrumpida (T-055).
+// Responsabilidad: Quick Capture modal (stepper de 2 pasos) + estado de WIP (interrupted, T-055).
 // Dependencias: locus-sesiones-stats.js · locus-storage.js · locus-toast.js
+// TKT1/TKT3 (CAEL-0723-02/04): checkbox #quick-wip cableado en confirmQuickCapture() →
+// interruptSession(id). confirmInterruptInline/cancelInterruptInline retiradas (huérfanas,
+// dot-menu 'Interrumpir' eliminado — ver locus-sesiones.js mod:53). interruptSession()
+// simplificada a mutador puro (sin _gconfirmOpen anidado ni save/toast propios). Imports
+// huérfanos _gconfirmOpen/closeCardMenu retirados.
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 import { showToast, toast } from './locus-toast.js';
 
-
-import { _gconfirmOpen } from './locus-modals.js';
 
 import { _horaUpdate, interpretHora } from './locus-session-hora.js';
 
@@ -14,7 +17,7 @@ import { getAI, getActiveProject, getState, save, saveImmediate } from './locus-
 
 import { esc, getCurrentTab } from './locus-ui-shell.js';
 
-import { closeCardMenu, openAddAI } from './locus-workers.js';
+import { openAddAI } from './locus-workers.js';
 
 // ── R-[pendiente-ID]: Quick Capture — modal unificado con stepper ──
 // Reemplaza: T-071 (quick-modal-overlay) + selectAIForQuickCapture (ai-quick-select-modal)
@@ -141,6 +144,8 @@ export function openQuickCapture(id) {
   _qcEl('quick-summary').value = '';
   _qcEl('quick-hora').value = '';
   _qcEl('quick-hora-disp').textContent = 'hora de desbloqueo (opcional)';
+  const _qcWipReset = _qcEl('quick-wip');
+  if (_qcWipReset) _qcWipReset.checked = false;
 
   const available = (getState().ais || []).filter(a => !a.archived);
 
@@ -280,6 +285,11 @@ function confirmQuickCapture() {
     ai.resetEpoch = horaResult.epoch;
   }
 
+  // TKT1 (CAEL-0723-02): checkbox "Este worker tiene un WIP" — invoca interruptSession()
+  // (mutador puro, sin modal ni save propio) antes del guardado único de _qcAttemptSave.
+  const _qcWipEl = _qcEl('quick-wip');
+  if (_qcWipEl && _qcWipEl.checked) interruptSession(ai.id);
+
   // TKT1 (CAEL-01): sess ya está en activeProj.sessions — el retry reintenta saveImmediate()
   // sobre el mismo estado, sin reconstruir ni duplicar el objeto sess.
   _qcAttemptSave(ai);
@@ -322,65 +332,22 @@ function _qcAttemptSave(ai) {
 // ── END R-[pendiente-ID] Quick Capture ──
 
 // ── T-055: Sesión interrumpida ──
-// T-093: confirmación inline dentro del dropdown antes de interrumpir
-export function confirmInterruptInline(id, triggerBtn) {
-  const dropdown = document.getElementById('dotmenu-' + id);
-  if (!dropdown) return;
-  // Si ya hay un confirm-row, no duplicar
-  if (dropdown.querySelector('.dot-confirm-row')) return;
-  // Ocultar el botón trigger
-  triggerBtn.classList.add('is-hidden');
-  const row = document.createElement('div');
-  row.className = 'dot-confirm-row';
-  row.innerHTML = `<span class="dot-confirm-label">⚡ ¿Interrumpir?</span>
-    <button class="dot-confirm-cancel">No</button>
-    <button class="dot-confirm-ok">Sí</button>`;
-  triggerBtn.after(row);
-  // Delegación en dropdown — evita onclick inline en innerHTML dinámico (T-202605-033 + B-202605-017).
-  dropdown.addEventListener('click', function _dotConfirmHandler(e) {
-    if (e.target.classList.contains('dot-confirm-cancel')) {
-      cancelInterruptInline(id);
-      dropdown.removeEventListener('click', _dotConfirmHandler);
-    } else if (e.target.classList.contains('dot-confirm-ok')) {
-      closeCardMenu(id);
-      interruptSession(id);
-      dropdown.removeEventListener('click', _dotConfirmHandler);
-    }
-  });
-}
-
-function cancelInterruptInline(id) {
-  const dropdown = document.getElementById('dotmenu-' + id);
-  if (!dropdown) return;
-  const row = dropdown.querySelector('.dot-confirm-row');
-  if (row) row.remove();
-  const btn = dropdown.querySelector('[data-action="interrupt"]');
-  if (btn) btn.classList.remove('is-hidden');
-}
-
+// TKT3 (CAEL-0723-04): confirmInterruptInline/cancelInterruptInline retiradas — huérfanas
+// tras retirar 'Interrumpir' del dot-menu (index.html mod:154, locus-sesiones.js mod:53).
+// interruptSession(id) — contract_detail TKT3: firma sin cambio, mismos invariants
+// (status='exhausted' + interrupted=true). Simplificada a mutador puro: pierde el
+// _gconfirmOpen anidado (pedía hora aparte) y su propio save()/toast/setTimeout — el
+// nuevo punto de entrada es confirmQuickCapture(), que ya persiste y notifica una sola
+// vez para todo el flujo de Quick Capture. Llamar aquí a la versión con modal habría
+// abierto un segundo confirm dentro del propio modal de Quick Capture.
 function interruptSession(id) {
   const ai = getAI(id);
-  _gconfirmOpen({
-    title: `Marcar sesión interrumpida`,
-    msg: `"${ai.name}" pasará a estado agotado.`,
-    okLabel: 'Confirmar',
-    danger: false,
-    inputLabel: 'Hora de reset (opcional)',
-    inputPlaceholder: '--:--'
-  }, (horaRaw) => {
-    const horaResult = horaRaw ? interpretHora(horaRaw.replace(/\D/g,'')) : null;
-    ai.status = 'exhausted';
-    ai.interrupted = true;
-    if (horaResult) { ai.resetTime = horaResult.hhmm; ai.resetEpoch = horaResult.epoch; }
-    // R-202604-061 AC-2: clase transitoria antes de interrupted-state
-    const _intCard = document.getElementById('card-' + id);
-    if (_intCard) _intCard.classList.add('tracker-card--interrupting');
-    setTimeout(() => {
-      save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-      if (getCurrentTab() === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
-    }, 200);
-    showToast('info', `${ai.name} — sesión interrumpida`);
-  });
+  ai.status = 'exhausted';
+  ai.interrupted = true;
+  // R-202604-061 AC-2: clase transitoria antes de interrupted-state — no-op si la card
+  // no está montada en este contexto (ej. invocada desde Quick Capture).
+  const _intCard = document.getElementById('card-' + id);
+  if (_intCard) _intCard.classList.add('tracker-card--interrupting');
 }
 
 export function dismissInterrupted(id) {

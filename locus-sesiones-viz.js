@@ -1,4 +1,6 @@
-// [PP] v1.0.0 · sprint:PP-S-HOTFIX · mod:8 · autor:Rune · 2026-07-10 18:05 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-HOTFIX · mod:9 · autor:Rune · 2026-07-23 UTC-6
+// TKT2 (CAEL-0723-03): openCorrectHora() renombrado a "Editar worker agotado" — checkbox de
+// WIP inyectado en msg.innerHTML, precargado con ai.interrupted, aplicado en confirmCorrectHora().
 // locus-sesiones-viz.js
 // INC-[pendiente-ID]: import de esc agregado (faltaba) — ReferenceError en openCorrectHora resuelto.
 //   esc local redundante en showCheckpointPanel eliminada — una sola fuente desde locus-ui-shell.js
@@ -15,6 +17,7 @@ import { switchSubTab, switchTab, esc } from './locus-ui-shell.js';
 import { fmt12, interpretHora } from './locus-session-hora.js';
 
 import { getAI, getAISessions, save, _resetWorker } from './locus-storage.js';
+import { dismissInterrupted } from './locus-sesiones-capture.js'; // TKT2 (CAEL-0723-03)
 
 // ── B-202604-094: Corregir hora de desbloqueo desde card ──
 let _correctHoraAIId = null;
@@ -30,7 +33,9 @@ export function openCorrectHora(id) {
   const okBtn = document.getElementById('gconfirm-ok-btn');
   if (!modal) return;
 
-  title.textContent = '⏰ Corregir hora de desbloqueo';
+  // TKT2 (CAEL-0723-03): rename — este modal deja de representar solo "corregir hora",
+  // ahora también edita ai.interrupted vía el checkbox de WIP.
+  title.textContent = '⏰ Editar worker agotado';
   const inputWrap = document.getElementById('gconfirm-input-wrap');
   if (inputWrap) inputWrap.classList.add('is-hidden');
 
@@ -44,6 +49,13 @@ export function openCorrectHora(id) {
     </div>
     <div class="correct-hora-unlock-row">
       <button class="btn-ghost correct-hora-unlock-btn" id="correct-hora-unlock-btn">✅ Desbloquear ahora</button>
+    </div>
+    <div class="correct-hora-wip-row">
+      <label class="correct-hora-wip-check" for="correct-hora-wip">
+        <input type="checkbox" id="correct-hora-wip">
+        <span>Este worker tiene un WIP</span>
+      </label>
+      <div class="correct-hora-wip-hint">precargado con el valor actual de la IA</div>
     </div>`;
 
   // Eventos post-render — CSS Purity
@@ -79,6 +91,9 @@ export function openCorrectHora(id) {
   if (_chUnlockBtn) {
     _chUnlockBtn.addEventListener('click', function() { unlockNowFromCard(); });
   }
+  // TKT2 (CAEL-0723-03) AC3: precargado con el valor actual de la IA
+  const _chWip = document.getElementById('correct-hora-wip');
+  if (_chWip) _chWip.checked = !!ai.interrupted;
 
   okBtn.textContent = 'Guardar';
   okBtn.className = 'btn-primary';
@@ -120,6 +135,16 @@ function confirmCorrectHora() {
     if (aiSessions.length > 0) {
       const lastSess = aiSessions[aiSessions.length - 1];
       lastSess.resetAt = result.label;
+    }
+    // TKT2 (CAEL-0723-03) AC4: aplicar el checkbox solo si cambió respecto al valor de apertura.
+    // Desmarcado→interrupted:false usa dismissInterrupted (única función que lo pone en false,
+    // contract_detail TKT3) — marcado→true se asigna directo, sin el modal propio de interruptSession
+    // (evita abrir un segundo confirm dentro de este mismo modal).
+    const _chWipEl = document.getElementById('correct-hora-wip');
+    const wipChecked = !!(_chWipEl && _chWipEl.checked);
+    if (!!ai.interrupted !== wipChecked) {
+      if (wipChecked) { ai.interrupted = true; }
+      else { dismissInterrupted(id); }
     }
     save(); render();
   } else {

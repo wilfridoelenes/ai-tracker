@@ -1,4 +1,9 @@
-/* [PP] mod:40 · autor:Nova · 2026-07-22 UTC-6 */
+/* [PP] mod:42 · autor:Nova · 2026-07-23 19:23 UTC-6 */
+/* Corrección Patch (Opción A, founder aprobó "Ok adelante A"): .quick-wip-check usaba
+   --amber/--amber-text — tokens de otro estado semántico. WIP corresponde a ai.interrupted,
+   ya coloreado --purple en badge/avatar/worker-header (J-01). accent-color y color de span
+   marcado migrados a var(--purple)/var(--purple-text) — mismo criterio que .item-type-pill.REQ. */
+/* TKT1 (CAEL-0723-02): .quick-wip-* — checkbox de WIP en Quick Capture paso 2 */
 /* DISC ejecutada: removidas .sess-row--latest, .sess-row--latest:hover y su regla
    descendiente .sess-row-summary--expanded — sin consumidor confirmado en JS/HTML. */
 /* [PP] mod:36 · autor:Nova · 2026-07-20 16:10 UTC-6 */
@@ -2612,6 +2617,39 @@
 .quick-hora-hint {
   font-size: var(--text-2xs);
   color: var(--text3);
+}
+
+/* TKT1 (CAEL-0723-02): checkbox de WIP — reemplaza flujo de interrupción manual.
+   Token --amber: mismo semántico que .sc-avatar--interrupted/.worker-header--interrupted
+   (locus-sesiones-card.css) — NO --purple (reasignado a REQ/insession, ver _Locus-css-ref
+   §Cambios mod:55/93). Patrón :has(:checked) igual que .du-conflict-option (locus-docs.css). */
+.quick-wip-row {
+  margin-bottom: 4px;
+}
+
+.quick-wip-check {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: var(--text-sm);
+  color: var(--text2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.quick-wip-check input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--purple);
+}
+
+.quick-wip-check:has(input:checked) span {
+  color: var(--purple-text);
+}
+
+.quick-wip-check input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .quick-modal-actions {

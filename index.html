@@ -1,4 +1,6 @@
-<!-- [PP] mod:153 · autor:Rune · 2026-07-23 UTC-6 -->
+<!-- [PP] mod:154 · autor:Rune · 2026-07-23 UTC-6 -->
+<!-- TKT1/TKT3 (CAEL-0723-02/04): checkbox WIP en Quick Capture paso 2 + retiro de
+     'Interrumpir sesión' del dot-menu — ver locus-sesiones.js/locus-sesiones-capture.js -->
 <!-- INC-202607-001 (closed): comentario obsoleto en mod:83 anotado como histórico —
      #tpl-badge-qinc confirmado código muerto (sin elemento en DOM, sin consumidor JS),
      sin re-creación tras migración de Q-INC a #tab-incidentes. Sin cambio funcional. -->
@@ -365,7 +367,8 @@
         <button class="sc-menu-btn" data-action="toggle-card-menu" data-ai-id="" title="Más opciones" aria-label="Más opciones"><i class="ti ti-dots"></i></button>
         <div class="card-dot-dropdown" id="worker-header-dotmenu">
           <button class="card-dot-item" data-action="dot-rename" data-ai-id=""><span class="dot-item-icon">✎</span> Renombrar</button>
-          <button class="card-dot-item is-hidden" data-action="interrupt" data-ai-id=""><span class="dot-item-icon">⛓️‍💥</span> Interrumpir sesión</button>
+          <!-- TKT3 (CAEL-0723-04): 'Interrumpir sesión' retirado — ai.interrupted se controla vía
+               checkbox de WIP (Quick Capture / Editar worker agotado), no desde el dot-menu -->
           <button class="card-dot-item is-hidden" data-action="dot-correct-hora" data-ai-id=""><span class="dot-item-icon">⏰</span> Corregir hora de desbloqueo</button>
           <button class="card-dot-item" data-action="dot-download-report" data-ai-id=""><span class="dot-item-icon">📥</span> Descargar reporte</button>
           <button class="card-dot-item" data-action="dot-avatar" data-ai-id=""><span class="dot-item-icon">🖼️</span> Cambiar avatar</button>
@@ -1169,6 +1172,13 @@
         <div>
           <div class="quick-hora-hint" id="quick-hora-disp">hora de desbloqueo (opcional)</div>
         </div>
+      </div>
+      <!-- TKT1 (CAEL-0723-02): checkbox de WIP — reemplaza flujo de interrupción manual -->
+      <div class="quick-wip-row">
+        <label class="quick-wip-check" for="quick-wip">
+          <input type="checkbox" id="quick-wip">
+          <span>Este worker tiene un WIP</span>
+        </label>
       </div>
     </div>
 

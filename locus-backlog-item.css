@@ -1,4 +1,9 @@
-/* [PP] mod:71 · autor:Nova · 2026-07-20 20:05 UTC-6 */
+/* [PP] mod:73 · autor:Nova · 2026-07-23 19:23 UTC-6 */
+/* Corrección Patch (Opción A, founder aprobó "Ok adelante A"): .correct-hora-wip-check usaba
+   --amber/--amber-text — tokens de otro estado semántico. WIP corresponde a ai.interrupted,
+   ya coloreado --purple en badge/avatar/worker-header (J-01). accent-color y color de span
+   marcado migrados a var(--purple)/var(--purple-text) — mismo criterio que .item-type-pill.REQ. */
+/* TKT2 (CAEL-0723-03): .correct-hora-wip-* — checkbox de WIP en modal Editar worker agotado */
 /* TKT (REQ CAEL-0720-XX — resolver de búsqueda para unresolvedRefs, ref-id-title-mismatch
    y [pendiente-ID] sin ref_id): .mdiff-unresolved-* — composición de primitivos ya
    validados, sin componente nuevo. .bl-search-input reusada tal cual (input de texto).
@@ -1831,6 +1836,45 @@
   padding: 4px 12px;
   color: var(--accent-text);
   border-color: var(--accent);
+}
+
+/* TKT2 (CAEL-0723-03): checkbox de WIP — mismo token/patrón que .quick-wip-check
+   (locus-sesiones.css, TKT1) — --amber, no --purple. Vive aquí junto al resto de
+   .correct-hora-* porque openCorrectHora() (locus-sesiones-viz.js) inyecta este
+   markup en el mismo msg.innerHTML que ya usa estas clases. */
+.correct-hora-wip-row {
+  margin-top: 10px;
+}
+
+.correct-hora-wip-check {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: var(--text-sm);
+  color: var(--text2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.correct-hora-wip-check input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--purple);
+}
+
+.correct-hora-wip-check:has(input:checked) span {
+  color: var(--purple-text);
+}
+
+.correct-hora-wip-check input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.correct-hora-wip-hint {
+  margin-top: 3px;
+  font-size: var(--text-2xs);
+  color: var(--text3);
 }
 
 /* ═══ END §15 CSS Purity — checkpoint.js parte 2 ═══ */

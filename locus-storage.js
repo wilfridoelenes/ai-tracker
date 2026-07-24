@@ -1,4 +1,6 @@
-// [PP] mod:143 · autor:Rune · 2026-07-23 UTC-6
+// [PP] mod:144 · autor:Rune · 2026-07-24 UTC-6
+// TKT (REQ CAEL-0723-03): _mapRowToItem() — retirados sla_priority/incidentStatus/
+// resolutionType/derived_items/queue/slaDeadline. Ver detalle inline en la función.
 // TKT1 (REQ CAEL-0722-01, ref_id CAEL-0722-02): _mapRowToIncident() restaura status como
 // mirror de incident_status para los 4 tipos ITIL (INC/PRB/KE/CHG) — antes solo poblaba
 // incidentStatus, dejando .status undefined tras cada hidratación desde Supabase. Ver nota
@@ -2172,30 +2174,18 @@ function _mapRowToItem(row) {
     blockedAt:             row.blocked_at,
     contract_update:       row.contract_update,
     archivos:              Array.isArray(row.archivos) ? row.archivos : null,
-    sla_priority:          row.sla_priority,
-    // TKT-A1: Gen2 — campos ITIL con naming camelCase interno
-    incidentStatus:        row.incident_status || null,
-    resolutionType:        row.resolution_type || null,
-    derived_items:         Array.isArray(row.derived_items) ? row.derived_items : null,
-    queue:                 row.queue           || null,
+    // TKT (REQ CAEL-0723-03): sla_priority/incidentStatus/resolutionType/derived_items/queue/
+    // slaDeadline retirados de este mapeo — las 6 columnas fuente (sla_priority, sla_deadline,
+    // incident_status, resolution_type, derived_items, queue) ya no existen en tracker_items
+    // (DROP COLUMN ejecutado 2026-07-22, ver _pp-strategy §5). Exclusivas de tracker_incidents
+    // vía _mapRowToIncident() — sin cambio ahí. _toItemColumns() (saliente) ya las había
+    // retirado en mod:138; este mod cierra el mapeo entrante simétrico.
     createdAt:             row.created_at      || null,
     // INC-[pendiente-ID] fix: archived_at/done_at no se rehidrataban — mismo gap que en
     // _toItemRow() (outgoing). Sin esto, aunque el fix de escritura persista los timestamps,
     // la próxima carga los perdía de vuelta al no leerlos de la fila.
     archivedAt:            row.archived_at     || null,
     doneAt:                row.done_at         || null,
-    // TKT-A1: sla_deadline calculado al hidratar si sla_priority presente y sla_deadline ausente
-    // AC: sla_priority:high → createdAt+86400000ms; medium → createdAt+259200000ms; low → null
-    // Base: row.created_at (bigint epoch ms, NOT NULL en DDL de tracker_items)
-    slaDeadline: (() => {
-      if (row.sla_deadline != null) return row.sla_deadline;
-      if (!row.sla_priority) return null;
-      const _base = row.created_at || null;
-      if (!_base) return null;
-      if (row.sla_priority === 'high')   return _base + 86400000;
-      if (row.sla_priority === 'medium') return _base + 259200000;
-      return null;
-    })(),
     _updatedAtMs:          row.updated_at    // conservar timestamp para comparaciones futuras
   };
   // TKT2 (REQ-202607-026) — fix QA (Finn), AC3: coalescer null/undefined a '' en vez de

@@ -1,4 +1,8 @@
-// [PP] mod:21 · autor:Rune · 2026-07-14 16:30 UTC-6
+// [PP] mod:22 · autor:Rune · 2026-07-24 UTC-6
+// INC-202607-002: class="log-scroll-top hidden" → "log-scroll-top is-hidden" — .hidden no
+// tenía regla CSS en ninguna hoja del proyecto; el botón "↑" renderizaba visible por defecto
+// hasta el primer evento de scroll. _logScrollHandler ya togglea is-hidden — sin cambio de
+// lógica, solo el estado inicial del render.
 // INC — fix: openDetail() no despachaba shell:select-tracker-ai al abrir la sesión de un
 // Worker distinto al activo — el detalle abría pero el Worker seleccionado no seguía el
 // cambio. Agregado dispatch con { detail: { aiId } }, mismo shape confirmado en
@@ -1094,7 +1098,7 @@ export function _rebuildLogBody() {
   const filtersWarnClass = (!filtered.length && hasActiveFilter && all.length) ? ' log-filters-row--warn' : '';
 
   const body = filtered.length ? rows : emptyHtml;
-  const scrollTopBtn = `<button class="log-scroll-top hidden" id="log-scroll-top" title="Ir al inicio">↑</button>`;
+  const scrollTopBtn = `<button class="log-scroll-top is-hidden" id="log-scroll-top" title="Ir al inicio">↑</button>`;
 
   // Inyectar warn class en log-filters-row post-render
   const headerWithWarn = filtersWarnClass

@@ -1,4 +1,9 @@
-// [PP] mod:8 · autor:Rune · 2026-07-13 UTC-6
+// [PP] mod:9 · autor:Rune · 2026-07-24 UTC-6
+// INC-202607-002: class="proj-dec-form hidden" → "proj-dec-form is-hidden" — .hidden no
+// tenía regla CSS en ninguna hoja del proyecto (verificado grep contra las 17 .css reales);
+// el formulario de "Agregar decisión" renderizaba visible por defecto en vez de oculto.
+// Toggle existente (_projOpenAddDecision/_projCancelDecision) ya usaba is-hidden — sin cambio
+// de lógica, solo el estado inicial del render.
 // INC-[pendiente-ID]: getCurrentTab importado — typeof currentTab !== 'undefined' nunca era true.
 // Guard "T-202605-117: skip render si tab Proyectos no es el visible" nunca ejecutaba —
 // renderProyectos() renderizaba siempre, incluso con el tab no visible.
@@ -922,7 +927,7 @@ function _renderDecisionsSection(el, projId, decisions) {
       ${decisions.length ? `<span class="proj-dec-count">${decisions.length}</span>` : ''}
       <button class="proj-dec-add-btn" data-action="dec-add" data-proj-id="${esc(projId)}" title="Agregar decisión">＋ Agregar</button>
     </div>
-    <div id="proj-dec-form-${esc(projId)}" class="proj-dec-form hidden">
+    <div id="proj-dec-form-${esc(projId)}" class="proj-dec-form is-hidden">
       <textarea class="proj-dec-textarea" id="proj-dec-ta-${esc(projId)}" placeholder="Describe la decisión tomada…" rows="3"></textarea>
       <div class="proj-dec-form-row">
         <input class="proj-dec-input" id="proj-dec-author-${esc(projId)}" type="text" placeholder="Autor / rol (ej: PO · Alex)" maxlength="60">
