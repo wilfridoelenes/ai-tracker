@@ -1,3 +1,14 @@
+// [PP] mod:51 · autor:Rune · 2026-07-24 UTC-6
+// TKT1 (REQ CAEL-0724-11, ref_id CAEL-0724-12): retiro final de 'KE' — inalcanzable desde
+// _GEN2_TYPES (locus-backlog-core.js mod:131, fusión KE→PRB.root_cause_confirmed, infra_version
+// 51). _isActiveQIncItem() pierde la rama `t === 'KE'`. itemC/maxId de _computeBacklogCounters()
+// pierden la clave KE (6 claves, no 7). contadoresStr/counterStr pierden el segmento KE. Los dos
+// objetos `order` (sort de export de backlog y de historial done) pierden la clave KE:5 — CHG
+// conserva su valor 6 sin reindexar, el fallback `order[t] !== undefined ? order[t] : 7` no
+// depende de contigüidad numérica. Sin cambio de comportamiento para REQ/TKT/INC/DISC/PRB/CHG
+// reales — todas las ramas retiradas eran código muerto, nunca alcanzado desde que itemKind()
+// dejó de emitir 'KE'.
+
 // [PP] mod:50 · autor:Rune · 2026-07-24 11:40 UTC-6
 // Corrección de gap detectado por Finn en QA de TKT1 (mod:49): el header de mod:49 describía
 //   el listado `- code · title` por ítem de Q-Backlog, pero itemsBodyMd seguía calculando solo
@@ -68,7 +79,7 @@ import { _gconfirmOpen } from './locus-modals.js'; // INC-PP-export-confirm-dead
 
 // ── _itemTypeGen2 — detección de tipo Gen 2 ──────────────────────────────────
 // [tmp:tkt1-itemtype-fn] AC-1: wrapper sobre itemKind() de locus-backlog-core.js.
-// Retorna tipo Gen 2 canónico ('REQ'/'TKT'/'INC'/'DISC'/'PRB'/'KE'/'CHG') o 'UNKNOWN'.
+// Retorna tipo Gen 2 canónico ('REQ'/'TKT'/'INC'/'DISC'/'PRB'/'CHG') o 'UNKNOWN'.
 // Reemplaza toda detección por code[0] o startsWith Gen 1 en este módulo.
 function _itemTypeGen2(item) {
   const t = itemKind(item);
@@ -87,11 +98,10 @@ function _isActiveQIncItem(i) {
   // TKT3 (ref_id CAEL-0722-04): INC leía i.incident_status crudo (snake_case) sin fallback a
   // incidentStatus (camelCase, formato real en memoria tras parse o hidratación) — siempre false.
   // incIncidentStatus() resuelve ambos formatos, mismo accessor ya usado por locus-incidents-render.js
-  // y locus-backlog-panel.js. PRB/KE/CHG sin cambio — ya correctos leyendo i.status tras TKT1
+  // y locus-backlog-panel.js. PRB/CHG sin cambio — ya correctos leyendo i.status tras TKT1
   // (ref_id CAEL-0722-02, mirror status↔incident_status aplicado en _mapRowToIncident()).
   if (t === 'INC') { const s = incIncidentStatus(i); return !!s && s !== 'closed' && s !== 'descartado'; }
   if (t === 'PRB') return i.status === 'detected' || i.status === 'in_progress' || i.status === 'resolved';
-  if (t === 'KE') return i.status === 'active';
   if (t === 'CHG') return i.status === 'pendiente' || i.status === 'en-revision';
   return false;
 }
@@ -874,12 +884,12 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   // getItems() excluye 'historico' desde T-202606-106, así que un TKT/REQ archivado tras cierre
   // de sprint quedaba fuera del escaneo y "Últimos IDs" subestimaba el consecutivo real por tipo
   // (ver REQ-202607-015 — TKT-202607-044/045/046/056/057 historico no contaban para maxId.TKT/REQ).
-  // [tmp:tkt1-itemtype-fn] AC-2/AC-5: claves Gen 2 — REQ/TKT/INC/DISC/PRB/KE/CHG.
+  // [tmp:tkt1-itemtype-fn] AC-2/AC-5: claves Gen 2 — REQ/TKT/INC/DISC/PRB/CHG.
   // Regex de extracción de NNN migrado a /-(\\d{3})$/ para soportar prefijos multi-char Gen 2.
   const _computeBacklogCounters = () => {
     const allForCount = _allItemsWithHistorico();
-    const itemC = { REQ:0, TKT:0, INC:0, DISC:0, PRB:0, KE:0, CHG:0 };
-    const maxId  = { REQ:0, TKT:0, INC:0, DISC:0, PRB:0, KE:0, CHG:0 };
+    const itemC = { REQ:0, TKT:0, INC:0, DISC:0, PRB:0, CHG:0 };
+    const maxId  = { REQ:0, TKT:0, INC:0, DISC:0, PRB:0, CHG:0 };
     exportItems.forEach(i => {
       if (!i.code) return;
       const t = _itemTypeGen2(i);
@@ -901,10 +911,10 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   const { itemC: itemCounters, maxId: counters } = _computeBacklogCounters();
   // [tmp:tkt-backlog-gen-housekeeping] AC-2: Contadores: una línea por tipo — reemplaza
   // la agrupación 'Tipo (status):' con códigos y el label 'Ítems:' de una sola línea combinada.
-  const contadoresStr = ['REQ', 'TKT', 'INC', 'DISC', 'PRB', 'KE', 'CHG']
+  const contadoresStr = ['REQ', 'TKT', 'INC', 'DISC', 'PRB', 'CHG']
     .map(t => `${t}: ${itemCounters[t]}`)
     .join('\n');
-  const counterStr = `REQ=${String(counters.REQ).padStart(3,'0')} | TKT=${String(counters.TKT).padStart(3,'0')} | INC=${String(counters.INC).padStart(3,'0')} | DISC=${String(counters.DISC).padStart(3,'0')} | PRB=${String(counters.PRB).padStart(3,'0')} | KE=${String(counters.KE).padStart(3,'0')} | CHG=${String(counters.CHG).padStart(3,'0')}`;
+  const counterStr = `REQ=${String(counters.REQ).padStart(3,'0')} | TKT=${String(counters.TKT).padStart(3,'0')} | INC=${String(counters.INC).padStart(3,'0')} | DISC=${String(counters.DISC).padStart(3,'0')} | PRB=${String(counters.PRB).padStart(3,'0')} | CHG=${String(counters.CHG).padStart(3,'0')}`;
 
   // T-202606-061: orden canónico OBDS §3 §6 en ## Ítems
   // (1) Rs sprint activo + hijos, (2) T/B sprint activo huérfanos,
@@ -936,7 +946,7 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   };
   const _typeOrder = code => {
     const t = _itemTypeGen2({ code });
-    const order = { REQ:0, TKT:1, INC:2, DISC:3, PRB:4, KE:5, CHG:6 };
+    const order = { REQ:0, TKT:1, INC:2, DISC:3, PRB:4, CHG:6 };
     return order[t] !== undefined ? order[t] : 7;
   };
   const sortedExportItems = [...exportItems].sort((a, b) => {
@@ -1419,7 +1429,7 @@ function _buildHistorialItemsMd(exportItems) {
   // Ordenar por tipo luego por código
   const _typeOrder = code => {
     const t = _itemTypeGen2({ code });
-    const order = { REQ:0, TKT:1, INC:2, DISC:3, PRB:4, KE:5, CHG:6 };
+    const order = { REQ:0, TKT:1, INC:2, DISC:3, PRB:4, CHG:6 };
     return order[t] !== undefined ? order[t] : 7;
   };
   const sorted = [...doneItems].sort((a, b) => {

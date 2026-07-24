@@ -1,3 +1,8 @@
+// [PP] mod:132 · autor:Rune · 2026-07-24 15:30 UTC-6
+// INC (ref_id QA-0724-01): renderStats() — statusOk trata 'bloqueado' como siempre-visible,
+// consistente con el mismo fix en locus-backlog-render.js (_renderVistaLista). Sin cambio de
+// firma, sin nueva dependencia CSS.
+
 // [PP] mod:131 · autor:Rune · 2026-07-23 UTC-6
 // TKT-202607-067 (REQ-202607-018, Effort 2, módulo crítico locus-backlog-core.js): retiro
 // completo de 'KE' del universo de tipos y cardinalidad-6 (fusión KE→PRB.root_cause_confirmed,
@@ -2454,7 +2459,10 @@ export function renderStats() {
   const visible = countableItems.filter(i => {
     const type = itemKind(i);
     const typeOk = type ? activeTypes.has(type) : true;
-    const statusOk = activeStatuses.has(i.status);
+    // INC-[ref_id:QA-0724-01]: mismo criterio que locus-backlog-render.js (_renderVistaLista) —
+    // este universo debe reflejar los mismos ítems que la lista (ver comentario B-202606-008
+    // arriba en esta misma función). 'bloqueado' siempre cuenta, sin depender del filtro activo.
+    const statusOk = i.status === 'bloqueado' || activeStatuses.has(i.status);
     return typeOk && statusOk && _matchesSearch(i);
   });
 

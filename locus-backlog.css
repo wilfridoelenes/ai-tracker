@@ -1,3 +1,10 @@
+/* [PP] mod:124 · autor:Nova · 2026-07-24 UTC-6 */
+/* TKT2 (REQ CAEL-0724-11, ref_id CAEL-0724-13): retiro final de 'KE' — fusión
+   KE→PRB.root_cause_confirmed (infra_version 51). Reglas retiradas: .stat-type-chip.tc-KE,
+   .stat-type-chip.active.tc-KE, .item-type-pill.KE — ninguna tenía consumidor JS activo tras
+   TKT1 de este mismo REQ (locus-incidents-render.js mod:10 dejó de emitir la clase tc-KE;
+   .item-type-pill.KE ya estaba huérfana antes de este TKT, sin caller confirmado por grep).
+   .tc-PRB/.tc-CHG/.item-type-pill.PRB/.item-type-pill.CHG sin cambio. */
 /* [PP] mod:123 · autor:Nova · 2026-07-23 20:10 UTC-6 */
 /* TKT-202607-071 (REQ-202607-019): familia .qbacklog-draft-* agregada — grupo colapsable de
    ítems draft:true en Q-Backlog. Ver bloque completo tras .qdisc-status-body. */
@@ -663,12 +670,6 @@
   color: var(--amber-text, #e8a832);
 }
 
-.stat-type-chip.tc-KE {
-  background: rgb(234 179 8 / 12%);
-  border-color: rgb(234 179 8 / 40%);
-  color: var(--yellow-text, #eab308);
-}
-
 .stat-type-chip.tc-CHG {
   background: rgb(100 116 139 / 12%);
   border-color: rgb(100 116 139 / 40%);
@@ -678,11 +679,6 @@
 .stat-type-chip.active.tc-PRB {
   background: rgb(245 158 11 / 22%);
   border-color: var(--amber, #e8a832);
-}
-
-.stat-type-chip.active.tc-KE {
-  background: rgb(234 179 8 / 22%);
-  border-color: #eab308;
 }
 
 .stat-type-chip.active.tc-CHG {
@@ -1873,12 +1869,6 @@
   background: color-mix(in srgb, var(--orange) 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--orange) 28%, transparent);
   color: var(--orange);
-}
-
-.item-type-pill.KE {
-  background: color-mix(in srgb, var(--yellow) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--yellow) 28%, transparent);
-  color: var(--yellow);
 }
 
 .item-type-pill.CHG {

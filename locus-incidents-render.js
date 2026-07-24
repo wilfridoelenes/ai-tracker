@@ -1,3 +1,15 @@
+// [PP] mod:10 · autor:Rune · 2026-07-24 UTC-6
+// TKT1 (REQ CAEL-0724-11, ref_id CAEL-0724-12): retiro final de 'KE' — inalcanzable desde
+// _GEN2_TYPES (locus-backlog-core.js mod:131, fusión KE→PRB.root_cause_confirmed, infra_version
+// 51). _isQIncTerminal() pierde la rama `k === 'KE'` — todo lo que no es CHG cae directo al
+// criterio INC/PRB (`s === 'closed'`), sin evaluar un tipo que itemKind() nunca produce.
+// _countByType y el array de chips de renderQIncStats() pierden la clave/entrada KE — el chip de
+// filtro por tipo KE deja de renderizarse (nunca tenía ítems que contar). Copy del empty-state de
+// "Terminados" corregido: "Los INC/PRB en closed, KE en resolved y CHG en done aparecerán aquí."
+// mencionaba un tipo inexistente al usuario — ahora "Los INC/PRB en closed y CHG en done
+// aparecerán aquí." Sin cambio de comportamiento para INC/PRB/CHG reales — la rama KE era código
+// muerto, nunca alcanzado.
+
 // [PP] mod:9 · autor:Rune · 2026-07-23 UTC-6
 // TKT2 (REQ CAEL-0723-05, ref_id CAEL-0723-06): cierra el Hallazgo fuera de scope declarado en
 // mod:8 — _activeForCount (renderQIncStats) migra de _QINC_ACTIVE_STATUSES a _isQIncTerminal,
@@ -150,7 +162,6 @@ function _qincEffectiveStatus(item) {
 function _isQIncTerminal(item) {
   const k = itemKind(item);
   const s = _qincEffectiveStatus(item);
-  if (k === 'KE')  return s === 'resolved';
   if (k === 'CHG') return s === 'done';
   return s === 'closed'; // INC / PRB
 }
@@ -174,7 +185,7 @@ export function renderQIncStats() {
   const _qiPriority = _nsGetPriority('qinc');
   const _qiQuery     = (_nsGetQuery('qinc') || '').trim().toLowerCase();
 
-  const _countByType = { INC: 0, PRB: 0, KE: 0, CHG: 0 };
+  const _countByType = { INC: 0, PRB: 0, CHG: 0 };
   const _countByPri  = { high: 0, medium: 0, low: 0 };
   const _displayable = allQInc.filter(i => _qincEffectiveStatus(i) !== 'descartado' && _qincEffectiveStatus(i) !== 'closed');
   // TKT2 (REQ CAEL-0723-05): _activeForCount ahora usa _isQIncTerminal — mismo criterio que
@@ -198,7 +209,7 @@ export function renderQIncStats() {
   statsEl.innerHTML = `
     <div class="qinc-stats-types">
       ${_qiTypes.size < 4 ? `<button class="stat-type-chip stat-type-chip--all" data-qi-action="qi-clear-types" title="Mostrar todos los tipos">✕</button>` : ''}
-      ${[['INC','INC'],['PRB','PRB'],['KE','KE'],['CHG','CHG']].map(([t, label]) =>
+      ${[['INC','INC'],['PRB','PRB'],['CHG','CHG']].map(([t, label]) =>
         `<button class="stat-type-chip tc-${t}${_qiTypes.has(t) ? ' active' : ''}" data-qi-action="qi-type" data-qi-type="${t}" title="Filtrar por tipo ${t}">\
 <span class="tc-count">${_countByType[t]}</span><span class="tc-label">${label}</span></button>`
       ).join('')}
@@ -335,7 +346,7 @@ export function renderQIncPanel() {
           : `<div class="empty-state">
               <div class="empty-state-icon">✔</div>
               <div class="empty-state-title">Sin ítems terminados aún</div>
-              <div class="empty-state-hint">Los INC/PRB en closed, KE en resolved y CHG en done aparecerán aquí.</div>
+              <div class="empty-state-hint">Los INC/PRB en closed y CHG en done aparecerán aquí.</div>
             </div>`;
         h += '</div>';
         return h;
