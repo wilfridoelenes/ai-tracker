@@ -2230,7 +2230,20 @@ function _discardReasonFields(item, initialStatus) {
 // comportamientoActual/originModule/derivedItems/resolutionType) — a diferencia del objeto único
 // anterior, donde su ausencia dependía de un spread condicional evaluado en cada llamada.
 function buildScrumItem(item, ctx) {
-  return _buildCommonItemFields(item, ctx);
+  // INC-202607-003 fix: _buildCommonItemFields() solo poblaba item.sprint (alias legacy) —
+  // nunca item.sprint_id/item.sprint_name, los únicos campos que _toItemColumns() persiste
+  // hacia tracker_items (TKT2/REQ-202607-026). Un REQ/TKT nuevo creado por esta vía (único
+  // caller: mergeBacklogFromTG, línea ~2779 — el path real de ingesta de CHECKPOINT) escribía
+  // sprint_id:null/sprint_name:null en Supabase sin importar el sprint declarado por Cael;
+  // el valor correcto solo vivía en memoria hasta el próximo reload, momento en que
+  // _mapRowToItem() rehidrata item.sprint como alias de sprint_id (null) y el ítem
+  // aparece en Q-Backlog. _newBacklogItem() (locus-backlog-core.js, TKT2/REQ-202607-025) ya
+  // es el factory que garantiza sprint_id/sprint_name poblados desde el nacimiento del ítem
+  // — pero solo se había aplicado a los 2 call sites de promoción UI (_promoteConfirm,
+  // _promoteTktToReqConfirm), no a este, el único que atiende la ingesta de CHECKPOINT.
+  // Fix de causa raíz: enrutar el objeto ya construido a través del mismo factory en vez de
+  // duplicar la lógica de derivación de sprint_id/sprint_name una tercera vez.
+  return _newBacklogItem(_buildCommonItemFields(item, ctx));
 }
 
 // TKT1 (REQ-refactor-item-shape-itil-scrum · AC2): constructor exclusivo de ITIL (INC/PRB/KE/CHG).
