@@ -1,4 +1,4 @@
-// [PP] mod:135 · autor:Rune · 2026-07-23 UTC-6
+// [PP] mod:136 · autor:Rune · 2026-07-23 UTC-6
 // Hallazgo fuera de scope (resuelto en sesión — dueño presente, Patch, sin bifurcación de
 // founder): 2 bloques de comentario huérfanos al final del archivo, sin código asociado en
 // ningún punto de este módulo (verificado — grep). (1) banner "TKT-B2a: buildQIncItem()..."
@@ -3064,7 +3064,45 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
     return val;
   }
 
+  // INC-[pendiente-ID] (triggered_by INC-202607-003 · root cause diagnosticado en sesión 2026-07-23):
+  // el schema canónico de CHECKPOINT (__BR-Ecosystem §8) declara los 7 campos ITIL en snake_case
+  // — incident_status, sla_priority, sla_deadline, resolution_type, comportamiento_actual,
+  // origin_module, derived_items — pero applyPatchesFromTG() (más abajo, switch por field) y
+  // mergeBacklogFromTG() solo reconocen sus equivalentes camelCase (incidentStatus, slaPriority,
+  // slaDeadline, resolutionType, comportamientoActual, originModule, derivedItems — mismo
+  // vocabulario interno que _buildCommonItemFields ya usa para ítems nuevos). Sin este alias, un
+  // patch con incident_status:resolved o incident_status:closed no matcheaba ninguna rama
+  // reconocida, caía en el bloque genérico del final del loop, y se escribía como propiedad
+  // suelta (existing['incident_status']) sin pasar por validateIncidentTransitions() ni espejar
+  // existing.status — el ítem quedaba congelado en su status anterior, sin ningún error visible
+  // ni en DocLog. Confirmado con grep exhaustivo contra este archivo: ninguna rama reconocía la
+  // clave snake_case antes de este fix. Mismo patrón ya usado para patch.parent → patch.parentId,
+  // abajo — alias-y-delete, para que el campo original no sobreviva al Object.keys(patch) del
+  // loop de aplicación (TKT-202607-008, modelo lista negra) como propiedad suelta no consumida.
+  const _ITIL_PATCH_FIELD_ALIASES = {
+    incident_status: 'incidentStatus',
+    sla_priority: 'slaPriority',
+    sla_deadline: 'slaDeadline',
+    resolution_type: 'resolutionType',
+    comportamiento_actual: 'comportamientoActual',
+    origin_module: 'originModule',
+    derived_items: 'derivedItems'
+  };
+
   patches.forEach(patch => {
+    // INC-[pendiente-ID]: alias snake_case → camelCase de los 7 campos ITIL — ver bloque de
+    // comentario arriba (_ITIL_PATCH_FIELD_ALIASES) para el root cause completo. Corre antes de
+    // cualquier otra normalización del patch, mismo criterio que patch.parent inmediatamente
+    // abajo. Si por algún motivo ambas claves llegan presentes en el mismo patch, el valor
+    // camelCase ya presente gana precedencia — no debería ocurrir con un emisor conforme al
+    // schema, pero evita que el alias sobreescriba un valor ya normalizado por el caller.
+    Object.keys(_ITIL_PATCH_FIELD_ALIASES).forEach(_snakeField => {
+      if (patch[_snakeField] === undefined) return;
+      const _camelField = _ITIL_PATCH_FIELD_ALIASES[_snakeField];
+      if (patch[_camelField] === undefined) patch[_camelField] = patch[_snakeField];
+      delete patch[_snakeField];
+    });
+
     // B-202605-016: normalizar campo parent (schema CHECKPOINT) → parentId (campo interno)
     // T-[pendiente-ID] (REQ-unify-parent TKT2): eliminar patch.parent tras normalizar — el campo
     // interno es parentId, no parent. TKT-202607-008 (modelo lista negra): sin este delete,
