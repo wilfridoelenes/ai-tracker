@@ -1,4 +1,9 @@
-// [PP] mod:138 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:139 · autor:Rune · 2026-07-24 UTC-6
+// TKT1 (REQ CAEL-0724-02, DISC-202607-029): _renderIngestResultItems() — badge de tipo por fila,
+// reusa _GEN2_TYPES ya importado (fuente única de tipos válidos, evita duplicar el array) para
+// distinguir reconocido/no-reconocido. Sufijo de clase usa item.type verbatim — sin toLowerCase()/
+// toUpperCase() — evita el mismatch de casing abierto en renderQIncStats()/zone-engine.js
+// (tc-inc generado en JS vs selector .tc-INC en CSS, ver _Locus-css-ref mod:124).
 // TKT-078 (REQ-202607-022, ref_id CAEL-0724-05): _resolveCheckpointBatch — cada entrada de
 // metas ahora lleva idx: b.idx (spread sobre el objeto de _extractCkptMeta). Antes metas[i]
 // dependía de que el consumidor asumiera correspondencia 1:1 con la posición secuencial de
@@ -1229,12 +1234,24 @@ function _renderIngestResultItems(containerEl, items) {
   _items.forEach((item) => {
     const row = document.createElement('div');
     row.className = 'validation-result-item';
+    const left = document.createElement('span');
+    left.className = 'validation-result-item-left';
+    // AC4 (TKT1 badges) — reusa _GEN2_TYPES (fuente única de tipos válidos del módulo, ya
+    // importada) en vez de declarar una lista nueva. Sufijo verbatim — sin cambio de casing.
+    const _typeKnown = _GEN2_TYPES.includes(item.type);
+    const badge = document.createElement('span');
+    badge.className = _typeKnown
+      ? `validation-result-item-type validation-result-item-type--${item.type}`
+      : 'validation-result-item-type validation-result-item-type--unknown';
+    badge.textContent = _typeKnown ? item.type : '—';
     const desc = document.createElement('span');
     desc.textContent = `${item.type} · ${item.title}`;
+    left.appendChild(badge);
+    left.appendChild(desc);
     const status = document.createElement('span');
     status.className = 'validation-result-item-status';
     status.textContent = item.status || 'nuevo';
-    row.appendChild(desc);
+    row.appendChild(left);
     row.appendChild(status);
     containerEl.appendChild(row);
   });

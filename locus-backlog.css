@@ -1,4 +1,11 @@
-/* [PP] mod:124 · autor:Nova · 2026-07-24 UTC-6 */
+/* [PP] mod:125 · autor:Nova · 2026-07-24 UTC-6 */
+/* TKT2 (TKT-202607-089, parent REQ-202607-026 · adelantado en PP-S-08 vía autorización 1-tap
+   del founder): grid de 3 columnas por prioridad SLA (.qinc-columns/.qinc-column/-header/-body/
+   -empty). Corrige atribución del trabajo previo de contraste/borde/meta-secundaria (mod:124,
+   comentarios "REQ CAEL-0724-14, ref_id CAEL-0724-16" sin código real) — mismo TKT2, ver nota
+   junto al bloque nuevo. Fix inline: comentario CSS sin cerrar en la sección de
+   .qinc-item--sla-riesgo (línea ~5713) que se comía el bloque de comentario siguiente —
+   agregado el "*/" faltante, sin cambio de comportamiento. */
 /* TKT2 (REQ CAEL-0724-11, ref_id CAEL-0724-13): retiro final de 'KE' — fusión
    KE→PRB.root_cause_confirmed (infra_version 51). Reglas retiradas: .stat-type-chip.tc-KE,
    .stat-type-chip.active.tc-KE, .item-type-pill.KE — ninguna tenía consumidor JS activo tras
@@ -5690,36 +5697,27 @@
 /* ── Señales de SLA — .qinc-item--sla-vencido / .qinc-item--sla-riesgo ── */
 /* Mutuamente excluyentes — JS aplica solo una */
 
-/* TKT-A (REQ CAEL-0722-01, ref_id CAEL-0722-05): border-left de severidad agregado —
-   mismo token y mismo patrón ya validado en .worker-header-unlock (border-left: 3px
-   solid var(--red-border), ver _Locus-css-ref mod:X mismo archivo). Fondo existente
-   sin cambio — el border-left se suma, no reemplaza. */
+/* TKT2 (REQ CAEL-0724-14, ref_id CAEL-0724-16): border-left de .qinc-item--sla-vencido
+   cambia de var(--red-border) a var(--red-text) — AC del REQ exige que borde y countdown
+   "compartan el mismo tono"; --red-border era un rojo muy oscuro/desaturado (#3a1018 dark,
+   #f0b0bc light) sin relación tonal visible con el countdown. --red-text sí resuelve al mismo
+   rojo de acento en ambos temas (var(--red) en dark, #b8253f en light). Fondo sin cambio. */
 .qinc-item.qinc-item--sla-vencido {
   background: rgba(232, 85, 85, 0.10);
   border-radius: var(--radius-sm);
-  border-left: 3px solid var(--red-border);
+  border-left: 3px solid var(--red-text);
 }
 
 [data-theme="dark"] .qinc-item.qinc-item--sla-vencido {
   background: rgba(232, 85, 85, 0.14);
 }
 
-@keyframes qincSlaRiesgoPulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.6; }
-}
-
-.qinc-item--sla-riesgo {
-  border-left: 2px solid #e85555;
-  animation: qincSlaRiesgoPulse 1s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .qinc-item--sla-riesgo {
-    animation: none;
-    border-left-style: dashed;
-  }
-}
+/* TKT2 (REQ CAEL-0724-14, ref_id CAEL-0724-16): .qinc-item--sla-riesgo pierde border-left +
+   animación de pulso — AC del REQ: "countdown ámbar, sin borde de card" en estado de riesgo,
+   a diferencia de vencido (que sí conserva borde). La señal de riesgo se concentra por completo
+   en .qinc-sla-countdown--riesgo (ver bloque de countdown más abajo) — el borde parpadeante
+   duplicaba la señal y competía visualmente con el color de columna que introduce este mismo
+   REQ. Selector y @keyframes retirados juntos — sin consumidor restante. */
 
 /* ── Comportamiento actual — .qinc-item-comportamiento ──
    Fix INC (Q-INC render audit, 2026-07-18): el contenido ya no es su propio
@@ -6411,12 +6409,16 @@
 }
 
 /* TKT-A (REQ CAEL-0722-01, ref_id CAEL-0722-05): línea meta secundaria —
-   origin_module + role/next_role. Mismo tamaño/color que .qinc-item-meta,
-   separada por borde superior sutil. Clickeable — mismo tratamiento
-   interactivo que .qinc-item-header (cursor, hover, focus-visible). */
+   origin_module + role/next_role. Separada por borde superior sutil. Clickeable — mismo
+   tratamiento interactivo que .qinc-item-header (cursor, hover, focus-visible).
+   TKT2 (REQ CAEL-0724-14, ref_id CAEL-0724-16): color cambia de var(--text2) (idéntico a
+   .qinc-item-meta, sin jerarquía) a var(--text3) — un paso más apagado que la meta primaria,
+   AC del REQ. --text3 es token dedicado con contraste ≥4.5:1 documentado en locus-base.css
+   (5.21:1 dark / 5.56:1 light contra --surface2) — no una reducción de opacity ad-hoc que
+   pudiera arriesgar el mínimo de accesibilidad. */
 .qinc-item-meta-secondary {
   font-size: var(--text-2xs);
-  color: var(--text2);
+  color: var(--text3);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -6503,20 +6505,31 @@
   color: var(--text2);
 }
 
+/* TKT2 (REQ CAEL-0724-14, ref_id CAEL-0724-16): contraste corregido — verificación previa a
+   entrega (WCAG AA 4.5:1) detectó que color:var(--text-on-danger) sobre background:var(--red)
+   sólido da 3.36:1 en tema dark (falla). Reemplazado por el mismo patrón "texto de acento sobre
+   fondo subtle" ya validado en el ecosistema (--red-text sobre --bg-danger-subtle, documentado
+   en locus-base.css con contraste ≥4.5:1 por diseño) — mismo patrón que el badge "no leído" de
+   Fase 5. Verificado: 5.75:1 dark, 5.61:1 light. */
 .qinc-sla-countdown--vencido {
-  background: var(--red);
-  color: var(--text-on-danger);
+  color: var(--red-text);
+  background: var(--bg-danger-subtle);
   padding: 0 4px;
   border-radius: var(--radius-xs);
 }
 
-/* TKT1 (REQ Countdown SLA — INC high en Q-INC): estado de riesgo del countdown —
-   texto pasa de --text2 neutro a color de severidad dentro de SLA_RIESGO_WINDOW_MS (6h).
-   No introduce token nuevo — reusa --c-severity-high-* (A-04 ux-ref). */
+/* TKT2 (REQ CAEL-0724-14, ref_id CAEL-0724-16): reemplaza var(--c-severity-high-*) — esa
+   familia de tokens es severidad de prioridad de ítem (alineada a --orange), no diseñada como
+   par texto/fondo para contraste de countdown; verificación previa a entrega detectó 2.90:1 en
+   tema light (falla WCAG AA). --amber-text sí es un token de texto dedicado, con contraste
+   documentado en locus-base.css — usado aquí sobre el mismo patrón color-mix 10%/28% ya
+   establecido en el archivo (ver .qinc-badge--sla-high y vecinas, más abajo). Verificado:
+   8.72:1 dark, 4.82:1 light. AC de coherencia del REQ: countdown ámbar en riesgo, sin borde de
+   card (ver .qinc-item--sla-riesgo retirada más arriba). */
 .qinc-sla-countdown--riesgo {
-  color: var(--c-severity-high-text);
-  background: var(--c-severity-high-bg);
-  border: 1px solid var(--c-severity-high-border);
+  color: var(--amber-text);
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--amber) 28%, transparent);
   padding: 0 4px;
   border-radius: var(--radius-xs);
 }
@@ -6551,6 +6564,68 @@
   gap: 4px;
   flex-wrap: wrap;
 }
+
+/* ── Grid de 3 columnas por prioridad SLA — TKT2 (TKT-202607-089, parent REQ-202607-026) ──
+   Corrección de atribución: el trabajo de contraste/borde/meta-secundaria declarado más
+   arriba en este archivo como "TKT2 (REQ CAEL-0724-14, ref_id CAEL-0724-16)" es el mismo TKT2
+   de este REQ — el ref_id nunca se resolvió a código real de Locus porque el CHECKPOINT que
+   lo habría confirmado no llegó a pegarse por separado. Código real correcto: TKT-202607-089.
+   Los comentarios previos no se reescriben (registro histórico de la decisión de color/
+   contraste sigue siendo válido) — esta nota deja la referencia correcta para auditoría.
+   Clases consumidas por _buildQIncColumnsHtml() (locus-incidents-render.js, TKT1 de Rune):
+   .qinc-columns (contenedor), .qinc-column[data-qi-column="high|medium|low"], .qinc-column-header,
+   .qinc-column-body, .qinc-column-empty. */
+.qinc-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.qinc-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.qinc-column-header {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text2);
+  padding: 4px 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Acento de color por columna — mismos tokens ya auditados en .qinc-sla-countdown--vencido/
+   --riesgo (ver más arriba), reutilizados aquí solo en el texto del header, sin fondo nuevo.
+   Refuerza la jerarquía de urgencia que es la intención declarada del REQ. */
+.qinc-column[data-qi-column="high"] .qinc-column-header {
+  color: var(--red-text);
+}
+
+.qinc-column[data-qi-column="medium"] .qinc-column-header {
+  color: var(--amber-text);
+}
+
+.qinc-column-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qinc-column-empty {
+  font-size: var(--text-xs);
+  color: var(--text3);
+  font-style: italic;
+  text-align: center;
+  padding: 14px 6px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+}
+/* ══ END TKT-202607-089 ══ */
 
 /* ══ END TKT-D3 ══ */
 

@@ -1,4 +1,13 @@
-/* [PP] mod:18 · autor:Nova · 2026-07-20 UTC-6 */
+/* [PP] mod:19 · autor:Nova · 2026-07-24 UTC-6 */
+/* TKT1 (REQ CAEL-0724-02, DISC-202607-029): .validation-result-item-type — badge de tipo por
+   fila en #ingest-result-items. Conflicto CSS resuelto en sesión (dueño Nova co-presente, nivel
+   Patch, sin bifurcación — BR-Core Excepción de dueño co-presente): las restricciones
+   originales de Fase 1 asignaban REQ→azul/DISC→púrpura (mapeo BR-Ecosystem §4 sin el swap).
+   El swap DISC↔REQ (locus-backlog-item.css mod:51, TKT1 CAEL-11, founder) ya es el semántico
+   vigente en todo el resto de Locus — REQ→--purple-text, DISC→--blue-text aquí, coherente con
+   .item-type-pill.DISC/.tc-REQ/.qdisc-stat-cell--discovery. Resto de tipos sin cambio respecto
+   al mapeo original de Nova: TKT→--green-text, INC→--red-text, PRB→--amber-text,
+   CHG→--slate-text. Mismo patrón visual que .validation-badge (color-mix + token -text). */
 /* DISC ejecutada: removida .modal--migration — sin consumidor confirmado en JS/HTML. */
 /* [PP] mod:15 · autor:Nova · 2026-07-19 UTC-6 */
 /* Fix cascade: .modal--ingest → .modal.modal--ingest (compound) — la base .modal
@@ -852,6 +861,58 @@ body.radar-sb-collapsed {
   display: flex;
   justify-content: space-between;
   font-size: var(--text-xs);
+}
+
+.validation-result-item-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.validation-result-item-type {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  padding: 1px 5px;
+  border-radius: var(--radius-pill);
+}
+
+.validation-result-item-type--REQ {
+  background: color-mix(in srgb, var(--purple) 10%, transparent);
+  color: var(--purple-text);
+}
+
+.validation-result-item-type--TKT {
+  background: color-mix(in srgb, var(--green) 10%, transparent);
+  color: var(--green-text);
+}
+
+.validation-result-item-type--DISC {
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
+  color: var(--blue-text);
+}
+
+.validation-result-item-type--INC {
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+  color: var(--red-text);
+}
+
+.validation-result-item-type--PRB {
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
+  color: var(--amber-text);
+}
+
+.validation-result-item-type--CHG {
+  background: color-mix(in srgb, var(--slate) 10%, transparent);
+  color: var(--slate-text);
+}
+
+/* Edge case (AC2, TKT1) — item.type ausente o no reconocido contra _GEN2_TYPES */
+.validation-result-item-type--unknown {
+  background: var(--surface3);
+  color: var(--text3);
 }
 
 .validation-result-item-status {

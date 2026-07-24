@@ -1,3 +1,20 @@
+// [PP] mod:11 · autor:Rune · 2026-07-24 UTC-6
+// TKT1 (REQ CAEL-0724-14/TKT-202607-088, ref_id CAEL-0724-15): sección "Activos" de
+// renderQIncPanel() reemplaza el grid único por 3 columnas de prioridad SLA (alta/media/baja).
+// Funciones nuevas a nivel de módulo: _SLA_COLUMNS/_SLA_COLUMN_LABEL/_SLA_COLUMN_LABEL_LC
+// (constantes de orden y copy) · _slaColumnOf(item) (agrupa por incSlaPriority, fallback
+// 'medium' si null o valor no reconocido — ningún ítem se pierde) · _qincColumnSort(a,b)
+// (orden ascendente por slaDeadline, Infinity como sentinel para ítems sin deadline — quedan al
+// final de su columna) · _buildQIncColumnsHtml(activeItems) (arma el markup: 3 divs
+// data-qi-column="high|medium|low", header "[Label] · [conteo]", empty-state propio por
+// columna vacía sin colapsarla). _buildQIncColumnsHtml vive a nivel de módulo — usa
+// buildQIncItem() (import directo) en vez de _buildQIncItemHtml (wrapper local a
+// renderQIncPanel(), fuera de su alcance). Sección "Terminados" sin cambio — sigue en grid
+// único. _isQIncTerminal() y el split _activeItems/_terminalItems sin cambio de firma — la
+// agrupación es una capa de presentación posterior sobre _activeItems ya resuelto. Sin caller
+// externo de renderQIncPanel()/_isQIncTerminal() verificado por grep contra el repo completo —
+// ambas funciones consumidas únicamente dentro de este módulo.
+
 // [PP] mod:10 · autor:Rune · 2026-07-24 UTC-6
 // TKT1 (REQ CAEL-0724-11, ref_id CAEL-0724-12): retiro final de 'KE' — inalcanzable desde
 // _GEN2_TYPES (locus-backlog-core.js mod:131, fusión KE→PRB.root_cause_confirmed, infra_version
@@ -254,6 +271,63 @@ export function renderQIncStats() {
   }
 }
 
+// TKT1 (REQ CAEL-0724-14, ref_id CAEL-0724-15): columnas de "Activos" por prioridad SLA —
+// reemplaza el grid único anterior. _SLA_COLUMNS fija el orden de render (alta→media→baja),
+// _SLA_COLUMN_LABEL es el texto de header (capitalizado) y _SLA_COLUMN_LABEL_LC el texto de
+// empty-state (minúscula, concordancia gramatical "de prioridad alta/media/baja"). No toca
+// _isQIncTerminal ni el split Activos/Terminados — opera solo sobre el array _activeItems ya
+// resuelto por ese criterio, agregando una capa de presentación posterior.
+const _SLA_COLUMNS = ['high', 'medium', 'low'];
+const _SLA_COLUMN_LABEL = { high: 'Alta', medium: 'Media', low: 'Baja' };
+const _SLA_COLUMN_LABEL_LC = { high: 'alta', medium: 'media', low: 'baja' };
+
+// incSlaPriority(item) puede devolver null (sin campo) o un valor no reconocido — ambos casos
+// caen en 'medium' por defecto, AC explícito del TKT: ningún ítem se pierde silenciosamente.
+function _slaColumnOf(item) {
+  const p = incSlaPriority(item);
+  return _SLA_COLUMNS.includes(p) ? p : 'medium';
+}
+
+// Orden ascendente por slaDeadline dentro de cada columna — más urgente primero. Ítems sin
+// slaDeadline numérico (PRB/CHG sin countdown) se ordenan al final de su columna via Infinity,
+// sin necesitar rama condicional aparte para el caso "ninguno de los dos tiene deadline".
+function _qincColumnSort(a, b) {
+  const da = typeof a.slaDeadline === 'number' ? a.slaDeadline : Infinity;
+  const db = typeof b.slaDeadline === 'number' ? b.slaDeadline : Infinity;
+  return da - db;
+}
+
+// Construye el markup de las 3 columnas de prioridad para la sección "Activos". Cada columna
+// declara data-qi-column="high|medium|low" para que el CSS de Nova (TKT2, mismo REQ) la
+// seleccione. Header con conteo ("Alta · 2") y empty-state propio por columna cuando no tiene
+// ítems — sin colapsar ni ocultar la columna vacía (AC de coherencia del REQ).
+function _buildQIncColumnsHtml(activeItems) {
+  const groups = { high: [], medium: [], low: [] };
+  activeItems.forEach(item => { groups[_slaColumnOf(item)].push(item); });
+  _SLA_COLUMNS.forEach(col => groups[col].sort(_qincColumnSort));
+
+  let h = '<div class="qinc-columns">';
+  _SLA_COLUMNS.forEach(col => {
+    const items = groups[col];
+    h += `<div class="qinc-column" data-qi-column="${col}">`;
+    h += `<div class="qinc-column-header">${_SLA_COLUMN_LABEL[col]} · ${items.length}</div>`;
+    if (items.length) {
+      h += '<div class="qinc-column-body">';
+      // buildQIncItem() directo — _buildQIncItemHtml es un wrapper local a renderQIncPanel(),
+      // fuera de alcance para esta función de nivel de módulo. Mismo import ya usado arriba.
+      items.forEach(item => { h += buildQIncItem(item); });
+      h += '</div>';
+    } else {
+      h += `<div class="empty-state qinc-column-empty">
+              <div class="empty-state-title">Sin incidentes de prioridad ${_SLA_COLUMN_LABEL_LC[col]}</div>
+            </div>`;
+    }
+    h += '</div>';
+  });
+  h += '</div>';
+  return h;
+}
+
 // TKT2 (REQ CAEL-0720-05): renderQIncPanel() ahora gestiona exclusivamente el cuerpo
 // (#qinc-panel-body) — lista de ítems o empty-state, nunca ambos, nunca ninguno (AC Nova).
 // El stats-bar (#qinc-stats-bar, estático) se renderiza siempre vía renderQIncStats(),
@@ -332,9 +406,9 @@ export function renderQIncPanel() {
         const _terminalItems = filteredQInc.filter(i => _isQIncTerminal(i));
         let h = '';
         if (_activeItems.length) {
-          h += '<div class="qinc-section"><div class="qinc-section-header">Activos</div><div class="items-grid">';
-          _activeItems.forEach(item => { h += _buildQIncItemHtml(item); });
-          h += '</div></div>';
+          h += '<div class="qinc-section"><div class="qinc-section-header">Activos</div>';
+          h += _buildQIncColumnsHtml(_activeItems);
+          h += '</div>';
         }
         // TKT1 (REQ CAEL-0723-03): "Terminados" siempre se renderiza — a diferencia de
         // "Activos", que se omite si vacío. filteredQInc.length>0 está garantizado en este punto
