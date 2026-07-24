@@ -1,3 +1,19 @@
+// [PP] mod:9 · autor:Rune · 2026-07-24 UTC-6
+// TKT2 (parent: REQ-202607-018): alinea _generateIncidentsMd()/_buildIndiceMd() a
+// _ob-DocStandards §3b. (1) Header '## Estado actual' agregado antes de la línea
+// '**Q-INC:**' — antes esa línea no tenía sección propia. (2) Línea 'Contadores:
+// INC=N | PRB=N | CHG=N' agregada al final de '## Índice de estado' (separador ' | ',
+// distinto del ' · ' de la línea Q-INC — AC lo declara explícito) — reusa byType ya
+// computado en _buildIndiceMd(), sin segunda pasada de conteo. (3) Columna
+// 'comportamiento_actual' agregada a la tabla PRB del índice — ausente en detected/
+// in_progress renderiza '—' (mismo fallback ya usado en el resto de la tabla, sin
+// código nuevo de rama de error). (4) Columna 'triggered_by' agregada a la tabla INC
+// del índice — ausente renderiza '—'. (5) resolution_type ausente en la fila INC del
+// índice ahora renderiza 'n/a' en vez de '—' (AC6 — cambio acotado a esta única celda,
+// el resto de columnas de la tabla conserva '—' como fallback genérico). Sin cambio de
+// firma en _generateIncidentsMd()/_buildIndiceMd() — ambas siguen sin parámetro nuevo,
+// mismos dos call sites (locus-map-generator.js:614, locus-incidents-render.js:316) sin
+// impacto. contract_update: n/a — no exportada, sin call sites externos a este archivo.
 // [PP] mod:8 · autor:Rune · 2026-07-23 UTC-6
 // TKT-202607-065 (REQ-202607-018): retiro completo de 'KE' del universo de tipos ITIL activos
 // (fusión KE→PRB.root_cause_confirmed, infra_version 51). _isActiveIncident() sin rama KE —
@@ -174,9 +190,9 @@ function _buildIndiceMd(active) {
   if (!byType.INC.length) {
     lines.push('ninguno', '');
   } else {
-    lines.push('| Código | Título | Status | Priority | Deadline | resolution_type |', '|---|---|---|---|---|---|');
+    lines.push('| Código | Título | Status | Priority | Deadline | resolution_type | triggered_by |', '|---|---|---|---|---|---|---|');
     _sortIncs(byType.INC).forEach(i => {
-      lines.push(`| \`${i.code}\` | ${i.title || '—'} | ${incIncidentStatus(i) || '—'} | ${incSlaPriority(i) || '—'} | ${_fmtDeadline(i)}${_riesgoTag(i)} | ${incResolutionType(i) || '—'} |`);
+      lines.push(`| \`${i.code}\` | ${i.title || '—'} | ${incIncidentStatus(i) || '—'} | ${incSlaPriority(i) || '—'} | ${_fmtDeadline(i)}${_riesgoTag(i)} | ${incResolutionType(i) || 'n/a'} | ${i.triggered_by || '—'} |`);
     });
     lines.push('');
   }
@@ -185,10 +201,10 @@ function _buildIndiceMd(active) {
   if (!byType.PRB.length) {
     lines.push('ninguno', '');
   } else {
-    lines.push('| Código | Título | Status | Priority | derived_items |', '|---|---|---|---|---|');
+    lines.push('| Código | Título | Status | Priority | comportamiento_actual | derived_items |', '|---|---|---|---|---|---|');
     byType.PRB.forEach(i => {
       const derived = incDerivedItems(i);
-      lines.push(`| \`${i.code}\` | ${i.title || '—'} | ${incIncidentStatus(i) || '—'} | ${incSlaPriority(i) || '—'} | ${derived && derived.length ? derived.join(', ') : '—'} |`);
+      lines.push(`| \`${i.code}\` | ${i.title || '—'} | ${incIncidentStatus(i) || '—'} | ${incSlaPriority(i) || '—'} | ${incComportamientoActual(i) || '—'} | ${derived && derived.length ? derived.join(', ') : '—'} |`);
     });
     lines.push('');
   }
@@ -204,6 +220,8 @@ function _buildIndiceMd(active) {
     });
     lines.push('');
   }
+
+  lines.push(`Contadores: INC=${byType.INC.length} | PRB=${byType.PRB.length} | CHG=${byType.CHG.length}`, '');
 
   return lines.join('\n');
 }
@@ -321,6 +339,7 @@ export function _generateIncidentsMd() {
   md += `| Generado por | Locus — exportado desde app |\n`;
   md += '\n---\n\n';
 
+  md += '## Estado actual\n\n';
   md += `**Q-INC:** INC=${counts.INC} · PRB=${counts.PRB} · CHG=${counts.CHG} activos\n\n`;
 
   md += _buildIndiceMd(active);
