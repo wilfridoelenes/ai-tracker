@@ -1,3 +1,12 @@
+// [PP] v0.8.0 · sprint:PP-S-06 · mod:22 · autor:Rune · 2026-07-24 UTC-6
+// INC-[pendiente-ID] (Tab Analytics no renderiza — causa 2, timing async): _markAnalyticsDirty
+// y renderAnalytics importados como named imports (antes solo side-effect) e inyectados en
+// opts de _initApp como renderAnalytics: () => { _markAnalyticsDirty(); renderAnalytics(); } —
+// mismo patrón que renderSprintTab. Cierra el wiring del lado de main.js para que
+// locus-storage.js (mod:145) pueda invocar el refresh de Analytics al final de
+// _loadFromSupabase() cuando el batch remoto (incluye tracker_sessions) termina después de que
+// el tab ya estaba abierto con el empty-state congelado. Ver también locus-analytics-render.js
+// mod:15 (fix relacionado, listener de shell:render-analytics — mismo INC, causa 1, distinta).
 // [PP] v0.8.0 · sprint:PP-S-06 · mod:21 · autor:Rune · 2026-07-20 UTC-6
 // INC-[pendiente-ID] (Tab INC no renderiza): agregado import de efecto lateral de
 // locus-incidents-render.js — TKT2 (REQ CAEL-0720-03) extrajo renderQIncPanel() ahí pero
