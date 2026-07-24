@@ -1,3 +1,10 @@
+/* [PP] mod:127 · autor:Nova · 2026-07-24 UTC-6 */
+/* TKT1 AC4 (parent REQ CAEL-0724-01, ref_id CAEL-0724-02 · TKT-202607-093 ya con código real) —
+   segunda vuelta tras refactor de TKT3: .bl-vl-sprint-header-meta pasa a contenedor flex de dos
+   spans (.bl-vl-sprint-header-meta-label Nivel 4 uppercase / .bl-vl-sprint-header-meta-value
+   --text-sm), color se conserva en el contenedor y se hereda — sin tocar los overrides de estado
+   existentes (.sprint-group-active/-planned, dark mode). .hsr-velocity retirada — huérfana desde
+   que TKT3 (locus-backlog-render.js mod:106) dejó de emitir ese HTML. */
 /* [PP] mod:126 · autor:Nova · 2026-07-24 UTC-6 */
 /* TKT1 (parent REQ CAEL-0724-01, ref_id CAEL-0724-02): headers de sprint — .sprint-name-label
    a Nivel 3 (--text-md/500, antes --text-sm/400) y tinte de fondo en .sprint-group-planned
@@ -4703,20 +4710,8 @@
 
 /* END T-A4b · inline confirm */
 
-/* R-202605-066: effort vs velocidad inline en header de sprint activo */
-.hsr-velocity {
-  font-size: var(--text-sm);
-  color: var(--text2);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-/* END R-202605-066 */
-
-/* B-202606-015: contraste insuficiente .hsr-velocity dark mode */
-[data-theme="dark"] .hsr-velocity {
-  color: var(--text);
-}
-/* END B-202606-015 */
+/* R-202605-066: .hsr-velocity retirada — TKT3 (REQ CAEL-0724-01) dejó de emitir ese HTML,
+   _sprintVelocityLabel() ahora retorna {label, valor} consumido por .bl-vl-sprint-header-meta-*. */
 
 /* Dark mode — sprint headers: ajuste de stops para fondos de color */
 [data-theme="dark"] .sprint-group-active .bl-vl-sprint-header {
@@ -5161,13 +5156,30 @@
   padding: 10px 14px 4px;
 }
 
-/* Fila 2: contexto — velocity o fecha de cierre */
+/* Fila 2: contexto — velocity o fecha de cierre.
+   TKT1 (REQ CAEL-0724-01, AC4 — segunda vuelta tras TKT3/CAEL-0724-03 refactor a {label,valor}):
+   color se conserva aquí (heredado por los spans hijos) — así los overrides de estado
+   (.sprint-group-active/.sprint-group-planned/dark mode, ver más abajo) siguen aplicando sin
+   tocarlos. Solo cambia tamaño/tratamiento tipográfico, que ahora vive en los hijos. */
 .bl-vl-sprint-header-meta {
   display: flex;
   align-items: center;
+  gap: 6px;
   padding: 0 14px 6px 30px;
-  font-size: var(--text-xs);
   color: var(--text3);
+}
+
+.bl-vl-sprint-header-meta-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bl-vl-sprint-header-meta-value {
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Fila 3: progress bar full-width */

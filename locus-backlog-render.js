@@ -1,3 +1,12 @@
+// [PP] mod:106 · autor:Rune · 2026-07-24 UTC-6
+// TKT3 (TKT-202607-093, parent REQ CAEL-0724-01, opción B del gap devuelto por Rune — founder
+// confirmó "y B"): _sprintVelocityLabel() y la const local _metaText (renderSprintGroup) dejan
+// de retornar HTML/string — ahora retornan {label, valor} | null. _metaText NO se promovió a
+// función (permanece inline, exclusiva de renderSprintGroup). Los 2 call sites de Fila 2
+// (renderSprintGroup L~459, _emptySprintHeaderHtml L~561) consumen el objeto y renderizan
+// <span class="bl-vl-sprint-header-meta-label">/-value"> — hooks nuevos para CSS de Nova
+// (TKT1 AC4). .hsr-velocity queda huérfana en CSS — señalada a Nova. Sin cambio de contrato
+// externo — ambas siguen privadas al módulo, sin exports.
 // [PP] mod:105 · autor:Rune · 2026-07-24 UTC-6
 // TKT2 (parent REQ CAEL-0724-01): renderSprintGroup — header de sprint Cerrado ya no renderiza
 // .bl-vl-sprint-header-progress (barra + label). En su lugar renderiza un resumen estático
@@ -360,9 +369,12 @@ export function _calcEstimatedVelocity() {
 }
 
 // R-202605-066: label inline de effort vs velocidad para header del sprint activo
-// Retorna HTML con clase hsr-velocity, o '' si no hay sprint activo
+// TKT3 (REQ CAEL-0724-01, contract_update: sí — signature_change): retorna {label, valor} en vez
+// de HTML — permite que el caller aplique el split tipográfico Nivel 4/Nivel de TKT1 AC4. Antes
+// retornaba '<span class="hsr-velocity">...</span>' o ''; ahora retorna {label, valor} o null.
+// .hsr-velocity queda huérfana en CSS — señalada a Nova (doc_updates de este CHECKPOINT).
 function _sprintVelocityLabel(sprintId) {
-  if (!sprintId) return '';
+  if (!sprintId) return null;
   // B-202606-018: normalizar campo sprint del ítem para incluir ítems con label completo
   const _extId = s => s.split(' · ')[0].trim();
   const spItems = getItems().filter(i => _extId((i.sprint || '').trim()) === sprintId && i.status === 'pendiente');
@@ -370,7 +382,7 @@ function _sprintVelocityLabel(sprintId) {
   const vel = _calcEstimatedVelocity();
   const velLabel = (vel && typeof vel.avg === 'number') ? vel.avg : null;
   const velStr = velLabel !== null ? velLabel : '—';
-  return `<span class="hsr-velocity">Effort: ${effortTotal} / vel. ${velStr}</span>`;
+  return { label: 'EFFORT', valor: `${effortTotal} / vel. ${velStr}` };
 }
 
 // T-202604-284: Sprint Roadmap — filtro activo (sprintId | null)
@@ -433,12 +445,21 @@ export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
           : '';
 
   // Meta secundaria: velocity para activo, fecha de cierre para cerrado, effort estimado para planificado
-  const _velLabel = isActive ? _sprintVelocityLabel(sprintId) : '';
+  // TKT3 (REQ CAEL-0724-01): _metaText permanece const local inline — no se promueve a función
+  // (decisión del founder, opción B ante el gap de especificación) — pero su forma de retorno
+  // pasa de string a {label, valor} | null, misma forma que _sprintVelocityLabel().
+  const _velMeta = isActive ? _sprintVelocityLabel(sprintId) : null;
   const _metaText = isClosed
-    ? (sprintObj?.closedAt ? `${sprintObj.version_target || ''} · cerrado ${sprintObj.closedAt}`.trim().replace(/^·\s*/, '') : (sprintObj?.version_target || ''))
+    ? ((sprintObj?.version_target || sprintObj?.closedAt)
+        ? { label: 'CERRADO', valor: `${sprintObj?.version_target || ''}${sprintObj?.version_target && sprintObj?.closedAt ? ' · ' : ''}${sprintObj?.closedAt || ''}` }
+        : null)
     : isPlanned
-      ? (() => { const ef = sprintItems.reduce((s, i) => s + (parseInt(i.effort) || 0), 0); return ef ? `Effort estimado: ${ef}` : ''; })()
-      : '';
+      ? (() => {
+          const ef = sprintItems.reduce((s, i) => s + (parseInt(i.effort) || 0), 0);
+          return ef ? { label: 'EFFORT ESTIMADO', valor: String(ef) } : null;
+        })()
+      : null;
+  const _meta = _velMeta || _metaText;
 
   const progressBar = isClosed
     ? `<div class="bl-vl-sprint-header-summary">
@@ -456,8 +477,8 @@ export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
   html += `<span id="sprint-label-wrap-${esc(sprintId)}"><span class="version-tag">${esc(sprintId)}</span>${(label && label !== sprintId) ? `<span class="sprint-name-label">${esc(label)}</span>` : ''}</span>`;
   html += sprintStatusLabel;
   html += `</div>`; // bl-vl-sprint-header-row1
-  if (_velLabel || _metaText) {
-    html += `<div class="bl-vl-sprint-header-meta">${_velLabel || esc(_metaText)}</div>`;
+  if (_meta) {
+    html += `<div class="bl-vl-sprint-header-meta"><span class="bl-vl-sprint-header-meta-label">${esc(_meta.label)}</span><span class="bl-vl-sprint-header-meta-value">${esc(_meta.valor)}</span></div>`;
   }
   html += progressBar;
   html += `</div>`; // bl-vl-sprint-header
@@ -543,7 +564,10 @@ function _emptySprintHeaderHtml(sprintId, sprintObj) {
   const sprintStatusLabel = isActive
     ? `<span class="sprint-badge-active">activo</span>`
     : `<span class="sprint-badge-planned">planificado</span>`;
-  const _velLabel = isActive ? _sprintVelocityLabel(sprintId) : '';
+  // TKT3 (REQ CAEL-0724-01): _sprintVelocityLabel() retorna {label, valor} | null — sin equivalente
+  // de _metaText en este caller (confirmado contra código real: nunca lo tuvo, caso Cerrado/
+  // Planificado con ítems no aplica a header vacío sin ítems).
+  const _velMeta = isActive ? _sprintVelocityLabel(sprintId) : null;
 
   let html = `<div class="bl-vl-sprint-group${isActive ? ' sprint-group-active' : ''}${isPlanned ? ' sprint-group-planned' : ''}" data-sprint-id="${esc(sprintId)}">`;
   html += `<div class="bl-vl-sprint-header version-collapse-trigger" data-action="version-collapse" data-group-id="${groupId}" tabindex="0" role="button" aria-expanded="${isCollapsed ? 'false' : 'true'}">`;
@@ -552,7 +576,7 @@ function _emptySprintHeaderHtml(sprintId, sprintObj) {
   html += `<span id="sprint-label-wrap-${esc(sprintId)}"><span class="version-tag">${esc(sprintId)}</span>${(label && label !== sprintId) ? `<span class="sprint-name-label">${esc(label)}</span>` : ''}</span>`;
   html += sprintStatusLabel;
   html += `</div>`;
-  if (_velLabel) html += `<div class="bl-vl-sprint-header-meta">${_velLabel}</div>`;
+  if (_velMeta) html += `<div class="bl-vl-sprint-header-meta"><span class="bl-vl-sprint-header-meta-label">${esc(_velMeta.label)}</span><span class="bl-vl-sprint-header-meta-value">${esc(_velMeta.valor)}</span></div>`;
   html += `<div class="bl-vl-sprint-header-progress">
     <div class="bl-vl-progress-track"><div class="bl-vl-progress-fill" style="--ver-bar-w:0%"></div></div>
     <span class="bl-vl-progress-label">0/0 · 0%</span>

@@ -1,3 +1,12 @@
+// [PP] mod:38 · autor:Rune · 2026-07-24 UTC-6
+// INC (Fast Track — sla_priority medium, un solo archivo, fix en la misma sesión de registro):
+// openSprints (_renderPlanningView, L112) e isProgramado (_sprintDestCard, L225) comparaban
+// contra el literal 'programado' (nombre BR-Ecosystem §5) en vez de 'scheduled' (nombre Locus
+// real — único valor que setSprintStatus() asigna, confirmado contra locus-backlog-sprints.js
+// L442/450/478: "valores válidos extendidos — 'active' | 'closed' | 'scheduled' | 'discarded'").
+// Un sprint con status:'scheduled' nunca matcheaba ninguno de los dos filtros — invisible en
+// Planificación pese a que mod:36 (este mismo archivo, misma fecha) creía haber agregado el
+// soporte. Sin cambio de lógica ni de firma — solo el literal comparado. contract_update: no.
 // [PP] mod:37 · autor:Rune · 2026-07-24 UTC-6
 // TKT1 (REQ CAEL-0724-03 · sangría visual TKT bajo REQ en Planificación): _planCard acepta
 // 4to parámetro isChild — agrega clase bl-plan-card--child (Nova, locus-sprint-ui.css, entrega
@@ -109,7 +118,7 @@ export function _renderPlanningView(listEl, closeCallback) {
   // trabajo adelantado explícito hacia sprint programado. Orden estable: active primero (isCurrent
   // ya lo distingue visualmente igual), luego programado por id — sin tocar activationOrder real.
   const openSprints  = allSprints
-    .filter(s => s.status === 'active' || s.status === 'programado')
+    .filter(s => s.status === 'active' || s.status === 'scheduled')
     .sort((a, b) => {
       if (a.status !== b.status) return a.status === 'active' ? -1 : 1;
       return String(a.id).localeCompare(String(b.id));
@@ -222,7 +231,7 @@ export function _renderPlanningView(listEl, closeCallback) {
     const isCurrent   = activeSprint && sprint.id === activeSprint.id;
     // TKT2 (REQ CAEL-0724-02): programado nunca coincide con activeSprint — isCurrent ya lo
     // excluye por construcción, sin condición adicional.
-    const isProgramado = sprint.status === 'programado';
+    const isProgramado = sprint.status === 'scheduled';
     // TKT-[pendiente-ID]: patrón id · label — fallback a solo id si no hay label propio
     const displayName = sprint.label ? `${sprint.id} · ${sprint.label}` : sprint.id;
     const inSprint  = getItems().filter(i =>

@@ -1,3 +1,27 @@
+/* [PP] mod:14 · autor:Nova · 2026-07-24 UTC-6 */
+/* TKT2 (REQ CAEL-0724-01): .bl-plan-card--child — sangría visual del TKT bajo su REQ padre
+   cuando ambos están renderizados en la misma lista (Q-Backlog o mismo sprint destino).
+   Guía vertical vía ::before absoluto (aprovecha position:relative ya declarado en
+   .bl-plan-card) en vez de reutilizar border-left — ese borde ya codifica --item-type-color
+   (línea 274) y un segundo borde-izquierdo simultáneo colisionaría visualmente con esa
+   semántica de tipo de ítem. var(--border2) y var(--radius-3xs) ya están en uso en este
+   archivo (líneas 357 y 212 respectivamente) — sin token nuevo. Sin línea conectora entre
+   cards (fuera de scope declarado en no_incluye del TKT). */
+.bl-plan-card--child {
+  margin-left: 20px;
+}
+
+.bl-plan-card--child::before {
+  content: '';
+  position: absolute;
+  left: -11px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border2);
+  border-radius: var(--radius-3xs);
+}
+
 /* [PP] mod:13 · autor:Nova · 2026-07-24 UTC-6 */
 /* TKT1 (REQ CAEL-0724-02): .bl-plan-dest-programado-badge — distingue sprints programado dentro
    de .bl-plan-dest-list, reusando el patrón ya vigente de T-202605-028 (.bl-plan-dest-sprint,
