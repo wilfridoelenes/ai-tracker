@@ -1,3 +1,10 @@
+// [PP] mod:19 · autor:Rune · 2026-07-24 UTC-6
+// TKT1 (REQ CAEL-0724-01 · Normalización MAP): naming canónico del archivo/header del MAP unificado
+// en _mgCanonicalMapName(prefix, version) → `_${prefix}-map-${version}.md`. Reemplaza el patrón
+// `${prefix}-MAP_${version}.md` en 6 call sites: header interno del md, preview inicial del modal,
+// preview al soltar .md con versión detectada, entrada 'map' de _mgShowPreview, nombre de descarga
+// individual, y nombre dentro del ZIP. No toca CONTEXT/BACKLOG/SPRINT-REVIEW/BACKLOG-FULL — mismo
+// patrón de naming incorrecto ahí, fuera de scope de este TKT (ver REQ CAEL-0724-01 no_incluye).
 // [PP] mod:18 · autor:Rune · 2026-07-20 11:35 UTC-6
 // TKT2 (REQ CAEL-0720-01): import _generateIncidentsMd + integración en generateDocuments()/
 // _mgShowPreview()/_doConfirmGenerate() — sin versión en el archivo de incidents, ver AC-3.
@@ -43,6 +50,14 @@ import { render } from './locus-sesiones.js';
 // ─── Utilidades de módulo ─────────────────────────────────────────────────────
 export function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 export function normalize(v) { return String(v || '').replace(/^v/, '').trim(); }
+
+// TKT1 (REQ CAEL-0724-01 · Normalización MAP): naming canónico único del archivo/header del MAP.
+// Patrón fuente de verdad: _[PREFIJO]-map-v[X].[Y].[Z].md (__OB-Strategy §5 · _ob-DocStandards §8).
+// `version` ya llega con formato vX.Y.Z (ver _mgGetMapVersion/_effectiveVersion) — no se reformatea aquí.
+// Único punto de construcción de este nombre en el módulo — todos los call sites del MAP lo consumen.
+export function _mgCanonicalMapName(prefix, version) {
+  return `_${prefix}-map-${version}.md`;
+}
 
 // ─── Helper: sprint de referencia — activo o último cerrado ──────────────────
 // B-[pendiente-ID]: el generador se usa post-cierre de sprint — si no hay sprint
@@ -104,7 +119,7 @@ export function openMapGenerator() {
   const prefix = _docPrefix();
   const ver = _effectiveVersion();
   if (vInput) vInput.value = ver;
-  if (fPreview) fPreview.textContent = `${prefix}-MAP_${ver}.md`;
+  if (fPreview) fPreview.textContent = _mgCanonicalMapName(prefix, ver);
 
   // R-202605-147: inferir status al abrir — calculado una sola vez
   let _blItemsForStatus = [];
@@ -330,7 +345,7 @@ function _mgLoadFiles(fileList) {
       const fPreview = document.getElementById('mg-filename-preview');
       const prefix = _docPrefix();
       if (vInput) vInput.value = `v${verMatch[1]}`;
-      if (fPreview) fPreview.textContent = `${prefix}-MAP_v${verMatch[1]}.md`;
+      if (fPreview) fPreview.textContent = _mgCanonicalMapName(prefix, `v${verMatch[1]}`);
     }
     // .md sin patrón vX.Y.Z: ignorar silenciosamente — comportamiento actual conservado como fallback (AC edge case)
   });
@@ -880,7 +895,7 @@ function _generateMap(ver) {
     });
   });
 
-  let md = `# ${project}-MAP_${version}.md\n`;
+  let md = `# ${_mgCanonicalMapName(project, version)}\n`;
   md += `<!-- Versión: ${version} | Actualizado: ${now} UTC-6 | Proyecto: ${project} | Status: ${mapStatus} -->\n`;
   // T-202606-147: segunda línea de header — infra_version leído automáticamente desde proj.infraVersion
   // T4 ([pendiente-ID]): si infraVersion está ausente, undefined, null o vacía tras trim — emitir
@@ -1449,7 +1464,7 @@ function _mgShowPreview(docs) {
   const prefix = _docPrefix();
 
   const items = [
-    { key: 'map',     label: 'MAP',          filename: `${prefix}-MAP_${version}.md` },
+    { key: 'map',     label: 'MAP',          filename: _mgCanonicalMapName(prefix, version) },
     { key: 'context', label: 'CONTEXT',       filename: `${prefix}-CONTEXT_${version}.md` },
     { key: 'backlog', label: 'BACKLOG',        filename: `${prefix}-BACKLOG_${version}.md` },
     { key: 'review',  label: 'Sprint Review', filename: `${prefix}-SPRINT-REVIEW_${version}.md` },
@@ -1591,7 +1606,7 @@ async function _doConfirmGenerate() {
   const fileDefs = [];
   if (docs.map) {
     const mapVer = _mgGetMapVersion(); // T-202606-148: nombre del archivo MAP coincide con header interno
-    const name = `${prefix}-MAP_${mapVer}.md`;
+    const name = _mgCanonicalMapName(prefix, mapVer);
     fileDefs.push({
       filename: name,
       content:  docs.map,
@@ -1712,7 +1727,7 @@ export function _mgExportAllZip() {
     const mapContent = _getMapContent(ver);
     if (mapContent !== null) {
       // R-202605-137 (rev): output siempre .md — bloque JSON eliminado
-      fileDefs.push({ filename: `${prefix}-MAP_${ver}.md`, fn: () => mapContent });
+      fileDefs.push({ filename: _mgCanonicalMapName(prefix, ver), fn: () => mapContent });
     }
   }
 
