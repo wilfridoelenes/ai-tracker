@@ -1,4 +1,10 @@
-/* [PP] mod:125 · autor:Nova · 2026-07-24 UTC-6 */
+/* [PP] mod:126 · autor:Nova · 2026-07-24 UTC-6 */
+/* TKT1 (parent REQ CAEL-0724-01, ref_id CAEL-0724-02): headers de sprint — .sprint-name-label
+   a Nivel 3 (--text-md/500, antes --text-sm/400) y tinte de fondo en .sprint-group-planned
+   .bl-vl-sprint-header (rgb(2 136 209 / 8%), mismo patrón que .sprint-group-active). AC de
+   .sprint-badge-active → --amber-text: ya cumplido en código real (línea ~1167), sin cambio.
+   AC de Fila 2 label/value (eyebrow Nivel 4 + valor --text-sm): NO implementado — devuelto a
+   Cael como gap de especificación, ver CHECKPOINT. */
 /* TKT2 (TKT-202607-089, parent REQ-202607-026 · adelantado en PP-S-08 vía autorización 1-tap
    del founder): grid de 3 columnas por prioridad SLA (.qinc-columns/.qinc-column/-header/-body/
    -empty). Corrige atribución del trabajo previo de contraste/borde/meta-secundaria (mod:124,
@@ -1154,8 +1160,8 @@
 }
 
 .sprint-name-label {
-  font-size: var(--text-sm);
-  font-weight: 400;
+  font-size: var(--text-md);
+  font-weight: 500;
   color: var(--text2);
 }
 
@@ -5195,6 +5201,15 @@
   flex-shrink: 0;
 }
 
+/* TKT2 (parent REQ CAEL-0724-01): resumen estático del header Cerrado — reemplaza la barra de
+   progreso (siempre 100%) por "X/X ítems · vX.Y.Z". Mismo padding que .bl-vl-sprint-header-progress
+   para no alterar el alto del header; .bl-vl-progress-label se reutiliza sin cambio. */
+.bl-vl-sprint-header-summary {
+  display: flex;
+  align-items: center;
+  padding: 0 14px 10px;
+}
+
 /* ── Estado: activo — fondo ámbar 50, border-left ámbar ── */
 .sprint-group-active .bl-vl-sprint-header {
   background: rgb(245 158 11 / 8%);
@@ -5232,6 +5247,7 @@
 /* ── Estado: planificado — border-left azul, sin fondo ── */
 .sprint-group-planned .bl-vl-sprint-header {
   border-left-color: var(--blue);
+  background: rgb(2 136 209 / 8%);
 }
 
 .sprint-group-planned .bl-vl-sprint-header .sprint-name-label {

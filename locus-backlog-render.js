@@ -1,4 +1,11 @@
-// [PP] mod:104 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:105 · autor:Rune · 2026-07-24 UTC-6
+// TKT2 (parent REQ CAEL-0724-01): renderSprintGroup — header de sprint Cerrado ya no renderiza
+// .bl-vl-sprint-header-progress (barra + label). En su lugar renderiza un resumen estático
+// .bl-vl-sprint-header-summary con formato "X/X ítems · vX.Y.Z" usando doneInGroup/totalInGroup/
+// sprintObj.version_target ya calculados en esta función — sin cambio de contrato de la función
+// (mismos parámetros, mismo sprintItems/isClosed/contextPrefix). Activo y Planificado no cambian —
+// siguen usando progressBar. _emptySprintHeaderHtml no se toca — nunca cubre sprints cerrados
+// (isActive/isPlanned únicamente, ver comentario de esa función).
 // INC (ref_id QA-0724-01): _renderVistaLista — statusOk trata REQ status:'bloqueado' como
 // siempre-visible, independiente de activeStatuses. Sin botón/chip nuevo — reutiliza clase
 // .is-bloqueado ya existente en locus-backlog-item.js. Sin cambio de firma exportada.
@@ -433,7 +440,11 @@ export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
       ? (() => { const ef = sprintItems.reduce((s, i) => s + (parseInt(i.effort) || 0), 0); return ef ? `Effort estimado: ${ef}` : ''; })()
       : '';
 
-  const progressBar = `<div class="bl-vl-sprint-header-progress">
+  const progressBar = isClosed
+    ? `<div class="bl-vl-sprint-header-summary">
+    <span class="bl-vl-progress-label">${doneInGroup}/${totalInGroup} ítems${sprintObj?.version_target ? ` · ${esc(sprintObj.version_target)}` : ''}</span>
+  </div>`
+    : `<div class="bl-vl-sprint-header-progress">
     <div class="bl-vl-progress-track"><div class="bl-vl-progress-fill" style="--ver-bar-w:${pct}%"></div></div>
     <span class="bl-vl-progress-label">${doneInGroup}/${totalInGroup} · ${pct}%</span>
   </div>`;

@@ -1,3 +1,15 @@
+// [PP] mod:37 · autor:Rune · 2026-07-24 UTC-6
+// TKT1 (REQ CAEL-0724-03 · sangría visual TKT bajo REQ en Planificación): _planCard acepta
+// 4to parámetro isChild — agrega clase bl-plan-card--child (Nova, locus-sprint-ui.css, entrega
+// pendiente de integración — archivo real no adjunto en esta sesión, ver doc_updates). Nuevo
+// helper _reqCodesInList(list) calcula, por cada lista renderizada de forma independiente (columna
+// Q-Backlog / cada sprint destino), el set de códigos REQ presentes en esa misma lista — un TKT
+// recibe isChild=true solo si item.parent está en ese set (AC1). Sin match → sin sangría, mismo
+// render que antes (AC2/AC3, incluye TKT sin parent). Bloque Terminados (doneUnassigned/_planDoneCard)
+// fuera de scope — no_incluye del TKT, sin cambio. No dibuja línea conectora entre REQ y TKT — solo
+// indentación + borde izquierdo en la card hija, simplificación declarada sobre el borrador visual
+// aprobado por el founder (ver CHECKPOINT de la sesión). Sin cambio de firma pública — _planCard
+// sigue siendo función interna del closure de _renderPlanningView, no exportada. contract_update: no.
 // [PP] mod:36 · autor:Rune · 2026-07-24 UTC-6
 // TKT2 (REQ CAEL-0724-02): openSprints ahora incluye status 'programado' además de 'active'
 // (antes solo active — bloqueaba trabajo adelantado explícito, BR-Ecosystem §5). _sprintDestCard
@@ -138,8 +150,18 @@ export function _renderPlanningView(listEl, closeCallback) {
   const velocityData = _calcEstimatedVelocity();
   const velocityAvg  = velocityData ? velocityData.avg : null;
 
+  // TKT1 (REQ CAEL-0724-03): set de códigos REQ presentes en una lista renderizada — determina
+  // qué TKTs de esa misma lista reciben sangría (AC1/AC2). Cálculo por lista, no global — un REQ
+  // en el sprint A no hace sangrar a un TKT hijo que cayó en Q-Backlog o en otro sprint.
+  function _reqCodesInList(list) {
+    return new Set(list.filter(i => itemKind(i) === 'REQ').map(i => i.code));
+  }
+
   // Helper: card compacta de ítem
-  function _planCard(item, draggable, sprintId) {
+  // TKT1 (REQ CAEL-0724-03): 4to parámetro isChild — agrega bl-plan-card--child (sangría +
+  // borde izquierdo, Nova/locus-sprint-ui.css) cuando el TKT tiene parent visible en la misma
+  // lista. Default false — sin cambio de comportamiento para callers que no lo pasan.
+  function _planCard(item, draggable, sprintId, isChild = false) {
     const type  = itemKind(item) || '';
     const typeColors = { TKT: '#2ecc78', REQ: '#38bdf8', INC: '#e85555', DISC: '#7c6af7' };
     const tc    = typeColors[type] || 'var(--hint)';
@@ -148,7 +170,7 @@ export function _renderPlanningView(listEl, closeCallback) {
       `<span class="bl-plan-dot${i < eff ? ' on' : ''}"></span>`).join('');
     const prioClass = item.priority === 'high' ? 'bl-plan-prio--high' : item.priority === 'low' ? 'bl-plan-prio--low' : '';
     // T-202605-028: data-sprint-dest indica el sprint destino del drop
-    return `<div class="bl-plan-card${draggable ? ' bl-plan-card--draggable' : ''}"
+    return `<div class="bl-plan-card${draggable ? ' bl-plan-card--draggable' : ''}${isChild ? ' bl-plan-card--child' : ''}"
          draggable="${draggable ? 'true' : 'false'}"
          data-code="${esc(item.code)}"
          data-col="${sprintId || 'left'}"
@@ -211,8 +233,13 @@ export function _renderPlanningView(listEl, closeCallback) {
     );
     // TKT2 (REQ CAEL-0724-02): draggable=true — antes false, bloqueaba drop directo
     // Activos↔Planificados. _planDrop ya es genérico por targetCol, sin cambio ahí.
-    const cards = inSprint.map(i => _planCard(i, true, sprint.id)).join('') ||
-      `<div class="bl-plan-empty">Sprint vacío — arrastra ítems aquí</div>`;
+    // TKT1 (REQ CAEL-0724-03): reqCodesDest — mismo criterio que reqCodesLeft, acotado a esta
+    // columna de sprint destino. Independiente entre sprints — un REQ en PP-S-06 no sangra un
+    // TKT hijo listado en PP-S-07.
+    const reqCodesDest = _reqCodesInList(inSprint);
+    const cards = inSprint.map(i =>
+      _planCard(i, true, sprint.id, itemKind(i) === 'TKT' && !!i.parent && reqCodesDest.has(i.parent))
+    ).join('') || `<div class="bl-plan-empty">Sprint vacío — arrastra ítems aquí</div>`;
     const currentBadge = isCurrent
       ? `<span class="bl-plan-dest-current-badge" aria-label="Sprint en curso">en curso</span>`
       : isProgramado
@@ -236,8 +263,12 @@ export function _renderPlanningView(listEl, closeCallback) {
   }
 
   // Construir columna izquierda
-  const leftCards = unassigned.map(i => _planCard(i, true, 'left')).join('') ||
-    `<div class="bl-plan-empty">Sin ítems sin sprint</div>`;
+  // TKT1 (REQ CAEL-0724-03): reqCodesLeft calculado sobre unassigned — mismo universo que la
+  // columna renderiza, antes del map. AC1: TKT con parent en este set → isChild=true.
+  const reqCodesLeft = _reqCodesInList(unassigned);
+  const leftCards = unassigned.map(i =>
+    _planCard(i, true, 'left', itemKind(i) === 'TKT' && !!i.parent && reqCodesLeft.has(i.parent))
+  ).join('') || `<div class="bl-plan-empty">Sin ítems sin sprint</div>`;
 
   // TKT1 (REQ CAEL-0717-01): bloque Terminados — colapsable, nace colapsado (AC4), no se
   // renderiza si doneUnassigned está vacío (AC7 — sin header con contador 0).

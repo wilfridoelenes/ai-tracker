@@ -1,3 +1,15 @@
+// [PP] mod:66 · autor:Rune · 2026-07-24 UTC-6
+// TKT-202607-086: _buildAttributedCardsBlock — cada tarjeta atribuida gana expand/collapse
+// independiente. _attrRow envuelto en <button class="mdiff-section-header"
+// data-action="mdiff-toggle-section"> (sin accent modifier, ver CSS dependencies de Nova); el
+// resto del contenido de la tarjeta (_releaseInfo/_narrativeHtml/_itemsBlockHtml) envuelto en
+// <div class="mdiff-section-body"> hermano inmediato — mismo mecanismo que _section(), toggle
+// vía el delegador de data-action ya existente (_mdiffToggleSection, línea ~1255). Sin JS nuevo
+// más allá del markup — reusa el handler ya cableado. Bloqueo CSS previo (selector
+// .mdiff-narrative-section:not(:only-of-type) > .mdiff-narrative-row:first-child dejaba de
+// matchear con el nuevo nivel de anidación) resuelto por Nova — ver _Locus-css-ref mod:120 /
+// locus-backlog-item.css mod:75. contract_update: no — función interna, no exportada, sin
+// cambio de firma.
 // [PP] mod:65 · autor:Rune · 2026-07-24 UTC-6
 // TKT-202607-078 — fix devuelto por Finn: _blockBadge usaba label estático 'atención' para el
 // estado 'con flags'; AC3 real de TKT-202607-077 exige conteo dinámico ("2 flags"). Corregido
@@ -1057,11 +1069,21 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         ? `<div class="mdiff-section-body">${_itemCards.join('')}</div>`
         : '';
 
+      // TKT-202607-086: cada tarjeta atribuida es ahora expand/collapse independiente — mismo
+      // mecanismo que _section() (button.mdiff-section-header + div.mdiff-section-body
+      // hermanos, toggle vía data-action="mdiff-toggle-section" → _mdiffToggleSection, que
+      // localiza el body con btn.nextElementSibling). Sin accent modifier — no hay semántica de
+      // color de tipo-de-diff para una tarjeta atribuida (ver CSS dependencies, Nova). Inicia
+      // expandida por default (sin is-collapsed), igual que _section() sin el parámetro
+      // collapsed. Independiente por construcción: cada botón solo controla su propio
+      // nextElementSibling, sin estado compartido entre tarjetas del mismo batch.
       return `<div class="mdiff-narrative-section">
-        ${_attrRow}
-        ${_releaseInfo.html}
-        ${_narrativeHtml}
-        ${_itemsBlockHtml}
+        <button class="mdiff-section-header" data-action="mdiff-toggle-section" type="button">${_attrRow}</button>
+        <div class="mdiff-section-body">
+          ${_releaseInfo.html}
+          ${_narrativeHtml}
+          ${_itemsBlockHtml}
+        </div>
       </div>`;
     }).join('');
   };

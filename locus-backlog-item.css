@@ -1,4 +1,10 @@
-/* [PP] mod:74 · autor:Nova · 2026-07-24 UTC-6 */
+/* [PP] mod:75 · autor:Nova · 2026-07-24 UTC-6 */
+/* TKT-202607-086 (bloqueo CSS señalado por Rune, resuelto por Nova antes de implementación):
+   .mdiff-narrative-section:not(:only-of-type) gana border/border-radius de framing, y el
+   selector de truncado del título de _attrRow se corrige para el nuevo nivel de anidación
+   (_attrRow pasa a vivir dentro de un <button class="mdiff-section-header">). Sin clases ni
+   tokens nuevos — reuso de .mdiff-section-header/.mdiff-section-body ya existentes. Ver
+   _Locus-css-ref mod:120 para el detalle completo de la decisión. */
 /* TKT-202607-077 (REQ-202607-022, ref_id CAEL-0724-04): familia .mdiff-block-badge — 3
    modificadores (ok/flag/skipped) para el badge de estado por tarjeta atribuida en el Panel
    de Revisión (#merge-diff-overlay), consumidos por TKT-078 vía idx (TKT-076). Sin tokens
@@ -3790,19 +3796,33 @@ body {
   max-width: 720px;
   margin-bottom: 0.5rem; /* 8px — mismo valor que el resto de gaps del panel, sin token --gap-sm
                              en este archivo (no existe en el codebase real, ver css-ref) */
+  /* TKT-202607-086: framing agregado — _attrRow ahora vive dentro de un <button
+     class="mdiff-section-header"> (toggle collapse, ver más abajo), y esa clase base trae
+     esquinas superiores redondeadas + fondo propio pensados para vivir dentro de un contenedor
+     con borde (mismo patrón que .mdiff-section). Sin este borde el header quedaría flotando con
+     esquinas redondeadas sin marco. Solo aplica al caso de 2+ tarjetas — el único donde el
+     toggle existe (AC1 del TKT); el caso :only-of-type no lleva header colapsable. */
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md-plus);
 }
 
 /* Fila de atribución (rol / título) — siempre el primer .mdiff-narrative-row de la tarjeta
    (ver _attrRow en _buildAttributedCardsBlock, TKT3). Título truncado a 1 línea — el resto de
-   las filas narrativas (resumen/aprendizaje/etc.) NO se tocan, siguen envolviendo normalmente. */
-.mdiff-narrative-section:not(:only-of-type) > .mdiff-narrative-row:first-child .mdiff-narrative-value {
+   las filas narrativas (resumen/aprendizaje/etc.) NO se tocan, siguen envolviendo normalmente.
+   TKT-202607-086: selector corregido — _attrRow ya no es hijo directo de .mdiff-narrative-section
+   (ahora vive dentro de un <button class="mdiff-section-header"> que envuelve solo esa fila), el
+   viejo combinador ">" + ":first-child" dejó de matchear. Se apunta al .mdiff-section-header
+   como hijo directo y se desciende sin ":first-child" — dentro del botón .mdiff-narrative-row
+   es inequívoco (único descendiente de ese tipo), y esto evita volver a matchear por accidente
+   la primera fila narrativa dentro de .mdiff-section-body si alguna vez quedan al mismo nivel. */
+.mdiff-narrative-section:not(:only-of-type) > .mdiff-section-header .mdiff-narrative-row .mdiff-narrative-value {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* ── END TKT5 ── */
+/* ── END TKT5 (extendido por TKT-202607-086) ── */
 
 /* ══ TKT7 (REQ CAEL-0718-01 · AC1/AC2): Docs pendientes + Observaciones de Finn — ver TKT6 en
    locus-backlog-merge.js (_buildDocUpdatesBlock/_buildFinnObservationsBlock). Dos clases nuevas
