@@ -1,4 +1,8 @@
-<!-- [PP] mod:151 · autor:Rune · 2026-07-23 UTC-6 -->
+<!-- [PP] mod:153 · autor:Rune · 2026-07-23 UTC-6 -->
+<!-- INC-202607-001 (closed): comentario obsoleto en mod:83 anotado como histórico —
+     #tpl-badge-qinc confirmado código muerto (sin elemento en DOM, sin consumidor JS),
+     sin re-creación tras migración de Q-INC a #tab-incidentes. Sin cambio funcional. -->
+<!-- [PP] mod:152 · autor:Rune · 2026-07-23 21:40 UTC-6 -->
 <!-- Rediseño sub-tab Sprints — ad-hoc, instrucción directa del founder (sin REQ/TKT, mismo
      tratamiento que locus-sprint.js mod:111 / locus-sprint.css mod:64). Cierra el bloqueo
      parcial declarado en locus-sprint.js mod:111: shell estático de #sps-stats-block —
@@ -120,7 +124,9 @@
 <!-- [PP] mod:83 · autor:Rune · 2026-07-01 UTC-6 -->
 <!-- TKT (REQ-[pendiente-ID]): IDs hotfix → qinc en nav y sub-panel del Backlog.
      #sspanel-hotfix→#sspanel-qinc · #sstab-btn-hotfix→#sstab-btn-qinc ·
-     #tpl-badge-hotfix→#tpl-badge-qinc · #hotfix-panel-body→#qinc-panel-body.
+     #tpl-badge-hotfix→#tpl-badge-qinc [HISTÓRICO — #tpl-badge-qinc removido del DOM en
+     REQ CAEL-01/TKT2 (Q-INC → tab top-level) sin re-creación; confirmado código muerto y
+     cerrado como INC-202607-001, ver index.html mod:153] · #hotfix-panel-body→#qinc-panel-body.
      Discrepancia: AC pedía botón sin emoji — instrucción explícita del founder en sesión
      restauró emoji 🚨 (consistente con empty-state de Q-INC). Instrucción de sesión
      prevalece sobre AC — __BR-Core §3. #sps-hotfix (Panel Sprints) fuera de scope —
@@ -474,7 +480,7 @@
       Q-Backlog<span class="spt-tab-badge" id="tpl-badge-qbacklog"></span>
     </button>
     <button class="spt-tab" id="sstab-btn-qdisc" role="tab" aria-selected="false">
-      Discoveries<span class="spt-tab-badge" id="tpl-badge-qdisc"></span>
+      Discoveries<span class="spt-tab-badge" id="tpl-badge-qdisc" aria-hidden="true"></span>
     </button>
     <!-- TKT2 (REQ CAEL-01): sub-tab Q-INC removido de aquí — migrado a tab top-level #tab-incidentes -->
     <!-- T-202606-092: Sub-tab Histórico -->

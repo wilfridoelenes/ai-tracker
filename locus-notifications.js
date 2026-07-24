@@ -1,3 +1,8 @@
+// [PP] mod:17 · autor:Rune · 2026-07-24 UTC-6
+// TKT4 (REQ CAEL-0723-01, ref_id CAEL-0723-01): bloque 5 (rama Reactiva) — gatea con
+// isSlaClockPaused(item) (locus-backlog-core.js) antes de evaluar _fires. Cubre las 3
+// prioridades (high/medium/low) con un solo early-return, sin duplicar el check por rama.
+// Sin cambio de _NOTIF_DEFAULTS, _itilThresholdH ni el resto de bloques del generador.
 // [PP] mod:16 · autor:Rune · 2026-07-23 05:05 UTC-6
 // TKT2 (REQ CAEL-0722-01), blocked_at resuelto: "Restaurar por defecto" usa
 // _showAlertCfgResetConfirm()/_dismissAlertCfgConfirm() — réplica exacta del patrón D-03
@@ -42,7 +47,7 @@
 // Carga antes de: locus-sesiones-stats.js · locus-radar.js
 
 import { setFilter } from './locus-backlog-item.js';
-import { getItems, getIncidents, _registerCoreCallback } from './locus-backlog-core.js';
+import { getItems, getIncidents, _registerCoreCallback, isSlaClockPaused } from './locus-backlog-core.js'; // TKT4 (REQ CAEL-0723-01, ref_id CAEL-0723-01): isSlaClockPaused agregado — pausa de reloj SLA en bloque 5
 import { navigateToItem } from './locus-item-navigator.js'; // TKT1 (REQ CAEL-04): reubicado — antes en locus-backlog-sprints.js
 import { renderGlobalRadarSidebar } from './locus-radar.js';
 import { navigateToCard } from './locus-sesiones-stats.js';
@@ -296,6 +301,10 @@ export function _computeNotifications() {
         ? ['done', 'descartado'].includes(item.status)
         : ['resolved', 'closed', 'descartado'].includes(incIncidentStatus(item));
       if (_closed) return;
+      // TKT4 (REQ CAEL-0723-01, ref_id CAEL-0723-01): derived_items apuntando a un REQ/DISC/CHG
+      // no-terminal pausa el reloj SLA — no genera notificación en ninguna de las 3 prioridades,
+      // sin caché (isSlaClockPaused se recalcula en cada ejecución de generateNotifications()).
+      if (isSlaClockPaused(item)) return;
       let _ageHours = null;
       let _fires;
       if (_priority === 'low') {

@@ -1,3 +1,7 @@
+// [PP] mod:2 · autor:Rune · 2026-07-24 UTC-6
+// TKT3 (REQ CAEL-0723-01, ref_id CAEL-0723-01): buildQIncItem() — slaClass (vencido/riesgo)
+// gateado por isSlaClockPaused(item) (locus-backlog-core.js). No toca slaPrioBadge,
+// incStatusBadge ni slaCountdownHtml — solo la clase a nivel de .qinc-item.
 // [PP] mod:1 · autor:Rune · 2026-07-23 UTC-6
 // TKT2 (REQ split-itil-item, ref_id CAEL-0722-08 · extracción ITIL + call sites internos —
 //   TKT2 y TKT3 de la tabla original acordada con el founder se fusionan aquí: separar
@@ -16,7 +20,7 @@
 // adjuntos en esta sesión.
 import { _buildCommonItemFields, TYPE_LABELS } from './locus-backlog-item.js';
 import { esc } from './locus-ui-shell.js';
-import { itemKind } from './locus-backlog-core.js';
+import { itemKind, isSlaClockPaused } from './locus-backlog-core.js'; // TKT3 (REQ CAEL-0723-01, ref_id CAEL-0723-01): isSlaClockPaused agregado — gatea clases SLA en buildQIncItem()
 import { incSlaPriority, incComportamientoActual, incIncidentStatus, incOriginModule, SLA_RIESGO_WINDOW_MS } from './locus-inc-fields.js';
 import { _VALID_INCIDENT_STATUS, _VALID_PRB_STATUS, _VALID_KE_STATUS } from './locus-session-parse.js';
 
@@ -128,13 +132,18 @@ export function buildQIncItem(item) {
 
   const slaDeadline  = item.slaDeadline || item.sla_deadline || null;
 
+  // TKT3 (REQ CAEL-0723-01, ref_id CAEL-0723-01): derived_items apuntando a un REQ/DISC/CHG
+  // no-terminal pausa el reloj SLA — no aplica ni --sla-vencido ni --sla-riesgo. No toca
+  // slaPrioBadge/incStatusBadge ni slaCountdownHtml — solo la clase a nivel de card.
+  const slaPaused = isSlaClockPaused(item);
+
   // Clases SLA — mutuamente excluyentes (AC TKT-B2a AC4)
   // Fix inline (TKT1, triggered_by [tmp:tkt-countdown-sla]): la rama --sla-riesgo no
   // exigía slaPrio === 'high' — cualquier prioridad dentro de la ventana de 6h recibía
   // la clase a nivel de card. Corregido para exigir 'high', igual que ya exigía la rama
   // vencido. Calculado antes del countdown porque TKT1 lo consume abajo.
   let slaClass = '';
-  if (slaDeadline) {
+  if (slaDeadline && !slaPaused) {
     if (slaPrio === 'high' && slaDeadline < Date.now()) {
       slaClass = 'qinc-item--sla-vencido';
     } else if (slaPrio === 'high' && slaDeadline >= Date.now() && slaDeadline < Date.now() + SLA_RIESGO_WINDOW_MS) {

@@ -1,4 +1,4 @@
-// [PP] mod:8 · autor:Rune · 2026-07-23 UTC-6
+// [PP] mod:9 · autor:Rune · 2026-07-23 21:40 UTC-6
 // TKT1 (REQ-[pendiente-ID] Empty state bloque Terminados): _renderDoneGroup no tenía rama
 // visual para doneItems.length === 0 — bodyEl.innerHTML quedaba en '' (bloque en blanco al
 // expandir "Terminados" con 0 ítems done). Agregado mismo patrón .empty-state/.empty-state-icon/
@@ -247,6 +247,20 @@ export function _renderZonePanel(opts) {
     } else {
       const _alertCount = zoneItems.filter(i => _zoneStaleness(i) !== null).length;
       badge.textContent = (_alertCount > 0 ? '⚠ ' : '') + zoneItems.length;
+    }
+  }
+
+  // TKT1 (REQ CAEL-0723-01): aria-label dinámico con conteo hablado — opt-in vía
+  // opts.tabButtonId/opts.tabLabel. Ausente en el caller de qbacklog (sin cambio de
+  // comportamiento ahí, no_incluye del TKT) — solo qdisc lo declara. El badge visual
+  // (arriba) es aria-hidden en HTML estático; este es el texto real para lectores de
+  // pantalla, expuesto en el botón contenedor, no en el badge.
+  if (opts.tabButtonId) {
+    const tabBtn = document.getElementById(opts.tabButtonId);
+    if (tabBtn) {
+      tabBtn.setAttribute('aria-label', zoneItems.length
+        ? `${opts.tabLabel}, ${zoneItems.length} activos`
+        : opts.tabLabel);
     }
   }
 

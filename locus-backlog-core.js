@@ -1,3 +1,9 @@
+// [PP] mod:130 · autor:Rune · 2026-07-23 UTC-6
+// TKT1 (REQ CAEL-0723-01, ref_id CAEL-0723-01): isSlaClockPaused(item) agregada — determina
+// si el reloj SLA de un INC/PRB/CHG está pausado por un ítem derivado (REQ/DISC/CHG) aún
+// no-terminal (__BR-Core §6). Función pura, sin side effects — solo lectura vía getAnyItem().
+// Import de incDerivedItems agregado desde locus-inc-fields.js.
+
 // [PP] mod:129 · autor:Rune · 2026-07-22 UTC-6
 // Fix (founder, análisis de construcción): toggleCollapseAll() apuntaba a .version-group-body/
 // .version-collapse-arrow — clases previas a la unificación de renderSprintGroup() (REQ
@@ -222,7 +228,7 @@
 import { _blogLog, _effectiveVersion, _isInSession, _loadFromSupabase, _sprintDisplay, _tplKey, getAI, getActiveSprints, getAllSessions, getState, isSupabaseAuthed, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js'; // TKT1 (REQ-historico-async): refreshHistoricoCache/getHistoricoItemsSync — _getNextItemCode() incluye historico en el escaneo de colisión · INC-[pendiente-ID]: isSupabaseAuthed agregado — guard typeof _supabase/_supabaseUser muerto
 import { showToast, toast } from './locus-toast.js';
 import { esc, getCurrentSubTab, getCurrentTab } from './locus-ui-shell.js';
-import { incSlaPriority, incComportamientoActual, incIncidentStatus } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil: reemplaza fallback || inline en _normalizeIncidents()
+import { incSlaPriority, incComportamientoActual, incIncidentStatus, incDerivedItems } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil: reemplaza fallback || inline en _normalizeIncidents() · incDerivedItems agregado en TKT1 (REQ CAEL-0723-01) para isSlaClockPaused()
 
 // ── Callback registry — T-202606-057 ─────────────────────────────────────────
 // Módulos consumidores registran sus funciones aquí al inicializarse.
@@ -403,6 +409,35 @@ export function getIncidents() { return INCIDENTS; }
 // getItems().find() nunca los encuentra.
 export function getAnyItem(code) {
   return ITEMS.find(i => i.code === code) || INCIDENTS.find(i => i.code === code);
+}
+
+// TKT1 (REQ CAEL-0723-01): isSlaClockPaused(item) — determina si el reloj SLA de un INC/PRB/CHG
+// está pausado por un ítem derivado (REQ/DISC/CHG) aún no-terminal. __BR-Core §6: "el reloj se
+// pausa... en el momento en que el ítem declara derived_items apuntando a un REQ, DISC o CHG
+// pendiente" — la extensión a CHG con cadena transitiva a REQ (infra_version 56) queda cubierta
+// sin recursión adicional: un CHG estructural permanece en status 'pendiente' hasta que su
+// propio REQ derivado llega a 'done' (__BR-Core §6, ciclo de vida CHG) — basta leer el status
+// directo del ítem derivado, sin abrir su propio derived_items.
+// Terminal por tipo: REQ → done/descartado · DISC → promoted/descartado · CHG → done/descartado.
+// Códigos que resuelven a TKT/INC/PRB, o que getAnyItem() no encuentra, se ignoran — no son
+// destinos de pausa válidos según __BR-Core §6.
+// Función pura — nunca muta item, ITEMS ni INCIDENTS, solo lectura vía getAnyItem()/itemKind().
+const _SLA_PAUSE_TERMINAL_BY_TYPE = {
+  REQ: ['done', 'descartado'],
+  DISC: ['promoted', 'descartado'],
+  CHG: ['done', 'descartado'],
+};
+export function isSlaClockPaused(item) {
+  const derived = incDerivedItems(item);
+  if (!Array.isArray(derived) || !derived.length) return false;
+  return derived.some(code => {
+    const target = getAnyItem(code);
+    if (!target) return false;
+    const kind = itemKind(target);
+    const terminal = _SLA_PAUSE_TERMINAL_BY_TYPE[kind];
+    if (!terminal) return false;
+    return !terminal.includes(target.status);
+  });
 }
 // T-202606-106: barrera común — ITEMS nunca contiene ítems status:historico, sin importar
 // el call site (_loadFromSupabase, undo/redo, purge, normalize, etc). status:historico es

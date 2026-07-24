@@ -1,3 +1,9 @@
+// [PP] mod:28 · autor:Rune · 2026-07-24 UTC-6
+// TKT2 (REQ CAEL-0723-01, ref_id CAEL-0723-01): _getFooterAlert() — incAlert gatea con
+// isSlaClockPaused(i) (locus-backlog-core.js) antes de evaluar slaDeadline. Un INC high con
+// derived_items apuntando a un REQ/DISC/CHG no-terminal deja de mostrarse como vencido en el
+// footer — find() continúa evaluando el siguiente candidato. Sin cambio de firma, sin cambio
+// de comportamiento para ítems sin derived_items (regresión cubierta).
 // [PP] mod:27 · autor:Rune · 2026-07-17 13:20 UTC-6
 // TKT2 (REQ-CAEL-0717-01): renderStatusBar() ahora puebla #gf-infra-version/#gf-infra-sep
 // desde getInfraVersionData() (import agregado) — inmediatamente después de #gf-version.
@@ -22,7 +28,7 @@
 // TKT-202606-005: segmentos sprint/ítem del breadcrumb eliminados — #breadcrumb-sprint
 //   y #breadcrumb-item no existen en el DOM (index.html solo declara #breadcrumb-proj).
 
-import { getItems, getIncidents, itemKind } from './locus-backlog-core.js';
+import { getItems, getIncidents, itemKind, isSlaClockPaused } from './locus-backlog-core.js'; // TKT2 (REQ CAEL-0723-01, ref_id CAEL-0723-01): isSlaClockPaused agregado — pausa de reloj SLA en _getFooterAlert()
 // REQ-[pendiente-ID] TKT1: _getFooterAlert() consume _zoneStaleness (mismo umbral que Q-DISC/
 // Q-Backlog, ya validado en producción) y los accessors ITIL canónicos camelCase/snake_case.
 import { _zoneStaleness } from './locus-backlog-zone-engine.js';
@@ -188,6 +194,9 @@ export function _getFooterAlert() {
       const st = incIncidentStatus(i);
       if (st === 'closed' || st === 'descartado') return false;
       if (incSlaPriority(i) !== 'high') return false;
+      // TKT2 (REQ CAEL-0723-01, ref_id CAEL-0723-01): derived_items apuntando a REQ/DISC/CHG
+      // no-terminal pausa el reloj — no cuenta como vencido aunque slaDeadline ya haya pasado.
+      if (isSlaClockPaused(i)) return false;
       return typeof i.slaDeadline === 'number' && Date.now() >= i.slaDeadline;
     });
     if (incAlert) {

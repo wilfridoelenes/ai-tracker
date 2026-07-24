@@ -1,4 +1,4 @@
-// [PP] mod:10 · autor:Rune · 2026-07-15 15:05 UTC-6
+// [PP] mod:11 · autor:Rune · 2026-07-23 21:40 UTC-6
 // Housekeeping (Excepción de resolución directa — dueño presente, nivel Patch, sin
 // bifurcación): eliminada línea muerta querySelectorAll('.tpl-nav-btn') — clase sin
 // referencias en el DOM desde la limpieza de locus-proyectos.css (REQ CAEL-01). No-op sin
@@ -149,6 +149,10 @@ export function renderQDiscPanel() {
   _renderZonePanel({
     bodyId: 'qdisc-panel-body',
     badgeId: 'tpl-badge-qdisc',
+    // TKT1 (REQ CAEL-0723-01): aria-label hablado en el botón de tab — badge visual
+    // es aria-hidden (index.html), este es el texto real para lectores de pantalla.
+    tabButtonId: 'sstab-btn-qdisc',
+    tabLabel: 'Discoveries',
     nsKey: 'qdisc',
     isZone: _isQDiscActive,
     showTypeChips: false,
