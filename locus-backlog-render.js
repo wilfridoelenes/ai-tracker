@@ -1,4 +1,4 @@
-// [PP] mod:103 · autor:Rune · 2026-07-24 15:30 UTC-6
+// [PP] mod:104 · autor:Rune · 2026-07-24 UTC-6
 // INC (ref_id QA-0724-01): _renderVistaLista — statusOk trata REQ status:'bloqueado' como
 // siempre-visible, independiente de activeStatuses. Sin botón/chip nuevo — reutiliza clase
 // .is-bloqueado ya existente en locus-backlog-item.js. Sin cambio de firma exportada.
@@ -978,7 +978,13 @@ export function renderBacklogList(onRendered) {
     // {pendiente, en-revision} y no existía botón para agregarlo. Tratado como siempre-visible,
     // igual que el status ya excluye 'historico' explícitamente unas líneas arriba — no requiere
     // chip ni botón nuevo, sin cambio de CSS.
-    const statusOk = i.status === 'bloqueado' || _getActiveStatuses().has(i.status);
+    // INC-[ref_id:QA-0724-03]: 'en-proceso' agregado al mismo tratamiento siempre-visible que
+    // 'bloqueado' (QA-0724-01) — ver comentario completo en el mismo fix de renderStats()
+    // (locus-backlog-core.js). Sin este tratamiento, un REQ auto-transicionado a 'en-proceso'
+    // sin camino de reversión (_computeRStatusFromChildren) queda invisible en Vista Lista con
+    // el filtro default {pendiente, en-revision} — su TKT hijo se renderiza suelto, fuera del
+    // wrapper .bl-vl-req, porque _rCodesInGroup nunca incluye el código del REQ excluido.
+    const statusOk = i.status === 'bloqueado' || i.status === 'en-proceso' || _getActiveStatuses().has(i.status);
     const _rawEffort = parseInt(i.effort) || 1;
     const _normEffort = _rawEffort > 3 ? 3 : _rawEffort < 1 ? 1 : _rawEffort;
     const effortOk = _getActiveEfforts().has(_normEffort); // T-071 · B-202605-233: effort >3 normalizado a 3

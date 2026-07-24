@@ -1,4 +1,4 @@
-// [PP] mod:132 · autor:Rune · 2026-07-24 15:30 UTC-6
+// [PP] mod:133 · autor:Rune · 2026-07-24 UTC-6
 // INC (ref_id QA-0724-01): renderStats() — statusOk trata 'bloqueado' como siempre-visible,
 // consistente con el mismo fix en locus-backlog-render.js (_renderVistaLista). Sin cambio de
 // firma, sin nueva dependencia CSS.
@@ -2462,7 +2462,14 @@ export function renderStats() {
     // INC-[ref_id:QA-0724-01]: mismo criterio que locus-backlog-render.js (_renderVistaLista) —
     // este universo debe reflejar los mismos ítems que la lista (ver comentario B-202606-008
     // arriba en esta misma función). 'bloqueado' siempre cuenta, sin depender del filtro activo.
-    const statusOk = i.status === 'bloqueado' || activeStatuses.has(i.status);
+    // INC-[ref_id:QA-0724-03]: 'en-proceso' agregado al mismo tratamiento siempre-visible que
+    // 'bloqueado' (QA-0724-01) — self-heal (_computeRStatusFromChildren) puede dejar un REQ en
+    // 'en-proceso' sin camino de reversión a 'pendiente' si el hijo que disparó la transición
+    // vuelve después a 'pendiente'; activeStatuses global nunca tuvo chip para 'en-proceso' (a
+    // diferencia del namespace qbacklog, que ya lo corrigió agregándolo a sus statuses default —
+    // ver _subtabNSDefaults, ~L672-680). Founder confirmó el caso real (REQ-202607-022, hijo
+    // TKT-202607-086 en pendiente, REQ invisible en Backlog Vista Lista con filtro Pendiente activo).
+    const statusOk = i.status === 'bloqueado' || i.status === 'en-proceso' || activeStatuses.has(i.status);
     return typeOk && statusOk && _matchesSearch(i);
   });
 
