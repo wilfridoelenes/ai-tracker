@@ -1,3 +1,8 @@
+// [PP] mod:103 · autor:Rune · 2026-07-24 15:30 UTC-6
+// INC (ref_id QA-0724-01): _renderVistaLista — statusOk trata REQ status:'bloqueado' como
+// siempre-visible, independiente de activeStatuses. Sin botón/chip nuevo — reutiliza clase
+// .is-bloqueado ya existente en locus-backlog-item.js. Sin cambio de firma exportada.
+
 // [PP] mod:102 · autor:Rune · 2026-07-21 16:10 UTC-6
 // Fix (founder, post-liberación REQ CAEL-0720-01): chips tc-INC/tc-DISC removidos de la
 // stats-bar de Histórico — universo real es solo REQ/TKT (INC/PRB/KE/CHG viven permanentemente
@@ -967,7 +972,13 @@ export function renderBacklogList(onRendered) {
     // exclusivamente en Q-DISC. Confirmado por founder: exclusión total, no solo en Cerradas.
     if (type === 'DISC') return false;
     const typeOk = type ? _getActiveTypes().has(type) : true;
-    const statusOk = _getActiveStatuses().has(i.status);
+    // INC-[ref_id:QA-0724-01]: 'bloqueado' quedó sin mecanismo de inclusión en activeStatuses
+    // desde que fbar-blocker-btn fue eliminado (T-202606-047) — un REQ bloqueado (status
+    // asignable solo por Finn, __BR-Ecosystem §5) nunca pasaba este filtro bajo el default
+    // {pendiente, en-revision} y no existía botón para agregarlo. Tratado como siempre-visible,
+    // igual que el status ya excluye 'historico' explícitamente unas líneas arriba — no requiere
+    // chip ni botón nuevo, sin cambio de CSS.
+    const statusOk = i.status === 'bloqueado' || _getActiveStatuses().has(i.status);
     const _rawEffort = parseInt(i.effort) || 1;
     const _normEffort = _rawEffort > 3 ? 3 : _rawEffort < 1 ? 1 : _rawEffort;
     const effortOk = _getActiveEfforts().has(_normEffort); // T-071 · B-202605-233: effort >3 normalizado a 3

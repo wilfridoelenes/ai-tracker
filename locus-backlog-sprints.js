@@ -1,3 +1,9 @@
+// [PP] mod:54 · autor:Rune · 2026-07-24 15:30 UTC-6
+// INC (ref_id QA-0724-02): _renderSprintPanel/_buildSprintItemRow — sección 'bloqueado' ahora
+// incluye REQ con status real 'bloqueado' (antes solo cubría heurística de staleness vía
+// _isBlocked). Ícono 🔒 distingue el motivo (gap de integración vs staleness) por título.
+// Sin cambio de firma exportada.
+
 // [PP] mod:53 · autor:Rune · 2026-07-21 23:13 UTC-6
 // TKT (INC-[pendiente-ID] · retiro archivedInSprint): _incEligibleForSprintClose pierde el
 //   parámetro sprintId y el criterio archivedInSprint (campo eliminado del modelo, BR-Ecosystem
@@ -1690,10 +1696,15 @@ export function renderSprintItems() {
   );
 
   // Clasificar: bloqueado > done > pendiente
+  // INC-[ref_id:QA-0724-02]: _isBlocked es un heurístico de staleness (exige status==='pendiente'
+  // + >14 días sin cambio, ver locus-backlog-core.js) — no reconoce el status real 'bloqueado'
+  // que Finn asigna en sesión de cierre de REQ (gap de integración, __BR-Core §4). Sin este
+  // criterio adicional, un REQ status:bloqueado caía en la rama 'pendiente' sin indicador.
   const _blocked  = _isBlocked;
-  const blocked   = spRs.filter(i => _blocked(i) && i.status !== 'done');
+  const _realBlocked = i => i.status === 'bloqueado';
+  const blocked   = spRs.filter(i => (_realBlocked(i) || _blocked(i)) && i.status !== 'done');
   const done      = spRs.filter(i => i.status === 'done');
-  const pendiente = spRs.filter(i => i.status !== 'done' && !_blocked(i));
+  const pendiente = spRs.filter(i => i.status !== 'done' && !_realBlocked(i) && !_blocked(i));
 
   _renderSprintSection('pendiente', pendiente, allItems);
   _renderSprintSection('bloqueado', blocked,   allItems);
@@ -1734,8 +1745,13 @@ function _buildSprintItemRow(item, sectionId, allItems) {
     : '';
 
   // Indicador de bloqueante
+  // INC-[ref_id:QA-0724-02]: título distingue status real 'bloqueado' (gap de integración
+  // verificado por Finn, __BR-Core §4) de la heurística de staleness (_isBlocked — pendiente
+  // sin movimiento >14 días) — mismo ícono, texto distinto según la causa real del item.
   const blockedIconHtml = isBlocked
-    ? `<span class="spi-item-blocked-icon" title="Bloqueado por ítem pendiente">🔒</span>`
+    ? (item.status === 'bloqueado'
+        ? `<span class="spi-item-blocked-icon" title="Bloqueado — gap de integración detectado por Finn, ver cierre de REQ">🔒</span>`
+        : `<span class="spi-item-blocked-icon" title="Bloqueado por ítem pendiente">🔒</span>`)
     : '';
 
   // Pill de estado
