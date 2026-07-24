@@ -36,10 +36,14 @@ import { _VALID_INCIDENT_STATUS, _VALID_PRB_STATUS } from './locus-session-parse
 // del valor al vocabulario ITIL; esta tabla valida que el PAR origen→destino sea una
 // transición real del ciclo de vida (BR-Core §6), no solo que ambos valores existan.
 const _VALID_INCIDENT_TRANSITIONS = {
-  detected:    new Set(['assigned']),
-  assigned:    new Set(['in_progress']),
-  in_progress: new Set(['resolved', 'escalated_to_prb', 'escalated_to_chg']),
-  resolved:    new Set(['closed'])
+  // INC-[pendiente-ID] (triggered_by INC-202607-004 · fix de causa raíz real, sesión 2026-07-24):
+  // tabla desactualizada — reflejaba el ciclo ITIL previo a infra_version 52/53 (__BR-Core §6),
+  // con 'assigned'/'in_progress' como estados intermedios ya fusionados/eliminados. 'detected'
+  // solo permitía transicionar a 'assigned' (estado inexistente en el schema vigente), por lo
+  // que todo patch detected→resolved se rechazaba en silencio vía _blogLog sin aparecer como
+  // error en el export — causa raíz real del fallo de cierre de INC-202607-004 e INC-202607-003.
+  detected: new Set(['resolved', 'escalated_to_prb', 'escalated_to_chg']),
+  resolved: new Set(['closed'])
   // closed, escalated_to_prb, escalated_to_chg, descartado: sin transiciones salientes declaradas —
   // estados terminales del ciclo dentro de este merge. Reabrir un INC closed no es un caso cubierto
   // por este AC — fuera de scope de TKT-PARSER-2a.
