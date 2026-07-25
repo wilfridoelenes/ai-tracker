@@ -1,3 +1,21 @@
+// [PP] mod:52 · autor:Rune · 2026-07-25 UTC-6
+// Fix de 4 INC de Q-INC (naming/coherencia de exports fuera de Taxonomía __OB-Strategy §5):
+// - INC-202607-033 (exportSprintsMd/_generateSprintsExportMd/_generateSprintsContent):
+//   filename sin guion bajo inicial ('PP-SPRINTS_v1.8.0.md') → '_PP-sprints-v1.8.0.md'.
+//   Header sin línea infra_version pese a _infraVersionStr() ya existir en el archivo —
+//   agregada. 'sprints' no es un tipo declarado en la Taxonomía — sin decisión de founder/Vera
+//   sobre agregarlo, se mantiene como slug descriptivo no-canónico (ver Propuesta de mejora
+//   en CHECKPOINT de esta sesión).
+// - INC-202607-034 (exportFullHistoryMd/_generateFullHistoryBySprintMd/_generateFullHistoryContent):
+//   mismo patrón — '${pfx}-BACKLOG-FULL_${ver}.md' → '_${pfx}-backlog-full-${ver}.md' +
+//   infra_version agregado. Mismo gap de Taxonomía sin resolver, misma escalación.
+// - INC-202607-036 (_buildHistorialItemsMd): heading '## Historial' renombrado a
+//   '## Historial — ítems done adicionales' — eliminada colisión con '## Historial de
+//   sprints' (_ob-DocStandards §9).
+// - INC-202607-035 (_buildHistoricoDetailMd): NO resuelto en esta sesión — requiere
+//   _ob-DocStandards.md adjunto para confirmar el schema de 'Checkpoint Log' que la sección
+//   debería usar como fuente (comentario de código en L757 contradice la regla del estándar).
+//   Bloqueado — ver CHECKPOINT.
 // [PP] mod:51 · autor:Rune · 2026-07-24 UTC-6
 // TKT1 (REQ CAEL-0724-11, ref_id CAEL-0724-12): retiro final de 'KE' — inalcanzable desde
 // _GEN2_TYPES (locus-backlog-core.js mod:131, fusión KE→PRB.root_cause_confirmed, infra_version
@@ -214,7 +232,11 @@ export async function exportFullHistoryMd() {
   const ver = _backlogVersion();
   const _canonVer2 = v => v.replace(/_/g, '.');
   await refreshHistoricoCache(); // fix INC — cache poblado antes de que el generador sync lea getHistoricoItemsSync()
-  _showExportConfirmModal('Historial completo', `${pfx}-BACKLOG-FULL_${_canonVer2(ver)}.md`, () => _generateFullHistoryBySprintMd(ver));
+  // INC-202607-034: naming alineado a patrón de Docs — guion bajo inicial + '-' antes de versión.
+  // 'backlog-full' no está declarado como tipo en la Taxonomía (__OB-Strategy §5) — escalado a
+  // Vera como Propuesta de mejora (¿agregar el tipo, o tratar este export como no-canónico?).
+  // Mientras no se resuelva, se usa el slug descriptivo sin pretender infra_version tracking pleno.
+  _showExportConfirmModal('Historial completo', `_${pfx}-backlog-full-${_canonVer2(ver)}.md`, () => _generateFullHistoryBySprintMd(ver));
 }
 
 // R-202605-132: Export "Por sprint"
@@ -224,7 +246,9 @@ async function exportSprintsMd() {
   const ver = _backlogVersion();
   const _canonVer3 = v => v.replace(/_/g, '.');
   await refreshHistoricoCache(); // fix INC — cache poblado antes de que el generador sync lea getHistoricoItemsSync()
-  _showExportConfirmModal('Sprints — historial completo', `${pfx}-SPRINTS_${_canonVer3(ver)}.md`, () => _generateSprintsExportMd(ver));
+  // INC-202607-033: mismo fix de naming que exportFullHistoryMd (INC-202607-034) — 'sprints'
+  // tampoco está declarado como tipo en la Taxonomía, misma escalación a Vera pendiente.
+  _showExportConfirmModal('Sprints — historial completo', `_${pfx}-sprints-${_canonVer3(ver)}.md`, () => _generateSprintsExportMd(ver));
 }
 
 // R-202605-132: genera Markdown por sprint
@@ -323,8 +347,9 @@ function _generateSprintsContent(newVersion) {
       })()
     : 0;
 
-  const md = `# ${pfx}-SPRINTS_${newVersion.replace(/_/g, ".")}.md
+  const md = `# _${pfx}-sprints-${newVersion.replace(/_/g, ".")}.md
 <!-- Versión: ${newVersion} | Última actualización: ${dateStr} | Export estructurado de sprints -->
+${_infraVersionStr()}
 
 ---
 
@@ -363,10 +388,12 @@ function _generateSprintsExportMd(newVersion) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${pfx}-SPRINTS_${newVersion.replace(/_/g, ".")}.md`; // T-202606-069
+  // INC-202607-033: guion bajo inicial + separador '-v' — mismo patrón que _generateBacklogContent
+  const fileName = `_${pfx}-sprints-${newVersion.replace(/_/g, ".")}.md`;
+  a.download = fileName; // T-202606-069
   a.click();
   URL.revokeObjectURL(url);
-  showToast('download', `📥 ${pfx}-SPRINTS_${newVersion}.md descargado`);
+  showToast('download', `📥 ${fileName} descargado`);
 }
 
 // B-202605-515: _generateFullHistoryContent — función pura que retorna el string Markdown
@@ -459,8 +486,9 @@ export function _generateFullHistoryContent(newVersion) {
     noSprintSection = `\n### Sin sprint asignado\n\n${_itemRowHeader()}\n${noSprintItems.map(i => _itemRow(i, 0)).join('\n')}\n\n---\n`;
   }
 
-  const md = `# ${pfx}-BACKLOG-FULL_${newVersion.replace(/_/g, ".")}.md
+  const md = `# _${pfx}-backlog-full-${newVersion.replace(/_/g, ".")}.md
 <!-- Versión: ${newVersion} | Última actualización: ${dateStr} | Historial completo agrupado por sprint -->
+${_infraVersionStr()}
 
 ---
 
@@ -498,10 +526,12 @@ function _generateFullHistoryBySprintMd(newVersion) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${pfx}-BACKLOG-FULL_${newVersion.replace(/_/g, ".")}.md`; // T-202606-069
+  // INC-202607-034: guion bajo inicial + separador '-v' — mismo patrón que _generateBacklogContent
+  const fileName = `_${pfx}-backlog-full-${newVersion.replace(/_/g, ".")}.md`;
+  a.download = fileName; // T-202606-069
   a.click();
   URL.revokeObjectURL(url);
-  showToast('download', `📥 ${pfx}-BACKLOG-FULL_${newVersion}.md descargado`);
+  showToast('download', `📥 ${fileName} descargado`);
 }
 
 // R-202605-053: bloque ## Sprint activo — primera sección del backlog exportado
@@ -1445,7 +1475,11 @@ function _buildHistorialItemsMd(exportItems) {
     return md;
   });
 
-  return `## Historial\n\n${sections.join('\n---\n\n')}\n`;
+  // INC-202607-036: heading original '## Historial' era homónimo parcial de
+  // '## Historial de sprints' (_ob-DocStandards §9, resumen agregado por sprint) — riesgo de
+  // que Cael o el founder confundan ambas secciones al leer el doc exportado. Renombrado para
+  // que el título describa el contenido real: ítems `done` individuales fuera de exportItems.
+  return `## Historial — ítems done adicionales\n\n${sections.join('\n---\n\n')}\n`;
 }
 
 // ── Context export ────────────────────────────────────────────────────────────
