@@ -1,4 +1,8 @@
-// [PP] mod:73 · autor:Rune · 2026-07-22 22:18 UTC-6
+// [PP] mod:74 · autor:Rune · 2026-07-24 UTC-6
+// INC-[pendiente-ID] (fix gate req-sin-tkt vs reparenting — ver locus-backlog-item.js mod:142
+// para el detalle completo): parámetro patchItems agregado a _mergeBacklogWithProject() y a
+// _applyCheckpointBatch() — propagado hasta mergeBacklogFromTG en sus 2 call sites reales de
+// este archivo (single-CHECKPOINT y batch).
 // TKT2 (REQ CAEL-0717-01 · AC1-4, parte 3/3): _ckptMeta gana finnRelease: parsed.finnRelease
 //   || null — cierra la cadena de propagación de finn_release iniciada en
 //   locus-session-parse.js (mod:124, parseCheckpoint → ai._parsed.finnRelease) y consumida
@@ -412,7 +416,10 @@ function _buildPatchTgItems(patchItems, existingTgItems) {
 // Sobrescribe temporalmente current-project-filter + recarga getItems() del proyecto destino,
 // ejecuta el merge, y restaura el estado anterior (filtro + getItems() del proyecto original).
 // _setActiveProjectFilter no se usa porque tiene side-effects de UI.
-export async function _mergeBacklogWithProject(tgItems, sessId, projId) {
+// FIX (sesión 2026-07-24, gate req-sin-tkt vs reparenting): parámetro patchItems (opcional)
+// agregado — se propaga a mergeBacklogFromTG como opts.patchItems. Ver comentario completo
+// en mergeBacklogFromTG (locus-backlog-item.js) y en _applyCheckpointBatch (este archivo).
+export async function _mergeBacklogWithProject(tgItems, sessId, projId, patchItems) {
   if (!tgItems || !tgItems.length) return { created:[], updated:[], ignored:[], advanced:[], retroceso:[], discarded:[], slugMap: new Map(), refIdTitleMap: new Map() }; // TKT2 (REQ-[pendiente-ID] · CAEL-05): slugMap/refIdTitleMap agregados al guard — sin esto, un batch de solo patches (tgItems vacío) nunca obtenía estos mapas para resolver code de sus propios patches
   const _prevFilter = localStorage.getItem('current-project-filter') || '';
   const _filterChanged = projId && projId !== _prevFilter;
@@ -423,7 +430,7 @@ export async function _mergeBacklogWithProject(tgItems, sessId, projId) {
   }
   let result;
   try {
-    result = await mergeBacklogFromTG(tgItems, sessId);
+    result = await mergeBacklogFromTG(tgItems, sessId, { patchItems: patchItems || [] });
   } finally {
     if (_filterChanged) {
       // Restaurar filtro original y recargar getItems() del proyecto original
@@ -468,14 +475,20 @@ export async function _mergeBacklogWithProject(tgItems, sessId, projId) {
 // permitir que el caller aplique los patches. _mergeBacklogWithProject ya es no-op seguro con
 // tgItems vacío (no llama mergeBacklogFromTG real ni saveBacklog) — delegar ahí no reintroduce
 // el side effect que este guard prevenía originalmente.
-export async function _applyCheckpointBatch(tgItems) {
+// FIX (sesión 2026-07-24, gate req-sin-tkt vs reparenting): parámetro patchItems agregado —
+// opcional, default [] — para propagar los type:'patch' del mismo batch hasta
+// mergeBacklogFromTG. Sin esto, un batch con un REQ nuevo + patches de reparenting hacia ese
+// REQ (sin TKT nuevo en el batch) caía siempre en 'req-sin-tkt' — ver comentario completo en
+// mergeBacklogFromTG (locus-backlog-item.js). Caller: _onApplyBatch en locus-session-parse.js,
+// que ya tiene patchItems en scope desde _resolveCheckpointBatch.
+export async function _applyCheckpointBatch(tgItems, patchItems) {
   const activeProj = getActiveProject();
   if (!activeProj) {
     showToast('warning', '⚠ Selecciona un proyecto antes de aplicar');
     return undefined;
   }
   const syntheticSessId = 'standalone-batch-' + Date.now();
-  return await _mergeBacklogWithProject(tgItems, syntheticSessId, activeProj.id);
+  return await _mergeBacklogWithProject(tgItems, syntheticSessId, activeProj.id, patchItems);
 }
 
 // T-202606-070: parsea el campo archivos del CHECKPOINT al formato de array estructurado.
@@ -737,7 +750,11 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // preexistente, sin cambio en este TKT — queda registrada pero sin ítems de backlog aplicados.
   let mergeResult;
   try {
-    mergeResult = await _mergeBacklogWithProject(tgItems, sessId, activeProj.id);
+    // FIX (sesión 2026-07-24, gate req-sin-tkt vs reparenting): parsed.patchItems propagado —
+    // ya estaba en scope pero no se pasaba hasta el gate de mergeBacklogFromTG. Ver comentario
+    // completo en mergeBacklogFromTG (locus-backlog-item.js). Este es el path exacto del caso
+    // reportado: REQ draft:true con ref_id + 3 type:patch de reparenting en el mismo CHECKPOINT.
+    mergeResult = await _mergeBacklogWithProject(tgItems, sessId, activeProj.id, parsed.patchItems);
   } catch (err) {
     showToast('error', '⚠ Error al aplicar backlog — reintentar guardado');
     return;

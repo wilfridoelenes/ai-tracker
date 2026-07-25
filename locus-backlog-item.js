@@ -1,4 +1,17 @@
-// [PP] mod:141 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:142 · autor:Rune · 2026-07-24 UTC-6
+// INC-[pendiente-ID] (fix, sesión reactiva — root cause de 2 iteraciones fallidas de Cael/Finn
+// al reparentar TKT-202607-098/099/100 vía type:patch hacia un REQ nuevo draft:true en el mismo
+// bloque): gate 'req-sin-tkt' en mergeBacklogFromTG (_hasChildInBatch) solo miraba tgItems —
+// nunca podía ver los objetos type:'patch' del mismo bloque porque todo caller los filtra fuera
+// de tgItems ANTES de esta llamada. Un REQ nuevo sin TKT nuevo pero con patches de reparenting
+// hacia él (excepción declarada en __BR-Core §4) siempre caía en 'req-sin-tkt' y se descartaba —
+// y como el REQ nunca existía, sus propios patches de reparenting fallaban después con
+// 'ref-id-sin-declarante'. Fix: nuevo opts.patchItems (array crudo de type:'patch' del mismo
+// bloque) + _hasReparentPatch en el gate, cubriendo parentId ya resuelto a código real y
+// parentId aún como {ref_id,title} comparado contra item.refId del propio REQ. Propagado en los
+// 4 call sites reales (ver mod correspondiente en locus-backlog-merge.js, locus-session-save.js,
+// locus-session-parse.js). contract_update: sí — cambio de firma de opts en función de módulo
+// crítico (Effort 2+, ver _Locus-module-contracts).
 // TKT1 (REQ CAEL-0724-10, ref_id CAEL-0724-10): retirado 'KE' de los 6 arrays literales de
 // gating ITIL — _skipScrumGate (L2529), _isItilExisting (L2565), gate incidentStatus-status
 // (L3286), gate field==='incidentStatus' (L3357), no-op de priority (L3527), no-op de campos
@@ -2322,6 +2335,14 @@ function buildScrumItem(item, ctx) {
 // ── T-098: Merge TRACKER-GLOBAL → getItems() en memoria ──
 // Llamado desde saveSession(). Acumula múltiples sesiones sin exportar.
 // T-202604-121: retorna {created, updated, ignored} para super toast
+// FIX (sesión 2026-07-24): opts.patchItems — array crudo de objetos type:'patch' del MISMO
+// bloque/CHECKPOINT que tgItems, filtrados fuera de tgItems por cada caller antes de esta
+// llamada (ver locus-backlog-merge.js L307-308 y locus-session-parse.js L2304/2314/2620).
+// Sin este parámetro, el gate req-sin-tkt (más abajo) no podía ver los patches de reparenting
+// que __BR-Core §4 declara como excepción válida al gate — un REQ nuevo sin TKT nuevo en el
+// mismo bloque, pero acompañado de type:patch reasignando parentId de un TKT existente hacia
+// él, se descartaba siempre como 'req-sin-tkt'. opts.patchItems es opcional — ausente en
+// callers no actualizados, mismo comportamiento que hoy (ningún patch cuenta como hijo).
 export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs): slugMap: new Map() agregado al
   // resultado de items vacíos — sin esto, el orquestador de batch (_applyCheckpointBatch,
@@ -2783,7 +2804,42 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
         const _hasChildInBacklog = getItems() && getItems().some(i =>
           i.parentId === _rCode && itemKind(i) === 'TKT' && i.status !== 'descartado'
         );
-        if (!_hasChildInBatch && !_hasChildInBacklog) {
+        // FIX (sesión 2026-07-24, INC de reparenting sin efecto — root cause de 2 iteraciones
+        // fallidas de Cael/Finn con REQ + type:patch de reparenting en el mismo bloque):
+        // __BR-Core §4 · "Excepción — reparenting vía type: patch" declara que el gate se
+        // satisface también cuando el mismo bloque `items` incluye al menos un type:patch que
+        // reasigna parentId de un TKT con código real existente hacia el REQ nuevo. Esa
+        // excepción nunca se implementó — todos los call sites (locus-backlog-merge.js L307-308,
+        // locus-session-parse.js L2304/2314) filtran los objetos type:'patch' FUERA de tgItems
+        // antes de llamar a mergeBacklogFromTG, así que _hasChildInBatch (que solo mira tgItems)
+        // jamás podía verlos, sin importar qué contuvieran. Resultado: un REQ nuevo acompañado
+        // solo de patches de reparenting (sin TKT nuevo en el mismo bloque) siempre caía en
+        // 'req-sin-tkt' y se descartaba — y como el REQ nunca se creaba, los propios patches de
+        // reparenting fallaban después con 'ref-id-sin-declarante' (su ref_id nunca tuvo
+        // declarante real). opts.patchItems es el array crudo de type:'patch' del mismo bloque,
+        // ahora propagado por los 4 call sites (ver comentarios ahí) — se revisa aquí buscando un
+        // patch cuyo parentId (ya resuelto por normalización previa, incluye {ref_id,title}→code)
+        // apunte a este REQ. Un patch cuyo parentId siga como {ref_id,title} sin resolver en este
+        // punto no cuenta como match confirmado — el ref_id ya se normaliza más arriba en este
+        // mismo forEach (líneas ~2388-2398) para ítems de tgItems, pero opts.patchItems es un
+        // array externo que no pasa por esa normalización; comparar contra _rCode por igualdad de
+        // string cubre el caso normal (code real, o [tmp:refId] si el patch ya lo declaró así).
+        const _patchItemsForGate = (opts && Array.isArray(opts.patchItems)) ? opts.patchItems : [];
+        const _hasReparentPatch = _patchItemsForGate.some(p => {
+          if (!p || p.status === 'descartado' || p.status === 'discarded') return false;
+          const _pParent = p.parentId || p.parent || null;
+          if (!_pParent) return false;
+          // Caso A: parentId ya es código real (o [tmp:refId] ya normalizado) — compara directo.
+          if (typeof _pParent === 'string') return _pParent === _rCode;
+          // Caso B: parentId sigue como {ref_id,title} sin resolver en este punto del batch — el
+          // REQ evaluado declaró su propio ref_id (item.refId) en el mismo bloque; si coincide,
+          // el patch SÍ apunta a este REQ aunque su código real todavía no esté sustituido en el
+          // objeto patch. No valida title aquí — ese guardrail de colisión ya corre en
+          // _resolvePatchRefValue/_normalizeRefIdValue cuando el patch se aplica de verdad; aquí
+          // solo se usa como evidencia de que el gate debe pasar.
+          return !!(_pParent.ref_id && item.refId && _pParent.ref_id === item.refId);
+        });
+        if (!_hasChildInBatch && !_hasChildInBacklog && !_hasReparentPatch) {
           // AC2 edge: aplica solo a REQ nuevos — este bloque ya vive dentro de la rama "!existing".
           const _reqIdentifier = item.title || _rCode;
           const _msg = `CHECKPOINT bloqueado: REQ ${_reqIdentifier} emitido sin TKTs hijos. Un REQ debe nacer con al menos TKT1 declarado. Adjuntar CHECKPOINT corregido.`;

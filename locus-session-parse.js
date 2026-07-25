@@ -1,4 +1,7 @@
-// [PP] mod:140 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:141 · autor:Rune · 2026-07-24 UTC-6
+// INC-[pendiente-ID] (fix gate req-sin-tkt vs reparenting — ver locus-backlog-item.js mod:142
+// para el detalle completo): patchItems (ya en scope desde _resolveCheckpointBatch) ahora se
+// pasa a _applyCheckpointBatch() en _onApplyBatch — antes no se propagaba.
 // INC-[pendiente-ID] (Variante ligera): char counter del modal de ingesta nunca se actualizaba —
 //   buscaba 'cc-'+id (patrón por-Worker legacy, pre-CAEL-22), id que no existe en el DOM. El
 //   elemento real es global: #ingest-char-counter (index.html L1572), mismo patrón que
@@ -2166,7 +2169,10 @@ export async function _processIngestBatch() {
   const _onApplyBatch = async () => {
     let _batchMergeResult;
     try {
-      _batchMergeResult = await _applyCheckpointBatch(tgItems);
+      // FIX (sesión 2026-07-24, gate req-sin-tkt vs reparenting): patchItems propagado — ya
+      // estaba en scope (destructurado de _resolveCheckpointBatch más arriba) pero no se pasaba.
+      // Ver comentario completo en mergeBacklogFromTG (locus-backlog-item.js).
+      _batchMergeResult = await _applyCheckpointBatch(tgItems, patchItems);
     } catch (err) {
       showToast('error', '✗ No se pudo aplicar el batch');
       return;

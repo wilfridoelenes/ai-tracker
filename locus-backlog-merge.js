@@ -1,4 +1,7 @@
-// [PP] mod:66 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:67 · autor:Rune · 2026-07-24 UTC-6
+// INC-[pendiente-ID] (fix gate req-sin-tkt vs reparenting — ver locus-backlog-item.js mod:142
+// para el detalle completo): _patchItems (ya filtrado, línea ~307) propagado como opts.patchItems
+// al dry-run de mergeBacklogFromTG — antes se descartaba sin llegar nunca al gate.
 // TKT-202607-086: _buildAttributedCardsBlock — cada tarjeta atribuida gana expand/collapse
 // independiente. _attrRow envuelto en <button class="mdiff-section-header"
 // data-action="mdiff-toggle-section"> (sin accent modifier, ver CSS dependencies de Nova); el
@@ -405,7 +408,11 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // sin cambio) y para abortar antes de leer diff.created si el dry-run falló.
   let diff, _dryRunError = null;
   try {
-    diff = await mergeBacklogFromTG(tgItems, sessId, { dryRun: true, ckptRol: _ckptMeta.rol || '' });
+    // FIX (sesión 2026-07-24, gate req-sin-tkt vs reparenting): _patchItems (línea ~307, ya
+    // filtrado fuera de tgItems) se propaga aquí para que mergeBacklogFromTG pueda reconocer la
+    // excepción de __BR-Core §4 — un REQ nuevo sin TKT nuevo en el batch pero con un type:patch
+    // reparentando un TKT existente hacia él no debe caer en 'req-sin-tkt'.
+    diff = await mergeBacklogFromTG(tgItems, sessId, { dryRun: true, ckptRol: _ckptMeta.rol || '', patchItems: _patchItems });
   } catch (err) {
     _dryRunError = err;
   } finally {
