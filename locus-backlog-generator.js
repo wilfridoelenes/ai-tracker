@@ -1,3 +1,19 @@
+// [PP] mod:53 · autor:Rune · 2026-07-25 UTC-6
+// INC-202607-035 (fix, con _ob-DocStandards.md adjunto — confirma §3 "Ítems `historico` — regla
+// de exclusión" y tabla "Qué NO le pertenece al backlog exportado"): la sección '## Historico —
+// detalle' no está declarada en el estándar, y el comentario de código en _buildHistoricoDetailMd
+// ("No requiere el Checkpoint Log — deriva directamente de getHistoricoItemsSync()/getItems()")
+// contradecía explícitamente §3 ("Fuente para el detalle cuando se solicita: el Checkpoint Log
+// (§12) ... no el backlog exportado de sesión normal"). El detalle ítem-por-ítem de sprints
+// cerrados no le pertenece a este generador bajo ninguna condición — vive exclusivamente en el
+// mecanismo de Checkpoint Log (§12), un export dedicado y separado que este archivo no implementa
+// y que no está en scope de este fix. _buildHistoricoDetailMd() retirada completa; opts.includeHistorico
+// deja de leerse en _generateBacklogContent() — 'historico' sigue excluido siempre de '## Ítems'
+// (Regla 0, sin cambio) y sigue resumido a nivel de sprint en '## Historial de sprints'
+// (_buildSprintHistorialMd, sin cambio) — único punto de visibilidad de historico en este export,
+// tal como exige §3. exportBacklogMd() conserva el parámetro `opts` (lo usa opts.fullHistory) pero
+// ya no reenvía semántica de includeHistorico — cualquier caller que aún lo pase es no-op silencioso,
+// sin crash. contract_update: no — _buildHistoricoDetailMd() no era exportada, sin consumidor externo.
 // [PP] mod:52 · autor:Rune · 2026-07-25 UTC-6
 // Fix de 4 INC de Q-INC (naming/coherencia de exports fuera de Taxonomía __OB-Strategy §5):
 // - INC-202607-033 (exportSprintsMd/_generateSprintsExportMd/_generateSprintsContent):
@@ -191,9 +207,8 @@ function _sprintHasIncompleteFields() {
     || _isEmpty(activeSprint.scope);
 }
 
-// [tmp:tkt-include-historico] TKT2 — opts.includeHistorico (default false) forwarded a
-// _generateBacklogMd/_generateBacklogContent. No agrega UI para activarlo — mecanismo de
-// invocación (evento shell con detail, llamada directa, etc.) queda a criterio de quien invoque.
+// INC-202607-035 (mod:53): opts.includeHistorico ya no tiene efecto — _generateBacklogContent()
+// no lo lee más. `opts` se conserva como parámetro porque opts.fullHistory sigue siendo válido.
 export async function exportBacklogMd(opts = {}) {
   // TKT1 AC-1: backlog vacío ya no bloquea el export — _ob-DocStandards §3 v1.10
   // exige declarar el vacío explícito en el .md, no omitir el archivo.
@@ -737,9 +752,10 @@ function _infraVersionStr() {
   return `<!-- **infra_version: ${v(data.infraVersion)}** | BR-Core v${v(data.brCore)} · BR-Ecosystem v${v(data.brEcosystem)} · BR-Execution v${v(data.brExecution)} · OB-Strategy v${v(data.obStrategy)} -->`;
 }
 
-// ── Normalización de sprint ID — compartida por historial y detalle historico ──
+// ── Normalización de sprint ID — usada por el resumen de Historial de sprints ──
 // [tmp:tkt-historial-sprints] Patrón con guion opcional entre 'S' y el consecutivo —
 // mismo criterio de tolerancia que _normSprintIdForSort() en _generateBacklogContent.
+// INC-202607-035 (mod:53): antes también servía a _buildHistoricoDetailMd(), retirada.
 function _normSprintIdShared(val) {
   if (!val) return null;
   const m = String(val).match(/^([A-Za-z]+-S-?\d+)/i);
@@ -782,46 +798,6 @@ function _buildSprintHistorialMd() {
   return `## Historial de sprints\n\n${header}\n${rows.join('\n')}\n`;
 }
 
-// [tmp:tkt-include-historico] TKT2 — detalle ítem por ítem de historico, agrupado por sprint
-// de origen. Solo se genera cuando includeHistorico === true (AC-2). Sin ítems historico →
-// string vacío, sin efecto observable (AC-4). No requiere el Checkpoint Log — deriva
-// directamente de getHistoricoItemsSync()/getItems() ya cargados en el generador.
-function _buildHistoricoDetailMd(includeHistorico) {
-  if (!includeHistorico) return ''; // AC-1/AC-3: default o valor no booleano → sin detalle
-  const historicoItems = _allItemsWithHistorico().filter(i => i.status === 'historico');
-  if (!historicoItems.length) return ''; // AC-4: sin ítems historico → sin efecto observable
-
-  const sprints = getActiveSprints();
-  const byId = {};
-  sprints.forEach(s => { byId[_normSprintIdShared(s.id)] = s; });
-
-  const groups = {};
-  historicoItems.forEach(i => {
-    const key = _normSprintIdShared(i.sprint) || '—';
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(i);
-  });
-
-  const sortedKeys = Object.keys(groups).sort((a, b) => {
-    const sa = byId[a], sb = byId[b];
-    return ((sb && sb.closedAt) || 0) - ((sa && sa.closedAt) || 0);
-  });
-
-  const state = getState();
-  const sections = sortedKeys.map(key => {
-    const sp = byId[key];
-    const label = sp ? (sp.label || sp.name || sp.id) : key;
-    const itemsMd = groups[key].map(item => {
-      let md = `### ${item.code} · ${item.title || '(sin título)'}\n`;
-      md += _buildItemFieldsMd(item, state);
-      return md;
-    }).join('\n---\n\n');
-    return `#### ${key} · ${label}\n\n${itemsMd}\n`;
-  });
-
-  return `## Historico — detalle\n\n${sections.join('\n---\n\n')}\n`;
-}
-
 export function _generateBacklogContent(newVersion, opts = {}) {
   const state = getState();
   const meta = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
@@ -831,10 +807,6 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   const utcM6 = new Date(now.getTime() - 6 * 3600000);
   const pad = n => String(n).padStart(2, '0');
   const dateStr = `${utcM6.getUTCFullYear()}-${pad(utcM6.getUTCMonth()+1)}-${pad(utcM6.getUTCDate())} ${pad(utcM6.getUTCHours())}:${pad(utcM6.getUTCMinutes())} UTC-6`;
-
-  // [tmp:tkt-include-historico] TKT2 AC-3: cualquier valor no estrictamente booleano true
-  // (ausente, string, number, false) se trata como false — nunca bloquea el export.
-  const includeHistorico = opts.includeHistorico === true;
 
   let exportItems;
   if (opts.fullHistory) {
@@ -871,11 +843,13 @@ export function _generateBacklogContent(newVersion, opts = {}) {
         .map(i => i.code)
     );
     exportItems = _allItemsWithHistorico().filter(i => {
-      // [tmp:tkt-include-historico] TKT2 AC-1: 'historico' nunca aparece individualmente en
-      // ## Ítems — sin excepción por sprint. El resumen agregado vive en ## Historial de
-      // sprints (_buildSprintHistorialMd); el detalle ítem por ítem, cuando includeHistorico
-      // es true, vive en ## Historico — detalle (_buildHistoricoDetailMd). Reemplaza la regla
-      // anterior que dejaba pasar el historico del sprint cerrado más reciente.
+      // TKT2 AC-1 + INC-202607-035 (mod:53): 'historico' nunca aparece individualmente en
+      // ## Ítems — sin excepción por sprint. Único punto de visibilidad de historico en este
+      // export: el resumen agregado por sprint en ## Historial de sprints
+      // (_buildSprintHistorialMd). El detalle ítem por ítem no le pertenece a este generador
+      // — vive exclusivamente en Checkpoint Log (§12, _ob-DocStandards), fuera de scope de
+      // este archivo. Reemplaza la regla anterior que dejaba pasar el historico del sprint
+      // cerrado más reciente.
       if (i.status === 'historico') return false;
       if (i.status === 'en curso') return false; // B-202606-052: status no canónico — fuera de BR-Ecosystem §5
       if (i.status === 'backlog') return false; // [tmp:tkt4-infra-fallback] AC-2: status no canónico — fuera de BR-Ecosystem §5
@@ -1009,12 +983,11 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   const sprintActivoMd = _buildSprintActivoMd();
   const sprintsProgramadosMd = _buildSprintsProgramadosMd(); // T-202606-060
   const historialItemsMd = _buildHistorialItemsMd(exportItems); // B-202606-010
+  // INC-202607-035 (mod:53): historicoTailMd ya no une dos secciones — '## Historico — detalle'
+  // fue retirada (no le pertenece a este generador, ver §3 _ob-DocStandards). Único contenido:
+  // el resumen por sprint, que puede ser '' (AC-3 de _buildSprintHistorialMd).
   const historialSprintsMd = _buildSprintHistorialMd(); // [tmp:tkt-historial-sprints] TKT1 — puede ser '' (AC-3)
-  const historicoDetailMd = _buildHistoricoDetailMd(includeHistorico); // [tmp:tkt-include-historico] TKT2 — puede ser '' (AC-1/AC-4)
-  // [tmp:tkt-include-historico] Unir ambas secciones opcionales de historico con separador
-  // propio SOLO entre ellas — evita doble '---' cuando alguna está vacía. El separador final
-  // hacia '## Estadísticas finales' sigue siendo el literal fijo del template.
-  const historicoTailMd = [historialSprintsMd, historicoDetailMd].filter(Boolean).join('\n---\n\n');
+  const historicoTailMd = historialSprintsMd;
   const qDiscMd = _buildQDiscMd(exportItems); // [tmp:tkt-backlog-gen-core] AC-1
   const qIncMd = _buildQIncMd(exportItems); // [tmp:tkt-backlog-gen-core] AC-3
   const _appVerStr = _effectiveVersion();
