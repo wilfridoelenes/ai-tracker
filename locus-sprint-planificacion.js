@@ -1,3 +1,19 @@
+// [PP] mod:40 · autor:Rune · 2026-07-24 UTC-6
+// INC (triggered_by análisis de render de Planificación, sla_priority: high — módulo crítico
+// locus-backlog-item.js referenciado por contrato, jerarquía REQ→TKT es invariante estructural):
+// Causa raíz real de "Planificación no refleja jerarquía parent/child" — mod:39 (este mismo
+// archivo) escribía _reqCodesInList/_groupChildrenAfterParent/_planCard(isChild)/_planDrop
+// comparando contra i.parent en las 6 ocurrencias, pero _Locus-module-contracts §_loadFromSupabase
+// y locus-backlog-item.js (L2441-2443, comentario explícito "parentId es el único campo canónico
+// en JS — item.parent se elimina del objeto en memoria tras normalizar") declaran parentId como
+// único campo válido en ítems en memoria. mod:37/38/39 nunca fallaron por CSS ni por dato faltante
+// — comparaban siempre contra un campo inexistente, childCodes.size era 0 en el 100% de los casos,
+// sin error visible. Fix: las 6 ocurrencias de i.parent → i.parentId (_reqCodesInList sin cambio,
+// no lee parent; _groupChildrenAfterParent L194-196; isChild en _sprintDestCard L297 y en la
+// columna izquierda L330; _planDrop L449 — impacto lateral: antes de este fix, mover un REQ de
+// sprint tampoco arrastraba sus TKT hijos activos, mismo root cause, función distinta). Sin cambio
+// de firma en ninguna función. contract_update: no — no toca locus-backlog-item.js, solo corrige
+// el nombre de campo leído desde fuera.
 // [PP] mod:39 · autor:Rune · 2026-07-24 UTC-6
 // TKT1 (REQ-202607-033, TKT-202607-106 — agrupación visual REQ→TKT en Planificación):
 // unassigned e inSprint ya no se renderizan como listas planas de getItems().filter() —
@@ -191,9 +207,9 @@ export function _renderPlanningView(listEl, closeCallback) {
     const childrenByParent = new Map();
     const childCodes = new Set();
     list.forEach(i => {
-      if (itemKind(i) === 'TKT' && i.parent && reqCodes.has(i.parent)) {
-        if (!childrenByParent.has(i.parent)) childrenByParent.set(i.parent, []);
-        childrenByParent.get(i.parent).push(i);
+      if (itemKind(i) === 'TKT' && i.parentId && reqCodes.has(i.parentId)) {
+        if (!childrenByParent.has(i.parentId)) childrenByParent.set(i.parentId, []);
+        childrenByParent.get(i.parentId).push(i);
         childCodes.add(i.code);
       }
     });
@@ -294,7 +310,7 @@ export function _renderPlanningView(listEl, closeCallback) {
     const inSprintGrouped = _groupChildrenAfterParent(inSprint);
     const reqCodesDest = _reqCodesInList(inSprintGrouped);
     const cards = inSprintGrouped.map(i =>
-      _planCard(i, true, sprint.id, itemKind(i) === 'TKT' && !!i.parent && reqCodesDest.has(i.parent))
+      _planCard(i, true, sprint.id, itemKind(i) === 'TKT' && !!i.parentId && reqCodesDest.has(i.parentId))
     ).join('') || `<div class="bl-plan-empty">Sprint vacío — arrastra ítems aquí</div>`;
     const currentBadge = isCurrent
       ? `<span class="bl-plan-dest-current-badge" aria-label="Sprint en curso">en curso</span>`
@@ -327,7 +343,7 @@ export function _renderPlanningView(listEl, closeCallback) {
   const unassignedGrouped = _groupChildrenAfterParent(unassigned);
   const reqCodesLeft = _reqCodesInList(unassignedGrouped);
   const leftCards = unassignedGrouped.map(i =>
-    _planCard(i, true, 'left', itemKind(i) === 'TKT' && !!i.parent && reqCodesLeft.has(i.parent))
+    _planCard(i, true, 'left', itemKind(i) === 'TKT' && !!i.parentId && reqCodesLeft.has(i.parentId))
   ).join('') || `<div class="bl-plan-empty">Sin ítems sin sprint</div>`;
 
   // TKT1 (REQ CAEL-0717-01): bloque Terminados — colapsable, nace colapsado (AC4), no se
@@ -446,7 +462,7 @@ function _planDrop(e, col, targetCol, listEl) {
     if (itemKind(item) === 'REQ') {
       const activeStatuses = new Set(['pendiente', 'en-revision']);
       const childTs = getItems().filter(i =>
-        i.parent === item.code &&
+        i.parentId === item.code &&
         itemKind(i) === 'TKT' &&
         activeStatuses.has(i.status)
       );
