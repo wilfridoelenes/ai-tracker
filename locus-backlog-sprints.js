@@ -1,3 +1,8 @@
+// [PP] mod:55 · autor:Rune · 2026-07-25 UTC-6
+// TKT-202607-112: setItemSprint() bloquea la asignación si item.parentId no resuelve a un
+// ítem real en getItems() — antes el gate de herencia se saltaba en silencio y procedía a
+// asignar sin verificar. Sin cambio de comportamiento cuando parentItem sí se encuentra.
+
 // [PP] mod:54 · autor:Rune · 2026-07-24 15:30 UTC-6
 // INC (ref_id QA-0724-02): _renderSprintPanel/_buildSprintItemRow — sección 'bloqueado' ahora
 // incluye REQ con status real 'bloqueado' (antes solo cubría heurística de staleness vía
@@ -622,6 +627,13 @@ export function setItemSprint(code, sprintId) {
         showToast('warning', 'El sprint del T se hereda de su parent ' + item.parentId);
         return;
       }
+    } else {
+      // TKT-202607-112: parentId declarado pero no resuelve a ningún ítem real en getItems() —
+      // antes esto saltaba el gate en silencio y dejaba asignar el sprint sin verificar herencia.
+      // Bloquear igual que el caso "parent encontrado con sprint distinto" — no hay base para
+      // asumir que la asignación es segura si el padre declarado no existe.
+      showToast('warning', 'No se pudo verificar el sprint del parent ' + item.parentId + ' — parent no encontrado');
+      return;
     }
   }
   const prevSprint = item.sprint || '';
