@@ -1,4 +1,4 @@
-// [PP] mod:22 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:23 · autor:Rune · 2026-07-24 UTC-6
 // TKT-202607-096 (REQ-202607-029): mod ausente en el MAP generado ya no se enmascara como
 // mod:1 — declara 'sin-header ⚠️' explícito (OBDS §8). mod real 0 sigue distinguiéndose de
 // ausencia (chequeo !== null && !== undefined preexistente, sin cambio de criterio).
@@ -934,6 +934,37 @@ function _generateMap(ver) {
     }
   }
   md += '\n';
+
+  // TKT-202607-098 (REQ-202607-029): índice de módulos separado por categoría, antes de las
+  // secciones ## por archivo. AC1: ### JS Modules (N) / ### CSS Files (M), lista plana
+  // alfabética por categoría. AC2: categoría con 0 archivos se omite por completo — sin
+  // encabezado vacío. AC3: módulo JS con literal 'deprecated' (case-insensitive) en su
+  // comentario de header (misma ventana de 10 líneas que ya usa la extracción de mod, arriba)
+  // lleva sufijo ' ⚠️ deprecated'. AC4: index.html (type 'html') nunca entra a ninguna de las
+  // dos listas — por construcción, solo se listan archivos type 'js'/'css'.
+  const _mgDeprecatedRe = /deprecated/i;
+  const _mgDeprecatedSet = new Set();
+  parsed.forEach(p => {
+    if (p.ext !== 'js') return;
+    const headerWindow = p.lines.slice(0, 10).join('\n');
+    if (_mgDeprecatedRe.test(headerWindow)) _mgDeprecatedSet.add(p.name);
+  });
+
+  const jsModuleNames = files.filter(f => f.type === 'js').map(f => f.name).sort((a, b) => a.localeCompare(b));
+  const cssFileNames  = files.filter(f => f.type === 'css').map(f => f.name).sort((a, b) => a.localeCompare(b));
+
+  if (jsModuleNames.length) {
+    md += `### JS Modules (${jsModuleNames.length})\n\n`;
+    jsModuleNames.forEach(name => {
+      md += `- ${name}${_mgDeprecatedSet.has(name) ? ' ⚠️ deprecated' : ''}\n`;
+    });
+    md += '\n';
+  }
+  if (cssFileNames.length) {
+    md += `### CSS Files (${cssFileNames.length})\n\n`;
+    cssFileNames.forEach(name => { md += `- ${name}\n`; });
+    md += '\n';
+  }
 
   files.forEach(f => {
     const changedStr = f.changed_in ? f.changed_in : '—';
