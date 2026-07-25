@@ -1,3 +1,19 @@
+// [PP] mod:26 · autor:Rune · 2026-07-24 UTC-6
+// TKT-202607-100 (REQ-202607-030), corrección Fase 2 tras gap de Finn: htmlIdCount excluye
+// atributos terminados en -id= (data-decision-id, data-sprint-id, etc). Lookbehind negativo
+// (?<![\w-]) reemplaza el \b anterior — \b matchea frontera letra/no-letra pero no distingue
+// guion, por eso 'data-sprint-id=' contaba como 'id=' real. Ver AC4 corregido del TKT.
+// [PP] mod:25 · autor:Rune · 2026-07-24 UTC-6
+// TKT-202607-100 (REQ-202607-030): entrada especial index.html — agrega sprint/autor/HTML IDs
+// a la línea de metadatos existente (mismo renglón). autor se extrae del header de identidad
+// (misma ventana de 10 líneas que mod, ver _mgParseFile). sprint usa sprint activo o programado
+// (active/scheduled) — '—' si ninguno, sin fallback a último cerrado (distinto de
+// _mgActiveSprintReal). HTML IDs = conteo de atributos id="..."/id='...' en el archivo. Otro
+// .html distinto de index.html conserva el formato genérico sin regresión. Ver AC1-AC3 del TKT.
+// [PP] mod:24 · autor:Rune · 2026-07-24 UTC-6
+// TKT-202607-099 (REQ-202607-030): entrada CSS del MAP agrega línea 'Scope JS:' inmediatamente
+// después de Líneas/mod/Size/Changed in — módulos JS de mismo nombre base (stem) que el CSS
+// entre los archivos parseados; sin match declara '—'. Ver AC1-AC2 del TKT.
 // [PP] mod:23 · autor:Rune · 2026-07-24 UTC-6
 // TKT-202607-096 (REQ-202607-029): mod ausente en el MAP generado ya no se enmascara como
 // mod:1 — declara 'sin-header ⚠️' explícito (OBDS §8). mod real 0 sigue distinguiéndose de
@@ -443,9 +459,15 @@ function _mgParseFile(name, text) {
   // El header tiene formato: // [XX] vN.N · sprint:XX-S-NN · mod:N · autor:Rol · timestamp
   // Para ESM el header puede estar después de los imports — buscar en las primeras 10 líneas
   let modValue = null;
+  let autorValue = null;
   for (let i = 0; i < Math.min(10, lines.length); i++) {
     const modMatch = lines[i].match(/\bmod:(\d+)\b/);
-    if (modMatch) { modValue = parseInt(modMatch[1], 10); break; }
+    if (modMatch && modValue === null) modValue = parseInt(modMatch[1], 10);
+    // TKT-202607-100 (REQ-202607-030): autor del header — misma ventana de 10 líneas que mod.
+    // Formato: autor:Nombre — corta en el siguiente espacio o '·', consistente con el resto del header.
+    const autorMatch = lines[i].match(/\bautor:([^\s·]+)/);
+    if (autorMatch && autorValue === null) autorValue = autorMatch[1];
+    if (modValue !== null && autorValue !== null) break;
   }
 
   if (ext === 'js') {
@@ -492,7 +514,7 @@ function _mgParseFile(name, text) {
     });
   }
 
-  return { name, ext, total, entries, lines, mod: modValue };
+  return { name, ext, total, entries, lines, mod: modValue, autor: autorValue };
 }
 
 function _mgGuessArea(fnName, _line) {
@@ -827,6 +849,16 @@ function _generateMap(ver) {
     return 'high';
   }
 
+  // TKT-202607-100 (REQ-202607-030): sprint activo o programado (abierto/scheduled) — '—' si
+  // no hay ninguno de los dos, aunque exista historial de sprints cerrados. Distinto de
+  // _mgActiveSprintReal(), que hace fallback al último sprint cerrado — ese fallback no aplica
+  // al AC de este TKT ("sin sprint abierto ni programado").
+  function _mgHtmlMetaSprintId() {
+    const all = getActiveSprints();
+    const sp = all.find(s => s.status === 'active' || s.status === 'scheduled');
+    return sp ? sp.id : null;
+  }
+
   // Construir array files con todos los campos nuevos
   const files = parsed.map(p => {
     // AC-11: exports sin duplicados — solo funciones realmente referenciadas desde otros archivos
@@ -853,6 +885,13 @@ function _generateMap(ver) {
       type: p.ext,
       lines: p.total,
       mod: p.mod !== null ? p.mod : null,   // T-202606-145 F-02: del header de identidad; null si ausente
+      autor: p.autor !== null ? p.autor : null, // TKT-202607-100 (REQ-202607-030): del header de identidad; null si ausente
+      // TKT-202607-100 (REQ-202607-030), corrección Fase 2 (gap de Finn): el atributo global id=
+      // debe distinguirse de cualquier atributo compuesto terminado en -id= (data-decision-id,
+      // data-sprint-id, data-learning-id — ya presentes en index.html real del proyecto). Lookbehind
+      // negativo excluye letra/dígito/guion inmediatamente antes de 'id' — solo cuenta 'id' como
+      // nombre completo de atributo, precedido por espacio o inicio de etiqueta.
+      htmlIdCount: p.ext === 'html' ? (p.lines.join('\n').match(/(?<![\w-])id\s*=\s*["'][^"']*["']/g) || []).length : null,
       exports: exportsArr,          // AC-03
       calls: callsArr,              // AC-04 nivel archivo
       changed_in: changedIn,        // AC-06
@@ -973,7 +1012,31 @@ function _generateMap(ver) {
     // chequeo !== null && !== undefined ya vigente, solo cambia el valor del else branch.
     const modStr = f.mod !== null && f.mod !== undefined ? String(f.mod) : 'sin-header ⚠️';
     md += `## ${f.name}\n`;
-    md += `**Líneas:** ${f.lines} · **mod:** ${modStr} · **Size:** ${f.size_signal} · **Changed in:** ${changedStr}\n\n`;
+    let metaLine = `**Líneas:** ${f.lines} · **mod:** ${modStr} · **Size:** ${f.size_signal} · **Changed in:** ${changedStr}`;
+    // TKT-202607-100 (REQ-202607-030): index.html — sprint/autor/HTML IDs agregados a la MISMA
+    // línea de metadatos (no línea nueva) · AC2: otro .html distinto de index.html mantiene el
+    // formato genérico ya vigente, sin estos campos.
+    if (f.type === 'html' && f.name === 'index.html') {
+      const sprintId = _mgHtmlMetaSprintId();
+      const autorStr = f.autor !== null && f.autor !== undefined ? f.autor : '—';
+      const idsStr = f.htmlIdCount !== null && f.htmlIdCount !== undefined ? String(f.htmlIdCount) : '0';
+      metaLine += ` · **sprint:** ${sprintId || '—'} · **autor:** ${autorStr} · **HTML IDs:** ${idsStr}`;
+    }
+    md += metaLine + '\n';
+
+    if (f.type === 'css') {
+      // TKT-202607-099 (REQ-202607-030): Scope JS — módulos JS de mismo sufijo (nombre base,
+      // sin extensión) que el archivo CSS, entre los archivos parseados en esta sesión. Sin
+      // match → '—'. Campo descriptivo, no prescriptivo (ver _Locus-module-contracts §4 —
+      // anti-pattern "Lógica de negocio en módulos CSS").
+      const cssStem = f.name.replace(/\.css$/i, '');
+      const scopeJsNames = files
+        .filter(x => x.type === 'js' && x.name.replace(/\.js$/i, '') === cssStem)
+        .map(x => x.name)
+        .sort((a, b) => a.localeCompare(b));
+      md += `**Scope JS:** ${scopeJsNames.length ? scopeJsNames.join(', ') : '—'}\n`;
+    }
+    md += '\n';
 
     if (f.type === 'js') {
       // R3-T3: separar en públicas e internas
