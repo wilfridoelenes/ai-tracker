@@ -1,3 +1,12 @@
+// [PP] mod:146 · autor:Rune · 2026-07-25 UTC-6
+// TKT-202607-122 (origen_disc DISC-202607-040): _toIncidentRow()/_mapRowToIncident() —
+// status_changed_at agregado. existing.statusChangedAt (aplicado en memoria por
+// applyPatchesFromTG, locus-backlog-item.js mod:147/148, ver _Locus-module-contracts mod:135)
+// no tenía columna destino en tracker_incidents — se perdía al recargar la app antes del
+// próximo export a _PP-incidents.md. bigint epoch ms, mismo patrón que updated_at en esta
+// misma tabla (no timestamptz como created_at/sla_deadline) — nowTs ya es epoch ms en origen,
+// sin conversión ISO necesaria. DDL requerido: sí — ALTER TABLE tracker_incidents ADD COLUMN
+// status_changed_at bigint; (pendiente de ejecución por el founder).
 // [PP] mod:145 · autor:Rune · 2026-07-24 UTC-6
 // INC-[pendiente-ID]: _loadFromSupabase() nunca refrescaba el tab Analytics al terminar la carga
 // remota — Tracker/Radar/Backlog/Sprint sí tenían su dispatch/callback de re-render post-carga,
@@ -1755,6 +1764,13 @@ function _toIncidentRow(inc, { projId, userId, updatedAtMs }) {
     ac:                    Array.isArray(inc.ac) ? inc.ac : [],
     queue:                 inc.queue              || null,
     verificado_por:        inc.verificado_por     || inc.verificadoPor || null,
+    // TKT-202607-122 (DISC-202607-040): status_changed_at — bigint epoch ms, mismo tipo que
+    // updated_at en esta tabla (no timestamptz). inc.statusChangedAt ya llega como epoch ms
+    // desde applyPatchesFromTG (locus-backlog-item.js, nowTs = Date.now()) — sin conversión.
+    // AC3: si la transición fue rechazada o resolution_type faltó, applyPatchesFromTG nunca
+    // asignó statusChangedAt — permanece null/undefined en memoria y se escribe null aquí,
+    // sin inventar un valor. Fallback camelCase por si el ítem llega recién parseado.
+    status_changed_at:    inc.status_changed_at != null ? inc.status_changed_at : (inc.statusChangedAt != null ? inc.statusChangedAt : null),
     // Fix QA (Finn) — TKT-202607-044: sla_deadline es timestamptz en tracker_incidents
     // (confirmado vía information_schema.columns), no bigint. inc.slaDeadline vive en
     // memoria como epoch ms (ver _mapRowToIncident) — convertir a ISO string antes de
@@ -2278,6 +2294,11 @@ function _mapRowToIncident(row) {
     ac:                    Array.isArray(row.ac) ? row.ac : [],
     queue:                 row.queue              || null,
     verificado_por:        row.verificado_por     || null,
+    // TKT-202607-122 (DISC-202607-040): status_changed_at es bigint en tracker_incidents —
+    // sin transformación, mismo criterio que updated_at. AC4: filas pre-ALTER traen esta
+    // columna en NULL — statusChangedAt queda null, mismo patrón de coalescencia ya usado
+    // arriba para role/next_role/verificado_por.
+    statusChangedAt:       row.status_changed_at != null ? row.status_changed_at : null,
     // timestamptz → epoch ms. row.created_at llega como ISO string desde Supabase.
     createdAt:             row.created_at != null ? new Date(row.created_at).getTime() : null,
     // Mismo cálculo derivado que _mapRowToItem en intención — pero con base epoch ms
