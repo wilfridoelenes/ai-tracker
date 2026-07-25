@@ -1,3 +1,10 @@
+// [PP] mod:4 · autor:Rune · 2026-07-24 UTC-6
+// INC-202607-018 (triggered_by INC-202607-013): _VALID_PRB_TRANSITIONS no declaraba
+// 'root_cause_confirmed' (BR-Core §6, ex-KE fusionado infra_version 51) ni como destino de
+// in_progress ni como origen hacia resolved — un patch con esos pares se rechazaba en
+// silencio, mismo patrón de fallo que INC-202607-004 documentó para INC. Agregado
+// in_progress→{resolved, root_cause_confirmed} y root_cause_confirmed→resolved. Sin cambio
+// de firma ni de comportamiento para INC — solo afecta _VALID_PRB_TRANSITIONS.
 // [PP] mod:3 · autor:Rune · 2026-07-24 UTC-6
 // TKT (REQ CAEL-0724-01): retiro de KE residual — fusionado a PRB.root_cause_confirmed
 // (infra_version 51). Import de _VALID_KE_STATUS retirado. _VALID_KE_TRANSITIONS retirada
@@ -51,10 +58,17 @@ const _VALID_INCIDENT_TRANSITIONS = {
 
 // TKT1 (REQ CAEL-01): tabla de transiciones propia de PRB — BR-Core §6.
 // PRB no tiene status 'assigned' (a diferencia de INC) — nace directamente en 'detected'.
+// INC-202607-018 (triggered_by INC-202607-013): 'root_cause_confirmed' agregado — estado
+// intermedio del ciclo de PRB (ex-KE, fusionado infra_version 51) ausente desde la creación
+// de esta tabla. in_progress ahora permite ambos destinos declarados en BR-Core §6
+// (resolved directo, o root_cause_confirmed cuando la causa raíz está identificada sin fix
+// disponible); root_cause_confirmed permite avanzar a resolved cuando el fix definitivo se
+// implementa.
 const _VALID_PRB_TRANSITIONS = {
-  detected:    new Set(['in_progress']),
-  in_progress: new Set(['resolved']),
-  resolved:    new Set(['closed'])
+  detected:               new Set(['in_progress']),
+  in_progress:            new Set(['resolved', 'root_cause_confirmed']),
+  root_cause_confirmed:   new Set(['resolved']),
+  resolved:               new Set(['closed'])
   // closed, descartado: estados terminales — sin transiciones salientes declaradas, mismo criterio
   // que _VALID_INCIDENT_TRANSITIONS para closed. Fuera de scope de TKT1.
 };
