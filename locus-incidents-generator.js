@@ -1,3 +1,20 @@
+// [PP] mod:13 · autor:Rune · 2026-07-25 UTC-6
+// INC-202607-039 (fix — hallazgo de auditoría contra _ob-DocStandards §3b, sin ítem padre):
+// _buildIndiceMd() recibía `active` (filtrado por _isActiveIncident()) — INC/PRB en closed y
+// CHG en done quedaban fuera de '## Índice de estado' pese a que ambas tablas ya tienen columna
+// Status para diferenciarlos visualmente. Fix: nueva función _isIndexEligible(i) — mismo criterio
+// que _isActiveIncident() salvo que no excluye closed(INC/PRB)/done(CHG), solo excluye
+// `descartado` (ítem cancelado, sin valor de índice). _generateIncidentsMd() ahora filtra `all`
+// con _isIndexEligible() y pasa ese resultado a _buildIndiceMd() — la línea '**Q-INC:** ... activos'
+// y `counts` siguen usando `active`/_isActiveIncident() sin cambio, ya que esa línea mide actividad,
+// no cobertura del índice. Sin cambio de firma en _buildIndiceMd() — sigue recibiendo un array de
+// ítems, solo cambia cuál. contract_update: no — función interna, sin consumidor externo a este
+// archivo.
+// INC-202607-041 (verificado, sin cambio de código — hallazgo ya resuelto por mod:12): la fila
+// 'Cerrados — desde el último export' en '## Estadísticas finales' ya está presente desde TKT3
+// (REQ-202607-035, mod:12, mismo día) — el INC quedaba `detected` porque nadie lo transicionó
+// tras ese TKT, no porque el código siguiera sin el campo. Verificado por grep contra este archivo
+// antes de declarar resolved — sin fix adicional necesario.
 // [PP] mod:12 · autor:Rune · 2026-07-25 UTC-6
 // TKT3 (parent: REQ-202607-035, depends_on: n/a): Estadísticas finales de _generateIncidentsMd()
 // declara 'Cerrados — desde el último export' como valor separado de 'Cerrados — acumulado
@@ -157,6 +174,18 @@ function _isActiveIncident(i) {
   return false;
 }
 
+// Elegibilidad para '## Índice de estado' — INC-202607-039. Más amplia que _isActiveIncident():
+// incluye closed(INC/PRB) y done(CHG), porque el índice ya declara Status por fila y OBDS §3b
+// exige visibilidad de esos estados ahí, no solo en '## Ítems'. Solo excluye `descartado` —
+// ítem cancelado, sin valor de índice de estado.
+function _isIndexEligible(i) {
+  const t = itemKind(i);
+  if (t === 'CHG') return i.status !== 'descartado';
+  const st = incIncidentStatus(i);
+  if (t === 'INC' || t === 'PRB') return !!st && st !== 'descartado';
+  return false;
+}
+
 function _pad(n) { return String(n).padStart(2, '0'); }
 
 // Timestamp UTC-6 — mismo cálculo manual que _generateBacklogContent() en
@@ -230,10 +259,13 @@ function _riesgoTag(i) {
 // _ob-DocStandards §3b v1.16): INC: código/título/status/priority/deadline/resolution_type ·
 // PRB: código/título/status/priority/derived_items · CHG: código/título/status/priority/
 // derived_items.
-// Tipo sin ítems activos declara 'ninguno' — nunca se omite.
-function _buildIndiceMd(active) {
+// INC-202607-039 (mod:13): recibe ítems filtrados por _isIndexEligible() — closed(INC/PRB) y
+// done(CHG) incluidos, solo `descartado` queda fuera. Ya no es "solo activos" pese al nombre
+// del parámetro histórico — cada tabla tiene columna Status para diferenciar.
+// Tipo sin ítems declara 'ninguno' — nunca se omite.
+function _buildIndiceMd(items) {
   const byType = { INC: [], PRB: [], CHG: [] };
-  active.forEach(i => {
+  items.forEach(i => {
     const t = itemKind(i);
     if (byType[t]) byType[t].push(i);
   });
@@ -407,7 +439,10 @@ export function _generateIncidentsMd() {
   md += '## Estado actual\n\n';
   md += `**Q-INC:** INC=${counts.INC} · PRB=${counts.PRB} · CHG=${counts.CHG} activos\n\n`;
 
-  md += _buildIndiceMd(active);
+  // INC-202607-039: el índice usa un criterio más amplio que 'activos' — incluye closed/done,
+  // solo excluye descartado. La línea de arriba (counts) sigue midiendo actividad real, sin cambio.
+  const indexEligible = all.filter(_isIndexEligible);
+  md += _buildIndiceMd(indexEligible);
   md += '\n---\n\n';
 
   md += _buildItemsMd(all);
