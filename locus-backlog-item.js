@@ -1,3 +1,14 @@
+// [PP] mod:145 · autor:Rune · 2026-07-25 02:33 UTC-6
+// INC-202607-031 (triggered_by REQ-202607-033): applyPatchesFromTG() — opts.ckptHeaderRole
+// (string único global) reemplazado por opts.roleByIdx (Map<idx, role>) + _resolvePatchRole(patch)
+// resuelto por patch individual vía patch.idx. Causa raíz: _onApplyBatch() en
+// locus-session-parse.js pasaba ckptHeaderRole:'' hardcodeado para todo el batch — el guard
+// rol-no-autorizado-done (más abajo en este archivo) rechazaba sistemáticamente cualquier patch
+// status:done sobre REQ en modo batch, sin importar que el bloque de origen declarara
+// role:'QA · Finn' correctamente. Retrocompatible: si opts.roleByIdx está ausente,
+// _resolvePatchRole cae a opts.ckptHeaderRole (string) como antes — sin cambio de firma pública.
+// contract_update: no — sin cambio de firma de applyPatchesFromTG, solo de la forma interna de
+// resolver el rol autorizado dentro de opts.
 // [PP] mod:144 · autor:Rune · 2026-07-24 UTC-6
 // INC-202607-019 (fix en locus-session-save.js mod:75, no lógica de este archivo): comentario
 // junto a _skipScrumGate (L2567-2568 orig.) corregido — afirmaba que el bloque Scrum validaba
@@ -3143,7 +3154,28 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
   // B-202606-100: role del header del CHECKPOINT — único contexto que autoriza
   // la transición R → done dentro de un patch. Simétrico al guard ya existente
   // para R → bloqueado en locus-session-parse.js (T-202606-080/022).
-  const _ckptHeaderRole = (opts && typeof opts.ckptHeaderRole === 'string') ? opts.ckptHeaderRole : '';
+  // INC-202607-031 (triggered_by REQ-202607-033): opts.ckptHeaderRole (string único para
+  // todos los patches del array) reemplazado por opts.roleByIdx (Map<idx, role>) — causa
+  // raíz confirmada: un batch de 2+ CHECKPOINTs pegados juntos (patrón recomendado por
+  // BR-Core, "Entrega de CHECKPOINTs intermedios") puede traer patches de bloques con roles
+  // distintos (ej. Rune entrega un TKT, Finn cierra el REQ en el mismo batch) — un solo
+  // ckptHeaderRole global no puede representar eso, y _onApplyBatch() lo pasaba hardcodeado
+  // a '' (locus-session-parse.js), rechazando sistemáticamente cualquier patch status:done
+  // sobre REQ en modo batch sin importar el role real declarado por su bloque de origen.
+  // Cada patch ya lleva patch.idx (índice del bloque de origen, agregado en
+  // _resolveCheckpointBatch/locus-session-parse.js) — se resuelve el role correspondiente
+  // por patch, dentro del forEach principal, no aquí a nivel de función completa.
+  // Retrocompatibilidad: si opts.ckptHeaderRole (string) llega en vez de roleByIdx (flujo
+  // single, que sigue pasando un solo string porque solo hay un bloque = un solo role),
+  // _resolvePatchRole() lo usa como fallback uniforme — sin romper el caller existente.
+  const _roleByIdx = (opts && opts.roleByIdx instanceof Map) ? opts.roleByIdx : null;
+  const _ckptHeaderRoleFallback = (opts && typeof opts.ckptHeaderRole === 'string') ? opts.ckptHeaderRole : '';
+  function _resolvePatchRole(patch) {
+    if (_roleByIdx && patch && patch.idx !== undefined && _roleByIdx.has(patch.idx)) {
+      return _roleByIdx.get(patch.idx) || '';
+    }
+    return _ckptHeaderRoleFallback;
+  }
 
   const patched = [];
   const ignoredPatches = [];
@@ -3388,11 +3420,14 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
             // Simétrico al guard de REQ → bloqueado (T-202606-080/022).
             if (itemKind(existing) === 'REQ') {
               const _authorizedRole = 'QA · Finn';
-              if (_ckptHeaderRole !== _authorizedRole) {
+              // INC-202607-031: rol resuelto por patch (patch.idx → bloque de origen en modo
+              // batch), no por un valor global de función — ver _resolvePatchRole arriba.
+              const _resolvedRoleForThisPatch = _resolvePatchRole(patch);
+              if (_resolvedRoleForThisPatch !== _authorizedRole) {
                 _blogLog(
                   'rol-no-autorizado-done',
                   code,
-                  `Transición done en REQ ${code} rechazada: solo Finn puede cerrar un REQ, vía sesión de cierre. Rol resuelto: "${_ckptHeaderRole}".`,
+                  `Transición done en REQ ${code} rechazada: solo Finn puede cerrar un REQ, vía sesión de cierre. Rol resuelto: "${_resolvedRoleForThisPatch}".`,
                   'backlog'
                 );
                 ignoredPatches.push({ code, reason: 'rol-no-autorizado-done' });
@@ -3410,6 +3445,33 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
             // responsabilidad de sincronizar viva en un solo lugar, no en el caller.
             _applyDoneStatus(existing.code, true);
             changes.push({ field: 'status', from: _prevStatus, to: normalized });
+          } else if (normalized === 'bloqueado') {
+            // INC-202607-037 (triggered_by INC-202607-032): guard de rol para REQ → bloqueado
+            // — el AC original (T-202606-031, AC-1/AC-4: solo QA·Finn puede mover un REQ a
+            // bloqueado) solo estaba implementado en mergeBacklogFromTG (L2608, dry-run del
+            // panel DIFF sobre la representación sintética de _buildPatchTgItems) — nunca en
+            // applyPatchesFromTG, que es el único camino real de persistencia de un type:patch.
+            // Mismo mecanismo que el guard 'done' de arriba (INC-202607-031): _resolvePatchRole
+            // resuelto por patch (patch.idx → bloque de origen en modo batch), no un valor
+            // global de función.
+            if (itemKind(existing) === 'REQ') {
+              const _authorizedRole = 'QA · Finn';
+              const _resolvedRoleForThisPatch = _resolvePatchRole(patch);
+              if (_resolvedRoleForThisPatch !== _authorizedRole) {
+                _blogLog(
+                  'rol-no-autorizado-bloqueado',
+                  code,
+                  `Transición bloqueado en REQ ${code} rechazada: solo Finn puede bloquear un REQ, vía sesión de cierre. Rol resuelto: "${_resolvedRoleForThisPatch}".`,
+                  'backlog'
+                );
+                ignoredPatches.push({ code, reason: 'rol-no-autorizado-bloqueado' });
+                return;
+              }
+            }
+            changes.push({ field: 'status', from: existing.status, to: normalized });
+            existing.status = normalized;
+            existing.statusChangedAt = nowTs;
+            _syncParentRStatus(existing.code, normalized);
           } else if (normalized && normalized !== existing.status) {
             changes.push({ field: 'status', from: existing.status, to: normalized });
             existing.status = normalized;

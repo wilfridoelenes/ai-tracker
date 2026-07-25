@@ -1,4 +1,4 @@
-// [PP] mod:76 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:77 · autor:Rune · 2026-07-24 UTC-6
 // Hallazgo fuera de scope de INC-202607-019, resuelto en la misma sesión (excepción de
 // resolución directa — dueño presente, nivel Patch, sin bifurcación de founder, confirmado
 // por el founder): remanente de 'KE' retirado de este archivo — 3 puntos vivos (entrada en
@@ -446,7 +446,15 @@ function _buildPatchTgItems(patchItems, existingTgItems) {
 // FIX (sesión 2026-07-24, gate req-sin-tkt vs reparenting): parámetro patchItems (opcional)
 // agregado — se propaga a mergeBacklogFromTG como opts.patchItems. Ver comentario completo
 // en mergeBacklogFromTG (locus-backlog-item.js) y en _applyCheckpointBatch (este archivo).
-export async function _mergeBacklogWithProject(tgItems, sessId, projId, patchItems) {
+// INC-202607-032 (triggered_by INC-202607-031): parámetro ckptRol (opcional, default '')
+// agregado — se propaga a mergeBacklogFromTG como opts.ckptRol. Sin esto, el guard
+// REQ→bloqueado (locus-backlog-item.js L2608, requiere _ckptRol === 'QA · Finn') siempre
+// resolvía a '' — ningún call site real pasaba este campo. Flujo single (más abajo en este
+// archivo): wireado con parsed.rol. Flujo batch (_applyCheckpointBatch, este archivo):
+// parámetro disponible pero NO wireado — su caller real (_onApplyBatch, locus-session-parse.js)
+// no está adjunto en la sesión donde se aplicó este fix; requiere actualización propia,
+// fuera de este alcance — ver CHECKPOINT de cierre para el registro explícito del gap.
+export async function _mergeBacklogWithProject(tgItems, sessId, projId, patchItems, ckptRol) {
   if (!tgItems || !tgItems.length) return { created:[], updated:[], ignored:[], advanced:[], retroceso:[], discarded:[], slugMap: new Map(), refIdTitleMap: new Map() }; // TKT2 (REQ-[pendiente-ID] · CAEL-05): slugMap/refIdTitleMap agregados al guard — sin esto, un batch de solo patches (tgItems vacío) nunca obtenía estos mapas para resolver code de sus propios patches
   const _prevFilter = localStorage.getItem('current-project-filter') || '';
   const _filterChanged = projId && projId !== _prevFilter;
@@ -457,7 +465,7 @@ export async function _mergeBacklogWithProject(tgItems, sessId, projId, patchIte
   }
   let result;
   try {
-    result = await mergeBacklogFromTG(tgItems, sessId, { patchItems: patchItems || [] });
+    result = await mergeBacklogFromTG(tgItems, sessId, { patchItems: patchItems || [], ckptRol: ckptRol || '' });
   } finally {
     if (_filterChanged) {
       // Restaurar filtro original y recargar getItems() del proyecto original
@@ -785,7 +793,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
     // ya estaba en scope pero no se pasaba hasta el gate de mergeBacklogFromTG. Ver comentario
     // completo en mergeBacklogFromTG (locus-backlog-item.js). Este es el path exacto del caso
     // reportado: REQ draft:true con ref_id + 3 type:patch de reparenting en el mismo CHECKPOINT.
-    mergeResult = await _mergeBacklogWithProject(tgItems, sessId, activeProj.id, parsed.patchItems);
+    mergeResult = await _mergeBacklogWithProject(tgItems, sessId, activeProj.id, parsed.patchItems, parsed.rol || '');
   } catch (err) {
     showToast('error', '⚠ Error al aplicar backlog — reintentar guardado');
     return;

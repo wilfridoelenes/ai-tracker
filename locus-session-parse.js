@@ -1,3 +1,17 @@
+// [PP] mod:147 · autor:Rune · 2026-07-25 02:33 UTC-6
+// INC-202607-031 (triggered_by REQ-202607-033): _onApplyBatch() — ckptHeaderRole:'' hardcodeado
+// en la llamada a applyPatchesFromTG() reemplazado por roleByIdx (Map<idx, role>) construido
+// desde metas (ya disponible en el closure, destructurado de _resolveCheckpointBatch). Causa
+// raíz real del bug: un batch de 2+ CHECKPOINTs pegados juntos (patrón recomendado por BR-Core,
+// "Entrega de CHECKPOINTs intermedios") puede traer patches de bloques con roles distintos —
+// un solo string de rol para todo el batch no puede representar eso. metas ya llevaba { rol,
+// idx } por bloque válido desde una corrección anterior (_extractCkptMeta + idx: b.idx en
+// _resolveCheckpointBatch) — el fix conecta ese dato ya existente con applyPatchesFromTG
+// (locus-backlog-item.js mod:145, mismo INC), que ahora resuelve el rol autorizado por
+// patch.idx en vez de un valor fijo. Sin cambio de firma de applyPatchesFromTG. Hallazgo fuera
+// de scope (no corregido en este INC): el guard simétrico REQ→bloqueado en mergeBacklogFromTG
+// (locus-backlog-item.js) usa opts.ckptRol, resuelto desde locus-session-save.js — archivo no
+// adjunto en esta sesión, no verificado si tiene el mismo patrón de bug.
 // [PP] mod:146 · autor:Rune · 2026-07-24 UTC-6
 // QA Finn detectó referencia de línea stale en el comentario de mod:145 — citaba líneas de
 //   esc() previas al propio borrado de buildTGPreview() en ese mismo mod (46 líneas de
@@ -2175,7 +2189,18 @@ export async function _processIngestBatch() {
       return;
     }
     if (patchItems && patchItems.length && _batchMergeResult) {
-      applyPatchesFromTG(patchItems, syntheticSessId, { slugMap: _batchMergeResult.slugMap, refIdTitleMap: _batchMergeResult.refIdTitleMap, ckptHeaderRole: '' });
+      // INC-202607-031 (triggered_by REQ-202607-033): ckptHeaderRole:'' hardcodeado
+      // reemplazado por roleByIdx (Map<idx, role>) — causa raíz confirmada: este call site
+      // pasaba un único role vacío para todos los patches del batch, sin importar cuántos
+      // bloques trajera ni qué role declarara cada uno. El guard rol-no-autorizado-done
+      // (locus-backlog-item.js) rechazaba sistemáticamente cualquier patch status:done sobre
+      // REQ en modo batch — incluso con el bloque de origen declarando role:'QA · Finn'
+      // correctamente. metas ya lleva { rol, idx } por bloque válido (_extractCkptMeta +
+      // idx: b.idx, ver _resolveCheckpointBatch) — se construye el Map directamente desde ahí,
+      // sin re-parsear nada. Sin cambio de firma pública de applyPatchesFromTG.
+      const _roleByIdx = new Map();
+      (metas || []).forEach(m => { if (m && m.idx !== undefined) _roleByIdx.set(m.idx, m.rol || ''); });
+      applyPatchesFromTG(patchItems, syntheticSessId, { slugMap: _batchMergeResult.slugMap, refIdTitleMap: _batchMergeResult.refIdTitleMap, roleByIdx: _roleByIdx });
     }
     renderBacklogList();
     renderStats();

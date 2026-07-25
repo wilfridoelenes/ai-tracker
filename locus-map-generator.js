@@ -1218,9 +1218,15 @@ function _mgInferStatus(activeSp, blItems) {
 }
 
 function _generateContext(ver) {
-  // R-202605-136: produce JSON puro — parseable sin regex
-  // R-202605-147: enriquecido con status, sprint completo, velocity, backlog snapshot, tech_debt
-  // B-202605-XXX: acepta ver como parámetro (bumpedVer desde generateDocuments) — prioridad sobre version_target del sprint
+  // INC-202607-024 (fix, _ob-DocStandards §1): _generateContext() producía JSON puro —
+  // incompatible con el estándar de CONTEXT (Markdown, 6+ secciones). De esas secciones solo §1
+  // (parcial) y §2 son calculables desde el state de la app — §5 (Funcionalidades activas) y §6
+  // (Archivos/invariantes) son contenido curado por Cael, no datos derivables. Reescrito:
+  // secciones calculables se generan en Markdown real; secciones curadas se preservan si el
+  // CONTEXT almacenado ya está en este formato, o se declaran con placeholder explícito (nunca
+  // se omiten en silencio — _ob-DocStandards "Secciones vacías declaradas"). Efecto lateral
+  // corregido: _importContextMdFromText() (locus-docs.js) esperaba Markdown por nombre y recibía
+  // JSON — este fix también alinea ese consumidor.
   const _activeSp   = _mgActiveSprintReal();
   const _ctxVersion = (ver && ver !== 'undefined')
     ? ver
@@ -1228,17 +1234,17 @@ function _generateContext(ver) {
       ? _activeSp.version_target
       : _mgGetVersion();
   const proj = getActiveProject();
+  const prefix = _docPrefix();
 
-  // Timestamp
   const _now = new Date();
   const _pad = n => String(n).padStart(2, '0');
-  const updated = `${_now.getFullYear()}-${_pad(_now.getMonth()+1)}-${_pad(_now.getDate())} ` +
-                  `${_pad(_now.getHours())}:${_pad(_now.getMinutes())} UTC-6`;
-  const generated_at = updated;
+  const updatedDate = `${_now.getFullYear()}-${_pad(_now.getMonth()+1)}-${_pad(_now.getDate())}`;
 
-  // Stack — leer del contexto almacenado si existe; priorizar JSON > Markdown > default
+  // Stack — misma lógica de lectura que antes (compatible con JSON legado y Markdown legado)
   let stack = [];
   const storedRaw = proj ? getProjContext(proj.id) : null;
+  const storedFirstLine = storedRaw ? storedRaw.trim().split('\n')[0] || '' : '';
+  const storedIsMd = /^#\s.*\.md\s*$/.test(storedFirstLine);
   if (storedRaw && storedRaw.trim()) {
     let isJson = false;
     try { const o = JSON.parse(storedRaw.trim()); isJson = typeof o === 'object' && o !== null && 'version' in o; } catch(e) {}
@@ -1262,211 +1268,95 @@ function _generateContext(ver) {
       .replace(/Firebase Firestore\s*\(opcional\)[^\n]*/g, 'Supabase (activo)')
       .replace(/Firebase Firestore[^\n]*/g, 'Supabase (activo)')
   }));
+  const stackLine = stack.length ? stack.map(s => s.tech).filter(Boolean).join(' + ') : '—';
 
-  // Backlog items
-  let _blItems = [];
-  try {
-    const raw = localStorage.getItem(_tplKey('backlog-items'));
-      _blItems = raw ? JSON.parse(raw) : [];
-  } catch(e) { _blItems = []; }
-
-  // R-202605-147: status inferido — calculado una sola vez al abrir
-  const status = _mgInferStatus(_activeSp, _blItems);
-
-  // Contadores Gen2 — itemKind() clasifica, item sin tipo resoluble no incrementa ningún contador
-  const counters = { REQ: 0, TKT: 0, DISC: 0, INC: 0, PRB: 0, KE: 0, CHG: 0 };
-  _blItems.forEach(i => {
-    const kind = itemKind(i);
-    if (kind && kind in counters) counters[kind]++;
-  });
-
-  // R-202605-147: sprint enriquecido
+  // §2 — sprint anterior (último cerrado)
   const allSprints = getActiveSprints();
   const closedSprints = allSprints
     .filter(s => s.status === 'closed')
     .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
   const lastClosed = closedSprints[0] || null;
+  const sprintAnteriorLine = lastClosed
+    ? `${lastClosed.id}${lastClosed.name ? ' · ' + lastClosed.name : ''}`
+    : '—';
 
-  const sprintActiveItems = _activeSp
-    ? _blItems.filter(i => i.sprint === _activeSp.id)
-    : [];
-  const sprintDoneItems = sprintActiveItems.filter(i => i.status === 'done');
-  const effortTotal = sprintActiveItems.reduce((s, i) => s + (parseInt(i.effort, 10) || 0), 0);
-  const effortDone  = sprintDoneItems.reduce((s, i) => s + (parseInt(i.effort, 10) || 0), 0);
-  const scopeAdded  = sprintActiveItems.filter(i => i.scope_added).length;
-
-  const sprintInfo = {
-    active: _activeSp ? _activeSp.id : null,
-    name: _activeSp ? (_activeSp.name || '') : null,
-    goal: _activeSp ? (_activeSp.goal || null) : null,
-    version_target: _activeSp ? (_activeSp.version_target || null) : null,
-    release_type: _activeSp ? (_activeSp.release_type || null) : null,
-    opened_date: _activeSp ? (_activeSp.openedAt ? new Date(_activeSp.openedAt).toISOString().slice(0,10) : null) : null,
-    items_total: _activeSp ? sprintActiveItems.length : 0,
-    items_done: _activeSp ? sprintDoneItems.length : 0,
-    effort_total: _activeSp ? effortTotal : 0,
-    effort_done: _activeSp ? effortDone : 0,
-    scope_added: _activeSp ? scopeAdded : 0,
-    last_closed: lastClosed ? {
-      id: lastClosed.id || null,
-      closed_date: lastClosed.closedAt ? new Date(lastClosed.closedAt).toISOString().slice(0,10) : null,
-      items_done: lastClosed.itemsDone ?? null,
-      effort_done: lastClosed.effortDone ?? null,
-      version_delivered: lastClosed.version_target || null
-    } : {
-      id: null, closed_date: null, items_done: null, effort_done: null, version_delivered: null
-    }
+  // Campos no derivables (§1 Alias/Tipo/Estado, §5, §6) — preservar del CONTEXT almacenado si ya
+  // está en formato Markdown (_ob-DocStandards §1); si no, placeholder explícito para Cael.
+  const _extractTableField = (raw, campo) => {
+    if (!raw) return null;
+    const re = new RegExp(`\\|\\s*${campo}\\s*\\|\\s*(.+?)\\s*\\|\\s*$`, 'm');
+    const m = raw.match(re);
+    return m ? m[1].trim() : null;
   };
-
-  // R-202605-147: velocity — últimos 3 sprints cerrados con effort_done > 0
-  const validClosed = closedSprints
-    .filter(s => (s.effortDone || 0) > 0)
-    .slice(0, 3);
-  const last3 = validClosed.map(s => ({
-    sprint: s.id,
-    effort_done: s.effortDone || 0,
-    items_done: s.itemsDone || 0
-  }));
-  let avgEffort = null;
-  let trend = null;
-  if (last3.length > 0) {
-    avgEffort = Math.round((last3.reduce((s, x) => s + x.effort_done, 0) / last3.length) * 100) / 100;
-  }
-  if (last3.length >= 2) {
-    const latest = last3[0].effort_done;
-    const prevAvg = last3.slice(1).reduce((s, x) => s + x.effort_done, 0) / (last3.length - 1);
-    if (latest > prevAvg * 1.1) trend = 'acelerando';
-    else if (latest < prevAvg * 0.9) trend = 'desacelerando';
-    else trend = 'estable';
-  }
-  const velocity = { last_3_sprints: last3, avg_effort: avgEffort, trend };
-
-  // R-202605-147: backlog snapshot
-  const pendingItems = _blItems.filter(i => i.status === 'pendiente');
-  const backlogSnapshot = {
-    total: _blItems.length,
-    pending: pendingItems.length,
-    high_priority: pendingItems.filter(i => i.priority === 'high').length
+  const _extractSection = (raw, headingRe) => {
+    if (!raw) return null;
+    const m = raw.match(headingRe);
+    return m && m[1].trim() ? m[1].trim() : null;
   };
+  const aliasVal  = storedIsMd ? _extractTableField(storedRaw, 'Alias')  : null;
+  const tipoVal   = storedIsMd ? _extractTableField(storedRaw, 'Tipo')   : null;
+  const estadoVal = storedIsMd ? _extractTableField(storedRaw, 'Estado') : null;
+  const funcionalidadesBlock = storedIsMd
+    ? _extractSection(storedRaw, /##\s*5\.\s*Funcionalidades activas\n([\s\S]*?)(?=\n---|\n##\s*6\.)/)
+    : null;
+  const archivosBlock = storedIsMd
+    ? _extractSection(storedRaw, /##\s*6\.\s*Archivos del proyecto[^\n]*\n([\s\S]*?)(?=\n---|\n##\s*(?:7|N)\.|\n##\s*Decisiones)/)
+    : null;
 
-  // tech_debt — INC y TKT de priority high sin sprint asignado, vía itemKind() (excluye DISC implícitamente)
-  const noSprintValues = [null, undefined, '', 'n/a', 'futura'];
-  const tech_debt = _blItems
-    .filter(i => ['INC', 'TKT'].includes(itemKind(i)) && i.priority === 'high' && noSprintValues.includes(i.sprint))
-    .map(i => ({ code: i.code || '—', title: i.title || i.desc || '', type: itemKind(i) }));
-
-  // Decisiones — [] en este R, acumulación futura desde CHECKPOINTs
-  const decisions = [];
-
-  // Gaps — [] en este R, semántica de no vaciarse es scope futuro
-  const gaps = [];
-
-  // Notas / Memoria operativa
-  const sessions = proj && Array.isArray(proj.sessions) ? proj.sessions : [];
-  const spLabel   = _activeSp ? _activeSp.id : 'S-??';
-  const sprintSessions = _activeSp
-    ? sessions.filter(s => _mgSessionInSprint(s, _activeSp.id))
-    : sessions.slice(-20);
-
-  if (_activeSp && !sprintSessions.length && sessions.length) {
-    console.warn(`[MapGen] _generateContext: 0 sesiones matchearon sprint ${_activeSp.id}`);
+  // Header canónico — infra_version, mismo patrón ya vigente en _generateMap() (bloque _ivData
+  // más arriba en este archivo) — _ob-DocStandards §Encabezado canónico
+  const _ivData = getInfraVersionData();
+  let infraLine;
+  if (_ivData && _ivData.infraVersion) {
+    const _svFmt = k => (_ivData[k] ? `v${_ivData[k]}` : 'v—');
+    infraLine = `<!-- **infra_version: ${_ivData.infraVersion}** | BR-Core ${_svFmt('brCore')} · BR-Ecosystem ${_svFmt('brEcosystem')} · BR-Execution ${_svFmt('brExecution')} · OB-Strategy ${_svFmt('obStrategy')} -->`;
+  } else {
+    const _ivRaw = (proj && proj.infraVersion) ? String(proj.infraVersion).trim() : '';
+    infraLine = _ivRaw ? `<!-- **infra_version: ${_ivRaw}** -->` : `<!-- infra_version: no declarada en proyecto -->`;
   }
 
-  let existingNoteLines = [];
-  if (storedRaw && storedRaw.trim()) {
-    let isJson = false;
-    try { const o = JSON.parse(storedRaw.trim()); isJson = typeof o === 'object' && o !== null && 'version' in o; } catch(e) {}
-    if (isJson) {
-      try {
-        const prev = JSON.parse(storedRaw.trim());
-        existingNoteLines = (prev.notes || '').split('\n').map(l => l.trim()).filter(l => l.startsWith('['));
-      } catch(e) {}
-    } else {
-      const memMatch = storedRaw.match(/^## Memoria operativa\n([\s\S]*?)(?=\n## |\n---\s*$|$)/m);
-      if (memMatch) {
-        existingNoteLines = memMatch[1].split('\n').map(l => l.trim()).filter(l => l.startsWith('['));
-      }
-    }
-  }
+  const projectName = proj ? (proj.name || 'Locus') : 'Locus';
+  const filename = `${prefix}-CONTEXT_${_ctxVersion}.md`;
 
-  const seenNotes = new Set(existingNoteLines.map(l => l.toLowerCase()));
-  const newNoteEntries = [];
-  for (const s of sprintSessions) {
-    if (s.decision && s.decision.trim()) {
-      const entry = `[${spLabel}] Decisión: ${s.decision.trim()}`;
-      if (!seenNotes.has(entry.toLowerCase())) { newNoteEntries.push(entry); seenNotes.add(entry.toLowerCase()); }
-    }
-    const learning = (s.aprendizaje || s.learning || '').trim();
-    if (learning) {
-      const entry = `[${spLabel}] Aprendizaje: ${learning}`;
-      if (!seenNotes.has(entry.toLowerCase())) { newNoteEntries.push(entry); seenNotes.add(entry.toLowerCase()); }
-    }
-  }
-  const allNotes = [...existingNoteLines, ...newNoteEntries].join('\n');
+  let md = `# ${filename}\n`;
+  md += `<!-- Versión: ${_ctxVersion} | Última actualización: ${updatedDate} | ${projectName} — fuente de verdad del proyecto — dueño: Cael (PO+BA) -->\n`;
+  md += `${infraLine}\n\n---\n\n`;
 
-  // T-202605-498: commands — instrucciones de arranque por rol, construidas desde OL-CONTEXT §17
-  // Mapa canónico: sigla · nombre → archivos requeridos en sesión
-  // Fuente de verdad: Base Rules §2 + OL-CONTEXT §17
-  const _commandsMap = {
-    'ST · Vera':   'Base Rules + Role-Vera + OL-CONTEXT',
-    'GW · Lena':   'Base Rules + Role-Lena + OL-CONTEXT',
-    'CPO · Noa':   'Base Rules + Role-Noa + OL-CONTEXT',
-    'CMO · Maya':  'Base Rules + Role-Maya + OL-CONTEXT',
-    'PO · Cael':   'Base Rules + Role-Cael + OL-CONTEXT + CONTEXT-[proyecto] + Backlog-[proyecto]',
-    'FS · Rune':   'Base Rules + Role-Rune + OL-CONTEXT + CONTEXT-[proyecto] + Backlog-[proyecto] + MAP-[proyecto]',
-    'UX · Nova':   'Base Rules + Role-Nova + OL-CONTEXT + CONTEXT-[proyecto] + Brief-Noa (si existe)',
-    'CC · Flux':   'Base Rules + Role-Flux + OL-CONTEXT + Brief-Maya (si existe)',
-    'ET · Eden':   'Base Rules + Role-Eden + CONTEXT-CM + Arquitectura-Curricular-[sección activa]',
-    'GC · Sage':   'Base Rules + Role-Sage + CONTEXT-CM + Arquitectura-Curricular-[sección activa]',
-    'QA · Finn':   'Base Rules + Role-Finn + OL-CONTEXT + CONTEXT-[proyecto] + Backlog-[proyecto]',
-    'DA · Iris':   'Base Rules + Role-Iris + OL-CONTEXT + Dashboard-métricas (si existe)'
-  };
+  md += `## 1. Identidad\n\n`;
+  md += `| Campo | Valor |\n|---|---|\n`;
+  md += `| Nombre | ${projectName} |\n`;
+  md += `| Alias | ${aliasVal || '<!-- Cael completa — alias coloquiales -->'} |\n`;
+  md += `| Tipo | ${tipoVal || '<!-- Cael completa — descripción de una línea -->'} |\n`;
+  md += `| Holding | Obsidian Labs |\n`;
+  md += `| Estado | ${estadoVal || '<!-- Cael completa — Prototipo \\| Beta \\| Producción + nota -->'} |\n`;
+  md += `| Archivo activo | index.html |\n`;
+  md += `| Stack | ${stackLine} — conteo de módulos → ver MAP activo |\n\n---\n\n`;
 
-  // T-202605-498: commands — filtrar por roles asignados al proyecto activo
-  // Fallback 1: sin roles mapeados → tabla completa del ecosistema
-  // Fallback 2: error en getAISessions → placeholder explícito (no objeto vacío silencioso)
-  let commands = {};
-  try {
-    const projAIs = proj
-      ? (getAISessions() || []).filter(ai => !ai.archived)
-      : [];
-    const activeRoles = projAIs
-      .map(ai => ai.name || '')
-      .filter(name => name && _commandsMap[name]);
-    if (activeRoles.length > 0) {
-      activeRoles.forEach(role => { commands[role] = _commandsMap[role]; });
-    } else {
-      // Sin roles mapeados al proyecto activo: emitir tabla completa del ecosistema
-      commands = { ..._commandsMap };
-    }
-  } catch(e) {
-    // Error al leer roles — placeholder explícito para que el CONTEXT no quede silenciosamente vacío
-    commands = {
-      '_placeholder': 'No se pudieron leer los roles del proyecto. Adjuntar Base Rules + Role-[Rol] + OL-CONTEXT + CONTEXT-[proyecto] + Backlog-[proyecto]'
-    };
-  }
+  md += `## 2. Estado actual\n\n`;
+  md += `| Campo | Valor |\n|---|---|\n`;
+  md += `| Versión activa | ${_ctxVersion} |\n`;
+  md += `| Sprint activo | Ver backlog exportado — fuente de verdad del sprint activo en sesión |\n`;
+  md += `| Sprint anterior | ${sprintAnteriorLine} |\n\n---\n\n`;
 
-  // Construir objeto JSON
-  const ctx = {
-    version: _ctxVersion,
-    updated,
-    generated_at,
-    project: proj ? (proj.name || 'Locus') : 'Locus',
-    main_file: 'index.html',
-    status,
-    stack,
-    sprint: sprintInfo,
-    velocity,
-    backlog: backlogSnapshot,
-    tech_debt,
-    counters,
-    decisions,
-    gaps,
-    notes: allNotes,
-    commands
-  };
+  md += `## 3. Roles\n\n→ ver \`__OB-Strategy §6\`\n\n---\n\n`;
 
-  return JSON.stringify(ctx, null, 2);
+  md += `## 4. Modelo de persistencia\n\n→ ver \`_${prefix}-strategy §4\` — decisiones de arquitectura y estado operativo del storage.\n\n---\n\n`;
+
+  md += `## 5. Funcionalidades activas\n\n`;
+  md += funcionalidadesBlock
+    ? `${funcionalidadesBlock}\n\n`
+    : `<!-- Cael completa esta sección — features en producción/prototipo funcional, curado manualmente. No derivable del state de la app (_ob-DocStandards §1). -->\n\n`;
+  md += `---\n\n`;
+
+  md += `## 6. Archivos del proyecto\n\n`;
+  md += archivosBlock
+    ? `${archivosBlock}\n\n`
+    : `<!-- Cael completa esta sección — invariantes de arquitectura. No derivable del state de la app (_ob-DocStandards §1). -->\n\n`;
+  md += `---\n\n`;
+
+  md += `## Decisiones e historial\n\n→ ver \`_${prefix}-history-log.md\`\n\nSe carga solo por instrucción explícita del founder o Vera.\n`;
+
+  return md;
 }
 
 // ─── Generador BACKLOG ───────────────────────────────────────────────────────
@@ -1737,17 +1627,15 @@ async function _doConfirmGenerate() {
     : _mgBumpMinor(_mgGetVersion());
 
   // T-202605-504 AC4: versión en nombre de archivo debe coincidir con version interno del CONTEXT
+  // INC-202607-024 (fix): _generateContext() ahora produce Markdown (_ob-DocStandards §1), no
+  // JSON — la verificación lee el header canónico (<!-- Versión: X | ... -->) en vez de JSON.parse.
   if (docs.context) {
-    try {
-      const ctxObj = JSON.parse(docs.context);
-      const ctxVer = ctxObj.version || '';
-      // Normalizar: quitar 'v' inicial para comparación insensible al prefijo — normalize() definida a nivel de módulo
-      if (normalize(ctxVer) !== normalize(bumpedVer)) {
-        showToast('error', `Versión interna del CONTEXT (${ctxVer}) no coincide con el nombre del archivo (${bumpedVer}) — regenera los documentos antes de confirmar.`);
-        return;
-      }
-    } catch(e) {
-      // CONTEXT no parseable como JSON — no bloquear; el error de parsing es otro problema
+    const verMatch = docs.context.match(/^<!--\s*Versión:\s*(\S+)/m);
+    const ctxVer = verMatch ? verMatch[1] : '';
+    // Normalizar: quitar 'v' inicial para comparación insensible al prefijo — normalize() definida a nivel de módulo
+    if (ctxVer && normalize(ctxVer) !== normalize(bumpedVer)) {
+      showToast('error', `Versión interna del CONTEXT (${ctxVer}) no coincide con el nombre del archivo (${bumpedVer}) — regenera los documentos antes de confirmar.`);
+      return;
     }
   }
 
