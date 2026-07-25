@@ -1,3 +1,13 @@
+// [PP] mod:11 · autor:Rune · 2026-07-24 UTC-6
+// INC-202607-021 (fix — hallazgo de auditoría contra _ob-DocStandards §3b, sin ítem padre):
+// _infraVersionLine() leía proj.infraVersion (campo per-proyecto, semántica distinta a la
+// requerida) y nunca emitía el desglose BR-Core/BR-Ecosystem/BR-Execution/OB-Strategy exigido
+// por el encabezado canónico — corregido a leer getInfraVersionData() (locus-storage.js, fuente
+// global ya consumida por locus-ui-shell.js para #gf-infra-version). Ver comentario inline junto
+// a la función para detalle completo. Sin cambio de firma — _generateIncidentsMd() sigue sin
+// parámetro de versión (invariant preservado, ver _Locus-module-contracts §2). Un solo archivo
+// tocado, sin lógica de negocio nueva — Variante Fast Track (__BR-Core §6). contract_update: no —
+// _infraVersionLine() no es exportada, sin call sites externos a este archivo.
 // [PP] mod:10 · autor:Rune · 2026-07-24 11:20 UTC-6
 // TKT-202607-087 (parent: REQ-202607-018, gap de integración detectado por Finn en Momento 2 —
 // cierre de REQ): _isActiveIncident() agrega 'root_cause_confirmed' al set activo de PRB — antes
@@ -110,7 +120,7 @@
 // puede diferir de la de locus-backlog-generator.js hasta que ese bug se corrija.
 
 import { getIncidents, itemKind, INCIDENT_TYPES } from './locus-backlog-core.js';
-import { _docPrefix, getActiveProject } from './locus-storage.js';
+import { _docPrefix, getActiveProject, getInfraVersionData } from './locus-storage.js';
 import {
   incSlaPriority,
   incDerivedItems,
@@ -147,12 +157,31 @@ function _nowUtc6Str() {
          `${_pad(utcM6.getUTCHours())}:${_pad(utcM6.getUTCMinutes())} UTC-6`;
 }
 
-// Línea de infra_version — mismo patrón que _generateMap(ver) en locus-map-generator.js:
-// proj.infraVersion si está declarada y no vacía tras trim, literal de ausencia si no.
+// Línea de infra_version — INC-202607-021 (fix): la versión anterior leía proj.infraVersion,
+// campo per-proyecto de semántica distinta (default 0, ver locus-storage.js — "campo infra_version
+// del proyecto", no confundir con el breakdown de módulos BR) y nunca emitía BR-Core/BR-Ecosystem/
+// BR-Execution/OB-Strategy — el header quedaba incompleto incluso cuando proj.infraVersion sí tenía
+// valor, y "no declarada en proyecto" cuando no lo tenía, pese a que la fuente de verdad real
+// (getInfraVersionData(), locus-storage.js) sí podía tener el dato. Fuente correcta: state.infraVersionData
+// { infraVersion, brCore, brEcosystem, brExecution, obStrategy } — mismo dato que ya consume
+// locus-ui-shell.js para #gf-infra-version en la barra de estado (locus-ui-shell.js, ver
+// _Locus-module-contracts §2). Formato alineado a _ob-DocStandards §3b §1 Encabezado — sin
+// "Generación" ni "Historial Gen 1" (esos campos son exclusivos de docs categoría Docs: CONTEXT/
+// STRATEGY/MAP, no de este Doc Ref-como-Live-Queue). _generateIncidentsMd() sigue sin aceptar
+// parámetro de versión — invariant preservado (ver contract_detail), la función lee el estado
+// global en el momento de la llamada, igual que antes leía proj vía getActiveProject().
 function _infraVersionLine() {
-  const proj = getActiveProject();
-  const raw = (proj && proj.infraVersion) ? String(proj.infraVersion).trim() : '';
-  return raw ? `<!-- **infra_version: ${raw}** -->` : `<!-- infra_version: no declarada en proyecto -->`;
+  const d = getInfraVersionData();
+  if (!d || typeof d.infraVersion !== 'number' || !Number.isFinite(d.infraVersion) || d.infraVersion <= 0) {
+    return '<!-- infra_version: no declarada en proyecto -->';
+  }
+  const parts = [];
+  if (d.brCore) parts.push(`BR-Core v${d.brCore}`);
+  if (d.brEcosystem) parts.push(`BR-Ecosystem v${d.brEcosystem}`);
+  if (d.brExecution) parts.push(`BR-Execution v${d.brExecution}`);
+  if (d.obStrategy) parts.push(`OB-Strategy v${d.obStrategy}`);
+  const suffix = parts.length ? ` | ${parts.join(' · ')}` : '';
+  return `<!-- **infra_version: ${d.infraVersion}**${suffix} -->`;
 }
 
 function _sortIncs(list) {

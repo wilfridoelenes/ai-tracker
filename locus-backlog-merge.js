@@ -1,3 +1,9 @@
+// [PP] mod:68 · autor:Rune · 2026-07-24 UTC-6
+// TKT2 (REQ CAEL-0724-11, ref_id CAEL-0724-11): retorno de applyPatchesFromTG() (L~1793) capturado
+// en _patchResult — antes se descartaba sin ningún consumo. Si _patchResult.ignored trae 1+
+// elementos, dispara showToast('info', ...) con el conteo — mismo mecanismo ya usado para el toast
+// de éxito de appliedCount (L1781-1783), sin sección nueva en el panel DIFF (ya cerrado en este
+// punto del flujo, _card/_pill/_section fuera de scope). contract_update: sí.
 // [PP] mod:67 · autor:Rune · 2026-07-24 UTC-6
 // INC-[pendiente-ID] (fix gate req-sin-tkt vs reparenting — ver locus-backlog-item.js mod:142
 // para el detalle completo): _patchItems (ya filtrado, línea ~307) propagado como opts.patchItems
@@ -1790,7 +1796,17 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     // T-202606-028: propagar ckptHeaderRole — antes el guard de done en R nunca recibía
     // el rol del header y rechazaba siempre, incluso con QA · Finn. Mismo dato fuente
     // que ckptRol en mergeBacklogFromTG (línea ~130).
-    if (_patchItems.length) applyPatchesFromTG(_patchItems, null, { ckptHeaderRole: _ckptMeta.rol || '', slugMap: diff.slugMap, refIdTitleMap: diff.refIdTitleMap }); // TKT1 (REQ-[pendiente-ID] · CAEL-04): slugMap/refIdTitleMap propagados desde el dry-run — este call site no los pasaba antes (gap preexistente sobre parentId también, no solo code; corregido aquí como consistencia directa con los otros dos call sites, sin ampliar el TKT)
+    // TKT2 (REQ CAEL-0724-11, ref_id CAEL-0724-11): retorno capturado — antes se descartaba por completo.
+    // El panel DIFF ya está cerrado en este punto (overlay.classList.remove('open') corrió arriba,
+    // L1765) — _card/_pill/_section (closures de showMergeDiffPanel) fuera de scope aquí, confirmado
+    // contra código real antes de especificar. Único mecanismo disponible: showToast, mismo patrón
+    // que el toast de éxito de appliedCount (L1781-1783). 'info' — único tipo neutral ya en uso en
+    // este archivo junto a 'error'/'success' (grep confirmado, sin 'warning').
+    const _patchResult = _patchItems.length ? applyPatchesFromTG(_patchItems, null, { ckptHeaderRole: _ckptMeta.rol || '', slugMap: diff.slugMap, refIdTitleMap: diff.refIdTitleMap }) : null; // TKT1 (REQ-[pendiente-ID] · CAEL-04): slugMap/refIdTitleMap propagados desde el dry-run — este call site no los pasaba antes (gap preexistente sobre parentId también, no solo code; corregido aquí como consistencia directa con los otros dos call sites, sin ampliar el TKT)
+    if (_patchResult && _patchResult.ignored && _patchResult.ignored.length) {
+      const _ignoredCount = _patchResult.ignored.length;
+      showToast('info', `${_ignoredCount} patch${_ignoredCount !== 1 ? 'es' : ''} no se aplicó${_ignoredCount !== 1 ? 'ron' : ''}`, 'Ver DocLog para el detalle');
+    }
 
     // B-202605-500: aplicar sprints pendientes sobre ítems nuevos (ya existen en getItems() tras onApply)
     const pendingEntries = Object.entries(_mdiffPendingSprints);

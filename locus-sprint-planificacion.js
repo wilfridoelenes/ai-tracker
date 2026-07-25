@@ -1,3 +1,17 @@
+// [PP] mod:39 · autor:Rune · 2026-07-24 UTC-6
+// TKT1 (REQ-202607-033, TKT-202607-106 — agrupación visual REQ→TKT en Planificación):
+// unassigned e inSprint ya no se renderizan como listas planas de getItems().filter() —
+// nuevo helper _groupChildrenAfterParent(list) reordena cada lista para que un TKT con
+// parent === código de REQ presente en esa misma lista se inserte inmediatamente después
+// de ese REQ (AC1), preservando el orden relativo entre múltiples hijos del mismo REQ
+// (AC2) y sin mover TKTs cuyo parent no está en la lista — esos conservan su posición de
+// sort por prioridad/effort intacta (AC3). Reutiliza _reqCodesInList ya existente (mod:37)
+// — el Set no cambia por reordenar, se calcula sobre la lista ya agrupada. Aplicado a
+// unassigned (antes de reqCodesLeft/leftCards) y a inSprint dentro de _sprintDestCard
+// (antes de reqCodesDest/cards) — mismo criterio en ambas columnas. No toca
+// doneUnassigned/_planDoneCard (no_incluye del TKT). Sin línea conectora — fuera de
+// scope, ya declarado en CAEL-0724-03. Sin cambio de firma en _planCard/_sprintDestCard/
+// _reqCodesInList. contract_update: no.
 // [PP] mod:38 · autor:Rune · 2026-07-24 UTC-6
 // INC (Fast Track — sla_priority medium, un solo archivo, fix en la misma sesión de registro):
 // openSprints (_renderPlanningView, L112) e isProgramado (_sprintDestCard, L225) comparaban
@@ -166,6 +180,35 @@ export function _renderPlanningView(listEl, closeCallback) {
     return new Set(list.filter(i => itemKind(i) === 'REQ').map(i => i.code));
   }
 
+  // TKT1 (REQ-202607-033/TKT-202607-106): agrupa cada TKT hijo inmediatamente después de su
+  // REQ padre cuando ambos están en la misma lista — sin esto, un TKT hijo puede quedar lejos
+  // o antes que su REQ pese a la sangría visual ya correcta (mod:14 de locus-sprint-ui.css).
+  // Preserva el resto del orden ya calculado (prioridad/effort, AC3) — solo reubica los TKTs
+  // cuyo parent es un REQ visible en la misma lista, en el mismo orden relativo que ya tenían
+  // entre sí (AC2). Early return sin costo si no hay hijos que mover.
+  function _groupChildrenAfterParent(list) {
+    const reqCodes = _reqCodesInList(list);
+    const childrenByParent = new Map();
+    const childCodes = new Set();
+    list.forEach(i => {
+      if (itemKind(i) === 'TKT' && i.parent && reqCodes.has(i.parent)) {
+        if (!childrenByParent.has(i.parent)) childrenByParent.set(i.parent, []);
+        childrenByParent.get(i.parent).push(i);
+        childCodes.add(i.code);
+      }
+    });
+    if (!childCodes.size) return list;
+    const result = [];
+    list.forEach(i => {
+      if (childCodes.has(i.code)) return;
+      result.push(i);
+      if (itemKind(i) === 'REQ' && childrenByParent.has(i.code)) {
+        result.push(...childrenByParent.get(i.code));
+      }
+    });
+    return result;
+  }
+
   // Helper: card compacta de ítem
   // TKT1 (REQ CAEL-0724-03): 4to parámetro isChild — agrega bl-plan-card--child (sangría +
   // borde izquierdo, Nova/locus-sprint-ui.css) cuando el TKT tiene parent visible en la misma
@@ -245,8 +288,12 @@ export function _renderPlanningView(listEl, closeCallback) {
     // TKT1 (REQ CAEL-0724-03): reqCodesDest — mismo criterio que reqCodesLeft, acotado a esta
     // columna de sprint destino. Independiente entre sprints — un REQ en PP-S-06 no sangra un
     // TKT hijo listado en PP-S-07.
-    const reqCodesDest = _reqCodesInList(inSprint);
-    const cards = inSprint.map(i =>
+    // TKT1 (REQ-202607-033/TKT-202607-106): mismo criterio de agrupación que la columna
+    // izquierda — inSprintGrouped es independiente por sprint, un REQ en PP-S-06 no reordena
+    // un TKT hijo listado en PP-S-07.
+    const inSprintGrouped = _groupChildrenAfterParent(inSprint);
+    const reqCodesDest = _reqCodesInList(inSprintGrouped);
+    const cards = inSprintGrouped.map(i =>
       _planCard(i, true, sprint.id, itemKind(i) === 'TKT' && !!i.parent && reqCodesDest.has(i.parent))
     ).join('') || `<div class="bl-plan-empty">Sprint vacío — arrastra ítems aquí</div>`;
     const currentBadge = isCurrent
@@ -274,8 +321,12 @@ export function _renderPlanningView(listEl, closeCallback) {
   // Construir columna izquierda
   // TKT1 (REQ CAEL-0724-03): reqCodesLeft calculado sobre unassigned — mismo universo que la
   // columna renderiza, antes del map. AC1: TKT con parent en este set → isChild=true.
-  const reqCodesLeft = _reqCodesInList(unassigned);
-  const leftCards = unassigned.map(i =>
+  // TKT1 (REQ-202607-033/TKT-202607-106): agrupa TKT bajo su REQ padre antes de calcular
+  // reqCodesLeft/leftCards — mismo universo de columna que ya usaba unassigned, sin afectar
+  // doneUnassigned (no_incluye del TKT).
+  const unassignedGrouped = _groupChildrenAfterParent(unassigned);
+  const reqCodesLeft = _reqCodesInList(unassignedGrouped);
+  const leftCards = unassignedGrouped.map(i =>
     _planCard(i, true, 'left', itemKind(i) === 'TKT' && !!i.parent && reqCodesLeft.has(i.parent))
   ).join('') || `<div class="bl-plan-empty">Sin ítems sin sprint</div>`;
 

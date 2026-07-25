@@ -1,3 +1,12 @@
+// [PP] mod:143 · autor:Rune · 2026-07-24 UTC-6
+// TKT1 (REQ CAEL-0724-11, ref_id CAEL-0724-11): applyPatchesFromTG() — rama field==='incidentStatus',
+// rechazo por transición inválida (_itResult.valid===false) ahora empuja {code, reason:
+// 'incidentstatus-invalido'} a ignoredPatches, además del _blogLog ya existente. Antes: asimétrico
+// contra sus guards hermanos en la misma función (resolution-type-obligatorio L3443,
+// rol-no-autorizado-done L3379), que sí empujan — este solo logueaba a DocLog. Root cause confirmada
+// de 2 iteraciones fallidas de Cael/Finn al cerrar INC-202607-006 (patch detected→closed, transición
+// no adyacente, se rechazaba sin dejar rastro en el retorno {patched,ignored} de la función). Sin
+// cambio de firma — applyPatchesFromTG() sigue retornando {patched, ignored}. contract_update: sí.
 // [PP] mod:142 · autor:Rune · 2026-07-24 UTC-6
 // INC-[pendiente-ID] (fix, sesión reactiva — root cause de 2 iteraciones fallidas de Cael/Finn
 // al reparentar TKT-202607-098/099/100 vía type:patch hacia un REQ nuevo draft:true en el mismo
@@ -3427,6 +3436,12 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
           const _itResult = validateIncidentTransitions(existing.incidentStatus, incoming, _patchItilKind);
           if (!_itResult.valid) {
             _blogLog('patch-incidentstatus-invalido', code, 'Transición incidentStatus rechazada vía patch: ' + _itResult.reason, 'backlog');
+            // TKT1 (REQ CAEL-0724-11, ref_id CAEL-0724-11): asimétrico contra los guards hermanos de
+            // esta misma función (resolution-type-obligatorio L3443, rol-no-autorizado-done L3379) —
+            // ambos empujan a ignoredPatches además de loguear; este rechazo solo logueaba. Root cause
+            // confirmada de 2 iteraciones fallidas al cerrar INC-202607-006: un patch detected→closed
+            // (transición no adyacente) se rechazaba sin dejar rastro en applyPatchesFromTG(...).ignored.
+            ignoredPatches.push({ code, reason: 'incidentstatus-invalido' });
             return;
           }
           // TKT3 (REQ CAEL-01): resolution_type obligatorio en INC al pasar a resolved — BR-Ecosystem §5.

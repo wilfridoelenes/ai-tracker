@@ -1,4 +1,4 @@
-// [PP] mod:26 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:27 · autor:Rune · 2026-07-24 UTC-6
 // TKT-202607-100 (REQ-202607-030), corrección Fase 2 tras gap de Finn: htmlIdCount excluye
 // atributos terminados en -id= (data-decision-id, data-sprint-id, etc). Lookbehind negativo
 // (?<![\w-]) reemplaza el \b anterior — \b matchea frontera letra/no-letra pero no distingue
@@ -476,7 +476,13 @@ function _mgParseFile(name, text) {
     lines.forEach((line, i) => {
       const lineNum = i + 1;
 
-      const fnMatch = line.match(/^\s*(?:async\s+)?function\s+(\w+)\s*\(/);
+      // Fix: las 3 regex ahora toleran prefijo 'export' opcional. Antes del fix,
+      // una función declarada 'export function foo()' / 'export const foo = () =>' no matcheaba
+      // ninguna regex y quedaba completamente invisible en el MAP (ni Internal ni Exports) —
+      // no solo mal clasificada. isPublic/usedByIndex no cambian: siguen derivándose de uso
+      // cross-módulo real, detectado más abajo en el pipeline (Capa 1/Capa 2), sin relación
+      // con el keyword 'export' en sí.
+      const fnMatch = line.match(/^\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(/);
       if (fnMatch) {
         // AC-01: área = guessArea → si vacío, 'Internal' — nunca currentSection
         const guessed = _mgGuessArea(fnMatch[1], line);
@@ -484,14 +490,14 @@ function _mgParseFile(name, text) {
         entries.push({ line: `L${lineNum}`, fn: fnMatch[1], area, bodyStart: lineNum });
         return;
       }
-      const arrowMatch = line.match(/^\s*(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\(?[^)]*\)?\s*=>/);
+      const arrowMatch = line.match(/^\s*(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\(?[^)]*\)?\s*=>/);
       if (arrowMatch) {
         const guessed = _mgGuessArea(arrowMatch[1], line);
         const area = guessed || 'Internal';
         entries.push({ line: `L${lineNum}`, fn: arrowMatch[1], area, bodyStart: lineNum });
         return;
       }
-      const exprMatch = line.match(/^\s*(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?function/);
+      const exprMatch = line.match(/^\s*(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?function/);
       if (exprMatch) {
         const guessed = _mgGuessArea(exprMatch[1], line);
         const area = guessed || 'Internal';
