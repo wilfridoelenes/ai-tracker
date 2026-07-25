@@ -1,3 +1,8 @@
+// [PP] mod:29 · autor:Rune · 2026-07-24 UTC-6
+// Fix inline (triggered_by INC-202607-023, hallazgo de Finn en QA): previewStatusEl.className
+// interpolaba inferredStatus directo — con 'sin sprint de referencia' el className se partía
+// en 5 tokens inválidos por los espacios (className setter tokeniza por whitespace). Slug
+// CSS-safe (espacios → guiones) solo para la clase; textContent conserva el literal completo.
 // [PP] mod:28 · autor:Rune · 2026-07-24 UTC-6
 // Fix INC-202607-022: sprintIdPattern (_mgChangedIn) ampliado de /[RTB]-\d{6}-\d{3}/g a los
 // 6 tipos canónicos — solo matcheaba TKT- por coincidencia de letra inicial, REQ-/INC-/DISC-
@@ -181,8 +186,13 @@ export function openMapGenerator() {
       previewStatusEl.className = 'mg-status-preview mg-status-closing';
       if (generateBtn) generateBtn.disabled = true;
     } else {
+      // Fix inline (triggered_by INC-202607-023): inferredStatus puede contener espacios
+      // ('sin sprint de referencia') — className no admite espacios en un solo token sin
+      // partirse en clases separadas. Slug CSS-safe solo para la clase; el texto visible
+      // conserva el literal completo.
+      const statusSlug = inferredStatus.replace(/\s+/g, '-');
       previewStatusEl.textContent = `Estado inferido: ${inferredStatus} · Sprint: ${spLabel} · Calculado: ${tsLabel}`;
-      previewStatusEl.className = `mg-status-preview mg-status-${inferredStatus}`;
+      previewStatusEl.className = `mg-status-preview mg-status-${statusSlug}`;
     }
   }
 

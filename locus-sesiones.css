@@ -1,3 +1,7 @@
+/* [PP] mod:43 · autor:Nova · 2026-07-24 UTC-6 */
+/* Limpieza (hallazgo fuera de scope, sesión de ingesta): familia .preview-tg-* retirada —
+   muerta junto con buildTGPreview() (locus-session-parse.js), sin call sites reales.
+   Comentario colgante en .mh-badge-docupdate corregido — ya no referencia .preview-tg-tag--warn. */
 /* [PP] mod:42 · autor:Nova · 2026-07-23 19:23 UTC-6 */
 /* Corrección Patch (Opción A, founder aprobó "Ok adelante A"): .quick-wip-check usaba
    --amber/--amber-text — tokens de otro estado semántico. WIP corresponde a ai.interrupted,
@@ -908,96 +912,6 @@
   border: none;
   border-top: 1px solid var(--border);
   margin: 6px 0;
-}
-
-.preview-tg {
-  margin-top: 8px;
-  border-top: 1px solid var(--border);
-  padding-top: 7px;
-}
-
-.preview-tg-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  margin-bottom: 3px;
-}
-
-.preview-tg-badge {
-  font-family: var(--mono);
-  font-size: var(--text-3xs);
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: var(--radius-md);
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.preview-tg-badge.DISC {
-  background: rgb(124 106 247 / 15%);
-  color: var(--purple-text);
-}
-
-.preview-tg-badge.TKT {
-  background: rgb(46 204 120 / 15%);
-  color: var(--green-text);
-}
-
-.preview-tg-badge.REQ {
-  background: rgb(56 189 248 / 15%);
-  color: var(--blue);
-}
-
-.preview-tg-badge.INC {
-  background: rgb(232 85 85 / 15%);
-  color: var(--red);
-}
-
-.preview-tg-code {
-  font-family: var(--mono);
-  font-size: var(--text-2xs);
-  color: var(--text3);
-  flex-shrink: 0;
-}
-
-.preview-tg-desc {
-  font-size: var(--text-2xs-plus);
-  color: var(--text2);
-  flex: 1;
-  line-height: 1.4;
-}
-
-.preview-tg-status {
-  font-size: var(--text-2xs);
-  flex-shrink: 0;
-}
-
-.preview-tg-tag {
-  font-family: var(--mono);
-  font-size: var(--text-3xs);
-  padding: 1px 5px;
-  border-radius: var(--radius-sm);
-  margin-left: 4px;
-}
-
-.preview-tg-tag.new {
-  background: rgb(46 204 120 / 15%);
-  color: var(--green-text);
-}
-
-.preview-tg-tag.update {
-  background: rgb(232 168 50 / 15%);
-  color: var(--amber-text);
-}
-
-.preview-tg-tag--warn {
-  background: rgb(232 85 85 / 15%);
-  color: var(--error, var(--red));
-} /* T-202605-436: ítem nuevo sin AC */
-.preview-tg-empty {
-  font-size: var(--text-2xs);
-  color: var(--text3);
-  font-style: italic;
 }
 
 .hora-input {
@@ -7935,7 +7849,7 @@ body.radar-sb-open .tracker-sidebar {
 }
 
 /* .mh-badge-docupdate — badge de doc-update en línea 3 de mini-historial
-   Amber canónico: color-mix 10% fondo / 28% border — patrón .preview-tg-tag--warn
+   Amber canónico: color-mix 10% fondo / 28% border
    Contraste 4.5:1 garantizado por var(--amber) sobre fondo dim */
 .mh-badge-docupdate {
   font-size: var(--text-2xs);

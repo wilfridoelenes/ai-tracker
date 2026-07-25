@@ -1,3 +1,11 @@
+// [PP] mod:145 · autor:Rune · 2026-07-24 UTC-6
+// Limpieza (hallazgo fuera de scope, sesión de ingesta): buildTGPreview() retirada — sin call
+//   sites reales (solo su propia definición), superada por _showIngestValidationResult()
+//   (CAEL-29/31, ver mod:118). Banner "Responsabilidad:" corregido — ya no la lista. Comentarios
+//   históricos de TKT3/TKT4 (ingesta batch de CHECKPOINTs standalone) que mencionan buildTGPreview
+//   se conservan sin editar — documentan una cadena ya eliminada (parsePasteStandalone y afines,
+//   ver mod anterior en este mismo header), registro histórico, no banner vivo. `esc()` no se toca
+//   — mantiene otros call sites reales en este archivo (líneas 1853/1885/1902/1910/1911).
 // [PP] mod:144 · autor:Rune · 2026-07-25 UTC-6
 // INC-202607-027: _VALID_INCIDENT_STATUS aceptaba 'assigned'/'in_progress' como incident_status
 //   válido para INC pese a que BR-Core §6 fusionó 'assigned' a 'detected' (infra_version 52) y
@@ -397,7 +405,7 @@ export function _splitCheckpointBlocks(text) {
 //   (locus-backlog-sprints.js no declara este archivo en su campo archivos — gap a señalar a Cael).
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, _processIngestBatch,
-//   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
+//   statusLabel, STATUS_LABELS, TG_PARSER_CONFIG.
 //   TKT4 (REQ CAEL-0716-01): parsePasteStandalone/saveStandaloneCheckpoint/
 //   openStandaloneCheckpoint/closeStandaloneCheckpoint eliminadas — cadena standalone-ckpt
 //   inalcanzable desde la unificación del split view (TKT1-3, mismo REQ).
@@ -690,54 +698,6 @@ function _itilStatusList(type) {
   return _INCIDENT_STATUS_LIST; // INC
 }
 
-function buildTGPreview(items, discrepancy) {
-  if (!items.length && !discrepancy) return '';
-  let html = `<div class="preview-tg">
-    <div class="preview-tg-header">
-      <div class="preview-tg-header-label">📋 Items detectados</div>
-      <div class="preview-tg-header-count">${items.length} ítem${items.length !== 1 ? 's' : ''}</div>
-    </div>`;
-  if (discrepancy) {
-    html += `<div class="preview-tg-discrepancy">
-      ⚠ ${discrepancy.raw} línea${discrepancy.raw !== 1 ? 's' : ''} en el texto — solo ${discrepancy.parsed} parseada${discrepancy.parsed !== 1 ? 's' : ''}. Verifica el formato de las líneas no detectadas.
-    </div>`;
-  }
-  html += `<div class="preview-tg-badges-row">`;
-  TG_PARSER_CONFIG.TYPES.forEach(type => {
-    const count = items.filter(x => x.type === type).length;
-    if (count) html += `<span class="preview-tg-badge ${type}" title="${TG_PARSER_CONFIG.TYPE_NAMES[type]} (${count})">${type} ${count}</span>`;
-  });
-  html += `</div>`;
-  items.forEach(item => {
-    const existing = (getActiveTracker().items || []).find(x => x.code === item.code);
-    const tag = existing
-      ? `<span class="preview-tg-tag update">↑ actualizar</span>`
-      : `<span class="preview-tg-tag new">+ nuevo</span>`;
-    // T-202605-436 AC4: indicador visual para ítems nuevos sin AC
-    const noAcTag = (!existing && (!item.ac || item.ac.length === 0))
-      ? `<span class="preview-tg-tag preview-tg-tag--warn" title="Ítem nuevo sin criterios de aceptación">sin AC</span>`
-      : '';
-    // T-202606-106: badges --info para campos obligatorios ausentes en ítems nuevos
-    const noNoIncluyeTag = (!existing && itemKind(item) === 'TKT' && (!item.no_incluye || item.no_incluye.length === 0))
-      ? `<span class="preview-tg-tag preview-tg-tag--info" title="TKT nuevo sin campo no_incluye">sin no_incluye</span>`
-      : '';
-    const noIntencionTag = (!existing && itemKind(item) === 'REQ' && !item.intencion)
-      ? `<span class="preview-tg-tag preview-tg-tag--info" title="REQ nuevo sin campo intencion">sin intencion</span>`
-      : '';
-    const noTriggeredByTag = (!existing && itemKind(item) === 'INC' && !item.triggeredBy)
-      ? `<span class="preview-tg-tag preview-tg-tag--info" title="INC nuevo sin campo triggered_by">sin triggered_by</span>`
-      : '';
-    html += `<div class="preview-tg-row">
-      <span class="preview-tg-badge ${item.type}">${item.type}</span>
-      <span class="preview-tg-code">${esc(item.code)}</span>
-      <span class="preview-tg-desc">${esc(item.title)}${tag}${noAcTag}${noNoIncluyeTag}${noIntencionTag}${noTriggeredByTag}</span>
-      <span class="preview-tg-status">${esc(item.status)}</span>
-    </div>`;
-  });
-  html += `</div>`;
-  return html;
-}
-
 // R-202604-037: tabla canónica de proyectos del ecosistema — declarada en locus-storage.js
 // La validación en parsePaste() es case-sensitive: 'Locus' es válido, 'locus' no.
 // OL-CONTEXT §7: strings canónicos — 'Obsidiana'/'Obsidiana Labs' deprecados · 'ASVAB App' deprecado (→ 'Alisto') · 'AI Tracker' deprecado (→ 'Locus')
@@ -839,8 +799,8 @@ export function parseCheckpoint(text) {
     const items = Array.isArray(_parsed.items) ? _parsed.items : [];
     // Clasificar ítems por tipo para rawCounts (compatibilidad con preview)
     const _countByType = (t) => items.filter(i => i.type === t).length;
-    // Serializar items de vuelta a texto para compatibilidad con buildTGPreview
-    // discItems/tktItems/reqItems/incItems no se usan como fuente de datos — solo para display
+    // Serializar items de vuelta a texto para discItems/tktItems/reqItems/incItems del objeto
+    // devuelto — no se usan como fuente de datos, solo para display
     const _typedLines = (t) => items
       .filter(i => i.type === t)
       .map(i => `${i.code}: ${i.title || i.desc || ''}`)
