@@ -1,4 +1,14 @@
-// [PP] mod:141 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:142 · autor:Rune · 2026-07-25 UTC-6
+// TKT-202607-107: mensajes de error corregidos contra BR-Core §6 — _INCIDENT_STATUS_LIST
+//   ya no lista 'assigned' (fusionado a 'detected', infra_version 52) ni 'in_progress'
+//   (eliminado para INC, infra_version 53). _PRB_STATUS_LIST ahora incluye
+//   'root_cause_confirmed' (faltaba por completo pese a ser estado válido de PRB) — mismo
+//   criterio que las 3 correcciones de mensaje ya hechas para KE en mod:136. Comentario
+//   adyacente a _VALID_PRB_STATUS actualizado — ya no menciona "KE tiene ciclo propio"
+//   (fusionado a PRB.root_cause_confirmed). no_incluye: no modifica _VALID_INCIDENT_STATUS
+//   ni _VALID_PRB_STATUS (las lógicas de aceptación, no solo el string) — ver Hallazgo fuera
+//   de scope en el CHECKPOINT de este TKT, ambas quedan con mismatch mensaje/lógica
+//   registrado como INC nuevo, no corregido aquí.
 // INC-[pendiente-ID] (fix gate req-sin-tkt vs reparenting — ver locus-backlog-item.js mod:142
 // para el detalle completo): patchItems (ya en scope desde _resolveCheckpointBatch) ahora se
 // pasa a _applyCheckpointBatch() en _onApplyBatch — antes no se propagaba.
@@ -471,15 +481,25 @@ export const _VALID_INCIDENT_STATUS = new Set([
   'detected', 'assigned', 'in_progress', 'resolved', 'closed',
   'escalated_to_prb', 'escalated_to_chg', 'descartado'
 ]);
-export const _INCIDENT_STATUS_LIST = 'detected · assigned · in_progress · resolved · closed · escalated_to_prb · escalated_to_chg';
+// TKT-202607-107: mensaje corregido — 'assigned' (fusionado a 'detected', infra_version 52) y
+// 'in_progress' (eliminado para INC, infra_version 53) retirados del texto visible al founder.
+// El Set _VALID_INCIDENT_STATUS arriba sigue aceptando ambos valores como lógica de validación —
+// mismatch mensaje/lógica no corregido en este TKT, ver Hallazgo fuera de scope en el CHECKPOINT.
+export const _INCIDENT_STATUS_LIST = 'detected · resolved · closed · escalated_to_prb · escalated_to_chg';
 // TKT-PARSER-2b (REQ-[pendiente-ID]): vocabulario propio por tipo ITIL — __BR-Ecosystem §5.
-// PRB es subconjunto de INC sin assigned/escalated_to_chg. KE tiene ciclo propio (active, no detected).
+// PRB es subconjunto de INC con estados propios (in_progress, root_cause_confirmed) que INC no
+// tiene. KE ya no tiene ciclo propio — fusionado a PRB.root_cause_confirmed (infra_version 51).
 // CHG usa vocabulario Scrum (pendiente/en-revision/done/descartado) — no pasa por estas constantes,
 // se valida con _canonicalStatus, igual que TKT.
 export const _VALID_PRB_STATUS = new Set([
   'detected', 'in_progress', 'resolved', 'closed', 'descartado'
 ]);
-export const _PRB_STATUS_LIST = 'detected · in_progress · resolved · closed · descartado';
+// TKT-202607-107: mensaje corregido — 'root_cause_confirmed' agregado (faltaba por completo pese
+// a ser estado válido de PRB, __BR-Core §6). El Set _VALID_PRB_STATUS arriba sigue sin aceptarlo
+// como lógica de validación — un CHECKPOINT con PRB en root_cause_confirmed es rechazado como
+// inválido pese a ser un estado legítimo. Mismatch mensaje/lógica no corregido en este TKT, ver
+// Hallazgo fuera de scope en el CHECKPOINT.
+export const _PRB_STATUS_LIST = 'detected · in_progress · root_cause_confirmed · resolved · closed';
 
 // Mensaje canónico BR-Core §6 — REQ/TKT/DISC no pueden asignarse a Q-INC.
 function _isQIncQueue(queue) {
