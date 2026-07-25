@@ -1,3 +1,11 @@
+// [PP] mod:146 · autor:Rune · 2026-07-25 UTC-6
+// INC-202607-042 (triggered_by INC-202607-038): field==='discard_reason' en
+// applyPatchesFromTG() leía _targetStatus solo de existing.status — orden de Object.keys(patch)
+// no garantiza que incidentStatus/status ya se hayan aplicado antes que discard_reason en el
+// mismo patch, ya que discard_reason no está en _ITIL_PATCH_FIELD_ALIASES y conserva su
+// posición original mientras incident_status se reinserta al final tras el alias-y-borra.
+// Ahora lee patch.status || patch.incidentStatus || existing.status — mismo criterio que
+// resolutionType (L3519-3522) usa para el mismo tipo de problema.
 // [PP] mod:145 · autor:Rune · 2026-07-25 02:33 UTC-6
 // INC-202607-031 (triggered_by REQ-202607-033): applyPatchesFromTG() — opts.ckptHeaderRole
 // (string único global) reemplazado por opts.roleByIdx (Map<idx, role>) + _resolvePatchRole(patch)
@@ -3658,8 +3666,18 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
         return;
       }
       // T-202606-025: discard_reason — persiste en cualquier tipo con status descartado
+      // INC-202607-042 (triggered_by INC-202607-038): _targetStatus leía únicamente
+      // existing.status, ya mutado o no según el orden de Object.keys(patch) — mismo problema
+      // ya documentado para resolutionType (L3519-3522). discard_reason está fuera de
+      // _ITIL_PATCH_FIELD_ALIASES (no es campo exclusivo ITIL, aplica también a DISC/TKT/REQ),
+      // así que conserva su posición original en el patch — anterior a incidentStatus, que el
+      // alias-y-borra reinserta al final del orden de enumeración. Un patch {incident_status,
+      // discard_reason} en el mismo objeto procesaba discard_reason antes de que incidentStatus
+      // espejara existing.status a 'descartado', y la guarda de abajo lo descartaba en silencio.
+      // Se lee también del propio patch — status directo (TKT/REQ/DISC/CHG) o incidentStatus ya
+      // aliaseado (INC/PRB) — sin depender de que existing ya haya sido mutado en esta pasada.
       if (field === 'discard_reason') {
-        const _targetStatus = existing.status;
+        const _targetStatus = patch.status || patch.incidentStatus || existing.status;
         // AC-3: si el ítem no tiene status descartado → ignorar silenciosamente
         if (_targetStatus !== 'descartado') return;
         if (incoming !== undefined && incoming !== null && incoming !== current) {
