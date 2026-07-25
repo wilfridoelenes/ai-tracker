@@ -1,3 +1,9 @@
+// [PP] mod:146 · autor:Rune · 2026-07-24 UTC-6
+// QA Finn detectó referencia de línea stale en el comentario de mod:145 — citaba líneas de
+//   esc() previas al propio borrado de buildTGPreview() en ese mismo mod (46 líneas de
+//   desplazamiento). Corregido a descripción sin línea exacta — mismo criterio de fragilidad
+//   ya reconocido en otras entradas de este header (ver mod:110/125/132 de module-contracts,
+//   patrón análogo). Sin cambio de comportamiento — Patch.
 // [PP] mod:145 · autor:Rune · 2026-07-24 UTC-6
 // Limpieza (hallazgo fuera de scope, sesión de ingesta): buildTGPreview() retirada — sin call
 //   sites reales (solo su propia definición), superada por _showIngestValidationResult()
@@ -5,7 +11,8 @@
 //   históricos de TKT3/TKT4 (ingesta batch de CHECKPOINTs standalone) que mencionan buildTGPreview
 //   se conservan sin editar — documentan una cadena ya eliminada (parsePasteStandalone y afines,
 //   ver mod anterior en este mismo header), registro histórico, no banner vivo. `esc()` no se toca
-//   — mantiene otros call sites reales en este archivo (líneas 1853/1885/1902/1910/1911).
+//   — mantiene otros call sites reales en este archivo (bloque `_showIngestValidationError`/
+//   `_validList`, sin citar línea exacta — desplazada por este mismo borrado, ver §9 line drift).
 // [PP] mod:144 · autor:Rune · 2026-07-25 UTC-6
 // INC-202607-027: _VALID_INCIDENT_STATUS aceptaba 'assigned'/'in_progress' como incident_status
 //   válido para INC pese a que BR-Core §6 fusionó 'assigned' a 'detected' (infra_version 52) y
