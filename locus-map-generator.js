@@ -1,3 +1,16 @@
+// [PP] mod:30 · autor:Rune · 2026-07-25 UTC-6
+// INC-202607-025 (_ob-DocStandards §9): _generateSprintReview() generaba un documento standalone
+// descargable — pero la Retro no es un doc independiente: la genera Locus automáticamente al
+// cerrar sprint, embebida en el Backlog exportado (mismo criterio ya aplicado a _mgBuildPlan()/
+// PLAN.md en TKT-202607-052 — feature fuera de la taxonomía vigente). Eliminados: función
+// generadora, _mgLoadSprintReview()/_mgRenderDecisions()/_mgRenderLearnings()/_mgSessionInSprint()/
+// _mgToggleDecisionTranscends()/_mgToggleLearningTranscends()/_mgSwitchReviewTab(), estado
+// decisionTranscends/learningTranscends en _mapGen, reviewChecked en generateDocuments(), entrada
+// 'review' en _mgShowPreview() y en fileDefs, listeners de tabs y checkboxes de decisiones/
+// aprendizajes. Import getAnyItem retirado — único consumidor era _mgSessionInSprint(), ahora
+// eliminada (mismo patrón de import huérfano ya registrado en _pp-context §6). Markup HTML
+// correspondiente (checkbox mg-out-review, sección mg-review-section) eliminado en el mismo TKT
+// — ver index.html.
 // [PP] mod:29 · autor:Rune · 2026-07-24 UTC-6
 // Fix inline (triggered_by INC-202607-023, hallazgo de Finn en QA): previewStatusEl.className
 // interpolaba inferredStatus directo — con 'sin sprint de referencia' el className se partía
@@ -76,7 +89,7 @@
  */
 
 import { migrateClosedItemsToHistorico } from './locus-backlog-historico.js';
-import { getAnyItem, itemKind } from './locus-backlog-core.js'; // TKT-D2: itemKind(item) — clasificación Gen2 · TKT-202607-045: getAnyItem reemplaza getItems() (único uso, en _mgSessionInSprint)
+import { itemKind } from './locus-backlog-core.js'; // TKT-D2: itemKind(item) — clasificación Gen2. INC-202607-025: getAnyItem retirado — único consumidor era _mgSessionInSprint(), eliminada junto con el feature Sprint Review
 import { editSprintInline } from './locus-backlog-sprints.js';
 import { _getMapContent, _importContextMdFromText, exportHtmlMapMd, importHtmlMap } from './locus-docs.js';
 import { buildBacklogMd } from './locus-session-save.js';
@@ -116,8 +129,9 @@ function _mgActiveSprint() {
 
 // T-202606-148: con la zona sprint-especial eliminada del ecosistema (Q-INC reemplaza esa zona),
 // _mgActiveSprintReal queda equivalente a _mgActiveSprint — se conserva como alias
-// explícito para no romper los call sites existentes (openMapGenerator, _mgLoadSprintReview,
-// _mgGetMapVersion) que ya distinguen semánticamente "sprint con version_target real".
+// explícito para no romper los call sites existentes (openMapGenerator, _mgGetMapVersion) que
+// ya distinguen semánticamente "sprint con version_target real". INC-202607-025: se retira
+// _mgLoadSprintReview de esta lista — eliminada junto con el feature Sprint Review.
 function _mgActiveSprintReal() {
   const all = getActiveSprints();
   const active = all.find(s => s.status === 'active');
@@ -134,10 +148,7 @@ function _mgActiveSprintReal() {
 const _mapGen = {
   files: [],          // [{ name, size, text }]
   previewMd: '',      // markdown del MAP generado
-  generatedDocs: {},  // { map, context, backlog, review } — strings generados
-  // Sprint Review — marcas de trasciende
-  decisionTranscends: {},   // { decId: bool }
-  learningTranscends: {},   // { sessId: bool }
+  generatedDocs: {},  // { map, context, backlog } — strings generados
 };
 
 // ─── Apertura / cierre ───────────────────────────────────────────────────────
@@ -146,8 +157,6 @@ export function openMapGenerator() {
   _mapGen.files = [];
   _mapGen.previewMd = '';
   _mapGen.generatedDocs = {};
-  _mapGen.decisionTranscends = {};
-  _mapGen.learningTranscends = {};
 
   _mgRenderFileList();
   _mgResetPreview();
@@ -196,9 +205,6 @@ export function openMapGenerator() {
     }
   }
 
-  // Cargar Sprint Review
-  _mgLoadSprintReview();
-
   const el = document.getElementById('mg-overlay');
   if (!el) return;
   el.classList.add('mg-visible');
@@ -213,127 +219,6 @@ function closeMapGenerator() {
   document.body.classList.remove('mg-body-lock');
   _mgDropzoneInited = false; // B-202605-274: permitir re-inicialización en próxima apertura
   if (_mgDropzoneAC) { _mgDropzoneAC.abort(); _mgDropzoneAC = null; } // R2 — limpiar listeners
-}
-
-// ─── Sprint Review — carga de datos ─────────────────────────────────────────
-
-function _mgLoadSprintReview() {
-  const proj = getActiveProject();
-  if (!proj) return;
-
-  // Sprint activo real (version_target confiable)
-  const activeSprint = _mgActiveSprintReal();
-
-  const sprintLabel = document.getElementById('mg-review-sprint-label');
-  if (sprintLabel) {
-    sprintLabel.textContent = activeSprint ? activeSprint.id : '(sin sprint activo)';
-  }
-
-  // Decisiones del proyecto
-  const decisions = Array.isArray(proj.decisions) ? proj.decisions : [];
-  _mgRenderDecisions(decisions);
-
-  // Aprendizajes: campo `learning` o `aprendizaje` de sessions del sprint activo
-  const sessions = Array.isArray(proj.sessions) ? proj.sessions : [];
-  const sprintSessions = activeSprint
-    ? sessions.filter(s => {
-        // Buscar sessions que referencian este sprint — via trackerRefs o campo sprint
-        return (s.sprintId === activeSprint.id) || _mgSessionInSprint(s, activeSprint.id);
-      })
-    : sessions.slice(-20); // fallback: últimas 20 si no hay sprint
-
-  // B-202605-226: log de diagnóstico cuando 0 sesiones matchean con sprint activo
-  if (activeSprint && !sprintSessions.length && sessions.length) {
-    console.warn(`[MapGen] 0 sesiones matchearon sprint ${activeSprint.id} — verificar sprintId en sesiones`);
-  }
-
-  _mgRenderLearnings(sprintSessions);
-}
-
-function _mgSessionInSprint(sess, sprintId) {
-  // B-202605-226: guard — si getAnyItem no está en scope, omitir match por trackerRefs sin lanzar error
-  // TKT-202607-045 (REQ-202607-015): getAnyItem() reemplaza getItems().find() — trackerRefs puede
-  // referenciar un código ITIL (INC/PRB/KE/CHG), que vive en INCIDENTS desde REQ-202607-003.
-  if (!sprintId) return false;
-  if (sess.sprintId === sprintId) return true;
-  const refs = sess.trackerRefs || sess.backlogRefs || [];
-  if (!refs.length) return false;
-  if (typeof getAnyItem === 'undefined') return false;
-  return refs.some(code => {
-    const item = getAnyItem(code);
-    return item && item.sprint === sprintId;
-  });
-}
-
-function _mgRenderDecisions(decisions) {
-  const tbody = document.getElementById('mg-decisions-tbody');
-  if (!tbody) return;
-
-  if (!decisions.length) {
-    tbody.innerHTML = '<tr class="mg-review-empty"><td colspan="4">Sin decisiones registradas.</td></tr>';
-    return;
-  }
-
-  const sorted = [...decisions].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  tbody.innerHTML = sorted.map(d => {
-    const checked = _mapGen.decisionTranscends[d.id] ? 'checked' : '';
-    return `<tr class="mg-review-row${checked ? ' mg-review-row--transcends' : ''}" data-id="${d.id}">
-      <td class="mg-review-text">${esc(d.text)}</td>
-      <td class="mg-review-meta">${esc(d.author || '—')}</td>
-      <td class="mg-review-meta">${esc(d.date || '—')}</td>
-      <td class="mg-col-trasciende"><label class="mg-trasciende-toggle"><input type="checkbox" ${checked} data-decision-id="${d.id}"><span>Sí</span></label></td>
-    </tr>`;
-  }).join('');
-}
-
-function _mgRenderLearnings(sessions) {
-  const tbody = document.getElementById('mg-learnings-tbody');
-  if (!tbody) return;
-
-  // Filtrar sessions con campo learning/aprendizaje no vacío
-  const withLearning = sessions.filter(s => {
-    const txt = s.learning || s.aprendizaje || s.nextStep || '';
-    return txt.trim().length > 0;
-  });
-
-  if (!withLearning.length) {
-    tbody.innerHTML = '<tr class="mg-review-empty"><td colspan="4">Sin aprendizajes registrados en sesiones de este sprint.</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = withLearning.map(s => {
-    const txt = s.learning || s.aprendizaje || s.nextStep || '';
-    const checked = _mapGen.learningTranscends[s.id] ? 'checked' : '';
-    const dateStr = s.dateShort || (s.date ? s.date.slice(0, 10) : '—');
-    return `<tr class="mg-review-row${checked ? ' mg-review-row--transcends' : ''}" data-id="${s.id}">
-      <td class="mg-review-text">${esc(txt)}</td>
-      <td class="mg-review-meta">${esc(s.title ? s.title.slice(0, 40) : '—')}</td>
-      <td class="mg-review-meta">${esc(dateStr)}</td>
-      <td class="mg-col-trasciende"><label class="mg-trasciende-toggle"><input type="checkbox" ${checked} data-learning-id="${s.id}"><span>Sí</span></label></td>
-    </tr>`;
-  }).join('');
-}
-
-function _mgToggleDecisionTranscends(id, val) {
-  _mapGen.decisionTranscends[id] = val;
-  // Re-render fila para reflejo visual
-  const row = document.querySelector(`#mg-decisions-tbody tr[data-id="${id}"]`);
-  if (row) row.classList.toggle('mg-review-row--transcends', val);
-}
-
-function _mgToggleLearningTranscends(id, val) {
-  _mapGen.learningTranscends[id] = val;
-  const row = document.querySelector(`#mg-learnings-tbody tr[data-id="${id}"]`);
-  if (row) row.classList.toggle('mg-review-row--transcends', val);
-}
-
-function _mgSwitchReviewTab(tab, btn) {
-  document.querySelectorAll('.mg-review-tab').forEach(b => b.classList.remove('mg-review-tab--active'));
-  if (btn) btn.classList.add('mg-review-tab--active');
-  const decisionsPanel = document.getElementById('mg-review-decisions');
-  const learningsPanel = document.getElementById('mg-review-learnings');
-  if (decisionsPanel) decisionsPanel.classList.toggle('mg-review-panel--hidden', tab !== 'decisions');
-  if (learningsPanel) learningsPanel.classList.toggle('mg-review-panel--hidden', tab !== 'learnings');
 }
 
 // ─── Dropzone ────────────────────────────────────────────────────────────────
@@ -608,10 +493,9 @@ function generateDocuments() {
   const mapChecked     = document.getElementById('mg-out-map')?.checked;
   const contextChecked = document.getElementById('mg-out-context')?.checked;
   const backlogChecked = document.getElementById('mg-out-backlog')?.checked;
-  const reviewChecked  = document.getElementById('mg-out-review')?.checked;
   const incidentsChecked = document.getElementById('mg-out-incidents')?.checked; // TKT2
 
-  if (!mapChecked && !contextChecked && !backlogChecked && !reviewChecked && !incidentsChecked) {
+  if (!mapChecked && !contextChecked && !backlogChecked && !incidentsChecked) {
     showToast('warning', 'Selecciona al menos un documento a generar.');
     return;
   }
@@ -680,7 +564,6 @@ function generateDocuments() {
   if (mapChecked)     _mapGen.generatedDocs.map     = _generateMap(bumpedVer);
   if (contextCheckedFinal) _mapGen.generatedDocs.context  = _generateContext(bumpedVer);
   if (backlogChecked) _mapGen.generatedDocs.backlog   = _generateBacklog(bumpedVer);
-  if (reviewChecked)  _mapGen.generatedDocs.review    = _generateSprintReview(bumpedVer);
   // TKT2 (REQ CAEL-0720-01): _generateIncidentsMd() nunca acepta versión — invariant declarado
   // en contract_detail de TKT1. No se ve afectado por bumpedVer.
   if (incidentsChecked) _mapGen.generatedDocs.incidents = _generateIncidentsMd();
@@ -1368,118 +1251,6 @@ function _generateBacklog(version) {
   return buildBacklogMd(ver);
 }
 
-// ─── Generador SPRINT-REVIEW ─────────────────────────────────────────────────
-
-function _generateSprintReview(ver) {
-  // B-202605-495: acepta ver como parámetro; fallback a _mgGetVersion() si no se pasa
-  const proj = getActiveProject();
-  const activeSprint = _mgActiveSprintReal();
-
-  const sprintId   = activeSprint ? activeSprint.id : 'sin-sprint';
-  const sprintName = activeSprint ? (activeSprint.label || activeSprint.id) : '—';
-  const version    = (ver && ver !== 'undefined') ? ver : _mgGetVersion();
-  const now        = _mgNow();
-  const prefix     = _docPrefix();
-
-  let md = `# ${prefix}-SPRINT-REVIEW_${sprintId}.md\n`;
-  md += `<!-- Versión: ${version} | Sprint: ${sprintId} | Generado: ${now} UTC-6 -->\n\n`;
-  md += `# Sprint Review — ${sprintName}\n\n`;
-  md += `Generado: ${now} UTC-6\n\n---\n\n`;
-
-  // Sesiones del sprint — declaradas aquí para uso en Sección 1 (Decisiones) y Sección 2 (Aprendizajes)
-  const sessions = proj && Array.isArray(proj.sessions) ? proj.sessions : [];
-  const sprintSessions = activeSprint
-    ? sessions.filter(s => _mgSessionInSprint(s, activeSprint.id))
-    : sessions.slice(-20);
-
-  // B-202605-226: log de diagnóstico cuando 0 sesiones matchean con sprint activo
-  if (activeSprint && !sprintSessions.length && sessions.length) {
-    console.warn(`[MapGen] 0 sesiones matchearon sprint ${activeSprint.id} — verificar sprintId en sesiones`);
-  }
-
-  // Sección 1: Decisiones
-  // B-[pendiente-ID]: incluir Decisión: extraída de sesiones del sprint + proj.decisions manuales
-  md += `## Decisiones\n\n`;
-  const decisions = proj && Array.isArray(proj.decisions) ? proj.decisions : [];
-  const sorted = [...decisions].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-
-  // Extraer s.decision de sesiones del sprint — deduplicar por texto
-  const seenDecisions = new Set(sorted.map(d => (d.text || '').trim().toLowerCase()));
-  const sessionDecisions = sprintSessions
-    .filter(s => s.decision && s.decision.trim())
-    .filter(s => {
-      const key = s.decision.trim().toLowerCase();
-      if (seenDecisions.has(key)) return false;
-      seenDecisions.add(key);
-      return true;
-    })
-    .map(s => ({ text: s.decision.trim(), author: s.aiName || '—', date: s.dateShort || (s.date ? s.date.slice(0, 10) : '—'), fromSession: true }));
-
-  const allDecisions = [...sorted.map(d => ({ text: d.text || '', author: d.author || '—', date: d.date || '—', id: d.id })), ...sessionDecisions];
-
-  if (!allDecisions.length) {
-    md += `_Sin decisiones registradas._\n\n`;
-  } else {
-    md += `| Decisión | Autor | Fecha | ¿Trasciende? |\n`;
-    md += `|----------|-------|-------|-------------|\n`;
-    allDecisions.forEach(d => {
-      const t = d.id && _mapGen.decisionTranscends[d.id] ? '✓' : '';
-      md += `| ${d.text} | ${d.author} | ${d.date} | ${t} |\n`;
-    });
-    md += `\n`;
-  }
-
-  // Sección 2: Aprendizajes
-  md += `## Aprendizajes\n\n`;
-  const withLearning = sprintSessions.filter(s => (s.learning || s.aprendizaje || s.nextStep || '').trim());
-
-  if (!withLearning.length) {
-    md += `_Sin aprendizajes registrados en sesiones de este sprint._\n\n`;
-  } else {
-    md += `| Aprendizaje | Sesión | Fecha | ¿Trasciende? |\n`;
-    md += `|-------------|--------|-------|-------------|\n`;
-    withLearning.forEach(s => {
-      const txt = s.learning || s.aprendizaje || s.nextStep || '';
-      const t = _mapGen.learningTranscends[s.id] ? '✓' : '';
-      const dateStr = s.dateShort || (s.date ? s.date.slice(0, 10) : '—');
-      md += `| ${txt} | ${(s.title || '').slice(0, 50)} | ${dateStr} | ${t} |\n`;
-    });
-    md += `\n`;
-  }
-
-  // Sección 3: Arranque del siguiente sprint — Próximo paso: del CHECKPOINT más reciente
-  // E-[pendiente-ID]: reemplaza "Próximos pasos" genérico con el nextStep del último CHECKPOINT del sprint
-  md += `## Arranque del siguiente sprint\n\n`;
-  const lastWithNextStep = [...sprintSessions]
-    .reverse()
-    .find(s => s.nextStep && s.nextStep.trim());
-  if (lastWithNextStep) {
-    md += `${lastWithNextStep.nextStep.trim()}\n\n`;
-  } else {
-    md += `_Sin próximo paso registrado en el sprint._\n\n`;
-  }
-
-  // Sección 4: Histórico de sesiones — tabla completa al final
-  // E-[pendiente-ID]: tabla con todas las sesiones del sprint
-  md += `## Histórico de sesiones\n\n`;
-  if (!sprintSessions.length) {
-    md += `_Sin sesiones registradas en este sprint._\n\n`;
-  } else {
-    md += `| Sesión | AI | Fecha | Decisión | Próximo paso |\n`;
-    md += `|--------|-----|-------|----------|--------------|\n`;
-    [...sprintSessions].sort((a, b) => (a.date || '').localeCompare(b.date || '')).forEach(s => {
-      const fecha = s.dateShort || (s.date ? s.date.slice(0, 10) : '—');
-      const decision = (s.decision || '').slice(0, 60).replace(/\|/g, '\\|');
-      const next = (s.nextStep || '').slice(0, 60).replace(/\|/g, '\\|');
-      md += `| ${(s.title || '').slice(0, 50)} | ${s.aiName || '—'} | ${fecha} | ${decision} | ${next} |\n`;
-    });
-    md += `\n`;
-  }
-
-  md += `---\n\n_Documento generado desde Document Generator — Locus._\n`;
-  return md;
-}
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function _mgNow() {
@@ -1509,7 +1280,6 @@ function _mgShowPreview(docs) {
     { key: 'map',     label: 'MAP',          filename: _mgCanonicalMapName(prefix, version) },
     { key: 'context', label: 'CONTEXT',       filename: `${prefix}-CONTEXT_${version}.md` },
     { key: 'backlog', label: 'BACKLOG',        filename: `${prefix}-BACKLOG_${version}.md` },
-    { key: 'review',  label: 'Sprint Review', filename: `${prefix}-SPRINT-REVIEW_${version}.md` },
     // TKT2 (REQ CAEL-0720-01): sin versión en el filename — _[PREFIJO]-incidents.md no versiona
     { key: 'incidents', label: 'Incidentes (Q-INC)', filename: `_${prefix}-incidents.md` },
   ].filter(i => docs[i.key]);
@@ -1670,12 +1440,9 @@ async function _doConfirmGenerate() {
     // BACKLOG: solo ZIP — no re-importar (round-trip MD→parse puede corromper merge)
     fileDefs.push({ filename: `${prefix}-BACKLOG_${bumpedVer}.md`, content: docs.backlog });
   }
-  if (docs.review) {
-    fileDefs.push({ filename: `${prefix}-SPRINT-REVIEW_${sprintId}_${bumpedVer}.md`, content: docs.review });
-  }
   if (docs.incidents) {
     // TKT2 (REQ CAEL-0720-01) AC-3: nunca incluye version/bumpedVer — queda excluido del
-    // renombrado que este mismo bloque aplica a map/context/backlog/review. Sin apply — no
+    // renombrado que este mismo bloque aplica a map/context/backlog. Sin apply — no
     // se re-importa, mismo patrón que backlog (round-trip MD→parse fuera de scope).
     fileDefs.push({ filename: `_${prefix}-incidents.md`, content: docs.incidents });
   }
@@ -1803,36 +1570,14 @@ document.addEventListener('DOMContentLoaded', function () {
   const btnGenerate = document.getElementById('mg-generate-btn');
   const btnCancel   = document.getElementById('mg-cancel-btn');
   const btnConfirm  = document.getElementById('mg-confirm-btn');
-  const tabDecisions  = document.getElementById('mg-tab-decisions');
-  const tabLearnings  = document.getElementById('mg-tab-learnings');
 
   if (btnOpen)     btnOpen.addEventListener('click', openMapGenerator);
   if (btnClose)    btnClose.addEventListener('click', closeMapGenerator);
   if (btnGenerate) btnGenerate.addEventListener('click', generateDocuments);
   if (btnCancel)   btnCancel.addEventListener('click', closeMapGenerator);
   if (btnConfirm)  btnConfirm.addEventListener('click', confirmMapGenerator);
-  if (tabDecisions)  tabDecisions.addEventListener('click', function () { _mgSwitchReviewTab('decisions', this); });
-  if (tabLearnings)  tabLearnings.addEventListener('click', function () { _mgSwitchReviewTab('learnings', this); });
 
   // T-202605-036: event delegation — migración de handlers on* en templates dinámicos
-
-  // AC1 — decisions tbody: onchange checkbox → _mgToggleDecisionTranscends
-  const decisionsTbody = document.getElementById('mg-decisions-tbody');
-  if (decisionsTbody) {
-    decisionsTbody.addEventListener('change', function (e) {
-      const input = e.target.closest('input[data-decision-id]');
-      if (input) _mgToggleDecisionTranscends(input.dataset.decisionId, input.checked);
-    });
-  }
-
-  // AC2 — learnings tbody: onchange checkbox → _mgToggleLearningTranscends
-  const learningsTbody = document.getElementById('mg-learnings-tbody');
-  if (learningsTbody) {
-    learningsTbody.addEventListener('change', function (e) {
-      const input = e.target.closest('input[data-learning-id]');
-      if (input) _mgToggleLearningTranscends(input.dataset.learningId, input.checked);
-    });
-  }
 
   // AC3 — file list: onclick remove button → _mgRemoveFile
   const fileList = document.getElementById('mg-file-list');

@@ -1,3 +1,8 @@
+<!-- [PP] mod:155 · autor:Rune · 2026-07-25 UTC-6 -->
+<!-- INC-202607-025 (_ob-DocStandards §9): eliminado checkbox mg-out-review y sección
+     mg-review-section completa (tabs + tablas de decisiones/aprendizajes) del Document
+     Generator — feature fuera de la taxonomía vigente, la Retro no es doc standalone.
+     Ver locus-map-generator.js mod:30. -->
 <!-- [PP] mod:154 · autor:Rune · 2026-07-23 UTC-6 -->
 <!-- TKT1/TKT3 (CAEL-0723-02/04): checkbox WIP en Quick Capture paso 2 + retiro de
      'Interrumpir sesión' del dot-menu — ver locus-sesiones.js/locus-sesiones-capture.js -->
@@ -1888,7 +1893,6 @@
             <label class="mg-output-check"><input type="checkbox" id="mg-out-map" checked> <span>MAP</span></label>
             <label class="mg-output-check"><input type="checkbox" id="mg-out-context"> <span>CONTEXT</span></label>
             <label class="mg-output-check"><input type="checkbox" id="mg-out-backlog"> <span>BACKLOG</span></label>
-            <label class="mg-output-check"><input type="checkbox" id="mg-out-review"> <span>Sprint Review</span></label>
             <!-- TKT2 (REQ CAEL-0720-01): AC1 + AC6 satisfechos. AC6 desbloqueado con el
                  entregable de Nova — .mg-output-check--incidents (pasivo: surface3/text3),
                  aplicado como modifier junto a .mg-output-check base. -->
@@ -1902,36 +1906,7 @@
         </div>
       </div>
 
-      <!-- Sección 3: Sprint Review — decisiones y aprendizajes -->
-      <div class="mg-section mg-section--review" id="mg-review-section">
-        <div class="mg-section-title">
-          Sprint Review
-          <span class="mg-review-sprint-label" id="mg-review-sprint-label"></span>
-        </div>
-        <div class="mg-section-sub">Selecciona qué decisiones y aprendizajes trascienden al contexto global.</div>
-        <div class="mg-review-tabs" role="tablist" aria-label="Tipo de entrada del sprint">
-          <button class="mg-review-tab mg-review-tab--active" id="mg-tab-decisions" role="tab" aria-selected="true">Decisiones</button>
-          <button class="mg-review-tab" id="mg-tab-learnings" role="tab" aria-selected="false">Aprendizajes</button>
-        </div>
-        <div class="mg-review-panel" id="mg-review-decisions" role="tabpanel">
-          <table class="mg-review-table">
-            <thead><tr><th>Decisión</th><th>Autor</th><th>Fecha</th><th class="mg-col-trasciende">¿Trasciende?</th></tr></thead>
-            <tbody id="mg-decisions-tbody">
-              <tr class="mg-review-empty"><td colspan="4">Sin decisiones registradas en este sprint.</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="mg-review-panel mg-review-panel--hidden" id="mg-review-learnings" role="tabpanel">
-          <table class="mg-review-table">
-            <thead><tr><th>Aprendizaje</th><th>Sesión</th><th>Fecha</th><th class="mg-col-trasciende">¿Trasciende?</th></tr></thead>
-            <tbody id="mg-learnings-tbody">
-              <tr class="mg-review-empty"><td colspan="4">Sin aprendizajes registrados en sesiones de este sprint.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Sección 4: Preview -->
+      <!-- Sección 3: Preview -->
       <div class="mg-section">
         <div class="mg-section-title">Preview</div>
         <div class="mg-preview-area" id="mg-preview-area" aria-live="polite">
@@ -1943,7 +1918,7 @@
 
     <div class="mg-ritual-hint" role="note">
       <span class="mg-ritual-icon" aria-hidden="true"></span>
-      <span class="mg-ritual-text"><strong>Ritual de cierre de sprint:</strong> genera MAP + CONTEXT + BACKLOG + Sprint Review al cerrar. El paquete se descarga con versión bumpeada (semver minor) y la versión se actualiza en PP automáticamente.</span>
+      <span class="mg-ritual-text"><strong>Ritual de cierre de sprint:</strong> genera MAP + CONTEXT + BACKLOG al cerrar. El paquete se descarga con versión bumpeada (semver minor) y la versión se actualiza en PP automáticamente. INC-202607-025: Sprint Review retirado — la Retro no es doc standalone, la genera Locus embebida en el Backlog al cerrar sprint.</span>
     </div>
 
     <div class="mg-export-strip">
