@@ -1,3 +1,22 @@
+// [PP] mod:149 · autor:Rune · 2026-07-25 15:20 UTC-6
+// TKT (ref_id CAEL-0725-01 · DISC-202607-034, absorbe DISC-202607-037): agrega
+// _isNonCanonicalPlaceholder(val) — detecta valores con forma de placeholder ([...]) que no
+// matchean ninguno de los dos formatos canónicos que _isPlaceholderCode ya reconoce
+// ([pendiente-ID] literal, [tmp:slug]) — ej. "[req-nueva-feature]" escrito a mano por un rol en
+// vez de declarar ref_id (BR-Ecosystem §4). Antes de este fix, ese valor pasaba sin bloqueo en
+// _normalizeRefIdValue (mergeBacklogFromTG) y quedaba persistido tal cual en
+// parentId/triggeredBy/origenDisc/promovida_a/dependsOn; en _resolvePatchRefValue
+// (applyPatchesFromTG) caía en 'patch-ref-slug-no-resuelto' (mismo reason que un [tmp:slug]
+// legítimo sin resolver); y como patch.code caía en el 'no-existe' genérico, indistinguible de
+// un typo sobre un código real. Los tres puntos ahora loguean con reason propio
+// 'placeholder-no-canonico'. _isPlaceholderCode() no se modifica — cambio aislado en un helper
+// nuevo, sin riesgo de regresión sobre los ~15 call sites existentes de _isPlaceholderCode ni
+// sobre _assignPendingIds. no_incluye: no toca locus-session-parse.js (gap distinto y más
+// acotado en el panel de validación de ingesta — solo detecta el literal exacto '[pendiente-ID]'
+// en depends_on, registrado como DISC separado, ver CHECKPOINT de entrega); no modifica el
+// mecanismo de resolución de ref_id existente; no agrega campo nuevo al schema de ítems.
+// contract_update: no — función nueva sin call sites externos, sin cambio de firma en las
+// funciones existentes que la consumen.
 // [PP] mod:148 · autor:Rune · 2026-07-25 UTC-6
 // Fix INC (triggered_by TKT-202607-115/116, causa raíz confirmada): applyPatchesFromTG() nunca
 // aliaseaba patch.depends_on (snake_case, __BR-Ecosystem §8) → dependsOn (campo interno) — a
@@ -1984,6 +2003,25 @@ export function _isPlaceholderCode(code) {
   return false;
 }
 
+// TKT (ref_id CAEL-0725-01 · DISC-202607-034, absorbe DISC-202607-037): detecta un valor con
+// FORMA de placeholder ([...]) que no coincide con ninguno de los dos formatos canónicos que
+// _isPlaceholderCode ya reconoce ([pendiente-ID] literal exacto, [tmp:slug]) — ej. un rol
+// escribe "[req-nueva-feature]" o "[pendiente-ID-nova]" en un campo de referencia en vez de
+// declarar ref_id (BR-Ecosystem §4). Antes de este fix, ese valor no matcheaba ningún check
+// existente y quedaba copiado tal cual en parentId/triggeredBy/origenDisc/promovida_a/dependsOn
+// (mergeBacklogFromTG) o caía en el 'no-existe' genérico de applyPatchesFromTG — indistinguible
+// de un typo de código real. Distinta función de _isPlaceholderCode a propósito: el caller debe
+// poder loguear con reason propio ('placeholder-no-canonico') sin mezclarse con el flujo normal
+// de resolución de slugMap que ya corre para [pendiente-ID]/[tmp:slug]. No modifica
+// _isPlaceholderCode ni su uso en los ~15 call sites existentes de este archivo — cambio
+// aislado, sin riesgo de regresión sobre _assignPendingIds ni sobre el resto del motor de slugs.
+function _isNonCanonicalPlaceholder(val) {
+  if (!val || typeof val !== 'string') return false;
+  if (!/^\[.+\]$/.test(val)) return false; // sin forma de placeholder — no es candidato
+  if (_isPlaceholderCode(val)) return false; // ya es un placeholder canónico — otro flujo
+  return true;
+}
+
 // B-202604-198: Helper — busca ítem existente cuyo title es similar a un [tmp:slug]
 // Retorna { item, score } o null. Solo sugiere — nunca aplica automáticamente.
 // T-202605-136: incomingType restringe la búsqueda al mismo type — evita que un T nuevo
@@ -2433,7 +2471,20 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // _assignPendingIds, líneas 1922/1953) queda fuera de scope de este TKT — no hay título ni ref_id
   // que ofrecer, es ambigüedad irrecuperable, no un caso de UI.
   function _normalizeRefIdValue(val, item, field, unresolvedRefs) {
-    if (!val || typeof val !== 'object' || Array.isArray(val) || !val.ref_id) return val; // no es {ref_id,title} — dejar pasar tal cual
+    if (!val || typeof val !== 'object' || Array.isArray(val) || !val.ref_id) {
+      // TKT (ref_id CAEL-0725-01 · DISC-202607-034/037): val no es {ref_id,title} — antes se
+      // dejaba pasar tal cual sin distinguir un dato legítimo (código real, null) de un
+      // placeholder no canónico escrito a mano. Bloqueo explícito con reason propio — ver
+      // _isNonCanonicalPlaceholder arriba.
+      if (_isNonCanonicalPlaceholder(val)) {
+        _blogLog('placeholder-no-canonico', item.code || '[sin-código]',
+          `${field}: "${val}" tiene forma de placeholder pero no es [pendiente-ID] ni [tmp:slug] — usar ref_id, no inventar placeholder.`,
+          'backlog');
+        unresolvedRefs.push({ code: item.code || '[sin-código]', field, reason: 'placeholder-no-canonico', value: val });
+        return null;
+      }
+      return val; // no es {ref_id,title} ni placeholder no-canónico — dejar pasar tal cual
+    }
     const _declaredTitle = _refIdTitleMap.get(val.ref_id);
     if (_declaredTitle === undefined) {
       _blogLog('ref-id-sin-declarante', item.code || '[sin-código]',
@@ -3258,6 +3309,17 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
       }
       val = `[tmp:${_refId}]`;
     }
+    // TKT (ref_id CAEL-0725-01 · DISC-202607-034/037): mismo criterio que _normalizeRefIdValue
+    // en mergeBacklogFromTG — un valor con forma de placeholder pero no canónico (ni
+    // [pendiente-ID] ni [tmp:slug]) en un patch se bloquea con reason propio, en vez de caer
+    // en 'patch-ref-slug-no-resuelto' (reservado para placeholders canónicos sin entrada en
+    // slugMap) o en 'no-existe' si el field es patch.code.
+    if (_isNonCanonicalPlaceholder(val)) {
+      _blogLog('placeholder-no-canonico', patchCode || '[sin-código]',
+        `${fieldLabel}: "${val}" tiene forma de placeholder pero no es [pendiente-ID] ni [tmp:slug] — usar ref_id, no inventar placeholder.`,
+        'backlog');
+      return undefined;
+    }
     if (_slugMap && val && _isPlaceholderCode(val)) {
       const resolved = _slugMap.get(val);
       if (resolved && !_isPlaceholderCode(resolved)) return resolved;
@@ -3397,6 +3459,18 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
       }
       // si no resuelve, patch.code queda como placeholder — cae en la rama 'no-existe' de abajo,
       // mismo comportamiento que ya tenía cualquier placeholder sin slugMap disponible.
+    }
+
+    // TKT (ref_id CAEL-0725-01 · DISC-202607-034/037): patch.code con forma de placeholder pero
+    // no canónico (ni [pendiente-ID] ni [tmp:slug] — ej. un rol escribió "[req-nueva-feature]"
+    // como code del patch) se distingue del caso 'no-existe' genérico — antes ambos caían en el
+    // mismo reason, indistinguible de un typo sobre un código real.
+    if (_isNonCanonicalPlaceholder(patch.code)) {
+      _blogLog('placeholder-no-canonico', patch.code,
+        `code: "${patch.code}" tiene forma de placeholder pero no es [pendiente-ID] ni [tmp:slug] — usar ref_id, no inventar placeholder.`,
+        'backlog');
+      ignoredPatches.push({ code: patch.code, reason: 'placeholder-no-canonico' });
+      return;
     }
 
     const code = patch.code;
