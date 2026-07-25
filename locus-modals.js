@@ -1,3 +1,12 @@
+// [PP] mod:5 · autor:Rune · 2026-07-25 UTC-6
+// TKT-202607-113: _gconfirmOpen() no gestionaba foco ni teclado de forma genérica —
+//   Enter/Escape solo funcionaban cuando había inputLabel (listener propio de #gconfirm-input).
+//   Sin input, el modal no tenía foco inicial ni respuesta a teclado. Se agrega: foco automático
+//   en #gconfirm-ok-btn cuando no hay inputLabel, y un listener global en document que consolida
+//   Enter/Escape para todos los casos — reemplaza el listener específico de #gconfirm-input para
+//   evitar doble invocación. Guard: Enter con foco dentro de #gconfirm-body-html (ej. <select> de
+//   razón de descarte en _confirmDiscard, locus-backlog-merge.js) NO confirma — solo Escape cierra
+//   y el usuario debe usar el botón OK explícitamente.
 // [PP] mod:4 · autor:Rune · 2026-07-19 15:00 UTC-6
 // INC-PP-gconfirm-bodyHtml: _gconfirmOpen() recibía `bodyHtml` de sus callers (_openStatusConfirm en
 //   locus-backlog-merge.js, y ahora _showExportConfirmModal en locus-backlog-generator.js) sin
@@ -52,6 +61,9 @@ export function _gconfirmOpen({ title, msg, okLabel = 'Confirmar', danger = true
     setTimeout(() => inp.focus(), 60);
   } else {
     wrap.classList.add('is-hidden');
+    // TKT-202607-113: sin inputLabel, el foco inicial va al botón OK — mismo patrón de
+    // timing (60ms) ya usado para el input, consistente con el resto del módulo.
+    setTimeout(() => okBtn.focus(), 60);
   }
   document.getElementById('gconfirm-overlay').classList.add('open');
 }
@@ -134,13 +146,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  const gconfirmInput = document.getElementById('gconfirm-input');
-  if (gconfirmInput) {
-    gconfirmInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') _gconfirmOk();
-      if (e.key === 'Escape') _gconfirmClose();
-    });
-  }
+  // TKT-202607-113: listener global consolidado — reemplaza el listener específico que
+  // antes vivía solo en #gconfirm-input. Cubre Enter/Escape para cualquier estado del modal
+  // (sin input, con input, con bodyHtml) desde una sola fuente — evita doble invocación.
+  document.addEventListener('keydown', (e) => {
+    const overlay = document.getElementById('gconfirm-overlay');
+    if (!overlay || !overlay.classList.contains('open')) return;
+    if (e.key === 'Escape') {
+      _gconfirmClose();
+      return;
+    }
+    if (e.key === 'Enter') {
+      const bodyHtmlEl = document.getElementById('gconfirm-body-html');
+      const okBtn = document.getElementById('gconfirm-ok-btn');
+      const focusedInBodyHtml = bodyHtmlEl && !bodyHtmlEl.classList.contains('is-hidden')
+        && e.target !== okBtn && bodyHtmlEl.contains(e.target);
+      // Guard: Enter con foco en un campo propio de bodyHtml (ej. <select> de razón de
+      // descarte) no confirma — previene descartes accidentales antes de elegir razón.
+      if (focusedInBodyHtml) return;
+      _gconfirmOk();
+    }
+  });
 
   const gconfirmOkBtn = document.getElementById('gconfirm-ok-btn');
   if (gconfirmOkBtn) gconfirmOkBtn.addEventListener('click', _gconfirmOk);

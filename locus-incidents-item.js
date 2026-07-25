@@ -1,3 +1,10 @@
+// [PP] mod:5 · autor:Rune · 2026-07-25 UTC-6
+// INC-202607-038 (reapertura): buildQIncItem() calculaba slaClass y el texto/clase VENCIDO
+// del countdown solo contra slaDeadline vs Date.now(), sin gate de estado terminal — un INC
+// closed (o CHG done) conserva su slaDeadline histórico y siempre salía "vencido". Agregado
+// isTerminal (incStatus === 'closed' || item.status === 'done') gateando slaClass y
+// slaCountdownHtml completo, no solo el modificador visual. El cierre previo de este INC se
+// declaró sin verificar el archivo real — este mod corrige el código y la verificación.
 // [PP] mod:4 · autor:Rune · 2026-07-24 UTC-6
 // INC-202607-018 (triggered_by INC-202607-013): _VALID_PRB_TRANSITIONS no declaraba
 // 'root_cause_confirmed' (BR-Core §6, ex-KE fusionado infra_version 51) ni como destino de
@@ -157,13 +164,22 @@ export function buildQIncItem(item) {
   // slaPrioBadge/incStatusBadge ni slaCountdownHtml — solo la clase a nivel de card.
   const slaPaused = isSlaClockPaused(item);
 
+  // INC-202607-038 (triggered_by INC-202607-038 — reapertura tras cierre sin verificación
+  // real del fix): un ítem terminal conserva su slaDeadline histórico — sin este chequeo,
+  // buildQIncItem() lo evalúa siempre contra Date.now() y lo pinta como vencido/en riesgo
+  // aunque incident_status ya sea closed (INC/PRB). CHG usa status (no incident_status,
+  // BR-Ecosystem §4b) — done es su terminal equivalente. Mismo criterio de estado terminal
+  // que _isQIncTerminal() en locus-incidents-render.js, sin importarlo aquí (ese módulo
+  // importa buildQIncItem de este archivo — importar en la dirección contraria crea ciclo ESM).
+  const isTerminal = incStatus === 'closed' || item.status === 'done';
+
   // Clases SLA — mutuamente excluyentes (AC TKT-B2a AC4)
   // Fix inline (TKT1, triggered_by [tmp:tkt-countdown-sla]): la rama --sla-riesgo no
   // exigía slaPrio === 'high' — cualquier prioridad dentro de la ventana de 6h recibía
   // la clase a nivel de card. Corregido para exigir 'high', igual que ya exigía la rama
   // vencido. Calculado antes del countdown porque TKT1 lo consume abajo.
   let slaClass = '';
-  if (slaDeadline && !slaPaused) {
+  if (slaDeadline && !slaPaused && !isTerminal) {
     if (slaPrio === 'high' && slaDeadline < Date.now()) {
       slaClass = 'qinc-item--sla-vencido';
     } else if (slaPrio === 'high' && slaDeadline >= Date.now() && slaDeadline < Date.now() + SLA_RIESGO_WINDOW_MS) {
@@ -171,9 +187,10 @@ export function buildQIncItem(item) {
     }
   }
 
-  // Countdown slaDeadline — solo si presente
+  // Countdown slaDeadline — solo si presente y no terminal. Un ítem closed/done no tiene
+  // countdown que mostrar — su SLA dejó de correr en el momento del cierre, no en Date.now().
   let slaCountdownHtml = '';
-  if (slaDeadline) {
+  if (slaDeadline && !isTerminal) {
     const remaining = slaDeadline - Date.now();
     if (remaining < 0) {
       // Fix inline (TKT1): el modificador --vencido se aplicaba al span del countdown para
