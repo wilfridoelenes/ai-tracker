@@ -1,3 +1,14 @@
+// [PP] mod:12 · autor:Rune · 2026-07-25 UTC-6
+// TKT3 (parent: REQ-202607-035, depends_on: n/a): Estadísticas finales de _generateIncidentsMd()
+// declara 'Cerrados — desde el último export' como valor separado de 'Cerrados — acumulado
+// histórico' — antes solo existía el acumulado. Delta calculado contra
+// proj.incidentsExportSnapshot.closedCount (poblado por markIncidentsExported(), mecanismo ya
+// existente desde REQ CAEL-0721-07 y ya consumido por TKT-202607-115 en _buildIndiceMd() — sin
+// persistencia nueva, sin cambio de schema). Snapshot ausente (primer export, null por default) →
+// el delta muestra el mismo valor que el acumulado, sin restar nada. Sin cambio de firma de
+// _generateIncidentsMd() — invariant preservado. No toca _buildIndiceMd, _buildItemsMd ni
+// markIncidentsExported() — fuera de scope declarado en el TKT. contract_update: no — cambio
+// interno a una función sin consumidor que dependa de las filas exactas de la tabla generada.
 // [PP] mod:11 · autor:Rune · 2026-07-24 UTC-6
 // INC-202607-021 (fix — hallazgo de auditoría contra _ob-DocStandards §3b, sin ítem padre):
 // _infraVersionLine() leía proj.infraVersion (campo per-proyecto, semántica distinta a la
@@ -364,6 +375,17 @@ export function _generateIncidentsMd() {
   const projName = proj ? (proj.name || 'Sin proyecto') : 'Sin proyecto';
   const updated = _nowUtc6Str();
 
+  // TKT3 (parent: REQ-202607-035, depends_on: n/a): delta de closed contra el snapshot del
+  // último export exitoso — mismo mecanismo que TKT-202607-115 ya consume en _buildIndiceMd()
+  // (proj.incidentsExportSnapshot, poblado por markIncidentsExported() en
+  // locus-incidents-render.js — no tocado por este TKT, fuera de scope). Snapshot ausente
+  // (primer export, null por default) → el delta muestra el mismo valor que el acumulado
+  // histórico, sin restar nada — no hay export anterior contra el cual medir diferencia.
+  const _exportSnapshot = proj && proj.incidentsExportSnapshot;
+  const _closedSinceLastExport = _exportSnapshot
+    ? closedCount - _exportSnapshot.closedCount
+    : closedCount;
+
   const counts = { INC: 0, PRB: 0, CHG: 0 };
   active.forEach(i => {
     const t = itemKind(i);
@@ -395,6 +417,7 @@ export function _generateIncidentsMd() {
   md += '| Campo | Valor |\n|---|---|\n';
   md += `| Ítems totales | ${all.length} |\n`;
   md += `| Activos | ${active.length} |\n`;
+  md += `| Cerrados — desde el último export | ${_closedSinceLastExport} |\n`;
   md += `| Cerrados — acumulado histórico (no es delta desde el último export) | ${closedCount} |\n`;
 
   return md;
