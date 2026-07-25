@@ -1,4 +1,4 @@
-// [PP] mod:32 · autor:Rune · 2026-07-25 UTC-6
+// [PP] mod:33 · autor:Rune · 2026-07-25 UTC-6
 // TKT-202607-118 (REQ-202607-036 · DISC-202607-039): naming no canónico en exports de CONTEXT y
 // BACKLOG — 6 call sites usaban `${prefix}-CONTEXT_v` / `${prefix}-BACKLOG_v` (guion bajo, sin
 // prefijo `_` inicial). Agregadas _mgCanonicalContextName()/_mgCanonicalBacklogName() (mismo
@@ -411,7 +411,19 @@ function _mgParseFile(name, text) {
       // no solo mal clasificada. isPublic/usedByIndex no cambian: siguen derivándose de uso
       // cross-módulo real, detectado más abajo en el pipeline (Capa 1/Capa 2), sin relación
       // con el keyword 'export' en sí.
-      const fnMatch = line.match(/^\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(/);
+      // TKT (ref_id CAEL-0725-02 · DISC-202607-035): las 3 regex usaban `^\s*` antes de
+      // '(?:export\s+)?' — permitía CUALQUIER indentación, no solo su ausencia. Un
+      // const/function local anidado dentro del cuerpo de otra función (ej. un helper `pad`
+      // redeclarado en 4 funciones distintas del mismo archivo — ver _pp-map-v1.8.0.md,
+      // locus-backlog-generator.js/locus-backlog-sprints.js) matcheaba igual que una
+      // declaración real de nivel de módulo, porque el parser trabaja línea a línea sin noción
+      // de profundidad de anidamiento, y quedaba registrado como entrada propia del MAP en vez
+      // de permanecer invisible (correcto: solo la función contenedora es entrada). Fix: `^`
+      // sin `\s*` — solo columna 0 matchea. Toda declaración real de nivel de módulo en este
+      // proyecto está sin indentar; un helper anidado siempre está indentado ≥2 espacios dentro
+      // del cuerpo de su función contenedora. Mismo enfoque basado en línea — no requiere AST,
+      // solo corrige el criterio de columna.
+      const fnMatch = line.match(/^(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(/);
       if (fnMatch) {
         // AC-01: área = guessArea → si vacío, 'Internal' — nunca currentSection
         const guessed = _mgGuessArea(fnMatch[1], line);
@@ -419,14 +431,14 @@ function _mgParseFile(name, text) {
         entries.push({ line: `L${lineNum}`, fn: fnMatch[1], area, bodyStart: lineNum });
         return;
       }
-      const arrowMatch = line.match(/^\s*(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\(?[^)]*\)?\s*=>/);
+      const arrowMatch = line.match(/^(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\(?[^)]*\)?\s*=>/);
       if (arrowMatch) {
         const guessed = _mgGuessArea(arrowMatch[1], line);
         const area = guessed || 'Internal';
         entries.push({ line: `L${lineNum}`, fn: arrowMatch[1], area, bodyStart: lineNum });
         return;
       }
-      const exprMatch = line.match(/^\s*(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?function/);
+      const exprMatch = line.match(/^(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?function/);
       if (exprMatch) {
         const guessed = _mgGuessArea(exprMatch[1], line);
         const area = guessed || 'Internal';

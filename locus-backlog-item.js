@@ -1,4 +1,4 @@
-// [PP] mod:149 · autor:Rune · 2026-07-25 15:20 UTC-6
+// [PP] mod:150 · autor:Rune · 2026-07-25 UTC-6
 // TKT (ref_id CAEL-0725-01 · DISC-202607-034, absorbe DISC-202607-037): agrega
 // _isNonCanonicalPlaceholder(val) — detecta valores con forma de placeholder ([...]) que no
 // matchean ninguno de los dos formatos canónicos que _isPlaceholderCode ya reconoce
@@ -2015,7 +2015,12 @@ export function _isPlaceholderCode(code) {
 // de resolución de slugMap que ya corre para [pendiente-ID]/[tmp:slug]. No modifica
 // _isPlaceholderCode ni su uso en los ~15 call sites existentes de este archivo — cambio
 // aislado, sin riesgo de regresión sobre _assignPendingIds ni sobre el resto del motor de slugs.
-function _isNonCanonicalPlaceholder(val) {
+// TKT (ref_id CAEL-0725-03 · DISC nueva de Rune, triggered_by TKT ref_id CAEL-0725-01):
+// exportada — locus-session-parse.js (panel de validación de ingesta, _tryIngestPlan) tenía el
+// mismo gap que este archivo tenía antes de CAEL-0725-01: solo detectaba el literal exacto
+// '[pendiente-ID]' en depends_on (Array.includes, igualdad exacta), no variantes no canónicas
+// como '[req-nueva-feature]'. Sin signature_change — misma firma, ahora consumida cross-módulo.
+export function _isNonCanonicalPlaceholder(val) {
   if (!val || typeof val !== 'string') return false;
   if (!/^\[.+\]$/.test(val)) return false; // sin forma de placeholder — no es candidato
   if (_isPlaceholderCode(val)) return false; // ya es un placeholder canónico — otro flujo

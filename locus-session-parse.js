@@ -433,7 +433,7 @@ export function _splitCheckpointBlocks(text) {
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-hora.js
 
 import { renderStats, getItems, normalizeStatus, itemKind, _GEN2_TYPES } from './locus-backlog-core.js'; // TKT0-gen2: itemKind agregado · TKT1: _GEN2_TYPES (REQ-[pendiente-ID])
-import { _isPlaceholderCode, applyPatchesFromTG, _assignPendingIds } from './locus-backlog-item.js'; // T-202606-089 AC-3 · TKT3 (REQ CAEL-0716-01): mergeBacklogFromTG retirado del import — sin consumidores directos en este archivo (dry-run per-keystroke ya se había removido antes; dry-run de batch removido en este TKT, ver _processIngestBatch). La persistencia real sigue viva vía _applyCheckpointBatch (locus-session-save.js), que la invoca internamente
+import { _isPlaceholderCode, _isNonCanonicalPlaceholder, applyPatchesFromTG, _assignPendingIds } from './locus-backlog-item.js'; // T-202606-089 AC-3 · TKT3 (REQ CAEL-0716-01): mergeBacklogFromTG retirado del import — sin consumidores directos en este archivo (dry-run per-keystroke ya se había removido antes; dry-run de batch removido en este TKT, ver _processIngestBatch). La persistencia real sigue viva vía _applyCheckpointBatch (locus-session-save.js), que la invoca internamente · TKT (ref_id CAEL-0725-03): _isNonCanonicalPlaceholder agregado — gap paralelo al ya corregido en locus-backlog-item.js (CAEL-0725-01), ver uso en el panel de validación de ingesta más abajo
 import { showMergeDiffPanel } from './locus-backlog-merge.js'; // TKT3 (REQ CAEL-0716-01): chipTonesFromDiff retirado — _processIngestBatch ya no renderiza resumen de chips, invoca showMergeDiffPanel real (mismo panel que el flujo single). Sigue vivo en locus-backlog-merge.js (uso interno propio, L726) — no se elimina de ese archivo
 import { renderBacklogList } from './locus-backlog-render.js';
 import { _ctrMergeFromItem } from './locus-contracts.js';
@@ -1592,7 +1592,13 @@ export function parsePaste(id) {
         // (__BR-Ecosystem §4). El motor interno sigue resolviendo vía [tmp:slug] (ver locus-backlog-item.js
         // L98-100, decisión aceptada de no reescribir el motor) — pero el mensaje dirigido al rol emisor
         // debe recomendar el mecanismo vigente para declarar en CHECKPOINTs nuevos: ref_id + title.
-        if (Array.isArray(_it.depends_on) && _it.depends_on.includes('[pendiente-ID]')) {
+        // TKT (ref_id CAEL-0725-03 · DISC nueva de Rune, triggered_by CAEL-0725-01): antes solo
+        // Array.includes('[pendiente-ID]') — igualdad exacta, ninguna variante no canónica
+        // (ej. '[req-nueva-feature]') disparaba esta advertencia. _isNonCanonicalPlaceholder (ahora
+        // exportada de locus-backlog-item.js) amplía la detección sin perder el criterio original —
+        // el literal '[pendiente-ID]' sigue disparando igual (_isNonCanonicalPlaceholder lo excluye
+        // por ser canónico, así que se conserva la condición explícita como segunda rama del some()).
+        if (Array.isArray(_it.depends_on) && _it.depends_on.some(v => v === '[pendiente-ID]' || _isNonCanonicalPlaceholder(v))) {
           const _newItemCount = _rawItems.filter(i => i.type !== 'patch' && _isPlaceholderCode(i.code || '')).length;
           if (_newItemCount >= 2) {
             _blogLog('dep-placeholder-ambiguo', _it.code || '[pendiente-ID]', (_it.code || '[pendiente-ID]') + ' depends_on contiene [pendiente-ID] no resoluble — usar ref_id + title para referencias cruzadas (ver __BR-Ecosystem §4).', 'backlog');
