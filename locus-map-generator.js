@@ -1,3 +1,12 @@
+// [PP] mod:32 · autor:Rune · 2026-07-25 UTC-6
+// TKT-202607-118 (REQ-202607-036 · DISC-202607-039): naming no canónico en exports de CONTEXT y
+// BACKLOG — 6 call sites usaban `${prefix}-CONTEXT_v` / `${prefix}-BACKLOG_v` (guion bajo, sin
+// prefijo `_` inicial). Agregadas _mgCanonicalContextName()/_mgCanonicalBacklogName() (mismo
+// patrón que _mgCanonicalMapName, TKT-202607-094) y reemplazados los 6 call sites: _generateContext()
+// (L1234), _mgShowPreview() (L1315-1316), _doConfirmGenerate() (L1464, L1475), _mgExportAllZip()
+// (L1556, L1563). Bug adicional corregido en _mgExportAllZip(): BACKLOG se exportaba sin versión
+// en el nombre (`${prefix}-BACKLOG.md` — ni siquiera con fallback), pese a que el contenido sí
+// usaba _mgGetVersion(). MAP/BACKLOG-FULL/SPRINT-REVIEW fuera de scope — sin cambios.
 // [PP] mod:31 · autor:Rune · 2026-07-25 UTC-6
 // INC-202607-024 (gap detectado en verificación de Finn sobre el fix mod:30): _generateContext()
 // preservaba solo §5/§6 del CONTEXT almacenado — cualquier sección §7+ real (Estado del refactor
@@ -119,6 +128,16 @@ export function normalize(v) { return String(v || '').replace(/^v/, '').trim(); 
 // Único punto de construcción de este nombre en el módulo — todos los call sites del MAP lo consumen.
 export function _mgCanonicalMapName(prefix, version) {
   return `_${prefix}-map-${version}.md`;
+}
+
+// TKT-202607-118 (REQ-202607-036 · corrección de naming canónico): mismo patrón que
+// _mgCanonicalMapName arriba, aplicado a CONTEXT y BACKLOG. __OB-Strategy §5:
+// _[PREFIJO]-tipo-v[X].[Y].[Z].md. No toca MAP/SPRINT-REVIEW/BACKLOG-FULL — fuera de scope.
+export function _mgCanonicalContextName(prefix, version) {
+  return `_${prefix}-context-${version}.md`;
+}
+export function _mgCanonicalBacklogName(prefix, version) {
+  return `_${prefix}-backlog-${version}.md`;
 }
 
 // ─── Helper: sprint de referencia — activo o último cerrado ──────────────────
@@ -1221,7 +1240,7 @@ function _generateContext(ver) {
   }
 
   const projectName = proj ? (proj.name || 'Locus') : 'Locus';
-  const filename = `${prefix}-CONTEXT_${_ctxVersion}.md`;
+  const filename = _mgCanonicalContextName(prefix, _ctxVersion);
 
   let md = `# ${filename}\n`;
   md += `<!-- Versión: ${_ctxVersion} | Última actualización: ${updatedDate} | ${projectName} — fuente de verdad del proyecto — dueño: Cael (PO+BA) -->\n`;
@@ -1302,8 +1321,8 @@ function _mgShowPreview(docs) {
 
   const items = [
     { key: 'map',     label: 'MAP',          filename: _mgCanonicalMapName(prefix, version) },
-    { key: 'context', label: 'CONTEXT',       filename: `${prefix}-CONTEXT_${version}.md` },
-    { key: 'backlog', label: 'BACKLOG',        filename: `${prefix}-BACKLOG_${version}.md` },
+    { key: 'context', label: 'CONTEXT',       filename: _mgCanonicalContextName(prefix, version) },
+    { key: 'backlog', label: 'BACKLOG',        filename: _mgCanonicalBacklogName(prefix, version) },
     // TKT2 (REQ CAEL-0720-01): sin versión en el filename — _[PREFIJO]-incidents.md no versiona
     { key: 'incidents', label: 'Incidentes (Q-INC)', filename: `_${prefix}-incidents.md` },
   ].filter(i => docs[i.key]);
@@ -1451,7 +1470,7 @@ async function _doConfirmGenerate() {
     });
   }
   if (docs.context) {
-    const name = `${prefix}-CONTEXT_${bumpedVer}.md`;
+    const name = _mgCanonicalContextName(prefix, bumpedVer);
     fileDefs.push({
       filename: name,
       content:  docs.context,
@@ -1462,7 +1481,7 @@ async function _doConfirmGenerate() {
   }
   if (docs.backlog) {
     // BACKLOG: solo ZIP — no re-importar (round-trip MD→parse puede corromper merge)
-    fileDefs.push({ filename: `${prefix}-BACKLOG_${bumpedVer}.md`, content: docs.backlog });
+    fileDefs.push({ filename: _mgCanonicalBacklogName(prefix, bumpedVer), content: docs.backlog });
   }
   if (docs.incidents) {
     // TKT2 (REQ CAEL-0720-01) AC-3: nunca incluye version/bumpedVer — queda excluido del
@@ -1543,14 +1562,14 @@ export function _mgExportAllZip() {
 
   const fileDefs = [];
 
-  fileDefs.push({ filename: `${prefix}-BACKLOG.md`, fn: () => buildBacklogMd(_mgGetVersion()) }); // B-202605-513: pasar versión para que el export no quede con header undefined
+  fileDefs.push({ filename: _mgCanonicalBacklogName(prefix, _mgGetVersion()), fn: () => buildBacklogMd(_mgGetVersion()) }); // TKT-202607-118: nombre de archivo carecía de versión — fix; B-202605-513: pasar versión para que el export no quede con header undefined
   // B-202605-515: historial completo via _generateFullHistoryContent (función pura, sin blob/toast)
   const ver = _mgGetVersion();
   fileDefs.push({ filename: `${prefix}-BACKLOG-FULL_${ver}.md`, fn: () => _generateFullHistoryContent(ver) });
   {
     const version = _mgGetVersion();
     const prefix2 = _docPrefix();
-    fileDefs.push({ filename: `${prefix2}-CONTEXT_${version}.md`, fn: () => _generateContext() }); // B-202605-276
+    fileDefs.push({ filename: _mgCanonicalContextName(prefix2, version), fn: () => _generateContext() }); // B-202605-276
   }
   // B-202605-514: MAP via _getMapContent() — función pura, sin overlay ni blob
   {
