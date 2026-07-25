@@ -1,3 +1,12 @@
+// [PP] mod:31 · autor:Rune · 2026-07-25 UTC-6
+// INC-202607-024 (gap detectado en verificación de Finn sobre el fix mod:30): _generateContext()
+// preservaba solo §5/§6 del CONTEXT almacenado — cualquier sección §7+ real (Estado del refactor
+// JS, Deuda técnica, Protocolo de parseo, Commands en Locus) se descartaba en silencio al
+// regenerar, violando el propio principio citado en mod:30 ("Secciones vacías declaradas — nunca
+// se omiten en silencio", _ob-DocStandards). Fix: trailingSectionsBlock captura verbatim todo lo
+// que sigue a §6 hasta el final del doc almacenado (Markdown) — reemplaza la emisión fija de
+// "## Decisiones e historial" por ese bloque preservado cuando existe; el stub canónico solo se
+// genera si no hay Markdown previo del cual derivar (primera generación del proyecto).
 // [PP] mod:30 · autor:Rune · 2026-07-25 UTC-6
 // INC-202607-025 (_ob-DocStandards §9): _generateSprintReview() generaba un documento standalone
 // descargable — pero la Retro no es un doc independiente: la genera Locus automáticamente al
@@ -1185,6 +1194,19 @@ function _generateContext(ver) {
   const archivosBlock = storedIsMd
     ? _extractSection(storedRaw, /##\s*6\.\s*Archivos del proyecto[^\n]*\n([\s\S]*?)(?=\n---|\n##\s*(?:7|N)\.|\n##\s*Decisiones)/)
     : null;
+  // INC-202607-024 (gap detectado en verificación de Finn, mismo INC): §7+ son "Secciones
+  // opcionales por proyecto" (_ob-DocStandards §1) — contenido curado, no derivable del state de
+  // la app, igual que §5/§6. El fix original (mod:30) regeneraba directo "## Decisiones e
+  // historial" tras §6, descartando en silencio cualquier sección real §7+ ya presente (ej.
+  // Locus: §7 Estado del refactor JS, §8 Deuda técnica, §9 Protocolo de parseo, §11 Commands —
+  // este último incluso después de "Decisiones e historial" en el doc real, pese a que el
+  // estándar la declara "siempre al final"). En vez de intentar reproducir cada sección opcional
+  // por nombre, se preserva verbatim todo lo que sigue a §6 hasta el final del doc almacenado —
+  // mismo criterio de "preservar si Markdown, placeholder si no" ya aplicado a funcionalidadesBlock
+  // y archivosBlock, sin necesidad de listar cada sección opcional individualmente.
+  const trailingSectionsBlock = storedIsMd
+    ? _extractSection(storedRaw, /##\s*6\.\s*Archivos del proyecto[^\n]*\n[\s\S]*?\n---\n\n([\s\S]*)$/)
+    : null;
 
   // Header canónico — infra_version, mismo patrón ya vigente en _generateMap() (bloque _ivData
   // más arriba en este archivo) — _ob-DocStandards §Encabezado canónico
@@ -1237,7 +1259,9 @@ function _generateContext(ver) {
     : `<!-- Cael completa esta sección — invariantes de arquitectura. No derivable del state de la app (_ob-DocStandards §1). -->\n\n`;
   md += `---\n\n`;
 
-  md += `## Decisiones e historial\n\n→ ver \`_${prefix}-history-log.md\`\n\nSe carga solo por instrucción explícita del founder o Vera.\n`;
+  md += trailingSectionsBlock
+    ? `${trailingSectionsBlock}\n`
+    : `## Decisiones e historial\n\n→ ver \`_${prefix}-history-log.md\`\n\nSe carga solo por instrucción explícita del founder o Vera.\n`;
 
   return md;
 }
