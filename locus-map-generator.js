@@ -1,3 +1,9 @@
+// [PP] mod:28 · autor:Rune · 2026-07-24 UTC-6
+// Fix INC-202607-022: sprintIdPattern (_mgChangedIn) ampliado de /[RTB]-\d{6}-\d{3}/g a los
+// 6 tipos canónicos — solo matcheaba TKT- por coincidencia de letra inicial, REQ-/INC-/DISC-
+// nunca matcheaban. Fix INC-202607-023: _mgInferStatus() ahora declara el literal 'sin sprint
+// de referencia' (_ob-DocStandards §8) cuando _mgActiveSprintReal() devuelve null — antes caía
+// en 'planning'/'idle' sin distinguir "no hay ningún sprint" de "hay sprint cerrado, sin activo".
 // [PP] mod:27 · autor:Rune · 2026-07-24 UTC-6
 // TKT-202607-100 (REQ-202607-030), corrección Fase 2 tras gap de Finn: htmlIdCount excluye
 // atributos terminados en -id= (data-decision-id, data-sprint-id, etc). Lookbehind negativo
@@ -834,9 +840,12 @@ function _generateMap(ver) {
     });
   });
 
-  // AC-07: changed_in — ID del sprint más reciente en comentarios (R/T/B-YYYYMM-NNN), null si ninguno
+  // AC-07: changed_in — ID del sprint más reciente en comentarios, null si ninguno
   // AC-10: si no hay IDs → changed_in: null, campo siempre presente
-  const sprintIdPattern = /[RTB]-\d{6}-\d{3}/g;
+  // INC-202607-022: patrón anterior /[RTB]-\d{6}-\d{3}/g era Gen1 — solo matcheaba 'T-' dentro
+  // de 'TKT-' por coincidencia de letra inicial+guion; REQ-/INC-/DISC- (y PRB-/CHG-) nunca
+  // matcheaban. Reemplazado por los 6 tipos canónicos de __BR-Ecosystem §4.
+  const sprintIdPattern = /(?:REQ|TKT|DISC|INC|PRB|CHG)-\d{6}-\d{3}/g;
 
   // AC-06: Construir changed_in por archivo
   function _mgChangedIn(fileLines) {
@@ -1184,8 +1193,13 @@ function _mgInferStatus(activeSp, blItems) {
   if (scmModal && scmModal.classList.contains('modal--open')) {
     return 'closing';
   }
-  if (activeSp && activeSp.status === 'active') return 'active';
-  // Sin sprint activo — decidir por backlog
+  // INC-202607-023: sin activeSp (ni sprint activo ni cerrado existe) — _mgActiveSprintReal()
+  // solo devuelve null en ese caso exacto (hace fallback al último cerrado si existe alguno).
+  // _ob-DocStandards §8 exige el literal 'sin sprint de referencia' en el campo Status del
+  // header — antes caía en 'planning'/'idle' según el backlog, nunca en este literal.
+  if (!activeSp) return 'sin sprint de referencia';
+  if (activeSp.status === 'active') return 'active';
+  // Sin sprint activo (pero hay al menos un sprint cerrado como referencia) — decidir por backlog
   const unassigned = (blItems || []).filter(i =>
     i.status === 'pendiente' && (!i.sprint || i.sprint === '' || i.sprint === 'n/a' || i.sprint === 'futura')
   );

@@ -1,3 +1,12 @@
+// [PP] mod:76 · autor:Rune · 2026-07-24 UTC-6
+// Hallazgo fuera de scope de INC-202607-019, resuelto en la misma sesión (excepción de
+// resolución directa — dueño presente, nivel Patch, sin bifurcación de founder, confirmado
+// por el founder): remanente de 'KE' retirado de este archivo — 3 puntos vivos (entrada en
+// VALID_TRANSITIONS, contador inicial de tracker.counters, alternativa en el regex de
+// code.match). Inalcanzable desde la fusión KE→PRB.root_cause_confirmed (infra_version 51) —
+// itemKind() no puede resolver 'KE' desde _GEN2_TYPES (locus-backlog-core.js mod:131). Mismo
+// patrón ya aplicado en locus-backlog-item.js (mod:139-140). Sin cambio de comportamiento
+// para INC/PRB/CHG/REQ/TKT/DISC reales. node --check limpio.
 // [PP] mod:75 · autor:Rune · 2026-07-24 UTC-6
 // INC-202607-019 (fix): VALID_TRANSITIONS.CHG usaba _ITIL_STATUS_SET — invertía la validación
 // (rechazaba pendiente/en-revision/done/descartado, aceptaba detected/resolved/closed). CHG
@@ -164,15 +173,15 @@ import { esc, getCurrentTab } from './locus-ui-shell.js';
 //   imports (estaba en primera línea, antes de los imports — inconsistente con §9 en ESM).
 
 // T-202606-020 · AC-5 · TKT0c-gen2: tabla de transiciones válidas por tipo de ítem — BR-Core §4
-// Clave: tipo de ítem Gen2 ('REQ' | 'TKT' | 'INC' | 'PRB' | 'KE' | 'CHG' | 'DISC'). Valor: Set de status permitidos.
+// Clave: tipo de ítem Gen2 ('REQ' | 'TKT' | 'INC' | 'PRB' | 'CHG' | 'DISC'). Valor: Set de status permitidos.
 // Sets exactos de __BR-Ecosystem §5 — no es 1:1 con los sets Gen1 que reemplaza:
-// REQ amplía a en-proceso/orphaned (no existían en R). INC/PRB/KE usan ciclo ITIL completo (no el de B).
+// REQ amplía a en-proceso/orphaned (no existían en R). INC/PRB usan ciclo ITIL completo (no el de B).
 // CHG es la excepción de vocabulario de la rama Reactiva (__BR-Ecosystem §4b) — declara status
 // con el mismo vocabulario Scrum que TKT, nunca ITIL. Corregido en INC-202607-019 (ver abajo);
 // este comentario asumía "INC/PRB/KE/CHG" como grupo homogéneo — no lo es.
 // Nota: tipo desconocido → no validar (AC-6, ignorar silenciosamente).
-// TKT-PARSER-2b (REQ-[pendiente-ID]): PRB/KE agregados con el mismo Set ITIL que ya
-// declaraba INC — antes caían en "tipo desconocido → ignorar silenciosamente" (AC-6 de arriba).
+// TKT-PARSER-2b (REQ-[pendiente-ID]): PRB agregado con el mismo Set ITIL que ya
+// declaraba INC — antes caía en "tipo desconocido → ignorar silenciosamente" (AC-6 de arriba).
 // Caso de error, no de uso normal: _buildItilItem (locus-session-parse.js) nunca deja pasar
 // item.status en un ítem ITIL — esta detección solo se activa ante status Scrum residual.
 // INC-202607-019 (fix): CHG estaba mapeado a _ITIL_STATUS_SET — invertía la regla de
@@ -180,6 +189,11 @@ import { esc, getCurrentTab } from './locus-ui-shell.js';
 // detected/resolved/closed). CHG usa ahora _CHG_STATUS_SET, vocabulario Scrum-compatible
 // idéntico en valores al de TKT pero declarado en set propio — no comparte referencia con
 // TKT.status para no acoplar accidentalmente ambos vocabularios a futuro.
+// Hallazgo fuera de scope (resuelto en la misma sesión, INC-202607-019): entrada 'KE' retirada
+// de este objeto — inalcanzable desde la fusión KE→PRB.root_cause_confirmed (infra_version 51,
+// itemKind() ya no resuelve 'KE' desde _GEN2_TYPES, locus-backlog-core.js mod:131). Mismo
+// patrón de limpieza ya aplicado en locus-backlog-item.js (mod:139-140). Sin cambio de
+// comportamiento para INC/PRB/CHG reales.
 const _ITIL_STATUS_SET = new Set(['detected', 'assigned', 'in_progress', 'resolved', 'closed', 'escalated_to_prb', 'escalated_to_chg', 'descartado']);
 const _CHG_STATUS_SET = new Set(['pendiente', 'en-revision', 'done', 'descartado']);
 export const VALID_TRANSITIONS = {
@@ -187,7 +201,6 @@ export const VALID_TRANSITIONS = {
   TKT: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
   INC: _ITIL_STATUS_SET,
   PRB: _ITIL_STATUS_SET,
-  KE: _ITIL_STATUS_SET,
   CHG: _CHG_STATUS_SET,
   DISC: new Set(['discovery', 'promoted', 'descartado'])
 };
@@ -733,8 +746,10 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
 
   // v3.0.0: tracker del proyecto activo — también aquí para atomicidad con sessions[].
   // Sin esto, tracker.items quedaría con sessionId huérfano si el usuario cancela el panel.
-  // TKT-PARSER-2b (REQ-[pendiente-ID]): PRB/KE/CHG agregados a counters — antes solo DISC/TKT/REQ/INC.
-  if (!activeProj.tracker) activeProj.tracker = { items: [], counters: { DISC: 0, TKT: 0, REQ: 0, INC: 0, PRB: 0, KE: 0, CHG: 0 } };
+  // TKT-PARSER-2b (REQ-[pendiente-ID]): PRB/CHG agregados a counters — antes solo DISC/TKT/REQ/INC.
+  // Hallazgo fuera de scope (resuelto en la misma sesión, INC-202607-019): 'KE' retirado del
+  // objeto inicial — inalcanzable, mismo motivo que en VALID_TRANSITIONS más arriba.
+  if (!activeProj.tracker) activeProj.tracker = { items: [], counters: { DISC: 0, TKT: 0, REQ: 0, INC: 0, PRB: 0, CHG: 0 } };
   const tracker = activeProj.tracker;
   let newCount = 0, updCount = 0;
   tgItems.forEach(item => {
@@ -744,8 +759,10 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
       updCount++;
     } else {
       const c = tracker.counters;
-      // TKT-PARSER-2b: pattern ampliado con PRB-/KE-/CHG- — antes solo DISC/TKT/REQ/INC.
-      const numMatch = item.code.match(/^(DISC|TKT|REQ|INC|PRB|KE|CHG)-\d{6}-(\d{3})/);
+      // TKT-PARSER-2b: pattern ampliado con PRB-/CHG- — antes solo DISC/TKT/REQ/INC.
+      // 'KE-' retirado del patrón (mismo hallazgo fuera de scope de arriba) — ningún código
+      // real con ese prefijo puede existir desde la fusión KE→PRB.root_cause_confirmed.
+      const numMatch = item.code.match(/^(DISC|TKT|REQ|INC|PRB|CHG)-\d{6}-(\d{3})/);
       if (numMatch) { const num = parseInt(numMatch[2]); const key = numMatch[1]; if (num >= (c[key] || 0)) c[key] = num; }
       tracker.items.push({id:'tgi-'+Date.now()+'-'+Math.random().toString(36).slice(2,6), code:item.code, desc:item.desc, status:item.status, sessionId:sessId});
       newCount++;
