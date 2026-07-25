@@ -1,4 +1,9 @@
-// [PP] mod:74 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:75 · autor:Rune · 2026-07-24 UTC-6
+// INC-202607-019 (fix): VALID_TRANSITIONS.CHG usaba _ITIL_STATUS_SET — invertía la validación
+// (rechazaba pendiente/en-revision/done/descartado, aceptaba detected/resolved/closed). CHG
+// es la excepción de vocabulario de la rama Reactiva (__BR-Ecosystem §4b) — vocabulario Scrum,
+// no ITIL. Nuevo _CHG_STATUS_SET declarado; comentario adyacente que agrupaba
+// "INC/PRB/KE/CHG" como homogéneo corregido. Ver detalle junto a VALID_TRANSITIONS, más abajo.
 // INC-[pendiente-ID] (fix gate req-sin-tkt vs reparenting — ver locus-backlog-item.js mod:142
 // para el detalle completo): parámetro patchItems agregado a _mergeBacklogWithProject() y a
 // _applyCheckpointBatch() — propagado hasta mergeBacklogFromTG en sus 2 call sites reales de
@@ -161,20 +166,29 @@ import { esc, getCurrentTab } from './locus-ui-shell.js';
 // T-202606-020 · AC-5 · TKT0c-gen2: tabla de transiciones válidas por tipo de ítem — BR-Core §4
 // Clave: tipo de ítem Gen2 ('REQ' | 'TKT' | 'INC' | 'PRB' | 'KE' | 'CHG' | 'DISC'). Valor: Set de status permitidos.
 // Sets exactos de __BR-Ecosystem §5 — no es 1:1 con los sets Gen1 que reemplaza:
-// REQ amplía a en-proceso/orphaned (no existían en R). INC/PRB/KE/CHG usan ciclo ITIL completo (no el de B).
+// REQ amplía a en-proceso/orphaned (no existían en R). INC/PRB/KE usan ciclo ITIL completo (no el de B).
+// CHG es la excepción de vocabulario de la rama Reactiva (__BR-Ecosystem §4b) — declara status
+// con el mismo vocabulario Scrum que TKT, nunca ITIL. Corregido en INC-202607-019 (ver abajo);
+// este comentario asumía "INC/PRB/KE/CHG" como grupo homogéneo — no lo es.
 // Nota: tipo desconocido → no validar (AC-6, ignorar silenciosamente).
-// TKT-PARSER-2b (REQ-[pendiente-ID]): PRB/KE/CHG agregados con el mismo Set ITIL que ya
+// TKT-PARSER-2b (REQ-[pendiente-ID]): PRB/KE agregados con el mismo Set ITIL que ya
 // declaraba INC — antes caían en "tipo desconocido → ignorar silenciosamente" (AC-6 de arriba).
 // Caso de error, no de uso normal: _buildItilItem (locus-session-parse.js) nunca deja pasar
 // item.status en un ítem ITIL — esta detección solo se activa ante status Scrum residual.
+// INC-202607-019 (fix): CHG estaba mapeado a _ITIL_STATUS_SET — invertía la regla de
+// __BR-Ecosystem §4b (rechazaba pendiente/en-revision/done/descartado, aceptaba
+// detected/resolved/closed). CHG usa ahora _CHG_STATUS_SET, vocabulario Scrum-compatible
+// idéntico en valores al de TKT pero declarado en set propio — no comparte referencia con
+// TKT.status para no acoplar accidentalmente ambos vocabularios a futuro.
 const _ITIL_STATUS_SET = new Set(['detected', 'assigned', 'in_progress', 'resolved', 'closed', 'escalated_to_prb', 'escalated_to_chg', 'descartado']);
+const _CHG_STATUS_SET = new Set(['pendiente', 'en-revision', 'done', 'descartado']);
 export const VALID_TRANSITIONS = {
   REQ: new Set(['pendiente', 'en-proceso', 'en-revision', 'bloqueado', 'orphaned', 'descartado']),
   TKT: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
   INC: _ITIL_STATUS_SET,
   PRB: _ITIL_STATUS_SET,
   KE: _ITIL_STATUS_SET,
-  CHG: _ITIL_STATUS_SET,
+  CHG: _CHG_STATUS_SET,
   DISC: new Set(['discovery', 'promoted', 'descartado'])
 };
 

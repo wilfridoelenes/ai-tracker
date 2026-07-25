@@ -1,3 +1,18 @@
+// [PP] mod:144 · autor:Rune · 2026-07-25 UTC-6
+// INC-202607-027: _VALID_INCIDENT_STATUS aceptaba 'assigned'/'in_progress' como incident_status
+//   válido para INC pese a que BR-Core §6 fusionó 'assigned' a 'detected' (infra_version 52) y
+//   eliminó 'in_progress' para INC (infra_version 53). Ambos retirados del Set — un CHECKPOINT
+//   que declare un INC con cualquiera de los dos ahora es rechazado con el mensaje ya corregido
+//   en TKT-202607-107 (_INCIDENT_STATUS_LIST, mod:142). _VALID_PRB_STATUS no se toca — 'in_progress'
+//   sigue siendo válido para PRB (BR-Core §6). Sin otro caller de 'assigned'/'in_progress' en este
+//   archivo (verificado por grep) — sin impacto lateral adicional.
+// [PP] mod:143 · autor:Rune · 2026-07-25 UTC-6
+// INC-202607-028: _VALID_PRB_STATUS no incluía 'root_cause_confirmed' — un CHECKPOINT con PRB
+//   en ese status era rechazado por _buildItilItem como "incident_status inválido" pese a ser
+//   estado válido del ciclo PRB (BR-Core §6, fusión KE→PRB.root_cause_confirmed, infra_version
+//   51). Agregado al Set. _PRB_STATUS_LIST (mensaje, mod:142) ya lo declaraba — el mismatch
+//   mensaje/lógica registrado en TKT-202607-107 queda cerrado. Sin cambio de firma en
+//   _itilStatusSet/_buildItilItem — mismo comportamiento para el resto de valores.
 // [PP] mod:142 · autor:Rune · 2026-07-25 UTC-6
 // TKT-202607-107: mensajes de error corregidos contra BR-Core §6 — _INCIDENT_STATUS_LIST
 //   ya no lista 'assigned' (fusionado a 'detected', infra_version 52) ni 'in_progress'
@@ -478,13 +493,11 @@ const _ITIL_TYPES = new Set(['INC', 'PRB', 'CHG']);
 // TKT-PARSER-2a (REQ-[pendiente-ID]): exportadas — locus-backlog-item.js las consume para
 // validar transiciones ITIL en mergeBacklogFromTG sin duplicar la tabla.
 export const _VALID_INCIDENT_STATUS = new Set([
-  'detected', 'assigned', 'in_progress', 'resolved', 'closed',
+  'detected', 'resolved', 'closed',
   'escalated_to_prb', 'escalated_to_chg', 'descartado'
 ]);
-// TKT-202607-107: mensaje corregido — 'assigned' (fusionado a 'detected', infra_version 52) y
-// 'in_progress' (eliminado para INC, infra_version 53) retirados del texto visible al founder.
-// El Set _VALID_INCIDENT_STATUS arriba sigue aceptando ambos valores como lógica de validación —
-// mismatch mensaje/lógica no corregido en este TKT, ver Hallazgo fuera de scope en el CHECKPOINT.
+// INC-202607-027: 'assigned'/'in_progress' retirados del Set — mismatch mensaje/lógica cerrado
+// (el mensaje, _INCIDENT_STATUS_LIST, ya no los listaba desde TKT-202607-107 mod:142).
 export const _INCIDENT_STATUS_LIST = 'detected · resolved · closed · escalated_to_prb · escalated_to_chg';
 // TKT-PARSER-2b (REQ-[pendiente-ID]): vocabulario propio por tipo ITIL — __BR-Ecosystem §5.
 // PRB es subconjunto de INC con estados propios (in_progress, root_cause_confirmed) que INC no
@@ -492,13 +505,10 @@ export const _INCIDENT_STATUS_LIST = 'detected · resolved · closed · escalate
 // CHG usa vocabulario Scrum (pendiente/en-revision/done/descartado) — no pasa por estas constantes,
 // se valida con _canonicalStatus, igual que TKT.
 export const _VALID_PRB_STATUS = new Set([
-  'detected', 'in_progress', 'resolved', 'closed', 'descartado'
+  'detected', 'in_progress', 'root_cause_confirmed', 'resolved', 'closed', 'descartado'
 ]);
-// TKT-202607-107: mensaje corregido — 'root_cause_confirmed' agregado (faltaba por completo pese
-// a ser estado válido de PRB, __BR-Core §6). El Set _VALID_PRB_STATUS arriba sigue sin aceptarlo
-// como lógica de validación — un CHECKPOINT con PRB en root_cause_confirmed es rechazado como
-// inválido pese a ser un estado legítimo. Mismatch mensaje/lógica no corregido en este TKT, ver
-// Hallazgo fuera de scope en el CHECKPOINT.
+// INC-202607-028: 'root_cause_confirmed' agregado al Set — antes solo estaba en el mensaje
+// (_PRB_STATUS_LIST, TKT-202607-107 mod:142). Mismatch mensaje/lógica cerrado.
 export const _PRB_STATUS_LIST = 'detected · in_progress · root_cause_confirmed · resolved · closed';
 
 // Mensaje canónico BR-Core §6 — REQ/TKT/DISC no pueden asignarse a Q-INC.

@@ -1,3 +1,9 @@
+// [PP] mod:144 · autor:Rune · 2026-07-24 UTC-6
+// INC-202607-019 (fix en locus-session-save.js mod:75, no lógica de este archivo): comentario
+// junto a _skipScrumGate (L2567-2568 orig.) corregido — afirmaba que el bloque Scrum validaba
+// CHG correctamente; VALID_TRANSITIONS.CHG estaba mapeado al set ITIL, invirtiendo la
+// validación. Sin cambio de lógica en este archivo — solo alineación de comentario a la
+// causa raíz real. contract_update: no.
 // [PP] mod:143 · autor:Rune · 2026-07-24 UTC-6
 // TKT1 (REQ CAEL-0724-11, ref_id CAEL-0724-11): applyPatchesFromTG() — rama field==='incidentStatus',
 // rechazo por transición inválida (_itResult.valid===false) ahora empuja {code, reason:
@@ -2565,7 +2571,11 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
       // transiciones ITIL válidas (ej. detected→assigned) como inválidas por desconocer ese
       // vocabulario. La validación real de estos 3 tipos vive en el bloque ITIL dedicado de abajo
       // (validateIncidentTransitions). CHG no se excluye — su vocabulario es Scrum-compatible
-      // (pendiente/en-revision/done/descartado) y este bloque lo valida correctamente.
+      // (pendiente/en-revision/done/descartado).
+      // INC-202607-019 (fix, locus-session-save.js mod:75): esta línea afirmaba que el bloque
+      // "lo valida correctamente" — no era cierto. VALID_TRANSITIONS.CHG estaba mapeado al set
+      // ITIL (locus-session-save.js), invirtiendo la validación de CHG. Corregido con
+      // _CHG_STATUS_SET propio — ahora sí es correcto que este bloque valide CHG.
       const _skipScrumGate = ['INC', 'PRB'].includes(itemKind(existing));
       if (!_skipScrumGate && newStatus && newStatus !== oldStatus && !item._noStatus) {
         const _existingKind = itemKind(existing);
