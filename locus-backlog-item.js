@@ -1,4 +1,20 @@
-// [PP] mod:146 · autor:Rune · 2026-07-25 UTC-6
+// [PP] mod:148 · autor:Rune · 2026-07-25 UTC-6
+// Fix INC (triggered_by TKT-202607-115/116, causa raíz confirmada): applyPatchesFromTG() nunca
+// aliaseaba patch.depends_on (snake_case, __BR-Ecosystem §8) → dependsOn (campo interno) — a
+// diferencia de patch.parent y patch.blocked_at, que sí tenían el mecanismo alias-y-delete.
+// Un patch { depends_on: [] } (o cualquier valor) sobrevivía crudo al loop, no matcheaba
+// ninguna rama de field reconocida, y el catch-all genérico lo escribía como existing['depends_on']
+// — propiedad suelta que ningún consumidor lee (render de bloqueo y persistencia a Supabase leen
+// existing.dependsOn). El TKT quedaba con su dependsOn original intacto pese al patch aplicado
+// sin error visible en DocLog. mergeBacklogFromTG() ya tenía este alias para ítems nuevos
+// (L2480) — applyPatchesFromTG() no lo tenía para patches sobre ítems existentes. Fix: alias
+// depends_on→dependsOn agregado junto al bloque de blocked_at, mismo patrón alias-y-delete.
+// Sin cambio de firma de applyPatchesFromTG(). contract_update: no.
+// [PP] mod:147 · autor:Rune · 2026-07-25 UTC-6
+// TKT0 (REQ-202607-035): existing.statusChangedAt ahora se escribe también al transicionar
+// incidentStatus de INC/PRB en applyPatchesFromTG() — antes solo el bloque Scrum lo hacía.
+// Ver comentario inline junto al cambio (~L2697) para detalle completo. No persiste a Supabase
+// — gap registrado como DISC separado (tracker_incidents no declara la columna).
 // INC-202607-042 (triggered_by INC-202607-038): field==='discard_reason' en
 // applyPatchesFromTG() leía _targetStatus solo de existing.status — orden de Object.keys(patch)
 // no garantiza que incidentStatus/status ya se hayan aplicado antes que discard_reason en el
@@ -2694,7 +2710,15 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
           // queda congelado en el valor con el que el ítem nació (ej. 'pendiente' pre-TKT-PARSER-2b)
           // para siempre — ni merge ni patch lo corrigen, y chk_status_by_type de Supabase rechaza
           // el upsert indefinidamente. existing.status espeja existing.incidentStatus para tipos ITIL.
-          if (!_dryRun) { existing.incidentStatus = item.incidentStatus; existing.status = item.incidentStatus; changed = true; }
+          // TKT0 (REQ-202607-035): statusChangedAt ahora se escribe también en este bloque —
+          // antes solo el bloque Scrum (arriba, avance/retroceso) lo hacía. Sin esto, no había
+          // forma de saber cuándo un INC/PRB transicionó realmente a closed/resolved — updated_at
+          // es un timestamp de escritura compartido por todo el batch, no de esta transición
+          // puntual. Necesario para que el Índice de estado de _PP-incidents.md (TKT-202607-115)
+          // pueda filtrar ítems cerrados recientes contra proj.incidentsExportSnapshot.at.
+          // No persiste a Supabase — tracker_incidents no declara la columna (DISC registrado,
+          // ver TKT0). Limitación conocida: se pierde al rehidratar desde Supabase tras reload.
+          if (!_dryRun) { existing.incidentStatus = item.incidentStatus; existing.status = item.incidentStatus; existing.statusChangedAt = Date.now(); changed = true; }
         }
         // INC-[pendiente-ID] (retiro archivedInSprint): bloque de escritura de archivedInSprint
         // eliminado — BR-Ecosystem §4b declara el campo retirado del modelo de ítems ("no existe
@@ -3303,6 +3327,24 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
     if (patch.blocked_at !== undefined) {
       if (patch.blockedAt === undefined) patch.blockedAt = patch.blocked_at;
       delete patch.blocked_at;
+    }
+
+    // INC-202607-XXX (fix, causa raíz de TKT-202607-115/116 con depends_on huérfano nunca
+    // corregido pese al patch aplicado — __BR-Ecosystem §8 usa depends_on snake_case, campo
+    // interno es dependsOn): alias ausente de todo mecanismo alias-y-delete hasta este fix, a
+    // diferencia de parent/parentId y blocked_at/blockedAt arriba. Sin este alias, patch.depends_on
+    // (incluido el caso crítico depends_on: [] para retirar una dependencia huérfana) sobrevivía
+    // crudo al Object.keys(patch) del loop de aplicación (ninguna rama de field lo reconocía) y
+    // caía en el catch-all genérico del final, que escribía existing['depends_on'] = [] como
+    // propiedad suelta nunca leída por ningún consumidor — existing.dependsOn (la que sí lee el
+    // badge de bloqueo, L1357-1358, y _toItemRow()/_toItemColumns() hacia la columna depends_on
+    // de Supabase) quedaba intacta con el valor viejo. mergeBacklogFromTG() ya tenía este alias
+    // para ítems nuevos (L2480) — applyPatchesFromTG() nunca lo tuvo para patches sobre ítems
+    // existentes. Guard `patch.dependsOn === undefined` evita que el alias pise un valor
+    // dependsOn ya normalizado por el caller si ambas claves llegaran presentes en el mismo patch.
+    if (Array.isArray(patch.depends_on)) {
+      if (patch.dependsOn === undefined) patch.dependsOn = patch.depends_on;
+      delete patch.depends_on;
     }
 
     // INC-202607-XXX (triggered_by TKT-202607-029/030) + DISC de auditoría cerrada: parentId,
