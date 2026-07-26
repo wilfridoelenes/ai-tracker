@@ -1,4 +1,17 @@
-// [PP] mod:116 · autor:Rune · 2026-07-25 UTC-6
+// [PP] mod:118 · autor:Rune · 2026-07-26 09:40 UTC-6
+// Corrección de trazabilidad — resuelta en sesión (Patch, dueño presente, sin bifurcación
+// de founder): el header de mod:117 citaba 'TKT-202607-131 (REQ-202607-039)' — código
+// incorrecto. TKT-202607-131 es un ticket real y no relacionado (Ingest validation panel,
+// REQ-202607-041, done). El código correcto para el trabajo descrito abajo es
+// TKT-202607-134 (TKT4, REQ-202607-039) — coincide exactamente con la intención del TKT en
+// backlog (retiro de renderSprintItems()/renderSprintBurndown(), burndown effort-based).
+// Gap de dependencia registrado (no resuelto por esta corrección): TKT-202607-134 declara
+// DependsOn: TKT-202607-126, que está en-revision, no done — el trabajo se implementó antes
+// de que la dependencia cerrara. Ver CHECKPOINT de esta entrega.
+// [PP] mod:117 · autor:Rune · 2026-07-26 08:15 UTC-6
+// TKT-202607-134 (REQ-202607-039): burndown de _renderSprintItems(sprint) pasa de
+// item-count-based a effort-based — fórmula portada de renderSprintBurndown() (retirada de
+// locus-backlog-sprints.js). Agrega wiring de #sph-bd-warn (ítems sin effort).
 // TKT-202607-126 (REQ-202607-039): wiring de AC1 (spi-stat-*) y AC3 (spi-content-empty vs
 // .spi-list) en _renderSprintItems() — reusa pendiente/enRevision/bloqueado/done ya computados.
 // AC2 (spt-identity-chip/-label) poblado en renderSprintTab() junto al resto del header —
@@ -1538,16 +1551,26 @@ function _renderSprintItems(sprint) {
   if (contentEmptyEl) contentEmptyEl.classList.toggle('is-hidden', !isEmpty);
   if (itemsListEl)    itemsListEl.classList.toggle('is-hidden', isEmpty);
 
-  // Burndown
-  const total  = spItems.length;
-  const pct    = total > 0 ? Math.round((done.length / total) * 100) : 0;
-  const effort = spItems.reduce((acc, i) => acc + (i.effort || 0), 0);
-  const effortDone = done.reduce((acc, i) => acc + (i.effort || 0), 0);
+  // Burndown — TKT-202607-134 (REQ-202607-039, INC-202607-045): effort-based, antes
+  // item-count-based (done.length/total). Fórmula portada de renderSprintBurndown()
+  // (locus-backlog-sprints.js, retirada en el mismo TKT) — el shell estático de Nova en
+  // index.html ya asume effort-based (#sph-bd-label nace 'Effort: 0 / 0'). Solo ítems con
+  // effort declarado contribuyen al cálculo; el resto se señala en #sph-bd-warn sin bloquearlo.
+  const withEffort    = spItems.filter(i => i.effort && parseInt(i.effort) > 0);
+  const withoutEffort = spItems.filter(i => !i.effort || parseInt(i.effort) === 0);
+
+  const totalEffort = withEffort.reduce((acc, i) => acc + parseInt(i.effort), 0);
+  const doneEffort  = withEffort
+    .filter(i => i.status === 'done')
+    .reduce((acc, i) => acc + parseInt(i.effort), 0);
+
+  const pct = totalEffort > 0 ? Math.round(doneEffort / totalEffort * 100) : 0;
 
   const bdFill  = _spEl('sph-bd-fill');
   const bdPct   = _spEl('sph-bd-pct');
   const bdLabel = _spEl('sph-bd-label');
   const bdTrack = _spEl('sph-bd-track');
+  const bdWarn  = _spEl('sph-bd-warn');
 
   if (bdFill) {
     bdFill.style.setProperty('--sph-bd-width', `${pct}%`);
@@ -1555,10 +1578,21 @@ function _renderSprintItems(sprint) {
     bdFill.classList.toggle('is-ready',    pct === 100);
   }
   if (bdPct)   bdPct.textContent   = `${pct}%`;
-  if (bdLabel) bdLabel.textContent = `${done.length} / ${total}`; // T-202606-042: ítems done / total (no effort)
+  if (bdLabel) bdLabel.textContent = `Effort: ${doneEffort} / ${totalEffort}`;
   if (bdTrack) {
     bdTrack.setAttribute('aria-valuenow', pct);
     bdTrack.setAttribute('aria-valuetext', `${pct}% completado`);
+  }
+
+  // Ítems sin effort — señal visible, no bloquean el cálculo (ya excluidos de totalEffort/doneEffort arriba)
+  if (bdWarn) {
+    if (withoutEffort.length > 0) {
+      bdWarn.textContent = `${withoutEffort.length} ítem${withoutEffort.length > 1 ? 's' : ''} sin effort — no incluido${withoutEffort.length > 1 ? 's' : ''} en el cálculo`;
+      bdWarn.classList.remove('is-hidden');
+    } else {
+      bdWarn.classList.add('is-hidden');
+      bdWarn.textContent = '';
+    }
   }
 
   // T-202606-042: bloque btnClose eliminado — #btn-close-sprint removido del HTML. Acción vive en .sps-actions (sub-tab Sprints)

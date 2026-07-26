@@ -1,4 +1,18 @@
-// [PP] mod:57 · autor:Rune · 2026-07-26 07:00 UTC-6
+// [PP] mod:59 · autor:Rune · 2026-07-26 09:40 UTC-6
+// Corrección de trazabilidad — resuelta en sesión (Patch, dueño presente, sin bifurcación
+// de founder): el header de mod:58 y las referencias inline citaban 'TKT-202607-131
+// (REQ-202607-039)' — código incorrecto. TKT-202607-131 es un ticket real y no relacionado
+// (Ingest validation panel, REQ-202607-041, done). El código correcto es TKT-202607-134
+// (TKT4, REQ-202607-039) — mismo criterio y detalle que la corrección espejo en
+// locus-sprint.js mod:118. Gap de dependencia registrado, no resuelto por esta corrección:
+// TKT-202607-134 depende de TKT-202607-126, que está en-revision, no done. Ver CHECKPOINT
+// de esta entrega.
+// [PP] mod:58 · autor:Rune · 2026-07-26 08:15 UTC-6
+// TKT-202607-134 (REQ-202607-039): retirados renderSprintBurndown()/renderSprintItems()
+// (+ helpers privados _updateCloseReadyState/_renderSprintSection/_buildSprintItemRow/
+// renderScopeAdded/_buildScopeAddedRow/renderSprintWorkers/_buildWorkerPill) y el listener
+// 'shell:sprint-render' — pipeline duplicado, consolidado en _renderSprintItems(sprint)
+// (locus-sprint.js). Ver comentario de retiro completo más abajo en este archivo.
 // Corrección de base — el archivo adjunto como mod:56 declaraba el header de TKT-202607-130
 // pero conservaba el fallback all[0] sin retirar (discrepancia de versión detectada por el
 // founder). Fix reaplicado sobre esta base real.
@@ -93,10 +107,12 @@ import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render
 import { _templateTrigger } from './locus-session-hora.js';
 import { exportFullHistoryMd } from './locus-backlog-generator.js';
 import { renderSprintTab } from './locus-sprint.js';
-import { _blogLog, _docPrefix, _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, saveHistoricoItems, getHistoricoItems, _invalidateHistoricoCache, _getDocUpdateIndex, _setDocUpdateIndex, _upsertSprint, _sprintDisplay } from './locus-storage.js'; // T-202606-107 · T-202606-005 · TKT1 (REQ-sprints-migration): _loadSprintsFromSupabase eliminado del import — sin call site real, solo referenciado en comentario línea ~959. Función reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js, sin uso en este módulo. TKT7 (REQ-202607-015): deleteIncidentRows removida del import — su único call site (_scmExecuteClose) fue eliminado; export retirado de locus-storage.js.
+import { _blogLog, _docPrefix, _effectiveVersion, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, saveHistoricoItems, getHistoricoItems, _invalidateHistoricoCache, _getDocUpdateIndex, _setDocUpdateIndex, _upsertSprint, _sprintDisplay } from './locus-storage.js'; // T-202606-107 · T-202606-005 · TKT1 (REQ-sprints-migration): _loadSprintsFromSupabase eliminado del import — sin call site real, solo referenciado en comentario línea ~959. Función reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js, sin uso en este módulo. TKT7 (REQ-202607-015): deleteIncidentRows removida del import — su único call site (_scmExecuteClose) fue eliminado; export retirado de locus-storage.js. TKT-202607-134: getAI retirada — su único call site (renderSprintWorkers) fue retirado.
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
-import { navigateToItem } from './locus-item-navigator.js'; // TKT1 (REQ CAEL-04): re-import — la función vivía en este archivo, ahora en módulo dedicado. Call sites internos (~L2032/L2037) sin cambio.
+// TKT-202607-134: import de navigateToItem retirado — sus únicos call sites (delegación
+// 'spi-navigate') fueron retirados junto con renderSprintItems(). navigateToItem() sigue
+// viva en locus-item-navigator.js, consumida por locus-sprint.js para el sprint board activo.
 
 import { _setBacklogModified } from './locus-docs.js';
 import { openMapGenerator } from './locus-map-generator.js'; // T-202606-089 AC-3 — ciclo seguro: uso solo dentro de handler
@@ -1590,336 +1606,19 @@ export function createSprintFromGroup(id, name) {
   showToast('success', id + ' registrado en catálogo');
 }
 
-// TKT1 (REQ CAEL-04): navigateToItem() movida a locus-item-navigator.js — este archivo no
-// gestionaba ningún dato de sprints (__BR-Ecosystem §7). Import agregado abajo, junto a los
-// demás imports de locus-ui-shell.js. Los dos call sites internos (renderSprintItems /
-// sprint-panel-items, ~L2032/L2037) siguen funcionando igual vía el import.
-
-// T-202605-058: Burndown — barra de progreso effort done vs total del sprint activo
-// T-202605-027: usa sprint con current:true — sin fallback a all[0]
-export function renderSprintBurndown() {
-  const trackEl  = document.getElementById('sph-bd-track');
-  const fillEl   = document.getElementById('sph-bd-fill');
-  const labelEl  = document.getElementById('sph-bd-label');
-  const pctEl    = document.getElementById('sph-bd-pct');
-  const warnEl   = document.getElementById('sph-bd-warn');
-  if (!trackEl || !fillEl || !labelEl || !pctEl || !warnEl) return;
-
-  // T-202605-027: solo sprint con current:true — sprints abiertos sin flag no cuentan
-  const all = getActiveSprints().filter(s => s.status === 'active');
-  const sp = all.find(s => s.current === true) || null;
-
-  if (!sp) {
-    labelEl.textContent = 'Sin sprint en curso';
-    pctEl.textContent   = '';
-    fillEl.style.removeProperty('--sph-bd-width');
-    fillEl.classList.remove('is-complete');
-    fillEl.classList.remove('is-ready');
-    trackEl.setAttribute('aria-valuenow', '0');
-    warnEl.classList.add('is-hidden');
-    warnEl.textContent = '';
-    const btnEl = document.getElementById('btn-close-sprint');
-    if (btnEl) btnEl.classList.add('is-hidden');
-    return;
-  }
-
-  const spItems = (typeof getItems() !== 'undefined' ? getItems() : [])
-    .filter(i => i.sprint === sp.id && i.status !== 'descartado');
-
-  // Solo ítems con effort declarado contribuyen al cálculo
-  const withEffort    = spItems.filter(i => i.effort && parseInt(i.effort) > 0);
-  const withoutEffort = spItems.filter(i => !i.effort || parseInt(i.effort) === 0);
-
-  const totalEffort = withEffort.reduce((acc, i) => acc + parseInt(i.effort), 0);
-  const doneEffort  = withEffort
-    .filter(i => i.status === 'done')
-    .reduce((acc, i) => acc + parseInt(i.effort), 0);
-
-  const pct = totalEffort > 0 ? Math.round(doneEffort / totalEffort * 100) : 0;
-
-  labelEl.textContent = `Effort: ${doneEffort} / ${totalEffort}`;
-  pctEl.textContent   = `${pct}%`;
-  trackEl.setAttribute('aria-valuenow', pct);
-
-  // width vía CSS custom property — CSS Purity
-  fillEl.style.setProperty('--sph-bd-width', pct + '%');
-  fillEl.classList.toggle('is-complete', pct >= 100);
-
-  // Indicador de ítems sin effort
-  if (withoutEffort.length > 0) {
-    warnEl.textContent = `${withoutEffort.length} ítem${withoutEffort.length > 1 ? 's' : ''} sin effort — no incluidos en el cálculo`;
-    warnEl.classList.remove('is-hidden');
-  } else {
-    warnEl.classList.add('is-hidden');
-    warnEl.textContent = '';
-  }
-
-  // T-202605-062: indicador y botón de cierre — debe ejecutarse después del write de labelEl
-  _updateCloseReadyState(sp, labelEl);
-}
-
-// T-202605-062: evalúa condición de cierre y actualiza indicador + botón
-function _updateCloseReadyState(sp, labelEl) {
-  const fillEl  = document.getElementById('sph-bd-fill');
-  const btnEl   = document.getElementById('btn-close-sprint');
-  if (!fillEl || !btnEl) return;
-
-  if (!sp) {
-    fillEl.classList.remove('is-ready');
-    btnEl.classList.add('is-hidden');
-    return;
-  }
-
-  // AC-6: solo Rs no descartados del sprint. Ts hijos excluidos. Sin Rs → no listo.
-  const spRs = (typeof getItems() !== 'undefined' ? getItems() : [])
-    .filter(i => i.sprint === sp.id && i.type === 'REQ' && i.status !== 'descartado');
-
-  const isReady = spRs.length > 0 && spRs.every(i => i.status === 'done');
-
-  // AC-4/AC-5: fill verde + label "listo" — o estado normal
-  fillEl.classList.toggle('is-ready', isReady);
-  if (labelEl) {
-    labelEl.textContent = isReady ? '✓ Listo para cerrar' : labelEl.textContent;
-  }
-
-  // AC-1: botón visible solo cuando listo
-  btnEl.classList.toggle('is-hidden', !isReady);
-}
-
-// T-202605-044: Lista de Rs del sprint activo agrupados por estado
-export function renderSprintItems() {
-  const listEl    = document.getElementById('sprint-items-list');
-  const emptyEl   = document.getElementById('tab-sprint-empty');
-  const headerEl  = document.getElementById('sprint-panel-header');
-  if (!listEl || !emptyEl) return;
-
-  const sp = _getActiveSprint();
-
-  // Sin sprint activo — mostrar empty state
-  if (!sp) {
-    listEl.classList.add('is-hidden');
-    emptyEl.classList.remove('is-hidden');
-    return;
-  }
-
-  // Con sprint activo — ocultar empty, mostrar header + lista
-  emptyEl.classList.add('is-hidden');
-  if (headerEl) headerEl.classList.remove('is-hidden');
-  listEl.classList.remove('is-hidden');
-
-  const allItems = typeof getItems() !== 'undefined' ? getItems() : [];
-
-  // Solo Rs del sprint activo (excluir descartados)
-  // TKT1 (REQ-202607-026 · AC3): !i.draft excluye REQs con draft:true — reciben código real
-  // y sprint asignado (heredado del sprint que Cael declaró en el REQ), pero no deben
-  // aparecer en la lista del sprint activo hasta que Finn los avale (draft:false).
-  const spRs = allItems.filter(i =>
-    i.sprint === sp.id &&
-    i.type === 'REQ' &&
-    i.status !== 'descartado' &&
-    !i.draft
-  );
-
-  // Clasificar: bloqueado > done > pendiente
-  // INC-[ref_id:QA-0724-02]: _isBlocked es un heurístico de staleness (exige status==='pendiente'
-  // + >14 días sin cambio, ver locus-backlog-core.js) — no reconoce el status real 'bloqueado'
-  // que Finn asigna en sesión de cierre de REQ (gap de integración, __BR-Core §4). Sin este
-  // criterio adicional, un REQ status:bloqueado caía en la rama 'pendiente' sin indicador.
-  const _blocked  = _isBlocked;
-  const _realBlocked = i => i.status === 'bloqueado';
-  const blocked   = spRs.filter(i => (_realBlocked(i) || _blocked(i)) && i.status !== 'done');
-  const done      = spRs.filter(i => i.status === 'done');
-  const pendiente = spRs.filter(i => i.status !== 'done' && !_realBlocked(i) && !_blocked(i));
-
-  _renderSprintSection('pendiente', pendiente, allItems);
-  _renderSprintSection('bloqueado', blocked,   allItems);
-  _renderSprintSection('done',      done,       allItems);
-
-  renderScopeAdded(sp, allItems);    // T-202605-060
-  renderSprintWorkers(sp, allItems); // T-202605-061
-}
-
-function _renderSprintSection(sectionId, items, allItems) {
-  const bodyEl  = document.getElementById('spi-body-' + sectionId);
-  const countEl = document.getElementById('spi-count-' + sectionId);
-  const sectionEl = document.getElementById('spi-section-' + sectionId);
-  if (!bodyEl || !countEl || !sectionEl) return;
-
-  countEl.textContent = items.length;
-
-  // Ocultar sección si no hay ítems
-  sectionEl.classList.toggle('is-hidden', items.length === 0);
-
-  if (items.length === 0) {
-    bodyEl.innerHTML = '';
-    return;
-  }
-
-  bodyEl.innerHTML = items.map(item => _buildSprintItemRow(item, sectionId, allItems)).join('');
-}
-
-function _buildSprintItemRow(item, sectionId, allItems) {
-  const isBlocked = sectionId === 'bloqueado';
-  const isDone    = sectionId === 'done';
-
-  // Ts hijos del R — para mostrar progreso
-  const children     = allItems.filter(c => c.parentId === item.code && c.type === 'TKT');
-  const childrenDone = children.filter(c => c.status === 'done');
-  const childrenHtml = children.length > 0
-    ? `<span class="spi-item-children">${childrenDone.length}/${children.length} TKT</span>`
-    : '';
-
-  // Indicador de bloqueante
-  // INC-[ref_id:QA-0724-02]: título distingue status real 'bloqueado' (gap de integración
-  // verificado por Finn, __BR-Core §4) de la heurística de staleness (_isBlocked — pendiente
-  // sin movimiento >14 días) — mismo ícono, texto distinto según la causa real del item.
-  const blockedIconHtml = isBlocked
-    ? (item.status === 'bloqueado'
-        ? `<span class="spi-item-blocked-icon" title="Bloqueado — gap de integración detectado por Finn, ver cierre de REQ">🔒</span>`
-        : `<span class="spi-item-blocked-icon" title="Bloqueado por ítem pendiente">🔒</span>`)
-    : '';
-
-  // Pill de estado
-  const statusClass = isDone ? 'done' : isBlocked ? 'blocked' : 'pendiente';
-  const statusLabel = isDone ? 'Done' : isBlocked ? 'Bloqueado' : 'Pendiente';
-  const statusHtml  = `<span class="spi-item-status spi-item-status--${statusClass}">${statusLabel}</span>`;
-
-  // Clases del ítem
-  const itemClass = [
-    'spi-item',
-    isDone    ? 'spi-item--done'    : '',
-    isBlocked ? 'spi-item--blocked' : ''
-  ].filter(Boolean).join(' ');
-
-  const code  = _escSpr(item.code  || '');
-  const title = _escSpr(item.title || '');
-
-  return `<div class="${itemClass}" role="button" tabindex="0"
-    data-action="spi-navigate" data-item-code="${code}"
-    title="Ir a ${code} en Tab Backlog">
-    <span class="spi-item-code">${code}</span>
-    <span class="spi-item-title">${title}</span>
-    ${childrenHtml}
-    ${blockedIconHtml}
-    ${statusHtml}
-  </div>`;
-}
-
-// T-202605-060: Sección scope added — ítems añadidos al sprint después de su apertura
-function renderScopeAdded(sp, allItems) {
-  const sectionEl = document.getElementById('sprint-scope-added');
-  const bodyEl    = document.getElementById('sca-body');
-  const countEl   = document.getElementById('sca-count');
-  if (!sectionEl || !bodyEl || !countEl) return;
-
-  // Sin sprint activo — ocultar sección
-  if (!sp) {
-    sectionEl.classList.add('is-hidden');
-    return;
-  }
-
-  // Ítems del sprint activo con flag scope_added (R o T, excluir descartados)
-  const added = allItems.filter(i =>
-    i.sprint === sp.id &&
-    i.scope_added === true &&
-    i.status !== 'descartado'
-  );
-
-  // Sección siempre visible cuando hay sprint activo — AC-3
-  sectionEl.classList.remove('is-hidden');
-  countEl.textContent = added.length;
-
-  if (added.length === 0) {
-    bodyEl.innerHTML = '<div class="sca-empty">Sin adiciones al scope del sprint.</div>';
-    return;
-  }
-
-  bodyEl.innerHTML = added.map(_buildScopeAddedRow).join('');
-}
-
-function _buildScopeAddedRow(item) {
-  // Fecha de adición: última entrada history type:'sprint' con data.to === item.sprint
-  const pad2 = n => String(n).padStart(2, '0');
-  let dateStr = '—';
-  if (Array.isArray(item.history)) {
-    const entry = [...item.history]
-      .reverse()
-      .find(h => h.type === 'sprint' && h.data && h.data.to === item.sprint);
-    if (entry && entry.ts) {
-      const d = new Date(entry.ts);
-      dateStr = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-    }
-  }
-
-  const typePill = item.type === 'REQ'
-    ? '<span class="sca-item-type sca-item-type--req">REQ</span>'
-    : '<span class="sca-item-type sca-item-type--tkt">TKT</span>';
-
-  const code  = _escSpr(item.code  || '');
-  const title = _escSpr(item.title || '');
-
-  return `<div class="sca-item">
-    ${typePill}
-    <span class="sca-item-code">${code}</span>
-    <span class="sca-item-title">${title}</span>
-    <span class="sca-item-date">${_escSpr(dateStr)}</span>
-  </div>`;
-}
-
-// T-202605-071: _escSpr — helper local de escape HTML para locus-backlog-sprints.js
-// Nombre local (_escSpr) para evitar colisión con _esc declarada en locus-contracts.js.
-// T-202606-088: guard typeof eliminado — esc importada explícitamente vía ESM.
-const _escSpr = esc;
-
-// T-202605-061: Sección workers vinculados al sprint activo
-function renderSprintWorkers(sp, allItems) {
-  const sectionEl = document.getElementById('sprint-workers');
-  const bodyEl    = document.getElementById('spw-body');
-  if (!sectionEl || !bodyEl) return;
-
-  // Sin sprint activo — ocultar sección (AC-3)
-  if (!sp) {
-    sectionEl.classList.add('is-hidden');
-    return;
-  }
-
-  // Recopilar aiIds únicos desde history de ítems del sprint activo (AC-5)
-  const sprintItems = allItems.filter(i =>
-    i.sprint === sp.id &&
-    i.status !== 'descartado'
-  );
-
-  const seenIds = new Set();
-  sprintItems.forEach(item => {
-    if (!Array.isArray(item.history)) return;
-    item.history.forEach(h => {
-      if (h.aiId) seenIds.add(h.aiId);
-    });
-  });
-
-  // Sección siempre visible con sprint activo (AC-2 y AC-3)
-  sectionEl.classList.remove('is-hidden');
-
-  if (seenIds.size === 0) {
-    bodyEl.innerHTML = '<span class="spw-empty">Sin workers vinculados.</span>';
-    return;
-  }
-
-  // Resolver nombres via getAI() (AC-5)
-  const pills = [];
-  seenIds.forEach(aiId => {
-    const ai = getAI(aiId);
-    const name = (ai && ai.name) ? ai.name : aiId;
-    pills.push(_buildWorkerPill(name));
-  });
-
-  bodyEl.innerHTML = pills.join('');
-}
-
-function _buildWorkerPill(name) {
-  return `<span class="spw-pill">${_escSpr(name)}</span>`;
-}
-
+// TKT-202607-134 (REQ-202607-039, INC-202607-045): renderSprintBurndown() · renderSprintItems()
+// · _updateCloseReadyState() · _renderSprintSection() · _buildSprintItemRow() · renderScopeAdded()
+// · _buildScopeAddedRow() · renderSprintWorkers() · _buildWorkerPill() retirados — pipeline
+// duplicado, disparado vía evento shell:sprint-render, escribía los mismos nodos DOM
+// (#spi-body-*, #sph-bd-fill/pct/label) que _renderSprintItems(sprint) en locus-sprint.js con
+// clasificación de 3 buckets (en-revision folded en pendiente) y burndown item-count-based —
+// vs los 4 buckets correctos y el burndown ahora effort-based del pipeline consolidado.
+// _updateCloseReadyState() ya era no-op — #btn-close-sprint fue removido de index.html en
+// T-202606-042. Las funciones internas no exportadas (renderScopeAdded/renderSprintWorkers/
+// _buildScopeAddedRow/_buildWorkerPill/_renderSprintSection/_buildSprintItemRow) no tenían
+// otro caller — se retiran junto con su único consumidor, no dejan código muerto. Ver también
+// el listener 'shell:sprint-render' retirado al final del archivo y el bloque de delegación
+// 'spi-navigate' retirado en _attachSprintDelegation (misma causa — markup que ya no se genera).
 // T-202605-055: delegación de eventos para locus-backlog-sprints.js
 // Cubre: confirmEditSprint (inputs keydown + button) · sprint-edit-cancel · _scmDownloadRetro
 // Los handlers de index.html (closeCloseSprintModal · _scmBack · _scmNext · closeSprintRetroOverlay)
@@ -2066,19 +1765,10 @@ document.addEventListener('DOMContentLoaded', () => {
     _scmUpdateMigrationNextBtn(nBtn);
   });
 
-  // Sprint panel items — spi-navigate (click + keydown Enter)
-  const sprintPanelItems = document.getElementById('sprint-panel-items');
-  if (sprintPanelItems) {
-    sprintPanelItems.addEventListener('click', e => {
-      const row = e.target.closest('[data-action="spi-navigate"]');
-      if (row) navigateToItem(row.dataset.itemCode);
-    });
-    sprintPanelItems.addEventListener('keydown', e => {
-      if (e.key !== 'Enter') return;
-      const row = e.target.closest('[data-action="spi-navigate"]');
-      if (row) navigateToItem(row.dataset.itemCode);
-    });
-  }
+  // TKT-202607-134: delegación 'spi-navigate' retirada — su único productor de markup
+  // (_buildSprintItemRow, este archivo) fue retirado con renderSprintItems(). La navegación
+  // de ítems del sprint board vive en locus-sprint.js (delegación sobre '[data-item-code]',
+  // ver itemsList.addEventListener('click', ...) en _sptSwitch/renderSprintTab).
 
   // Sprint inline edit wrap — stopPropagation (reemplaza onclick="event.stopPropagation()")
   document.addEventListener('click', e => {
@@ -2095,6 +1785,7 @@ document.addEventListener('DOMContentLoaded', () => {
 }, { once: true });
 // ── END T-202606-077 ─────────────────────────────────────────────────────────
 
-// T-202606-072: listeners shell:* — desacoplamiento de módulos consumidores
-// locus-backlog-core.js despacha shell:sprint-render en lugar de llamar directamente
-window.addEventListener('shell:sprint-render', () => { renderSprintBurndown(); renderSprintItems(); });
+// TKT-202607-134: listener 'shell:sprint-render' retirado junto con renderSprintBurndown()/
+// renderSprintItems() (ver comentario de retiro más arriba en este archivo). Los 3
+// dispatchEvent('shell:sprint-render') en locus-backlog-core.js quedan como no-op aceptado —
+// fuera de scope de este TKT (no toca módulo crítico), limpieza futura vía DISC.
