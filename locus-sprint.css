@@ -1,3 +1,12 @@
+/* [PP] mod:67 · autor:Nova · 2026-07-26 UTC-6 */
+/* TKT-202607-126 (REQ-202607-039): fix de QA (Finn) sobre el entregable de mod:66 — el
+   supuesto declarado ahí ("si el markup real difiere, señalar antes de declarar el TKT
+   en-revision") se confirmó incorrecto: index.html real reusa .sps-stat-cell (con
+   modificadores nuevos --en-revision/--bloqueado) y .spt-content-empty, no el prefijo
+   .spi-* asumido en mod:66. AC1 y AC3 no tenían ninguna regla aplicándose. Corregido:
+   selectores renombrados al prefijo real, grid/celda base de AC1 no se redeclara (ya
+   vive en .sps-stats-block/.sps-stat-cell, L3319). AC2 (.spt-identity) ya coincidía —
+   sin cambios. Ver bloque de reglas al final del archivo. */
 /* [PP] mod:66 · autor:Nova · 2026-07-26 UTC-6 */
 /* TKT-202607-126 (REQ-202607-039): entregable visual pendiente desde mod:65 — familias
    .spi-stats-block/.spi-stat-cell (AC1), .spt-identity (AC2), .spi-content-empty (AC3).
@@ -3563,74 +3572,48 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
    aprobado de .sps-stats-block (rediseño sub-tab Sprints, mismo módulo).
    Sin tokens nuevos — reuso exclusivo de tokens ya validados WCAG AA en
    este archivo y en _Locus-css-ref (--amber-text, --c-high-*, --text3, etc).
-   ══════════════════════════════════════════════════════════════════════ */
 
-/* ── AC1 — spi-stats-block: grid de 4 celdas (pendiente/en-revisión/bloqueado/done),
-   máx 2 con tinte. Misma estructura que .sps-stats-block (L3309) — mismo sub-tab. ── */
-.spi-stats-block {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(120px, 1fr));
-  gap: 8px;
-  margin: 0 0 16px;
-}
+   Corrección QA (Finn → Nova, mod:67): el bloque original (mod:66) declaraba
+   estas reglas bajo el prefijo .spi-* (.spi-stats-block/.spi-stat-cell/
+   .spi-content-empty). index.html (mod:159) no usa ese prefijo — reusa
+   .sps-stats-block/.sps-stat-cell tal cual (con los IDs propios spi-stat-*
+   solo para lectura de JS, no para CSS) y usa .spt-content-empty para el
+   empty-state. El prefijo .spi-* no existía en ningún selector del markup,
+   por lo que ninguna regla de este bloque aplicaba: AC1 (tinte ámbar/rojo)
+   y AC3 (patrón visual del empty-state) se renderizaban sin estilo. Grid y
+   celda base de AC1 ya están cubiertos por .sps-stats-block/.sps-stat-cell
+   (L3319) — no se redeclaran aquí, solo los modificadores de color nuevos. ══ */
 
-.spi-stat-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px 12px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--surface2);
-}
-
-.spi-stat-label {
-  font-size: var(--text-2xs);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text2);
-}
-
-.spi-stat-n {
-  font-size: var(--text-lg);
-  font-weight: 700;
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  color: var(--text);
-}
-
-/* en-revisión — mismo par ya vigente en .spi-item-status--en-revision (misma familia
-   de badges de esta vista) — amber-text sobre amber 10%, WCAG AA ya verificado. */
-.spi-stat-cell--en-revision {
+/* ── AC1 — modificadores de color sobre .sps-stat-cell (reusado en sub-tab
+   Ítems vía #spi-stats-block) — máx 2 celdas con tinte, resto neutro. ── */
+.sps-stat-cell--en-revision {
   background: color-mix(in srgb, var(--amber) 10%, transparent);
   border-color: color-mix(in srgb, var(--amber) 28%, transparent);
 }
 
-.spi-stat-cell--en-revision .spi-stat-label,
-.spi-stat-cell--en-revision .spi-stat-n {
+.sps-stat-cell--en-revision .sps-stat-label,
+.sps-stat-cell--en-revision .sps-stat-n {
   color: var(--amber-text);
 }
 
-/* bloqueado — mismo par ya vigente en .spi-item-status--blocked (--c-high-*). Supuesto
-   declarado: el AC describe "tinte rojo" — el token semántico ya establecido para
+/* bloqueado — el AC describe "tinte rojo" — el token semántico ya establecido para
    "bloqueado" en esta misma vista es --c-high-* (naranja, no confundir con
    --c-severity-high-*, familia distinta — ver _Locus-css-ref §Tokens semánticos de
    status). Se reusa por consistencia con el badge de ítem ya existente en vez de
    introducir --red, que no tiene precedente en esta familia. */
-.spi-stat-cell--bloqueado {
+.sps-stat-cell--bloqueado {
   background: var(--c-high-bg);
   border-color: var(--c-high-border);
 }
 
-.spi-stat-cell--bloqueado .spi-stat-label,
-.spi-stat-cell--bloqueado .spi-stat-n {
+.sps-stat-cell--bloqueado .sps-stat-label,
+.sps-stat-cell--bloqueado .sps-stat-n {
   color: var(--c-high-text);
 }
 
 /* ── AC2 — spt-identity: chip 'PP-S-13' + label del sprint, instancia única
-   compartida Ítems/Planificar (shell en index.html, no adjunto en esta sesión). ── */
+   compartida Ítems/Planificar (shell en index.html). Ya coincidía con el
+   markup real — sin cambios en esta corrección. ── */
 .spt-identity {
   display: flex;
   align-items: center;
@@ -3660,10 +3643,12 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   min-width: 0;
 }
 
-/* ── AC3 — spi-content-empty: ícono+título+hint, mismo patrón visual que
+/* ── AC3 — spt-content-empty: ícono+título+hint, mismo patrón visual que
    .msc-diff-empty/.msc-diff-empty-icon/-title/-hint (locus-backlog-item.css) y
-   layout de .sps-empty (L1680) — nunca área en blanco. ── */
-.spi-content-empty {
+   layout de .sps-empty (L1680) — nunca área en blanco. Renombrado desde
+   .spi-content-empty* para matchear el markup real (#spi-content-empty usa
+   class="spt-content-empty", ver index.html L888-892). ── */
+.spt-content-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3672,17 +3657,17 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   text-align: center;
 }
 
-.spi-content-empty-icon {
+.spt-content-empty-icon {
   font-size: var(--text-display-2xl);
   color: var(--text3);
 }
 
-.spi-content-empty-title {
+.spt-content-empty-title {
   font-size: var(--text-sm);
   color: var(--text2);
 }
 
-.spi-content-empty-hint {
+.spt-content-empty-hint {
   font-size: var(--text-xs);
   color: var(--text3);
 }

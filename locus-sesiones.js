@@ -1,3 +1,7 @@
+// [PP] mod:56 · autor:Rune · 2026-07-26 UTC-6
+// Fix Finn (TKT-202607-133, AC3): .worker-header-cd-inline-value mostraba texto vacío en vez
+// de 'Sin hora de desbloqueo asignada' cuando ai.resetTime era null — el fallback solo existía
+// en cdInline.title (tooltip). Ahora la línea visible muestra el texto, no solo el hover.
 // [PP] mod:55 · autor:Rune · 2026-07-26 UTC-6
 // INC-202607-006: #ingest-pill-project quedaba hardcodeado a "Locus" — no es duplicado de
 // #ingest-split-project (ese nodo muestra el nombre del WORKER, patrón AI Card/#worker-header,
@@ -917,7 +921,10 @@ function _populateWorkerHeader(ai) {
       const cd = getCD(ai.resetTime, ai.resetEpoch);
       if (valueEl) {
         valueEl.id = 'cd-' + ai.id; // convención esperada por el interval de reset (locus-sesiones-utils.js:395) — mismo id, nuevo contenedor
-        valueEl.textContent = cd || (ai.resetTime ? '--:--:--' : '');
+        // Fix Finn (TKT-202607-133, AC3): sin resetTime el valor quedaba en '' — el fallback
+        // solo vivía en cdInline.title (tooltip, invisible sin hover). El AC exige que la línea
+        // fusionada MUESTRE el texto en vez de hh:mm:ss, no solo lo tenga en el title.
+        valueEl.textContent = cd || (ai.resetTime ? '--:--:--' : 'Sin hora de desbloqueo asignada');
       }
       cdInline.title = ai.resetTime ? `hasta las ${fmt12(ai.resetTime)}` : 'Sin hora de desbloqueo asignada';
     }
