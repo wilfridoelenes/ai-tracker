@@ -1,3 +1,9 @@
+// [PP] mod:56 · autor:Rune · 2026-07-26 UTC-6
+// TKT-202607-143 (DISC-202607-047, ref_id CAEL-0726-01): extraído _withFreshData() — helper interno
+// no exportado que centraliza el par `await _loadFromSupabase(); await refreshHistoricoCache();`
+// repetido en exportBacklogMd(), exportFullHistoryMd() y exportSprintsMd(). Mismo orden vigente
+// desde INC-202607-047/049, sin try/catch nuevo — la propagación de errores no cambia. exportContextMd()
+// fuera de scope — no toca getItems()/getIncidents()/_allItemsWithHistorico() (confirmado mod:52).
 // [PP] mod:55 · autor:Rune · 2026-07-29 UTC-6
 // INC-202607-049 (fix): mismo gap que INC-202607-047, en las otras dos funciones de export
 // que leen ITEMS/INCIDENTS del proyecto — exportFullHistoryMd() y exportSprintsMd() (mismo
@@ -136,6 +142,15 @@ import { showToast } from './locus-toast.js';
 import { incSlaPriority, incIncidentStatus } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil · incIncidentStatus: TKT3 (ref_id CAEL-0722-04)
 import { _gconfirmOpen } from './locus-modals.js'; // INC-PP-export-confirm-dead-shell
 
+// TKT-202607-143 (DISC-202607-047): centraliza el refresh pre-export que exportBacklogMd/
+// exportFullHistoryMd/exportSprintsMd repetían por separado (_loadFromSupabase + refreshHistoricoCache,
+// mismo orden vigente desde INC-202607-047/049). No exportada — no captura errores: una excepción de
+// _loadFromSupabase() se propaga sin cambios al caller, igual que las 3 funciones inline hoy.
+async function _withFreshData() {
+  await _loadFromSupabase();
+  await refreshHistoricoCache();
+}
+
 // ── _itemTypeGen2 — detección de tipo Gen 2 ──────────────────────────────────
 // [tmp:tkt1-itemtype-fn] AC-1: wrapper sobre itemKind() de locus-backlog-core.js.
 // Retorna tipo Gen 2 canónico ('REQ'/'TKT'/'INC'/'DISC'/'PRB'/'CHG') o 'UNKNOWN'.
@@ -249,8 +264,7 @@ export async function exportBacklogMd(opts = {}) {
   //   await refreshHistoricoCache(). Si el founder exporta backlog sin haber visitado antes el
   //   sub-tab Historico en la sesión, el cache arranca vacío y tanto el conteo de ítems done por
   //   sprint como maxId (fix anterior de este mismo INC) leen historico como si no existiera.
-  await _loadFromSupabase(); // INC-202607-047: ITEMS/INCIDENTS refrescados antes de leer getItems()/getIncidents() — sin esto, un cambio remoto sin reload de la pestaña quedaba invisible para el export
-  await refreshHistoricoCache(); // fix INC — cache poblado antes de que el generador sync lea getHistoricoItemsSync(), mismo patrón que exportFullHistoryMd/exportSprintsMd
+  await _withFreshData(); // TKT-202607-143: antes _loadFromSupabase()+refreshHistoricoCache() inline — ver header
   const _doExport = () => _showExportConfirmModal('Backlog', `_${pfx}-backlog-${_canonVer(ver)}.md`, () => _generateBacklogMd(ver, opts));
   // T-202606-108: AC-1/AC-2 — advertir si sprint activo tiene campos incompletos
   if (_sprintHasIncompleteFields()) {
@@ -272,8 +286,7 @@ export async function exportFullHistoryMd() {
   const pfx = _docPrefix();
   const ver = _backlogVersion();
   const _canonVer2 = v => v.replace(/_/g, '.');
-  await _loadFromSupabase(); // INC-202607-049: ITEMS/INCIDENTS refrescados antes de leer getItems()/getIncidents() — mismo fix que exportBacklogMd() (INC-202607-047)
-  await refreshHistoricoCache(); // fix INC — cache poblado antes de que el generador sync lea getHistoricoItemsSync()
+  await _withFreshData(); // TKT-202607-143: antes _loadFromSupabase()+refreshHistoricoCache() inline — ver header
   // INC-202607-034: naming alineado a patrón de Docs — guion bajo inicial + '-' antes de versión.
   // 'backlog-full' no está declarado como tipo en la Taxonomía (__OB-Strategy §5) — escalado a
   // Vera como Propuesta de mejora (¿agregar el tipo, o tratar este export como no-canónico?).
@@ -287,8 +300,7 @@ async function exportSprintsMd() {
   const pfx = _docPrefix();
   const ver = _backlogVersion();
   const _canonVer3 = v => v.replace(/_/g, '.');
-  await _loadFromSupabase(); // INC-202607-049: ITEMS/INCIDENTS refrescados antes de leer getItems()/getIncidents() — mismo fix que exportBacklogMd() (INC-202607-047)
-  await refreshHistoricoCache(); // fix INC — cache poblado antes de que el generador sync lea getHistoricoItemsSync()
+  await _withFreshData(); // TKT-202607-143: antes _loadFromSupabase()+refreshHistoricoCache() inline — ver header
   // INC-202607-033: mismo fix de naming que exportFullHistoryMd (INC-202607-034) — 'sprints'
   // tampoco está declarado como tipo en la Taxonomía, misma escalación a Vera pendiente.
   _showExportConfirmModal('Sprints — historial completo', `_${pfx}-sprints-${_canonVer3(ver)}.md`, () => _generateSprintsExportMd(ver));
