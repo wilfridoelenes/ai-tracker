@@ -1,4 +1,4 @@
-// [PP] mod:146 · autor:Rune · 2026-07-25 UTC-6
+// [PP] mod:147 · autor:Rune · 2026-07-26 13:40 UTC-6
 // TKT-202607-122 (origen_disc DISC-202607-040): _toIncidentRow()/_mapRowToIncident() —
 // status_changed_at agregado. existing.statusChangedAt (aplicado en memoria por
 // applyPatchesFromTG, locus-backlog-item.js mod:147/148, ver _Locus-module-contracts mod:135)
@@ -2028,6 +2028,23 @@ export async function saveBacklog() {
         'saveBacklog tracker_incidents upsert'
       );
       if (incError) throw incError;
+
+      // INC-202607-053 fix: estampar _updatedAtMs en los objetos vivos de INCIDENTS tras
+      // upsert exitoso — mismo patrón que el bloque de ITEMS arriba (L1987, fix
+      // B-[pendiente-ID]). Sin este stamp, _mergeIncidentsFromRemote() comparaba localRowTs
+      // (_updatedAtMs) contra remoteRowTs con localRowTs en 0 o en el valor de la última
+      // hidratación — una fila remota leída antes de que este upsert fuera visible
+      // (read-after-write) podía ganar con una versión vieja, revirtiendo un status recién
+      // confirmado (ej. CHG-202607-001 descartado → pendiente) sin ningún patch nuevo pegado
+      // en Locus. `incidents` contiene las mismas referencias de objeto que INCIDENTS —
+      // _filterValidIncidentsForUpsert() usa .filter(), no .map(), así que el stamp se
+      // refleja de inmediato en _getIncidents(). Se estampa sobre `incidents` (post-filtro),
+      // no sobre `_rawIncidents`, para no marcar como confirmado un ítem excluido del upsert
+      // por chk_incident_status_by_type u otro gate del filtro.
+      for (const inc of dedupedIncidentRows) {
+        const _liveInc = incidents.find(i => i.code === inc.code);
+        if (_liveInc) _liveInc._updatedAtMs = _updatedAtMs;
+      }
     }
   } catch (incErr) {
     logger.error('[AI Tracker] Supabase saveBacklog() — upsert de tracker_incidents falló:', incErr);
