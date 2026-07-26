@@ -1,5 +1,16 @@
+// [PP] mod:137 · autor:Rune · 2026-07-26 UTC-6
+// TKT-202607-142 (REQ-202607-045): segunda referencia a 'CAEL-0726-04' detectada en la
+// tabla de shell:* events (línea ~317, comentario de shell:render-sprint-tab) — el fix de
+// mod:136 solo cubrió el comentario de origen del bloque mod:135. Misma corrección de
+// consistencia, mismo criterio (`__BR-Execution §9`) — sin cambio de comportamiento.
+// [PP] mod:136 · autor:Rune · 2026-07-26 UTC-6
+// TKT-202607-142 (REQ-202607-045, retroactivo — reemplaza TKT-202607-141): AC2 — el
+// comentario de origen del bloque mod:135 (línea siguiente) citaba el ref_id de sesión
+// 'CAEL-0726-04' en vez del código real ya asignado por Locus. Corregido a 'TKT-202607-142'
+// — mismo criterio de `__BR-Execution §9` (código real disponible → se usa, nunca el
+// ref_id efímero una vez resuelto). Sin cambio de comportamiento — solo trazabilidad.
 // [PP] mod:135 · autor:Rune · 2026-07-26 UTC-6
-// origen: CAEL-0726-04 (triggered_by: TKT-202607-134): shell:sprint-render → shell:render-sprint-tab.
+// origen: TKT-202607-142 (triggered_by: TKT-202607-134): shell:sprint-render → shell:render-sprint-tab.
 // TKT-202607-134 retiró renderSprintBurndown()/renderSprintItems() y su listener de
 // locus-backlog-sprints.js sin actualizar el evento que este módulo dispara — shell:sprint-render
 // quedó sin listener (dead event). locus-sprint.js escucha shell:render-sprint-tab (L2403) desde
@@ -308,7 +319,7 @@ export function _registerCoreCallback(name, fn) {
 //   shell:backlog-filter-changed → listener: updateClearFilterBtn()
 //   shell:backlog-modified       → listener: _setBacklogModified()
 //   shell:backlog-subtab-update  → listener: _updateSubTabButtons(detail.tab)
-//   shell:render-sprint-tab      → listener: locus-sprint.js — renderSprintTab() (origen: CAEL-0726-04, TKT-202607-134)
+//   shell:render-sprint-tab      → listener: locus-sprint.js — renderSprintTab() (origen: TKT-202607-142, TKT-202607-134)
 
 // T-202604-216: Skeleton helpers
 const _SKEL_HTML_4 = Array(4).fill('<div class="skel-row"></div>').join('');

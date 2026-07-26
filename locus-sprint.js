@@ -1,3 +1,13 @@
+// [PP] mod:121 · autor:Rune · 2026-07-26 UTC-6
+// TKT-202607-142 (REQ-202607-045, retroactivo — reemplaza TKT-202607-141): retirado el
+// listener 'shell:sprint-render' agregado en mod:120 — dead code, ver bloque en el cuerpo
+// del archivo. TKT-202607-134 (mod:135 de locus-backlog-core.js) ya había renombrado los 3
+// dispatchEvent que lo alimentaban a 'shell:render-sprint-tab'; el listener de ese evento
+// (L2419 de este archivo, sin cambio) es ahora el único punto de refresco en vivo del tab
+// Sprint. AC1 (grep 'shell:sprint-render(' fuera de comentarios → cero matches en los 4
+// archivos del REQ) queda satisfecho. contract_update: sí — _renderSprintItems() pierde el
+// segundo call site (el del listener retirado); su único invocador queda renderSprintTab()
+// (L2104) y el llamado directo de _sptSwitch() (L374). Sin cambio de firma.
 // [PP] mod:120 · autor:Rune · 2026-07-26 UTC-6
 // TKT-202607-141 (REQ-202607-045, CHG-202607-001 · INC-202607-045/046): registra
 // _renderSprintItems() como único listener de shell:sprint-render. TKT-202607-134 retiró
@@ -2421,20 +2431,15 @@ document.addEventListener('DOMContentLoaded', function() {
     _updateSprintTabBadges(); // T-202606-098 AC-6
   });
 
-  // TKT-202607-141 (REQ-202607-045): listener shell:sprint-render — único punto de refresco
-  // en vivo de las 4 secciones de ítems + burndown del tab Sprint (Ítems + campos #sph-bd-*).
-  // Reemplaza el listener retirado en TKT-202607-134 (renderSprintItems/renderSprintBurndown,
-  // locus-backlog-sprints.js). Resuelve el sprint con el mismo mecanismo que _sptSwitch() (L370
-  // de este archivo) — _getActiveSprint() sin fallback a scheduled: ese fallback es exclusivo
-  // del primer render completo de renderSprintTab() cuando no hay sprint activo. Sin sprint
-  // resoluble → no-op, sin excepción. _renderSprintItems() ya es null-safe por elemento
-  // (_spEl + guard `if`) — no requiere verificación adicional de #spi-body-*/#sph-bd-* aquí,
-  // el listener no fuerza cambio de tab.
-  window.addEventListener('shell:sprint-render', function() {
-    const sprint = _getActiveSprint();
-    if (!sprint) return;
-    _renderSprintItems(sprint);
-  });
+  // TKT-202607-142 (REQ-202607-045, retroactivo — reemplaza TKT-202607-141): listener
+  // shell:sprint-render RETIRADO. Dead code desde que TKT-202607-134 renombró los 3
+  // dispatchEvent de locus-backlog-core.js a shell:render-sprint-tab (ver header, mod:135
+  // de ese archivo) — nada disparaba ya este evento, así que este listener nunca ejecutaba
+  // en producción. El refresco en vivo de ítems + burndown ante cambios de status externos ya
+  // ocurre vía el listener shell:render-sprint-tab de arriba: renderSprintTab() resuelve
+  // sprint (con fallback a scheduled cuando no hay activo — comportamiento correcto para un
+  // render completo de tab, distinto del listener retirado que deliberadamente no lo aplicaba)
+  // y llama _renderSprintItems(sprint) en L2104 — mismo destino, un solo listener.
 
   // T-202606-006 T3: listener para sprint:switch-subtab — reemplaza window._sptSwitch en planificacion
   window.addEventListener('sprint:switch-subtab', function(e) {
