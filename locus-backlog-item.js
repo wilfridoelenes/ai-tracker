@@ -1,3 +1,18 @@
+// [PP] mod:152 · autor:Rune · 2026-07-26 UTC-6
+// TKT-202607-137 (REQ-202607-043): gate duro — applyPatchesFromTG() rechaza un patch
+// status:'done' sobre REQ si al menos un TKT hijo (parentId === existing.code) no está en
+// done/descartado. Dos partes: (1) pre-escaneo de batch (_projectedStatus, Map construido antes
+// de patches.forEach) — evalúa el status PROYECTADO del TKT hijo, no el ya persistido en ITEMS,
+// para que un patch REQ→done que aparece ANTES que el patch de su TKT hijo→done en el mismo
+// array (orden típico de emisión de Cael) no falle contra un estado que el mismo batch va a
+// corregir después. Resolución de código best-effort en el pre-escaneo (slugMap únicamente, sin
+// _blogLog propio) — la resolución definitiva de ref_id/slugMap con logging ya ocurre en el
+// forEach principal; un patch con code:{ref_id,title} sin declarante aún resuelto queda fuera
+// del mapa proyectado y el gate evalúa contra el status actual del hijo, mismo comportamiento
+// que sin este TKT. (2) gate en la rama field==='status' && normalized==='done', después del
+// guard de rol ya existente (rol-no-autorizado-done) y antes de _applyDoneStatus — TKT hijo en
+// descartado no bloquea, mismo criterio que done. reason nuevo en ignoredPatches:
+// 'req-done-tkt-hijo-pendiente'. Sin cambio de firma de applyPatchesFromTG(). contract_update: sí.
 // [PP] mod:151 · autor:Rune · 2026-07-25 UTC-6
 // TKT-202607-123 (origen_disc DISC-202607-041): unifica los 4 bloques dispersos de aliasing
 // snake_case→camelCase en applyPatchesFromTG() (_ITIL_PATCH_FIELD_ALIASES + patch.parent +
@@ -3369,6 +3384,27 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
     { snake: 'depends_on', camel: 'dependsOn', shouldAlias: v => Array.isArray(v), hasPrecedence: v => v !== undefined }
   ];
 
+  // TKT-202607-137 (REQ-202607-043): mapa de estados proyectados — construido antes de mutar
+  // nada, sobre el array `patches` completo. Solo el gate 'REQ no puede marcarse done con TKT
+  // hijo pendiente' (más abajo) lo consume. Resolución best-effort de patch.code: string real
+  // se usa tal cual; placeholder resoluble vía slugMap se resuelve sin log propio (la resolución
+  // autoritativa + _blogLog ya ocurre dentro del forEach principal); code como {ref_id,title} o
+  // placeholder no resuelto queda fuera del mapa — el gate cae al comportamiento sin este TKT
+  // (evalúa contra existing.status del hijo).
+  const _projectedStatus = new Map();
+  patches.forEach(p => {
+    if (!p || p.status === undefined) return;
+    let _pCode = p.code;
+    if (_pCode && typeof _pCode === 'object') return;
+    if (_slugMap && _pCode && _isPlaceholderCode(_pCode)) {
+      const _r = _slugMap.get(_pCode);
+      if (_r && !_isPlaceholderCode(_r)) _pCode = _r;
+    }
+    if (typeof _pCode === 'string' && !_isPlaceholderCode(_pCode)) {
+      _projectedStatus.set(_pCode, p.status);
+    }
+  });
+
   patches.forEach(patch => {
     // TKT-202607-123: mapa único de aliasing — reemplaza los 4 bloques dispersos previos.
     // Corre antes de cualquier otra normalización del patch, mismo orden que el mecanismo
@@ -3526,6 +3562,28 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
                   'backlog'
                 );
                 ignoredPatches.push({ code, reason: 'rol-no-autorizado-done' });
+                return;
+              }
+            }
+            // TKT-202607-137 (REQ-202607-043): gate duro — un REQ no puede marcarse done si
+            // tiene al menos un TKT hijo en status distinto de done/descartado. Evalúa contra
+            // _projectedStatus (pre-escaneo del batch completo, construido antes de este forEach)
+            // cuando el TKT hijo también se patchea en el mismo array — no contra existing.status
+            // ya mutado secuencialmente. TKT hijo en descartado no bloquea, mismo criterio que done.
+            if (itemKind(existing) === 'REQ') {
+              const _pendingChild = getItems().find(it =>
+                itemKind(it) === 'TKT' &&
+                it.parentId === existing.code &&
+                !['done', 'descartado'].includes(_projectedStatus.has(it.code) ? _projectedStatus.get(it.code) : it.status)
+              );
+              if (_pendingChild) {
+                _blogLog(
+                  'req-done-tkt-hijo-pendiente',
+                  code,
+                  `Transición done en REQ ${code} rechazada: TKT hijo ${_pendingChild.code} está en ${_projectedStatus.has(_pendingChild.code) ? _projectedStatus.get(_pendingChild.code) : _pendingChild.status}, no en done ni descartado.`,
+                  'backlog'
+                );
+                ignoredPatches.push({ code, reason: 'req-done-tkt-hijo-pendiente' });
                 return;
               }
             }

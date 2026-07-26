@@ -1,3 +1,17 @@
+// [PP] mod:149 · autor:Rune · 2026-07-26 UTC-6
+// TKT-202607-138 (REQ-202607-043, depends_on TKT-202607-137): gate visible en el panel de
+// ingesta para el mismo rechazo que TKT1 aplica silenciosamente en storage (applyPatchesFromTG,
+// locus-backlog-item.js mod:152) — un patch REQ→done con TKT hijo no done/descartado ahora se
+// muestra ANTES de confirmar el CHECKPOINT, no solo se descubre en DocLog después de aplicar.
+// Insertado en parsePaste() entre el check de Proyecto no reconocido y el aviso de infra_version
+// — mismo patrón bloqueante (_showIngestValidationError + return, sin "Continuar de todas
+// formas"). Mismo pre-escaneo de batch que TKT1: mapa `_projected` construido sobre
+// _pendingPatches + tgItems antes de evaluar, para que un patch TKT→done que aparece DESPUÉS
+// del patch REQ→done en el mismo array (orden típico de emisión) no produzca falso positivo.
+// AC edge case (múltiples REQ bloqueados = un check por REQ, no agregado): cada REQ bloqueado
+// genera su propio <div class="blocker-row">, concatenados sin fusionar el texto en una sola
+// oración. no_incluye: no toca applyPatchesFromTG (TKT1, ya entregado) ni agrega modal separado
+// — reutiliza el shell existente de #ingest-validation-error.
 // [PP] mod:148 · autor:Rune · 2026-07-26 UTC-6
 // TKT-202607-131 (REQ-202607-041, origen DISC-202607-043): Finn devolvió el TKT en primera
 // auditoría — el fix bajo ref_id CAEL-0725-03 (línea ~1601, _isNonCanonicalPlaceholder
@@ -1945,6 +1959,57 @@ export function parsePaste(id) {
         }
       }
       return;
+    }
+
+    // TKT2 (REQ-202607-043 · depends_on TKT-202607-137): visibilidad en el panel de ingesta del
+    // mismo rechazo que TKT1 aplica silenciosamente en storage (applyPatchesFromTG,
+    // locus-backlog-item.js) — un patch REQ→done con TKT hijo no done/descartado debe verse
+    // ANTES de confirmar, no solo descubrirse en DocLog después de aplicar. Mismo criterio de
+    // pre-escaneo de batch que TKT1: el status proyectado de un TKT hijo dentro del mismo array
+    // de items tiene precedencia sobre su status ya persistido en backlog. Bloqueante — mismo
+    // patrón que el check de Proyecto no reconocido (arriba): _showIngestValidationError + return,
+    // sin botón "Continuar de todas formas".
+    {
+      const _reqDonePatches = _pendingPatches.filter(p =>
+        p && p.code && !_isPlaceholderCode(p.code) && _canonicalStatus(p.status, 'REQ') === 'done'
+      ).filter(p => {
+        const _target = (getItems() || []).find(x => x.code === p.code);
+        return !!_target && itemKind(_target) === 'REQ';
+      });
+      if (_reqDonePatches.length > 0) {
+        // Mapa de status proyectado del batch — mismo mecanismo que _projectedStatus en TKT1:
+        // un TKT-patch o un TKT nuevo del mismo array tiene precedencia sobre el status persistido.
+        const _projected = new Map();
+        _pendingPatches.forEach(p => {
+          if (!p || !p.code) return;
+          const _c = _canonicalStatus(p.status, 'TKT');
+          if (_c) _projected.set(p.code, _c);
+        });
+        tgItems.forEach(it => { if (it.code) _projected.set(it.code, it.status); });
+
+        const _allExisting = getItems() || [];
+        const _rows = [];
+        _reqDonePatches.forEach(reqPatch => {
+          const _childMap = new Map();
+          _allExisting.forEach(x => { if (itemKind(x) === 'TKT' && x.parentId === reqPatch.code) _childMap.set(x.code, x); });
+          tgItems.forEach(it => { if (itemKind(it) === 'TKT' && it.parentId === reqPatch.code) _childMap.set(it.code, it); });
+          const _pendingChild = Array.from(_childMap.values()).find(c => {
+            const _proj = _projected.has(c.code) ? _projected.get(c.code) : c.status;
+            return !['done', 'descartado'].includes(_proj);
+          });
+          if (_pendingChild) {
+            const _projStatus = _projected.has(_pendingChild.code) ? _projected.get(_pendingChild.code) : _pendingChild.status;
+            // Una oración completa por REQ — separadas con <br>, nunca fusionadas en un mensaje
+            // agregado (AC edge case TKT2). Mismo patrón visual que el resto de checks bloqueantes
+            // de _showIngestValidationError: <code> para códigos, <strong> para el valor observado.
+            _rows.push(`<code>${esc(reqPatch.code)}</code> no puede marcarse done — <code>${esc(_pendingChild.code)}</code> (hijo) está en <strong>${esc(_projStatus)}</strong>, no en done ni descartado.`);
+          }
+        });
+        if (_rows.length > 0) {
+          _showIngestValidationError(`⛔ ${_rows.length} REQ no puede${_rows.length !== 1 ? 'n' : ''} marcarse done — TKT hijo pendiente:<br>${_rows.join('<br>')}`);
+          return;
+        }
+      }
     }
 
     // T-202606-203: detección de desfase de infra_version — aviso informativo no bloqueante
