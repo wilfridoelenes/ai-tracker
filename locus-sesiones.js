@@ -1,4 +1,4 @@
-// [PP] mod:54 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:55 · autor:Rune · 2026-07-26 UTC-6
 // INC-202607-006: #ingest-pill-project quedaba hardcodeado a "Locus" — no es duplicado de
 // #ingest-split-project (ese nodo muestra el nombre del WORKER, patrón AI Card/#worker-header,
 // no el proyecto canónico). Poblado ahora en _openIngestModal vía getActiveProject().name
@@ -874,8 +874,8 @@ function _populateWorkerHeader(ai) {
   }
 
   // Ícono de reset (legado) — se conserva sin cambio para interrupted/insession, fuera de
-  // scope de CAEL-03. Para exhausted, ver bloque .worker-header-unlock más abajo — el pill
-  // deja de usarse en ese estado (AC-1/CAEL-03).
+  // scope de TKT-202607-133 (no_incluye). Para exhausted, ver bloque .worker-header-cd-inline
+  // más abajo — el pill deja de usarse en ese estado (AC-1/CAEL-03, sin cambio).
   const resetIcon = header.querySelector('.worker-header-reset-icon');
   if (resetIcon) {
     resetIcon.dataset.aiId = ai.id;
@@ -893,37 +893,34 @@ function _populateWorkerHeader(ai) {
     }
   }
 
-  // CAEL-03 (REQ CAEL-01): countdown de agotado — bloque .worker-header-unlock (CSS: CAEL-02,
-  // locus-sesiones.css:4397) inyectado solo en estado exhausted y removido del DOM al salir de
-  // él, sin dejar el temporizador corriendo en segundo plano (AC-2/AC-3). El id cd-${id} vive en
-  // .worker-header-unlock-value como nodo hoja — coincide con getElementById('cd-'+id).textContent
-  // en locus-sesiones-utils.js:395 (a diferencia del patrón previo, que lo asignaba al contenedor).
-  // Se inserta como HERMANO de #worker-header, no como hijo — #worker-header es .sc-header
-  // (display:flex, fila), y .worker-header-unlock necesita renderizar como fila completa aparte
-  // con su propio border-top, igual que #wh-exh-row en worker_header_redesign_nova.html (sibling
-  // de #wh, fuera de su flex row). Insertarlo como hijo lo comprime a un ítem más de esa fila.
-  let unlockEl = header.parentElement ? header.parentElement.querySelector('.worker-header-unlock') : null;
-  if (state === 'exhausted') {
-    if (!unlockEl && header.parentElement) {
-      unlockEl = document.createElement('div');
-      unlockEl.className = 'worker-header-unlock';
-      unlockEl.innerHTML =
-        '<span class="worker-header-unlock-label">Disponible en</span>' +
-        '<span class="worker-header-unlock-value"></span>';
-      header.after(unlockEl);
-    }
-    if (unlockEl) {
-      unlockEl.dataset.aiId = ai.id;
-      const valueEl = unlockEl.querySelector('.worker-header-unlock-value');
+  // TKT-202607-133 (REQ-202607-042): rayo de sesión rápida — visible solo en available/insession.
+  // Reutiliza el delegador global de data-action="open-quick-capture" ya existente (L1290,
+  // openQuickCapture(aiId)) — el markup (index.html, TKT-202607-132) ya declara el atributo,
+  // este bloque solo popula data-ai-id y alterna is-hidden por estado. Sin addEventListener propio.
+  const quickBtn = header.querySelector('.worker-header-quick');
+  if (quickBtn) {
+    quickBtn.dataset.aiId = ai.id;
+    quickBtn.classList.toggle('is-hidden', !(isAvail || isInSession));
+  }
+
+  // TKT-202607-133 (REQ-202607-042): countdown de agotado fusionado a la fila principal —
+  // reemplaza el bloque .worker-header-unlock que se insertaba como HERMANO de #worker-header
+  // (CAEL-03, mod anterior). .worker-header-cd-inline vive dentro de #worker-header como hijo
+  // estático (index.html/locus-sesiones.css, TKT-202607-132) — deja de crearse/removerse del
+  // DOM, solo se muestra/oculta con is-hidden, igual que quickBtn arriba.
+  const cdInline = header.querySelector('.worker-header-cd-inline');
+  if (cdInline) {
+    cdInline.classList.toggle('is-hidden', state !== 'exhausted');
+    if (state === 'exhausted') {
+      cdInline.dataset.aiId = ai.id;
+      const valueEl = cdInline.querySelector('.worker-header-cd-inline-value');
       const cd = getCD(ai.resetTime, ai.resetEpoch);
       if (valueEl) {
-        valueEl.id = 'cd-' + ai.id; // convención esperada por el interval de reset (locus-sesiones-utils.js:395)
+        valueEl.id = 'cd-' + ai.id; // convención esperada por el interval de reset (locus-sesiones-utils.js:395) — mismo id, nuevo contenedor
         valueEl.textContent = cd || (ai.resetTime ? '--:--:--' : '');
       }
-      unlockEl.title = ai.resetTime ? `hasta las ${fmt12(ai.resetTime)}` : 'Sin hora de desbloqueo asignada';
+      cdInline.title = ai.resetTime ? `hasta las ${fmt12(ai.resetTime)}` : 'Sin hora de desbloqueo asignada';
     }
-  } else if (unlockEl) {
-    unlockEl.remove();
   }
 
   // Botón de ingesta de CHECKPOINT (CAEL-33) — bloque dedicado, localizado por id fijo
