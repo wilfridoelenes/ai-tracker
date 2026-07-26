@@ -1,4 +1,4 @@
-// [PP] mod:113 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:114 · autor:Rune · 2026-07-25 UTC-6
 // Cierra el bloqueo parcial declarado en mod:111 (index.html no adjunto en esa sesión):
 // _renderSpsStatsBlock() puebla el shell estático #sps-stats-block (index.html mod:151,
 // 4 celdas fijas Activo/Programados/Pausados/Cerrados) — solo actualiza textContent de
@@ -1892,17 +1892,21 @@ export function renderSprintTab() {
   // T-202606-105: banner de conflicto — sprints activos simultáneos
   _renderConflictBanner();
 
-  const sprint = _sprintNow;
+  let sprint = _sprintNow;
 
   if (!sprint) {
     // T-202606-001 AC-3: segunda evaluación — sprint programado (scheduled) sin sprint activo.
     // _getActiveSprint() solo retorna status:'active'. Si hay scheduled → rama con-sprint.
     const _activeProjId  = _getActiveProjectFilter();
-    const _hasScheduled = getActiveSprints().some(function(s) {
+    // TKT-202607-125: capturar el sprint scheduled real (no solo su existencia) — antes
+    // se usaba .some() y `sprint` quedaba null al caer en la rama "hay sprint activo",
+    // provocando TypeError en sprint.label más abajo (L1965).
+    const _scheduledSprint = getActiveSprints().find(function(s) {
       return s.status === 'scheduled' && s.projectId === _activeProjId; // TKT-B1: isHotfix eliminado
     });
-    if (_hasScheduled) {
-      // Hay sprint programado — caer en rama con-sprint (default 'items')
+    if (_scheduledSprint) {
+      // Hay sprint programado — usarlo como sprint activo de la vista y caer en rama con-sprint
+      sprint = _scheduledSprint;
       // Continúa fuera del bloque if (!sprint)
     } else {
       // T-202606-001 AC-1/AC-2: sin sprint activo ni programado — sptNav visible, default 'sprints'.

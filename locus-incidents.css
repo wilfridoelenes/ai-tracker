@@ -1,3 +1,11 @@
+/* [PP] mod:2 · autor:Nova · 2026-07-25 UTC-6 */
+/* Corrección de atribución (Patch, sin cambio de comportamiento): los comentarios de
+   .qinc-item--sla-vencido y .qinc-item--sla-riesgo citaban "TKT2 (REQ CAEL-0724-14,
+   ref_id CAEL-0724-16)" — atribución que locus-backlog.css (comentario del TKT de
+   .qinc-columns, previo a la extracción) ya había corregido a "TKT2 (TKT-202607-089,
+   parent REQ-202607-026)" por ser la primera "sin código real". La extracción mecánica
+   (mod:1) copió el comentario viejo sin aplicar esa corrección. Se alinea aquí — mismo
+   contenido de regla CSS, solo cambia el byline. Ver _Locus-css-ref §Cambios mod:127. */
 /* [PP] mod:1 · autor:Nova · 2026-07-25 UTC-6 */
 /* Alta del archivo — extracción de locus-backlog.css (mod:127→128). Nova/founder acordaron
    separar la rama Reactiva (INC/PRB/CHG) de la rama Planeada (REQ/TKT/DISC) en archivos CSS
@@ -112,7 +120,7 @@
 /* ── Señales de SLA — .qinc-item--sla-vencido / .qinc-item--sla-riesgo ── */
 /* Mutuamente excluyentes — JS aplica solo una */
 
-/* TKT2 (REQ CAEL-0724-14, ref_id CAEL-0724-16): border-left de .qinc-item--sla-vencido
+/* TKT2 (TKT-202607-089, parent REQ-202607-026): border-left de .qinc-item--sla-vencido
    cambia de var(--red-border) a var(--red-text) — AC del REQ exige que borde y countdown
    "compartan el mismo tono"; --red-border era un rojo muy oscuro/desaturado (#3a1018 dark,
    #f0b0bc light) sin relación tonal visible con el countdown. --red-text sí resuelve al mismo
@@ -127,7 +135,7 @@
   background: rgba(232, 85, 85, 0.14);
 }
 
-/* TKT2 (REQ CAEL-0724-14, ref_id CAEL-0724-16): .qinc-item--sla-riesgo pierde border-left +
+/* TKT2 (TKT-202607-089, parent REQ-202607-026): .qinc-item--sla-riesgo pierde border-left +
    animación de pulso — AC del REQ: "countdown ámbar, sin borde de card" en estado de riesgo,
    a diferencia de vencido (que sí conserva borde). La señal de riesgo se concentra por completo
    en .qinc-sla-countdown--riesgo (ver bloque de countdown más abajo) — el borde parpadeante

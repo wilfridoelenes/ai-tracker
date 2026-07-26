@@ -1,3 +1,10 @@
+// [PP] mod:151 · autor:Rune · 2026-07-25 UTC-6
+// TKT-202607-123 (origen_disc DISC-202607-041): unifica los 4 bloques dispersos de aliasing
+// snake_case→camelCase en applyPatchesFromTG() (_ITIL_PATCH_FIELD_ALIASES + patch.parent +
+// patch.blocked_at + patch.depends_on) en un único mapa declarativo _PATCH_FIELD_ALIASES —
+// cada entrada preserva su guard exacto (shouldAlias/hasPrecedence por campo), sin cambio de
+// comportamiento observable en ninguno de los 10 campos. Ver comentario inline junto al cambio
+// (~L3340) para detalle completo. Sin cambio de firma de applyPatchesFromTG(). contract_update: sí.
 // [PP] mod:150 · autor:Rune · 2026-07-25 UTC-6
 // TKT (ref_id CAEL-0725-01 · DISC-202607-034, absorbe DISC-202607-037): agrega
 // _isNonCanonicalPlaceholder(val) — detecta valores con forma de placeholder ([...]) que no
@@ -3337,82 +3344,41 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
     return val;
   }
 
-  // INC-[pendiente-ID] (triggered_by INC-202607-003 · root cause diagnosticado en sesión 2026-07-23):
-  // el schema canónico de CHECKPOINT (__BR-Ecosystem §8) declara los 7 campos ITIL en snake_case
-  // — incident_status, sla_priority, sla_deadline, resolution_type, comportamiento_actual,
-  // origin_module, derived_items — pero applyPatchesFromTG() (más abajo, switch por field) y
-  // mergeBacklogFromTG() solo reconocen sus equivalentes camelCase (incidentStatus, slaPriority,
-  // slaDeadline, resolutionType, comportamientoActual, originModule, derivedItems — mismo
-  // vocabulario interno que _buildCommonItemFields ya usa para ítems nuevos). Sin este alias, un
-  // patch con incident_status:resolved o incident_status:closed no matcheaba ninguna rama
-  // reconocida, caía en el bloque genérico del final del loop, y se escribía como propiedad
-  // suelta (existing['incident_status']) sin pasar por validateIncidentTransitions() ni espejar
-  // existing.status — el ítem quedaba congelado en su status anterior, sin ningún error visible
-  // ni en DocLog. Confirmado con grep exhaustivo contra este archivo: ninguna rama reconocía la
-  // clave snake_case antes de este fix. Mismo patrón ya usado para patch.parent → patch.parentId,
-  // abajo — alias-y-delete, para que el campo original no sobreviva al Object.keys(patch) del
-  // loop de aplicación (TKT-202607-008, modelo lista negra) como propiedad suelta no consumida.
-  const _ITIL_PATCH_FIELD_ALIASES = {
-    incident_status: 'incidentStatus',
-    sla_priority: 'slaPriority',
-    sla_deadline: 'slaDeadline',
-    resolution_type: 'resolutionType',
-    comportamiento_actual: 'comportamientoActual',
-    origin_module: 'originModule',
-    derived_items: 'derivedItems'
-  };
+  // TKT-202607-123 (origen_disc DISC-202607-041): unifica los 4 bloques dispersos de aliasing
+  // snake_case→camelCase que existían antes de este TKT — _ITIL_PATCH_FIELD_ALIASES (7 campos
+  // ITIL, guard !==undefined), patch.parent→parentId (guard truthy, precedencia por falsy-check),
+  // patch.blocked_at→blockedAt (guard !==undefined, permite null explícito) y
+  // patch.depends_on→dependsOn (guard Array.isArray). Cada entrada de _PATCH_FIELD_ALIASES
+  // declara su propio `shouldAlias` (¿el valor entrante dispara el alias?) y `hasPrecedence`
+  // (¿el valor camelCase ya presente gana, sin sobreescribir?) — la unificación consolida el
+  // mecanismo de alias-y-borra en un solo punto de entrada, sin homogeneizar las 4 semánticas
+  // de guard que ya existían. En particular `parent` conserva su asimetría original: dispara
+  // el alias solo si es truthy (string vacío no alía) y su precedencia también es un falsy-check
+  // (`!patch.parentId`), a diferencia de los otros 9 campos que usan undefined-check en ambos
+  // puntos — preservado intacto, no es un bug a corregir en este TKT (ver no_incluye del TKT).
+  const _PATCH_FIELD_ALIASES = [
+    { snake: 'incident_status', camel: 'incidentStatus', shouldAlias: v => v !== undefined, hasPrecedence: v => v !== undefined },
+    { snake: 'sla_priority', camel: 'slaPriority', shouldAlias: v => v !== undefined, hasPrecedence: v => v !== undefined },
+    { snake: 'sla_deadline', camel: 'slaDeadline', shouldAlias: v => v !== undefined, hasPrecedence: v => v !== undefined },
+    { snake: 'resolution_type', camel: 'resolutionType', shouldAlias: v => v !== undefined, hasPrecedence: v => v !== undefined },
+    { snake: 'comportamiento_actual', camel: 'comportamientoActual', shouldAlias: v => v !== undefined, hasPrecedence: v => v !== undefined },
+    { snake: 'origin_module', camel: 'originModule', shouldAlias: v => v !== undefined, hasPrecedence: v => v !== undefined },
+    { snake: 'derived_items', camel: 'derivedItems', shouldAlias: v => v !== undefined, hasPrecedence: v => v !== undefined },
+    { snake: 'parent', camel: 'parentId', shouldAlias: v => !!v, hasPrecedence: v => !!v },
+    { snake: 'blocked_at', camel: 'blockedAt', shouldAlias: v => v !== undefined, hasPrecedence: v => v !== undefined },
+    { snake: 'depends_on', camel: 'dependsOn', shouldAlias: v => Array.isArray(v), hasPrecedence: v => v !== undefined }
+  ];
 
   patches.forEach(patch => {
-    // INC-[pendiente-ID]: alias snake_case → camelCase de los 7 campos ITIL — ver bloque de
-    // comentario arriba (_ITIL_PATCH_FIELD_ALIASES) para el root cause completo. Corre antes de
-    // cualquier otra normalización del patch, mismo criterio que patch.parent inmediatamente
-    // abajo. Si por algún motivo ambas claves llegan presentes en el mismo patch, el valor
-    // camelCase ya presente gana precedencia — no debería ocurrir con un emisor conforme al
-    // schema, pero evita que el alias sobreescriba un valor ya normalizado por el caller.
-    Object.keys(_ITIL_PATCH_FIELD_ALIASES).forEach(_snakeField => {
-      if (patch[_snakeField] === undefined) return;
-      const _camelField = _ITIL_PATCH_FIELD_ALIASES[_snakeField];
-      if (patch[_camelField] === undefined) patch[_camelField] = patch[_snakeField];
-      delete patch[_snakeField];
+    // TKT-202607-123: mapa único de aliasing — reemplaza los 4 bloques dispersos previos.
+    // Corre antes de cualquier otra normalización del patch, mismo orden que el mecanismo
+    // previo (ITIL → parent → blocked_at → depends_on). El campo snake_case original no
+    // sobrevive al Object.keys(patch) del loop de aplicación en ningún caso.
+    _PATCH_FIELD_ALIASES.forEach(({ snake, camel, shouldAlias, hasPrecedence }) => {
+      if (!shouldAlias(patch[snake])) return;
+      if (!hasPrecedence(patch[camel])) patch[camel] = patch[snake];
+      delete patch[snake];
     });
-
-    // B-202605-016: normalizar campo parent (schema CHECKPOINT) → parentId (campo interno)
-    // T-[pendiente-ID] (REQ-unify-parent TKT2): eliminar patch.parent tras normalizar — el campo
-    // interno es parentId, no parent. TKT-202607-008 (modelo lista negra): sin este delete,
-    // patch.parent sobreviviría al Object.keys(patch) del loop de aplicación y se escribiría
-    // como existing.parent — campo que ningún consumidor del ítem lee. El delete sigue siendo
-    // obligatorio bajo el modelo nuevo, no solo higiene de campo legacy.
-    if (patch.parent) { if (!patch.parentId) patch.parentId = patch.parent; delete patch.parent; }
-
-    // INC-202607-005 fix (parte 1/2): alias blocked_at (snake_case, schema __BR-Ecosystem §8) →
-    // blockedAt (campo interno) — antes ausente de todo alias, a diferencia de los 7 campos ITIL
-    // y de parent/parentId. Sin este alias, patch.blocked_at sobrevivía crudo al Object.keys(patch)
-    // del loop de aplicación y caía en el bloque genérico del final (L~3494), que excluye
-    // explícitamente incoming === null — exactamente el valor que BR-Ecosystem §8 documenta para
-    // "retomar" un TKT (blocked_at: null). Mismo criterio alias-y-delete que patch.parent arriba:
-    // el campo original no debe sobrevivir al loop como propiedad suelta no consumida.
-    if (patch.blocked_at !== undefined) {
-      if (patch.blockedAt === undefined) patch.blockedAt = patch.blocked_at;
-      delete patch.blocked_at;
-    }
-
-    // INC-202607-XXX (fix, causa raíz de TKT-202607-115/116 con depends_on huérfano nunca
-    // corregido pese al patch aplicado — __BR-Ecosystem §8 usa depends_on snake_case, campo
-    // interno es dependsOn): alias ausente de todo mecanismo alias-y-delete hasta este fix, a
-    // diferencia de parent/parentId y blocked_at/blockedAt arriba. Sin este alias, patch.depends_on
-    // (incluido el caso crítico depends_on: [] para retirar una dependencia huérfana) sobrevivía
-    // crudo al Object.keys(patch) del loop de aplicación (ninguna rama de field lo reconocía) y
-    // caía en el catch-all genérico del final, que escribía existing['depends_on'] = [] como
-    // propiedad suelta nunca leída por ningún consumidor — existing.dependsOn (la que sí lee el
-    // badge de bloqueo, L1357-1358, y _toItemRow()/_toItemColumns() hacia la columna depends_on
-    // de Supabase) quedaba intacta con el valor viejo. mergeBacklogFromTG() ya tenía este alias
-    // para ítems nuevos (L2480) — applyPatchesFromTG() nunca lo tuvo para patches sobre ítems
-    // existentes. Guard `patch.dependsOn === undefined` evita que el alias pise un valor
-    // dependsOn ya normalizado por el caller si ambas claves llegaran presentes en el mismo patch.
-    if (Array.isArray(patch.depends_on)) {
-      if (patch.dependsOn === undefined) patch.dependsOn = patch.depends_on;
-      delete patch.depends_on;
-    }
 
     // INC-202607-XXX (triggered_by TKT-202607-029/030) + DISC de auditoría cerrada: parentId,
     // triggeredBy, origenDisc y dependsOn (array) resueltos con el mismo helper — antes solo

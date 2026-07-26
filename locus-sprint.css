@@ -1,3 +1,6 @@
+/* [PP] mod:65 · autor:Nova · 2026-07-25 UTC-6 */
+/* TKT-202607-124 (REQ-202607-037): homologación tipográfica de .spi-section-label,
+   .sps-section-label y .spnp-title al título canónico de sección — sin cambio de HTML/JS. */
 /* [PP] mod:64 · autor:Nova · 2026-07-23 10:00 UTC-6 */
 /* TKT CAEL-0721-06 (REQ CAEL-0721-05): .spi-item--orphaned — opacity 0.6 + border-color
    var(--hint), mismo mecanismo que .sps-card--pausado. Sin token nuevo, sin color/ícono. */
@@ -246,12 +249,14 @@
   margin-bottom: 6px;
 }
 
+/* TKT-202607-124 (REQ-202607-037): letter-spacing 0.04em→0.05em, color --text2→--text3 —
+   homologado al título canónico de sección compartido con .sps-section-label/.spnp-title. */
 .spi-section-label {
   font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text2);
+  letter-spacing: 0.05em;
+  color: var(--text3);
 }
 
 .spi-label--blocked {
@@ -1775,10 +1780,14 @@
   border-radius: var(--radius-sm);
 }
 
+/* TKT-202607-124 (REQ-202607-037): text-sm→text-xs, +uppercase, +letter-spacing 0.05em,
+   color --text→--text3 — homologado al título canónico de sección. */
 .spnp-title {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text3);
 }
 
 .spnp-fields {
@@ -2323,11 +2332,13 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 /* ── T-202606-036 (mejorado): sps-activo — card de sprint activo en sub-tab Sprints ── */
 
 /* ── Section label — encabezado de cada sección del sub-tab Sprints ── */
+/* TKT-202607-124 (REQ-202607-037): letter-spacing 0.07em→0.05em — homologado al título
+   canónico de sección compartido con .spi-section-label/.spnp-title. */
 .sps-section-label {
   font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.05em;
   color: var(--text3);
   padding: 0 2px;
   margin-bottom: 6px;

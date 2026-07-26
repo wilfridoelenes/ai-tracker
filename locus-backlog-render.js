@@ -1,3 +1,33 @@
+// [PP] mod:107 · autor:Rune · 2026-07-25 UTC-6
+// Fix directo (autorizado por founder — hallazgo de sesión Nova/Rune vía captura de pantalla,
+// sin TKT/REQ de origen): renderSprintGroup() — un REQ con status 'done' en un sprint NO
+// cerrado (isClosed:false) quedaba excluido de _rootPool (línea ~500 original), por lo tanto
+// nunca entraba al loop que anida hijos vía _childMap (líneas ~507-533 original). Sus hijos
+// done, a su vez, quedaban excluidos del bloque "Done items sueltos" (línea ~544 original)
+// porque ese filtro asume que todo hijo con parentId apuntando a un REQ del sprint ya se
+// renderizó anidado bajo ese REQ en el paso anterior — supuesto que no se cumple cuando el
+// REQ padre también está done. Resultado observado: con el filtro "Done" activo, el REQ
+// aparecía como fila plana suelta (tachado + check) y su TKT hijo desaparecía del DOM por
+// completo, aunque seguía contando en stats (renderStats opera sobre getItems(), ajeno a
+// este render). Con "Done" desactivado, el REQ correctamente no aparecía — esa ruta no se
+// toca (el filtrado de status ocurre antes, en el caller _renderVistaLista, sobre
+// sprintItems mismo).
+//
+// Fix (Opción A — extiende a isClosed:false el mismo criterio de anidado que isClosed:true
+// ya usa, en vez de mantener dos comportamientos distintos según el status del sprint):
+// (1) _rootPool (rama isClosed:false) ahora incluye todo REQ sin importar su status — solo
+//     los no-REQ siguen excluidos si están done/historico. _buildChildMap ya incluía hijos
+//     done en su Map sin cambio (solo excluye 'historico' cuando includeHistorico es false,
+//     nunca 'done') — el fix no toca locus-backlog-hierarchy.js.
+// (2) _doneFlat ("Done items sueltos") ahora excluye todo REQ explícitamente — un REQ done
+//     siempre se renderiza en el bloque root (anidado con sus hijos si los tiene, o suelto
+//     sin toggle si no los tiene), nunca en ambos lugares.
+// Sin cambio de firma, sin cambio de comportamiento para TKT/INC done cuyo REQ padre NO está
+// done (ya se anidaban antes) ni para sprints cerrados (isClosed:true, sin tocar). Impacto
+// lateral: ninguno detectado — módulo consumido solo por _renderVistaLista/renderBacklogList
+// (locus-backlog-historico.js vía contextPrefix:'hist' usa la misma función, mismo fix
+// aplica ahí igual, sin necesidad de cambio adicional).
+// contract_update: no — misma firma renderSprintGroup(sprintItems, isClosed, contextPrefix).
 // [PP] mod:106 · autor:Rune · 2026-07-24 UTC-6
 // TKT3 (TKT-202607-093, parent REQ CAEL-0724-01, opción B del gap devuelto por Rune — founder
 // confirmó "y B"): _sprintVelocityLabel() y la const local _metaText (renderSprintGroup) dejan
@@ -485,7 +515,8 @@ export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
 
   html += `<div class="bl-vl-sprint-body${isCollapsed ? ' collapsed' : ''}" id="vbody-${groupId}">`;
 
-  // Root: Rs con hijos anidados + T/B/P sueltos que no son done/historico/descartado
+  // Root: Rs con hijos anidados (incluye Rs done/historico desde fix mod:107 — ver header) +
+  // T/B/P sueltos que no son done/historico/descartado
   {
     // childMap ahora se construye desde sprintItems (visible/filtrado por el caller) — antes se
     // construía desde el universo completo sin filtrar. Ver deuda declarada en header del archivo.
@@ -493,11 +524,20 @@ export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
     const _rCodesInGroup = new Set(sprintItems.filter(i => itemKind(i) === 'REQ').map(i => i.code));
     // INC-[pendiente-ID]: en grupo cerrado (isClosed:true) todos los ítems terminan en
     // 'done'/'historico' — excluirlos de _rootPool dejaba el body sin nada que renderizar.
-    // isClosed:true → solo se excluye 'descartado'. isClosed:false conserva el comportamiento
-    // original (done/historico se muestran vía el bloque "Done items sueltos" más abajo).
+    // isClosed:true → solo se excluye 'descartado'.
+    // Fix mod:107 (autorizado por founder, ver header del archivo): isClosed:false ya no
+    // excluye REQs done/historico de forma incondicional — un REQ done necesita entrar al
+    // root pool para que su forEach (más abajo) lo anide con sus hijos vía _childMap. Los
+    // ítems no-REQ (TKT/INC) done/historico siguen excluidos de root — se muestran vía el
+    // bloque "Done items sueltos" solo cuando no tienen REQ padre en este sprint (ver filtro
+    // de _doneFlat más abajo), o anidados bajo su REQ si sí lo tienen.
     const _rootPool = isClosed
       ? sprintItems.filter(i => i.status !== 'descartado')
-      : sprintItems.filter(i => i.status !== 'done' && i.status !== 'historico' && i.status !== 'descartado');
+      : sprintItems.filter(i => {
+          if (i.status === 'descartado') return false;
+          if (itemKind(i) === 'REQ') return true;
+          return i.status !== 'done' && i.status !== 'historico';
+        });
 
     const _rootItems = _rootPool.filter(i => {
       if (itemKind(i) === 'REQ') return true;
@@ -541,6 +581,10 @@ export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
     const _doneFlat = sprintItems.filter(i => {
       if (i.status !== 'done') return false;
       const t = itemKind(i);
+      // Fix mod:107: un REQ done ya se resolvió en el bloque root de arriba (ver _rootPool) —
+      // anidado con sus hijos si los tiene, o suelto sin toggle si no los tiene. Excluirlo aquí
+      // evita que se duplique (root + done sueltos).
+      if (t === 'REQ') return false;
       if ((t === 'TKT' || t === 'INC') && i.parentId && _rCodesInGroupForDone.has(i.parentId)) return false;
       return true;
     });
