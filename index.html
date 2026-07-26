@@ -1,4 +1,14 @@
-<!-- [PP] mod:158 · autor:Nova · 2026-07-25 UTC-6 -->
+<!-- [PP] mod:159 · autor:Nova · 2026-07-25 17:40 UTC-6 -->
+<!-- TKT-202607-132 (REQ-202607-042): #worker-header — .sc-header-right gana 2 hermanos
+     estáticos, ambos ocultos por .is-hidden por default (integración de Rune, TKT2,
+     alterna la clase por estado y wirea el click):
+     · #worker-header-quick — rayo de sesión rápida (available/insession), SVG nuevo
+       agregado al set de 18 íconos ya vigente en el header (viewBox 0 0 18 18,
+       stroke="currentColor", sin símbolo previo de rayo/bolt en el mapeo).
+     · #worker-header-cd-inline — contenedor vacío para el countdown de agotado fusionado
+       a la fila principal; Rune inyecta label+valor dentro (locus-sesiones-cd-inline-*).
+     No toca #worker-header-reset-icon (función de "Corregir hora" — fuera de scope, ver
+     no_incluye del TKT2 hermano). -->
 <!-- TKT-202607-126 (REQ-202607-039, Nova) — entregable parcial: shell estático de HTML.
      #spi-stats-block (4 celdas, reusa .sps-stats-block/.sps-stat-cell, IDs propios spi-stat-*
      para no colisionar con #sps-stat-* de Sprints) + #spi-content-empty (familia
@@ -383,6 +393,9 @@
       <span class="sc-badge" id="worker-header-badge"></span>
     </div>
     <div class="sc-header-right">
+      <button class="worker-header-quick is-hidden" id="worker-header-quick"
+        data-action="open-quick-capture" data-ai-id="" title="Sesión rápida" aria-label="Sesión rápida"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2 4 10h4l-1 6 6-8h-4z"/></svg></button>
+      <div class="worker-header-cd-inline is-hidden" id="worker-header-cd-inline" data-ai-id=""></div>
       <button class="worker-header-reset-icon is-hidden" id="worker-header-reset-icon"
         data-action="open-correct-hora" data-ai-id="" title="Corregir hora de desbloqueo">⏰ <span id="worker-header-cd"></span></button>
       <button class="sc-menu-btn" id="worker-header-ingest-btn" data-action="open-ingest" data-ai-id=""

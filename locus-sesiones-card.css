@@ -1,3 +1,8 @@
+/* [PP] mod:13 · autor:Nova · 2026-07-25 17:40 UTC-6 */
+/* TKT-202607-132 (REQ-202607-042): .sc-badge-dot pasa de var(--c-low-text) fijo a
+   currentColor — el dot hereda el color del .sc-badge que lo contiene (verde/ámbar/morado/
+   rojo según modificador de estado) en vez de un gris genérico desalineado del texto del
+   badge. Sin selector nuevo por estado — un solo cambio cubre los 4 modificadores. */
 /* [PP] mod:12 · autor:Nova · 2026-07-20 19:10 UTC-6 */
 /* CAEL-0717-0X: swap semántico insession↔interrupted (decisión founder — semáforo
    verde/naranja/rojo para available/insession/exhausted; interrupted confirmado sin uso
@@ -147,7 +152,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--c-low-text);
+  background: currentColor;
   animation: sc-pulse-dot 2s ease-in-out infinite;
   flex-shrink: 0;
 }

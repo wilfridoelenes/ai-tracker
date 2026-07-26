@@ -1,3 +1,14 @@
+// [PP] mod:148 · autor:Rune · 2026-07-26 UTC-6
+// TKT-202607-131 (REQ-202607-041, origen DISC-202607-043): Finn devolvió el TKT en primera
+// auditoría — el fix bajo ref_id CAEL-0725-03 (línea ~1601, _isNonCanonicalPlaceholder
+// importada en línea ~436) solo escribe a DocLog vía _blogLog('dep-placeholder-ambiguo', ...),
+// no satisface el AC literal ("el panel de validación de ingesta la señala"). Agregado warning
+// visible en parsePaste() (patrón warn-key _depPlaceholderWarnSeen, mismo criterio que
+// _doneWarnKey/_dupWarnKey — bloqueante con "Continuar de todas formas") que reutiliza
+// _isNonCanonicalPlaceholder sobre tgItems.dependsOn ya construidos, sin duplicar ni eliminar
+// el _blogLog existente. Literal exacto '[pendiente-ID]' conserva el mismo comportamiento —
+// misma condición del some(), sin regresión. contract_update: n/a — sin cambio de firma exportada.
+
 // [PP] mod:147 · autor:Rune · 2026-07-25 02:33 UTC-6
 // INC-202607-031 (triggered_by REQ-202607-033): _onApplyBatch() — ckptHeaderRole:'' hardcodeado
 // en la llamada a applyPatchesFromTG() reemplazado por roleByIdx (Map<idx, role>) construido
@@ -1798,6 +1809,7 @@ export function parsePaste(id) {
     delete window[`_doneNoAcWarnSeen_${id}`];
     delete window[`_discrepancyWarnSeen_${id}`];
     delete window[`_draftGateToastSeen_${id}`];
+    delete window[`_depPlaceholderWarnSeen_${id}`]; // TKT-202607-131
     // Resetear preview y ta-has-items al estado inicial
     // CAEL-25: prev-${id} no existe en el DOM desde CAEL-22 (migración a #ingest-ta global) —
     // target real es #ingest-validation-panel.
@@ -1878,6 +1890,33 @@ export function parsePaste(id) {
       }
     }
     if (window[_doneWarnKey]) delete window[_doneWarnKey];
+
+    // TKT-202607-131 (REQ-202607-041, origen DISC-202607-043): el fix bajo ref_id CAEL-0725-03
+    // (bloque dep-placeholder-ambiguo, más arriba en este archivo) solo escribe a DocLog —
+    // el AC de este TKT exige señal visible en el panel de validación de ingesta antes de
+    // aplicar el CHECKPOINT. Mismo criterio de detección (_isNonCanonicalPlaceholder + literal
+    // exacto '[pendiente-ID]'), reutilizado aquí sobre tgItems ya construidos — sin duplicar el
+    // _blogLog existente, que se conserva para el registro en DocLog.
+    // AC1 (happy path): variante no canónica en depends_on → warning visible, bloqueante hasta
+    // "Continuar de todas formas" (mismo patrón warn-key que _doneWarnKey/_dupWarnKey).
+    // AC2 (edge case sin regresión): el literal exacto '[pendiente-ID]' sigue disparando igual —
+    // misma condición del some(), sin cambio de comportamiento previo.
+    const _depPlaceholderWarnKey = `_depPlaceholderWarnSeen_${id}`;
+    if (isCheckpoint && !window[_depPlaceholderWarnKey]) {
+      const _depPlaceholderItems = tgItems.filter(it =>
+        Array.isArray(it.dependsOn) &&
+        it.dependsOn.some(v => v === '[pendiente-ID]' || _isNonCanonicalPlaceholder(v))
+      );
+      if (_depPlaceholderItems.length > 0) {
+        const _codes = _depPlaceholderItems.map(it => `<code>${esc(it.code || '[pendiente-ID]')}</code>`).join(', ');
+        _showIngestValidationWarning(
+          `⚠ ${_depPlaceholderItems.length} ítem${_depPlaceholderItems.length !== 1 ? 's' : ''} con <code>depends_on</code> apuntando a un placeholder sin resolver: ${_codes}.<br><span class="paste-hint">Usa <code>ref_id</code> + <code>title</code> para referencias cruzadas del mismo bloque (ver __BR-Ecosystem §4) — o continúa si el destino ya tiene código real.</span>`,
+          () => { window[_depPlaceholderWarnKey] = true; parsePaste(id); }
+        );
+        return;
+      }
+    }
+    if (window[_depPlaceholderWarnKey]) delete window[_depPlaceholderWarnKey];
 
     // R-202604-037: validar Proyecto: contra tabla de strings canónicos
     // AC-1: tabla canónica CANONICAL_PROJECTS declarada en locus-storage.js

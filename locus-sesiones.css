@@ -1,3 +1,12 @@
+/* [PP] mod:44 · autor:Nova · 2026-07-25 17:40 UTC-6 */
+/* TKT-202607-132 (REQ-202607-042) — worker_header_tres_estados_v2: (1) .sc-avatar--* pierde
+   su box-shadow de color dentro de #worker-header (acento de estado ya vive en border-left
+   + badge, evita triplicar la señal); (2) nuevo .worker-header-quick — ícono de rayo, acceso
+   a Sesión rápida, visible solo en available/insession; (3) nuevo .worker-header-cd-inline —
+   countdown de agotado fusionado a la fila principal, reemplaza el bloque .worker-header-unlock
+   como fila independiente (ese bloque queda declarado pero sin consumidor tras integración de
+   Rune, TKT2 — ver `no_incluye` de este TKT: la eliminación del CSS muerto no es scope de esta
+   sesión). Detalle completo en CHECKPOINT + _Locus-css-ref/_Locus-ux-ref (doc-update adjunto). */
 /* [PP] mod:43 · autor:Nova · 2026-07-24 UTC-6 */
 /* Limpieza (hallazgo fuera de scope, sesión de ingesta): familia .preview-tg-* retirada —
    muerta junto con buildTGPreview() (locus-session-parse.js), sin call sites reales.
@@ -4358,6 +4367,20 @@
   content: none;
 }
 
+/* TKT-202607-132 (REQ-202607-042): avatar sin ring de color de estado dentro de
+   #worker-header — el acento de estado ya vive en border-left (.worker-header--*, arriba)
+   y en el badge (color + dot, locus-sesiones-card.css); el ring del avatar lo triplicaba.
+   El avatar vuelve al estilo neutro base (fondo --accent-dim + inicial en --accent-text)
+   solo dentro de este contenedor. Fuera de #worker-header (AI Card, tab Por IA) .sc-avatar--*
+   conserva su ring de color sin cambio. */
+.worker-header .sc-avatar--available,
+.worker-header .sc-avatar--insession,
+.worker-header .sc-avatar--interrupted,
+.worker-header .sc-avatar--exhausted {
+  color: var(--accent-text);
+  box-shadow: none;
+}
+
 /* Pulso trasladado al header completo — solo estados con actividad real
    (available/insession). interrupted/exhausted quedan sin pulso, mismo criterio
    que ya regía para el avatar. */
@@ -4443,6 +4466,81 @@
   letter-spacing: -0.03em;
   color: var(--red);
 }
+
+/* ── TKT-202607-132 (REQ-202607-042): rayo de sesión rápida + countdown en línea ──
+   Ambos elementos viven como hermanos estáticos en .sc-header-right, ocultos por
+   .is-hidden por default (mismo patrón que #worker-header-reset-icon) — la integración
+   de Rune (TKT2) alterna la clase por estado y wirea el click del rayo a
+   openQuickCapture(ai.id). Este TKT solo entrega markup + estilos. */
+
+/* Rayo — mismo tamaño/interacción que .sc-menu-btn, color heredado del estado activo
+   en vez de un tono propio (ver .worker-header--available/--insession abajo). */
+.worker-header-quick {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  transition: background var(--trans-fast), color var(--trans-fast);
+}
+
+.worker-header-quick:hover {
+  background: var(--surface3);
+}
+
+.worker-header-quick:active {
+  transform: scale(0.93);
+}
+
+.worker-header-quick:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Mismo color semántico que el border-left del header y el dot/texto del badge de
+   cada estado (--green*/--amber*) — sin discrepancia de tono entre los 3 elementos. */
+.worker-header--available .worker-header-quick {
+  color: var(--green-text);
+}
+
+.worker-header--insession .worker-header-quick {
+  color: var(--amber-text);
+}
+
+/* Countdown en línea — reemplaza .worker-header-unlock como fila independiente.
+   Tipografía del mismo lenguaje (JetBrains Mono, tabular-nums) pero a escala de fila
+   compacta, no de bloque dramático — las 3 filas del header comparten altura. Contenido
+   (label + valor) inyectado por Rune (TKT2) dentro de este contenedor. */
+.worker-header-cd-inline {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.worker-header-cd-inline-label {
+  font-size: var(--text-xs);
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+.worker-header-cd-inline-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--red);
+  white-space: nowrap;
+}
+
+/* ── END TKT-202607-132 ── */
 
 /* ── END CAEL-02 ── */
 

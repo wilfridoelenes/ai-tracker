@@ -1,3 +1,14 @@
+// [PP] mod:116 · autor:Rune · 2026-07-25 UTC-6
+// TKT-202607-126 (REQ-202607-039): wiring de AC1 (spi-stat-*) y AC3 (spi-content-empty vs
+// .spi-list) en _renderSprintItems() — reusa pendiente/enRevision/bloqueado/done ya computados.
+// AC2 (spt-identity-chip/-label) poblado en renderSprintTab() junto al resto del header —
+// spt-identity es instancia única compartida Ítems/Planificar (shell de Nova, index.html mod:158).
+// Supuesto declarado: chip = proj.id (único campo de getActiveProject() ya usado en este módulo,
+// L450/459 — sin locus-storage.js adjunto para confirmar si existe campo .prefix/.name más
+// apropiado para .pill-project). Sin CSS aplicado — .sps-stat-cell--en-revision/--bloqueado,
+// .spt-identity, .spt-content-empty* no existen aún en locus-sprint.css (mod:65, verificado por
+// grep en esta sesión) — bloqueo CSS, Nova pendiente. contract_update: n/a — sin cambio de firma
+// en _renderSprintItems()/renderSprintTab(), ambas funciones locales sin consumidores externos.
 // [PP] mod:115 · autor:Rune · 2026-07-25 UTC-6
 // Hallazgo fuera de scope — resuelto en sesión (Patch, dueño presente, sin bifurcación de
 // founder): mod:114 no declaraba en este header el fix de TKT-202607-125 (null-deref en
@@ -1507,6 +1518,26 @@ function _renderSprintItems(sprint) {
   }
   if (cntDone) cntDone.textContent = done.length;
 
+  // TKT-202607-126 (REQ-202607-039) AC1: spi-stats-block — reusa los 4 conteos ya computados
+  // arriba (pendiente/enRevision/bloqueado/done) para las secciones spi-body-* — sin recomputar.
+  const statPend = _spEl('spi-stat-pendiente');
+  const statRev  = _spEl('spi-stat-en-revision');
+  const statBlk  = _spEl('spi-stat-bloqueado');
+  const statDone = _spEl('spi-stat-done');
+  if (statPend) statPend.textContent = pendiente.length;
+  if (statRev)  statRev.textContent  = enRevision.length;
+  if (statBlk)  statBlk.textContent  = bloqueado.length;
+  if (statDone) statDone.textContent = done.length;
+
+  // TKT-202607-126 AC3: spi-content-empty alterna con .spi-list — nunca ambos, nunca ninguno
+  // (index.html mod:158, comentario Nova). .sca-section se auto-gestiona en
+  // _renderSprintScopeAdded() según scopeItems.length — no se toca aquí.
+  const contentEmptyEl = _spEl('spi-content-empty');
+  const itemsListEl    = _spEl('sprint-items-list');
+  const isEmpty = spItems.length === 0;
+  if (contentEmptyEl) contentEmptyEl.classList.toggle('is-hidden', !isEmpty);
+  if (itemsListEl)    itemsListEl.classList.toggle('is-hidden', isEmpty);
+
   // Burndown
   const total  = spItems.length;
   const pct    = total > 0 ? Math.round((done.length / total) * 100) : 0;
@@ -1986,6 +2017,21 @@ export function renderSprintTab() {
       pillEl.className   = `sph-release-pill ${_sprintReleaseClass(rt)}`;
     }
     if (daysEl) daysEl.textContent = _sprintDaysLabel(sprint);
+
+    // TKT-202607-126 (REQ-202607-039): spt-identity — instancia única en .sph-inner, poblada
+    // aquí porque este bloque ya es el punto donde header.classList.remove('is-hidden') corre.
+    // Chip: proj.id — mismo campo ya consumido en este módulo (clearPendingSprintProposal(proj.id),
+    // L450). Label: mismo compuesto ya calculado arriba para sph-name — Nova especificó "mismo
+    // identity strip" (mod:158 index.html), no un dato nuevo distinto al que sph-name ya muestra.
+    const identityChipEl  = _spEl('spt-identity-chip');
+    const identityLabelEl = _spEl('spt-identity-label');
+    if (identityChipEl) {
+      const proj = getActiveProject();
+      identityChipEl.textContent = proj ? proj.id : '';
+    }
+    if (identityLabelEl) {
+      identityLabelEl.textContent = sprint.label ? `${sprint.id} · ${sprint.label}` : (sprint.name || sprint.id || '');
+    }
 
     // T-202606-130: badge 'Pendiente aprobación' — visible solo cuando formallyOpened === false
     const pendingBadge = _spEl('sph-pending-badge');

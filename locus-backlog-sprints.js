@@ -1,3 +1,14 @@
+// [PP] mod:57 · autor:Rune · 2026-07-26 07:00 UTC-6
+// Corrección de base — el archivo adjunto como mod:56 declaraba el header de TKT-202607-130
+// pero conservaba el fallback all[0] sin retirar (discrepancia de versión detectada por el
+// founder). Fix reaplicado sobre esta base real.
+// TKT-202607-130 (REQ-202607-040, origen_disc DISC-202607-044): _getActiveSprint() pierde el
+// fallback a all[0] — antes retornaba un sprint arbitrario (el primero con status:'active') cuando
+// ningún sprint declaraba current:true, mientras renderSprintBurndown() (línea 1597, sin cambio)
+// ya exigía el chequeo estricto current:true. Ambas funciones producen ahora el mismo resultado
+// (sprint real o null) para el mismo estado de datos. contract_update: sí — ver CHECKPOINT de esta
+// entrega y _Locus-module-contracts.md.
+
 // [PP] mod:55 · autor:Rune · 2026-07-25 UTC-6
 // TKT-202607-112: setItemSprint() bloquea la asignación si item.parentId no resuelve a un
 // ítem real en getItems() — antes el gate de herencia se saltaba en silencio y procedía a
@@ -105,8 +116,10 @@ function _sprintsForProject(projId) {
 export function _getActiveSprint() {
   // T-202606-072: _sprintsForProject(null) — sin filtro de proyecto, comportamiento original preservado.
   // TKT-PARSER-sprints (REQ-[pendiente-ID]): isHotfix eliminado — S-HOTFIX deprecado Gen2.
+  // TKT-202607-130 (REQ-202607-040): fallback a all[0] retirado — mismo criterio estricto que
+  // renderSprintBurndown() (línea ~1604): solo current:true cuenta como sprint activo.
   const all = _sprintsForProject(null).filter(s => s.status === 'active');
-  return all.find(s => s.current === true) || all[0] || null;
+  return all.find(s => s.current === true) || null;
 }
 
 export function _getSprintById(id) {
