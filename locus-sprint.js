@@ -1,3 +1,15 @@
+// [PP] mod:120 · autor:Rune · 2026-07-26 UTC-6
+// TKT-202607-141 (REQ-202607-045, CHG-202607-001 · INC-202607-045/046): registra
+// _renderSprintItems() como único listener de shell:sprint-render. TKT-202607-134 retiró
+// renderSprintItems()/renderSprintBurndown() de locus-backlog-sprints.js junto con el
+// único listener del evento — el tab Sprint dejó de refrescarse en vivo ante cambios de
+// status originados fuera de este tab. Ver bloque nuevo junto a shell:render-sprint-tab.
+// Fix AC2 de TKT-202607-126 (REQ-202607-039), reportado por Finn contra el AC real del
+// backlog (_PP-backlog-v1.11.0.md, no adjunto cuando se escribió mod:117): identityChipEl
+// usaba proj.id en vez de sprint.id — el AC pide el ID del sprint ('PP-S-13'), no un dato
+// de proyecto. identityLabelEl dejó de duplicar `${sprint.id} · ${sprint.label}` (ese
+// compuesto es de #sph-name, campo distinto) — ahora solo sprint.label. Sin cambio de
+// firma, ambas funciones sin consumidores externos (contract_update: n/a).
 // [PP] mod:118 · autor:Rune · 2026-07-26 09:40 UTC-6
 // Corrección de trazabilidad — resuelta en sesión (Patch, dueño presente, sin bifurcación
 // de founder): el header de mod:117 citaba 'TKT-202607-131 (REQ-202607-039)' — código
@@ -2054,17 +2066,21 @@ export function renderSprintTab() {
 
     // TKT-202607-126 (REQ-202607-039): spt-identity — instancia única en .sph-inner, poblada
     // aquí porque este bloque ya es el punto donde header.classList.remove('is-hidden') corre.
-    // Chip: proj.id — mismo campo ya consumido en este módulo (clearPendingSprintProposal(proj.id),
-    // L450). Label: mismo compuesto ya calculado arriba para sph-name — Nova especificó "mismo
-    // identity strip" (mod:158 index.html), no un dato nuevo distinto al que sph-name ya muestra.
+    // Corrección mod:119 (QA — Finn, contra AC real del backlog, no adjunto en la sesión
+    // donde se escribió mod:117/118): el AC declara literalmente "chip 'PP-S-13' + texto
+    // del label junto al chip" — el ejemplo de entrada es el sprint, no el proyecto. El
+    // supuesto de mod:117 (chip = proj.id, tratado como si fuera un prefijo de proyecto
+    // tipo 'PP') no correspondía a ningún dato de este AC. Fix: chip = sprint.id
+    // ('PP-S-13' literal), label = sprint.label solo — sin duplicar el id que el chip ya
+    // muestra (el compuesto `${sprint.id} · ${sprint.label}` es el de #sph-name, un
+    // campo distinto con su propia regla, no el de este identity strip).
     const identityChipEl  = _spEl('spt-identity-chip');
     const identityLabelEl = _spEl('spt-identity-label');
     if (identityChipEl) {
-      const proj = getActiveProject();
-      identityChipEl.textContent = proj ? proj.id : '';
+      identityChipEl.textContent = sprint.id || '';
     }
     if (identityLabelEl) {
-      identityLabelEl.textContent = sprint.label ? `${sprint.id} · ${sprint.label}` : (sprint.name || sprint.id || '');
+      identityLabelEl.textContent = sprint.label || sprint.name || '';
     }
 
     // T-202606-130: badge 'Pendiente aprobación' — visible solo cuando formallyOpened === false
@@ -2403,6 +2419,21 @@ document.addEventListener('DOMContentLoaded', function() {
   window.addEventListener('shell:render-sprint-tab', function() {
     renderSprintTab();
     _updateSprintTabBadges(); // T-202606-098 AC-6
+  });
+
+  // TKT-202607-141 (REQ-202607-045): listener shell:sprint-render — único punto de refresco
+  // en vivo de las 4 secciones de ítems + burndown del tab Sprint (Ítems + campos #sph-bd-*).
+  // Reemplaza el listener retirado en TKT-202607-134 (renderSprintItems/renderSprintBurndown,
+  // locus-backlog-sprints.js). Resuelve el sprint con el mismo mecanismo que _sptSwitch() (L370
+  // de este archivo) — _getActiveSprint() sin fallback a scheduled: ese fallback es exclusivo
+  // del primer render completo de renderSprintTab() cuando no hay sprint activo. Sin sprint
+  // resoluble → no-op, sin excepción. _renderSprintItems() ya es null-safe por elemento
+  // (_spEl + guard `if`) — no requiere verificación adicional de #spi-body-*/#sph-bd-* aquí,
+  // el listener no fuerza cambio de tab.
+  window.addEventListener('shell:sprint-render', function() {
+    const sprint = _getActiveSprint();
+    if (!sprint) return;
+    _renderSprintItems(sprint);
   });
 
   // T-202606-006 T3: listener para sprint:switch-subtab — reemplaza window._sptSwitch en planificacion

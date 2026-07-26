@@ -70,15 +70,15 @@
 // ResizeObserver (línea ~2983) también observaba .bl-toolbar directamente — mismo fix aplicado
 // ahí. Ambos selectores de .bl-toolbar en el archivo migrados a .bl-header-unified.
 // [PP] mod:121 · autor:Rune · 2026-07-20 UTC-6
-// INC-[pendiente-ID]: isSupabaseAuthed() importada — typeof _supabase !== 'undefined' &&
+// INC histórico: isSupabaseAuthed() importada — typeof _supabase !== 'undefined' &&
 // typeof _supabaseUser !== 'undefined' en loadBacklog() nunca era true (ambas privadas de
 // locus-storage.js, sin export hasta este fix). La rama "Supabase-first" (refresh en
 // background al cambiar de proyecto activo) nunca disparaba — loadBacklog() siempre caía
 // al else (solo localStorage). Fix: isSupabaseAuthed() real, expone solo el booleano.
 // [PP] mod:119 · autor:Rune · 2026-07-13 UTC-6
-// INC-[pendiente-ID]: getCurrentTab importado — typeof currentTab !== 'undefined' nunca era true.
+// INC histórico: getCurrentTab importado — typeof currentTab !== 'undefined' nunca era true.
 // exportBtn en updateBacklogBanner() nunca se des-ocultaba vía este guard cuando tab activo era backlog.
-// TKT2 (REQ-refactor-item-shape-itil-scrum, parent [pendiente-ID] — confirmar código real en
+// TKT2 (REQ-refactor-item-shape-itil-scrum, parent sin código confirmado (histórico, pre-convención ref_id) en
 //   Locus): isQIncItem() simplificada — discriminador híbrido queue+itemKind reemplazado por
 //   itemKind() únicamente. Ver comentario inline en la función (~línea 2160).
 // [PP] mod:117 · autor:Rune · 2026-07-11 00:15 UTC-6
@@ -105,7 +105,7 @@
 //   desactualizada del archivo que el founder señaló como no vigente; esa entrega queda
 //   descartada, no se pisa aquí ningún trabajo intermedio de mod:93→112.
 // [PP] mod:112 · autor:Rune · 2026-07-10 18:05 UTC-6
-// INC-[pendiente-ID] (triggered_by REQ-202607-022 · TKT1+TKT2, ver locus-backlog-item.js
+// INC histórico (triggered_by REQ-202607-022 · TKT1+TKT2, ver locus-backlog-item.js
 //   mod:91): _setIncidents() ahora exportada — antes interna, item.js necesita consumirla
 //   para enrutar creación de ITIL nueva por el mutador canónico en vez de push directo sobre
 //   getIncidents(). signature_change: false, mismo contrato (acepta ítem individual o array).
@@ -129,7 +129,7 @@
 //   status corrupto se corrige en el siguiente normalizeStatus() sin migración manual.
 //   Sin impacto en tipos distintos de DISC — mismos valores de retorno que antes. Sin cambio
 //   de comportamiento para 'discovery'/'promoted'/'descartado' en DISC (ya eran válidos).
-// TKT-202607-INC-NAMING (INC-[pendiente-ID]): _normalizeIncidents() validaba sla_priority y
+// TKT-202607-INC-NAMING (INC histórico): _normalizeIncidents() validaba sla_priority y
 //   comportamiento_actual solo en snake_case — un INC recién parseado desde CHECKPOINT (que
 //   trae slaPriority/comportamientoActual camelCase, ver locus-session-parse.js) se marcaba
 //   itil_incomplete de forma falsa. Fallback bidireccional agregado — mismo patrón que ya
@@ -211,10 +211,10 @@
 //   versión detectada al inicio de esta sesión (base real no traía el fix pese a que el
 //   header previo lo declaraba). TKT1 (unificación de renderActiveFilterChips) ya estaba
 //   presente en esa base — sin cambios adicionales sobre TKT1 en esta entrega.
-// TKT-[pendiente-ID-tkt-nsreset] (origen_disc DISC promovida): _subtabNSDefaults agregado —
+// TKT histórico (nsreset) (origen_disc DISC promovida): _subtabNSDefaults agregado —
 //   fuente única de types/statuses por namespace. _subtabNS y _nsReset() ya no duplican el
 //   literal; _nsReset('qinc') dejó de restaurar tipos/estados de REQ-TKT sobre namespace ITIL.
-// INC-[pendiente-ID] (triggered_by análisis de subtab Discoveries): _subtabNS.qdisc.statuses
+// INC histórico (triggered_by análisis de subtab Discoveries): _subtabNS.qdisc.statuses
 //   no incluía 'discovery' — único status activo no-terminal de DISC. Ninguna DISC activa
 //   pasaba el filtro statusOk en _renderZonePanel (locus-backlog-render.js), aunque el badge
 //   (que no pasa por _subtabNS) sí las contaba — panel vacío con badge > 0. Fix: 'discovery'
@@ -225,26 +225,26 @@
 // TKT1 (limpieza post-rename): comentario en L699 actualizado — referenciaba locus-backlog-archive.js (renombrado a locus-backlog-historico.js). Sin cambio de código.
 // Reaplicado sobre base mod:80 (sin divergencia de Nova en este archivo): eliminados
 // toggle en renderActiveFilterChips() y listener en initFiltrosListeners de
-// #filter-clear-btn (INC-[pendiente-ID] — botón duplicado eliminado de index.html).
-// TKT1 (REQ-[pendiente-ID] unificar renderer de #active-filter-chips): renderActiveFilterChips()
+// #filter-clear-btn (INC histórico — botón duplicado eliminado de index.html).
+// TKT1 (REQ histórico — unificar renderer de #active-filter-chips): renderActiveFilterChips()
 //   agrega toggle is-hidden de #filter-clear-btn vía chips.length===0 — criterio único que incluye
 //   deps (bloqueados/libres), gap que el isDefault previo de updateClearFilterBtn no cubría.
-// TKT-[pendiente-ID] (REQ-[pendiente-ID] limpieza de código muerto): eliminadas _vcCollapseGet
+// TKT histórico (REQ histórico — limpieza de código muerto): eliminadas _vcCollapseGet
 //   y _vcCollapseSet — huérfanas tras remoción de _renderVistaC en locus-backlog-render.js
 //   (impacto lateral de la misma eliminación, sin otro caller en el codebase). Sin cambio de
 //   comportamiento visible.
 // TKT1/TKT2 REQ2 S'02: _isQBacklogActive/_isQDiscActive agregadas (universo activo de
 //   Q-Backlog/Q-DISC, excluye descartado/promoted/historico). _subtabNS: entrada muerta
 //   'q-backlog' (con guion) reemplazada por 'qbacklog' + 'qdisc' agregada.
-// INC-[pendiente-ID] (triggered_by REQ-202606-003 / REQ-202606-001 — REQ no sincroniza
+// INC histórico (triggered_by REQ-202606-003 / REQ-202606-001 — REQ no sincroniza
 //   status al ingestar CHECKPOINT): _syncParentRStatus exportada — las rutas de status
 //   manual en locus-backlog-merge.js (_confirmRetroceso, _confirmDiscard, _applyDiscardBatch,
 //   _mdiffDoApply retroceso/discard) la necesitan para no quedar fuera de sync con el R padre.
 //   Causa raíz completa de la ingesta normal de CHECKPOINT (mergeBacklogFromTG/
 //   applyPatchesFromTG en locus-backlog-item.js) sigue pendiente — archivo no adjunto.
-// INC-[pendiente-ID] (triggered_by TKT-202606-013): showToast({title,body,type}) en
+// INC histórico (triggered_by TKT-202606-013): showToast({title,body,type}) en
 //   _openItemEditorSafe corregido a firma posicional showToast(type,title,body).
-// INC-[pendiente-ID] (normalizeStatus sin caso explícito para 'discovery' — fallback
+// INC histórico (normalizeStatus sin caso explícito para 'discovery' — fallback
 //   silencioso a 'pendiente'): agregado caso explícito 'discovery' → 'discovery' para
 //   type DISC, 'pendiente' para cualquier otro tipo — mismo patrón que 'promoted'/
 //   'promovida' en la línea anterior. Ver locus-session-parse.js mod:82 para el fix
@@ -254,11 +254,11 @@
 // [tmp:tkt-isqinc-unify]: isQIncItem(i) exportada — consolida _isQInc (renderBacklogList)
 //   y _isQIncItem (renderQIncPanel) en función única. _getCountableBaseForSubtab('qinc')
 //   actualizada para consumirla. locus-backlog-render.js la importa.
-// TKT (REQ-[pendiente-ID] · UI: sub-tab Q-INC reemplaza Hotfix): empty state
+// TKT (REQ histórico · UI: sub-tab Q-INC reemplaza Hotfix): empty state
 //   label de tipo INC en chips de filtro corregido de 'Sin Bugs' a 'Sin Incidentes'.
 //   typeScores (PRB:20/KE:15/CHG:10), namespace qinc y _nsGetTypes('qinc') ya
 //   estaban implementados desde TKT-A2 (mod:58) — sin cambio adicional requerido.
-// TKT-A2 (REQ-[pendiente-ID]): Q-INC reemplaza S-HOTFIX como zona ITIL.
+// TKT-A2 (REQ histórico): Q-INC reemplaza S-HOTFIX como zona ITIL.
 //   namespace _subtabNS.hotfix → qinc (types INC/PRB/KE/CHG); gate de sprint S-HOTFIX
 //   reemplazado por gate de queue Q-INC con mensaje canónico BR-Core §6; universo
 //   _getCountableBaseForSubtab('hotfix') → ('qinc') sobre campo item.queue; activeTypes
@@ -266,7 +266,7 @@
 //   toggleTypeFilter, clearAllFilters y reset de filter-panel actualizados consistentemente;
 //   typeScores de _calcRelevanceScore incluye PRB:20/KE:15/CHG:10. __BR-Execution §2.
 // TKT-C1b (REQ-C): wrapper transitorio _isIcebox eliminado — TKT-C1 (locus-backlog-render.js
-//   mod:45) ya no la importa. Comentarios de INC-[pendiente-ID] y referencia a renderIceboxPanel
+//   mod:45) ya no la importa. Comentarios de INC histórico y referencia a renderIceboxPanel
 //   retirados. __BR-Execution §2 Sin retrocompatibilidad.
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
@@ -275,7 +275,7 @@
 // T-202606-057: imports hacia módulos que importan a locus-backlog-core eliminados.
 // Funciones desacopladas via _coreCallbacks (getters/acciones controladas)
 // y shell:* events (notificaciones de render — window per B-202606-021).
-import { _blogLog, _effectiveVersion, _isInSession, _loadFromSupabase, _sprintDisplay, _tplKey, getAI, getActiveSprints, getAllSessions, getState, isSupabaseAuthed, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js'; // TKT1 (REQ-historico-async): refreshHistoricoCache/getHistoricoItemsSync — _getNextItemCode() incluye historico en el escaneo de colisión · INC-[pendiente-ID]: isSupabaseAuthed agregado — guard typeof _supabase/_supabaseUser muerto
+import { _blogLog, _effectiveVersion, _isInSession, _loadFromSupabase, _sprintDisplay, _tplKey, getAI, getActiveSprints, getAllSessions, getState, isSupabaseAuthed, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js'; // TKT1 (REQ-historico-async): refreshHistoricoCache/getHistoricoItemsSync — _getNextItemCode() incluye historico en el escaneo de colisión · INC histórico: isSupabaseAuthed agregado — guard typeof _supabase/_supabaseUser muerto
 import { showToast, toast } from './locus-toast.js';
 import { esc, getCurrentSubTab, getCurrentTab } from './locus-ui-shell.js';
 import { incSlaPriority, incComportamientoActual, incIncidentStatus, incDerivedItems } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil: reemplaza fallback || inline en _normalizeIncidents() · incDerivedItems agregado en TKT1 (REQ CAEL-0723-01) para isSlaClockPaused()
@@ -354,7 +354,7 @@ export function normalizeStatus(raw, type) {
   else if (s === 'descartado')  canonical = 'descartado';
   else if (s === 'historico')   canonical = 'historico';
   else if (s === 'promoted') canonical = (type === 'DISC') ? 'promoted' : 'pendiente';
-  else if (s === 'discovery') canonical = (type === 'DISC') ? 'discovery' : 'pendiente'; // INC-[pendiente-ID]: discovery solo válido para DISC — __BR-Ecosystem §5
+  else if (s === 'discovery') canonical = (type === 'DISC') ? 'discovery' : 'pendiente'; // INC histórico: discovery solo válido para DISC — __BR-Ecosystem §5
   // TKT-202606-006: legado 'pendiente' (o status ausente/vacío) en DISC migra a 'discovery' — REQ-202606-002
   else if (s === 'pendiente' || s === '') canonical = (type === 'DISC') ? 'discovery' : 'pendiente';
   // Valor desconocido → pendiente
@@ -373,7 +373,7 @@ export function normalizeStatus(raw, type) {
   return canonical;
 }
 
-// TKT1 (REQ-[pendiente-ID] · Integridad de generación y persistencia de código de ítems):
+// TKT1 (REQ histórico · Integridad de generación y persistencia de código de ítems):
 //   _GEN2_TYPES movida desde locus-session-parse.js — fuente única consumida por
 //   locus-session-parse.js y locus-backlog-item.js. Ambos módulos ya importaban de
 //   locus-backlog-core.js — sin ciclo nuevo. locus-backlog-core.js no importa de
@@ -547,7 +547,7 @@ export function _openItemEditorSafe(id, code) {
   if (_openItemEditorCb) {
     _openItemEditorCb(id, code);
   } else {
-    // Fix INC-[pendiente-ID] (triggered_by TKT-202606-013): showToast firma posicional.
+    // Fix INC histórico (triggered_by TKT-202606-013): showToast firma posicional.
     showToast('error', 'No se pudo abrir el editor', 'Recarga la página.');
     console.error('[AI Tracker] openItemEditor no disponible — módulo externo no cargado');
   }
@@ -680,15 +680,15 @@ let backlogSearchQuery = '';
 // propio state independiente del state global de Backlog (activeTypes/activeStatuses/etc).
 // Cold start: todos los tipos/statuses habilitados, searchQuery vacío — sin herencia del global.
 // TKT-A2: namespace de cola ITIL legacy reemplazado por 'qinc' — zona acepta INC/PRB/KE/CHG.
-// TKT-[pendiente-ID-tkt-nsreset]: _subtabNSDefaults — única fuente de verdad de types/statuses
+// TKT histórico (nsreset): _subtabNSDefaults — única fuente de verdad de types/statuses
 // por namespace. _subtabNS (estado runtime) y _nsReset() consumen de aquí — antes cada uno
 // tenía su propio literal duplicado, lo que permitió que qdisc.statuses quedara sin 'discovery'
-// en un lado sin que el otro lo reflejara (INC-[pendiente-ID], mod:85). _nsReset('qinc') estaba
+// en un lado sin que el otro lo reflejara (INC histórico, mod:85). _nsReset('qinc') estaba
 // además directamente roto: restauraba tipos/estados de REQ-TKT sobre un namespace ITIL.
 const _subtabNSDefaults = {
   qbacklog: {
     types:    ['REQ','TKT'],
-    // INC-[pendiente-ID]: 'en-proceso'/'bloqueado'/'orphaned' agregados — estados válidos de
+    // INC histórico: 'en-proceso'/'bloqueado'/'orphaned' agregados — estados válidos de
     // REQ (__BR-Ecosystem §5) ausentes del default original. Un REQ en Q-Backlog que transiciona
     // a 'en-proceso' (automático — primer TKT hijo sale de 'pendiente', ver __BR-Core §4) queda
     // sin statusOk en _renderZonePanel y desaparece de la lista, aunque zoneItems/badge/chips de
@@ -1111,7 +1111,7 @@ function _sanitizePendingInClosedSprints() {
   // Segunda pasada: ítems con doneAt populado pero status distinto de done/descartado/historico
   // Causa: merge desde CHECKPOINT sobrescribió status sin respetar doneAt existente
   // B-202606-085: _mdiffDoApply no limpiaba doneAt al retroceder — produce en-revision + doneAt
-  // B-202604-[pendiente-ID]: si el ítem tiene discardReason, el status correcto es 'descartado', no 'done'
+  // B-202604 histórico: si el ítem tiene discardReason, el status correcto es 'descartado', no 'done'
   // B-202605-008: snapshot antes de mutar — resultado deshacible via undoBacklog()
   // B-202606-086: filtro ampliado — antes solo capturaba status 'pendiente', ahora captura cualquier
   //   status activo (pendiente, en-revision, bloqueado, etc.) con doneAt populado
@@ -1138,7 +1138,7 @@ function _sanitizePendingInClosedSprints() {
   return count;
 }
 
-// T-[pendiente-ID]: Purga inteligente de localStorage — ítems done/descartado >90 días
+// T histórico: Purga inteligente de localStorage — ítems done/descartado >90 días
 // Retorna el número de ítems purgados del caché local (no se eliminan de Supabase).
 export function _localStorageUsageRatio() {
   try {
@@ -1219,7 +1219,7 @@ function _normalizeCommonFields(item) {
 
   // ── code ──────────────────────────────────────────────────────────────────
   // code vacío o ausente: conservar ítem, registrar warning. No asignar código aquí
-  // (los IDs los asigna Locus). Ítems placeholder ([pendiente-ID], [tmp:slug]) son válidos.
+  // (los IDs los asigna Locus). Ítems con código temporal sin asignar — y su alias histórico tmp:slug — son válidos.
   if (!item.code) {
     _blogLog('normalize-warn', '(sin código)', 'code ausente — ítem conservado sin modificar', 'backlog');
   }
@@ -1269,7 +1269,7 @@ function _normalizeCommonFields(item) {
   }
 
   // ── discard_reason ────────────────────────────────────────────────────────
-  // INC-[pendiente-ID]: item.discardReason (camelCase) es el campo que escribe la
+  // INC histórico: item.discardReason (camelCase) es el campo que escribe la
   // lógica de negocio in-memory (ver sanitize-doneat-mismatch más abajo en este
   // archivo) — la persistencia a Supabase lee discard_reason (snake_case, DDL
   // tracker_items / __BR-Ecosystem §5). Sin este puente, un ítem con
@@ -1475,7 +1475,7 @@ export function _normalizeIncidents(items) {
   _normalizeOrphanedFlag(items);
 
   // ── validación de campos ITIL obligatorios ──────────────────────────────────
-  // INC-202607-[pendiente-ID] / TKT-202607-062: sla_priority, incident_status y
+  // INC histórico / TKT-202607-062: sla_priority, incident_status y
   // comportamiento_actual son obligatorios en todo INC/PRB/KE/CHG (__BR-Ecosystem §5).
   // No se asigna default de negocio — solo se deja el gap visible en DocLog + flag
   // legible por el editor (item.itil_incomplete), consistente con saveBacklog() (que
@@ -1485,7 +1485,7 @@ export function _normalizeIncidents(items) {
     const missing = [];
     // TKT1 (REQ-centralizar-accesores-itil): fallback bidireccional centralizado en
     // locus-inc-fields.js — reemplaza el patrón `campo || campo_snake` inline que
-    // introdujo el gap resuelto en TKT-202607-INC-NAMING (INC-[pendiente-ID]).
+    // introdujo el gap resuelto en TKT-202607-INC-NAMING (INC histórico).
     if (!incSlaPriority(item)) missing.push('sla_priority');
     if (!incIncidentStatus(item)) missing.push('incident_status');
     if (!incComportamientoActual(item)) missing.push('comportamiento_actual');
@@ -1510,7 +1510,7 @@ export function loadBacklog() {
   if (_loadBacklogInFlight) return;
   _loadBacklogInFlight = true;
   try {
-  // R-[pendiente-ID]: Supabase-first — si el usuario está autenticado, delegar a
+  // R histórico: Supabase-first — si el usuario está autenticado, delegar a
   // _loadFromSupabase() que implementa lógica timestamp-first en su paso 5.
   // Migración one-shot (founder only): si localStorage tiene datos y Supabase está
   // vacío, _loadFromSupabase detecta ITEMS.length === 0 post-carga y no sobreescribe;
@@ -1661,7 +1661,7 @@ function updateTypeFilterUI() {
 }
 
 // T-049: toggle filtros status
-// [pendiente-ID]: descartado sincroniza promoted — bloque Cerradas unificado
+// Histórico: descartado sincroniza promoted — bloque Cerradas unificado
 export function toggleStatusFilter(status) {
   if (status === 'done' || status === 'descartado') {
     if (activeStatuses.has(status)) {
@@ -1716,7 +1716,7 @@ export function toggleVersionCollapse(v) {
 // B-202605-ids: acepta reservedCodes (Set) para evitar colisiones dentro de una misma
 // pasada de _assignPendingIds — los ítems nuevos aún no están en ITEMS cuando se llama
 // en batch, por lo que sin este parámetro todos obtienen el mismo número.
-// INC-[pendiente-ID] fix (triggered_by INC-202607-001): el escaneo de maxNum filtraba por
+// INC histórico fix (triggered_by INC-202607-001): el escaneo de maxNum filtraba por
 // prefix `${typeChar}-${yyyymm}-` del MES EN CURSO — al cambiar de mes, maxNum arrancaba en 0
 // sin considerar el NNN más alto de meses anteriores del mismo tipo. __BR-Ecosystem §4 exige
 // contador acumulativo por tipo, independiente del mes. Ahora se escanea por tipo únicamente
@@ -1738,7 +1738,7 @@ export async function _getNextItemCode(typeChar, reservedCodes) {
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const yyyymm = `${year}${month}`;
-  // INC-[pendiente-ID] fix: regex de tipo sin mes fijo — acumulativo por tipo, todos los meses.
+  // INC histórico fix: regex de tipo sin mes fijo — acumulativo por tipo, todos los meses.
   // Sufijo de letra opcional (ej. REQ-202606-007-A) ignorado — se toma solo el bloque de 3 dígitos.
   const typeRe = new RegExp(`^${typeChar}-\\d{6}-(\\d{3})(?:-[A-Za-z]+)?$`);
   let maxNum = 0;
@@ -1823,7 +1823,7 @@ setInterval(() => {
   updateBacklogBanner();
 }, 60000);
 
-// INC-[pendiente-ID] (triggered_by: auditoría de código — n/a ejecución): consolidado como fuente
+// INC histórico (triggered_by: auditoría de código — n/a ejecución): consolidado como fuente
 // única del ecosistema para badgeClass/badgeLabel/statusClass/statusLabel — locus-backlog-item.js
 // tenía copias locales divergentes que generaban clases CSS inexistentes (badge-prio-*,
 // badge-status-pendiente) en el render de child items. Exportadas para que item.js las consuma.
@@ -2339,7 +2339,7 @@ export const QDISC_ACTIVE_LIMIT = 15;
 // Consolida _isQInc (locus-backlog-render.js renderBacklogList) y _isQIncItem
 // (locus-backlog-render.js renderQIncPanel) — locus-backlog-render.js importa esta.
 // Patrón análogo a _isQBacklog / _isQDisc.
-// TKT2 (REQ-refactor-item-shape-itil-scrum, parent [pendiente-ID] — confirmar código real
+// TKT2 (REQ-refactor-item-shape-itil-scrum, parent sin código confirmado (histórico, pre-convención ref_id)
 // en Locus): discriminador híbrido queue+itemKind eliminado. _setITEMS()/_setIncidents()
 // (líneas ~380-401) garantizan por invariant de escritura que ningún ítem ITIL persiste en
 // ITEMS — cualquier ítem con itemKind() en INCIDENT_TYPES se enruta a INCIDENTS al mutar,
@@ -2893,7 +2893,7 @@ export function _getCollapsedVersions()      { return collapsedVersions; }
 // ITEMS únicamente — ver _itemsRef en locus-storage.js) a _normalizeScrumItems para mantener
 // el contrato de datos sin duplicar lógica. Scope sin cambio respecto al stub anterior: solo
 // ITEMS — el call site que invoca esta función nunca operó sobre INCIDENTS.
-// INC-[pendiente-ID] fix (causa raíz): saveBacklog() se disparaba sin await — el único
+// INC histórico fix (causa raíz): saveBacklog() se disparaba sin await — el único
 // call site real (_mergeItemsFromRemote en locus-storage.js) no podía esperar a que el
 // lock de syncState.withSaveLock() se soltara antes de que _loadFromSupabase() continuara
 // a _mergeIncidentsFromRemote(), que revisa ese mismo lock global. `return` expone la

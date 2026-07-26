@@ -1,4 +1,15 @@
-// [PP] mod:53 · autor:Rune · 2026-07-25 UTC-6
+// [PP] mod:54 · autor:Rune · 2026-07-29 UTC-6
+// INC-202607-047 (fix): exportBacklogMd() nunca refrescaba ITEMS/INCIDENTS desde Supabase
+// antes de generar el export — solo llamaba refreshHistoricoCache() (ver INC-[pendiente-ID]
+// 2026-07-18, comentario más abajo, que ya cubría el mismo gap para historico). getItems()/
+// getIncidents() leían el array en memoria tal cual estuviera al momento del click, sin pull
+// previo. Con Realtime desactivado en tracker_items/tracker_incidents (_pp-strategy §4,
+// decisión 2026-07-08) no hay push que invalide ese cache — una sesión de founder que no
+// recargó la app después de un cambio remoto (ej. TKT-202607-133 revertido de done a
+// en-revision) exportaba un snapshot desactualizado, en este caso omitiendo el ítem por
+// completo. Fix: await _loadFromSupabase() al inicio de exportBacklogMd() — mismo patrón ya
+// usado para refreshHistoricoCache() dos líneas más abajo. _loadFromSupabase() ya es idempotente
+// (guards _loadFromSupabaseInFlight + _saveDebounceTimer existentes) — sin efectos nuevos.
 // INC-202607-035 (fix, con _ob-DocStandards.md adjunto — confirma §3 "Ítems `historico` — regla
 // de exclusión" y tabla "Qué NO le pertenece al backlog exportado"): la sección '## Historico —
 // detalle' no está declarada en el estándar, y el comentario de código en _buildHistoricoDetailMd
@@ -105,7 +116,7 @@
 // Dependencias: locus-storage.js · locus-backlog-core.js · locus-toast.js
 // T-202606-166: _docPrefix movida a locus-storage.js — import actualizado.
 
-import { _blogLog, _docPrefix, _effectiveVersion, _sprintDisplay, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getState, getInfraVersionData, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js';
+import { _blogLog, _docPrefix, _effectiveVersion, _sprintDisplay, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getState, getInfraVersionData, refreshHistoricoCache, getHistoricoItemsSync, _loadFromSupabase } from './locus-storage.js'; // INC-202607-047: _loadFromSupabase agregado — ver header
 import { getItems, getIncidents, itemKind, updateBacklogBanner } from './locus-backlog-core.js'; // [tmp:tkt2-qinc-count]: getIncidents agregada — _allItemsWithHistorico()
 import { showToast } from './locus-toast.js';
 import { incSlaPriority, incIncidentStatus } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil · incIncidentStatus: TKT3 (ref_id CAEL-0722-04)
@@ -224,6 +235,7 @@ export async function exportBacklogMd(opts = {}) {
   //   await refreshHistoricoCache(). Si el founder exporta backlog sin haber visitado antes el
   //   sub-tab Historico en la sesión, el cache arranca vacío y tanto el conteo de ítems done por
   //   sprint como maxId (fix anterior de este mismo INC) leen historico como si no existiera.
+  await _loadFromSupabase(); // INC-202607-047: ITEMS/INCIDENTS refrescados antes de leer getItems()/getIncidents() — sin esto, un cambio remoto sin reload de la pestaña quedaba invisible para el export
   await refreshHistoricoCache(); // fix INC — cache poblado antes de que el generador sync lea getHistoricoItemsSync(), mismo patrón que exportFullHistoryMd/exportSprintsMd
   const _doExport = () => _showExportConfirmModal('Backlog', `_${pfx}-backlog-${_canonVer(ver)}.md`, () => _generateBacklogMd(ver, opts));
   // T-202606-108: AC-1/AC-2 — advertir si sprint activo tiene campos incompletos

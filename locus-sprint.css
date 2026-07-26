@@ -1,3 +1,13 @@
+/* [PP] mod:66 · autor:Nova · 2026-07-26 UTC-6 */
+/* TKT-202607-126 (REQ-202607-039): entregable visual pendiente desde mod:65 — familias
+   .spi-stats-block/.spi-stat-cell (AC1), .spt-identity (AC2), .spi-content-empty (AC3).
+   Ver bloque de reglas al final del archivo para el detalle de cada AC.
+   Sin index.html adjunto en esta sesión para confirmar el markup exacto del shell (Rune
+   declaró en locus-sprint.js mod:117/118 que .spt-identity vive en index.html mod:158,
+   instancia única compartida Ítems/Planificar) — las clases de abajo asumen el mismo
+   patrón de wrapper que .sps-stats-block/.sps-stat-cell (ya vigente en este archivo,
+   mismo sub-tab Sprint) por consistencia estructural. Si el markup real difiere, señalar
+   antes de declarar el TKT en-revision. */
 /* [PP] mod:65 · autor:Nova · 2026-07-25 UTC-6 */
 /* TKT-202607-124 (REQ-202607-037): homologación tipográfica de .spi-section-label,
    .sps-section-label y .spnp-title al título canónico de sección — sin cambio de HTML/JS. */
@@ -3546,3 +3556,134 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   border: 1px solid color-mix(in srgb, var(--amber) 28%, transparent);
   white-space: nowrap;
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   TKT-202607-126 (REQ-202607-039): Stats Shell + empty-state — sub-tab Ítems
+   design_intent: n/a — TKT sin borrador visual propio, hereda el patrón ya
+   aprobado de .sps-stats-block (rediseño sub-tab Sprints, mismo módulo).
+   Sin tokens nuevos — reuso exclusivo de tokens ya validados WCAG AA en
+   este archivo y en _Locus-css-ref (--amber-text, --c-high-*, --text3, etc).
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── AC1 — spi-stats-block: grid de 4 celdas (pendiente/en-revisión/bloqueado/done),
+   máx 2 con tinte. Misma estructura que .sps-stats-block (L3309) — mismo sub-tab. ── */
+.spi-stats-block {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.spi-stat-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+}
+
+.spi-stat-label {
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text2);
+}
+
+.spi-stat-n {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+/* en-revisión — mismo par ya vigente en .spi-item-status--en-revision (misma familia
+   de badges de esta vista) — amber-text sobre amber 10%, WCAG AA ya verificado. */
+.spi-stat-cell--en-revision {
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
+  border-color: color-mix(in srgb, var(--amber) 28%, transparent);
+}
+
+.spi-stat-cell--en-revision .spi-stat-label,
+.spi-stat-cell--en-revision .spi-stat-n {
+  color: var(--amber-text);
+}
+
+/* bloqueado — mismo par ya vigente en .spi-item-status--blocked (--c-high-*). Supuesto
+   declarado: el AC describe "tinte rojo" — el token semántico ya establecido para
+   "bloqueado" en esta misma vista es --c-high-* (naranja, no confundir con
+   --c-severity-high-*, familia distinta — ver _Locus-css-ref §Tokens semánticos de
+   status). Se reusa por consistencia con el badge de ítem ya existente en vez de
+   introducir --red, que no tiene precedente en esta familia. */
+.spi-stat-cell--bloqueado {
+  background: var(--c-high-bg);
+  border-color: var(--c-high-border);
+}
+
+.spi-stat-cell--bloqueado .spi-stat-label,
+.spi-stat-cell--bloqueado .spi-stat-n {
+  color: var(--c-high-text);
+}
+
+/* ── AC2 — spt-identity: chip 'PP-S-13' + label del sprint, instancia única
+   compartida Ítems/Planificar (shell en index.html, no adjunto en esta sesión). ── */
+.spt-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 12px;
+  min-width: 0;
+}
+
+.spt-identity-chip {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface3);
+  color: var(--text2);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.spt-identity-label {
+  font-size: var(--text-sm);
+  color: var(--text2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* ── AC3 — spi-content-empty: ícono+título+hint, mismo patrón visual que
+   .msc-diff-empty/.msc-diff-empty-icon/-title/-hint (locus-backlog-item.css) y
+   layout de .sps-empty (L1680) — nunca área en blanco. ── */
+.spi-content-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.spi-content-empty-icon {
+  font-size: var(--text-display-2xl);
+  color: var(--text3);
+}
+
+.spi-content-empty-title {
+  font-size: var(--text-sm);
+  color: var(--text2);
+}
+
+.spi-content-empty-hint {
+  font-size: var(--text-xs);
+  color: var(--text3);
+}
+/* ══ END TKT-202607-126 ══════════════════════════════════════════════════ */
