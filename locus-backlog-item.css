@@ -1,4 +1,4 @@
-/* [PP] mod:75 · autor:Nova · 2026-07-24 UTC-6 */
+/* [PP] mod:76 · autor:Nova · 2026-07-25 UTC-6 */
 /* TKT-202607-086 (bloqueo CSS señalado por Rune, resuelto por Nova antes de implementación):
    .mdiff-narrative-section:not(:only-of-type) gana border/border-radius de framing, y el
    selector de truncado del título de _attrRow se corrige para el nuevo nivel de anidación
@@ -2064,15 +2064,25 @@
    --z-toast (1000) para "elementos sobre overlay base", mismo patrón semántico que
    --z-modal-plus ya usa para "elementos sobre modal base". ── */
 /* Full-viewport (REQ[CAEL-0716-02]): mismo offset vertical que .modal-overlay.modal-split
-   (locus-modals-base.css) — header real + split-header-h. padding-left ya no lleva
-   término de centrado — la columna ingest arranca en left:0, este panel arranca donde
-   esa columna termina (0.333 * total-w + gap). */
+   (locus-modals-base.css) — header real + split-header-h.
+   Fix de raíz (TKT-202607-128, REQ-202607-038, Nova — AC-2, desalineación horizontal):
+   este padding-left calculaba el borde izquierdo del panel docked contra --split-total-w
+   sin sumar --gutter-shell — pero el borde izquierdo real del panel de ingesta
+   (#ingest-modal-overlay.modal-split, locus-modals-base.css) sí arranca en
+   var(--gutter-shell), no en left:0. El offsetLeft de .mdiff-dialog quedaba corrido
+   --gutter-shell hacia la izquierda respecto al borde derecho real de
+   .modal-split__dialog + --split-gap. Términos: --gutter-shell (borde real de la
+   columna ingesta) + split-total-w*0.333 (ancho de esa columna) + split-gap/2 (la
+   mitad del gap ya está en el propio ancho de .modal-split__dialog — ver
+   locus-modals-base.css L435 — el resto compensa aquí). Identidad algebraica, no
+   depende del valor de --split-total-w — se mantiene en cualquier estado de
+   body.radar-sb-open/-collapsed/ninguno sin declaración adicional. */
 #merge-diff-overlay.mdiff-overlay--docked {
   background: transparent;
   justify-content: flex-start;
   align-items: flex-start;
   padding-top: calc(var(--header-h) + 1.95rem + 1px + var(--split-header-h));
-  padding-left: calc(var(--split-total-w) * 0.333 + var(--split-gap) / 2);
+  padding-left: calc(var(--gutter-shell) + var(--split-total-w) * 0.333 + var(--split-gap) / 2);
   z-index: calc(var(--z-overlay) + 1);
 }
 

@@ -1,3 +1,12 @@
+// [PP] mod:115 · autor:Rune · 2026-07-25 UTC-6
+// Hallazgo fuera de scope — resuelto en sesión (Patch, dueño presente, sin bifurcación de
+// founder): mod:114 no declaraba en este header el fix de TKT-202607-125 (null-deref en
+// renderSprintTab() — sprint scheduled sin active dejaba `sprint` null y se dereferenciaba
+// igual en sprint.label, L1965). El fix ya estaba escrito en el cuerpo del archivo (L1901-1910,
+// comentario inline propio) pero sin entrada de header — gap de trazabilidad puro, sin cambio
+// de comportamiento en este mod. Verificado contra los 3 AC del TKT (Paso 2, __BR-Execution §1):
+// happy path, error corregido y edge case sin regresión — los tres ya cumplidos por el código
+// existente, sin diff adicional.
 // [PP] mod:114 · autor:Rune · 2026-07-25 UTC-6
 // Cierra el bloqueo parcial declarado en mod:111 (index.html no adjunto en esa sesión):
 // _renderSpsStatsBlock() puebla el shell estático #sps-stats-block (index.html mod:151,

@@ -1,4 +1,15 @@
-<!-- [PP] mod:156 · autor:Rune · 2026-07-25 UTC-6 -->
+<!-- [PP] mod:158 · autor:Nova · 2026-07-25 UTC-6 -->
+<!-- TKT-202607-126 (REQ-202607-039, Nova) — entregable parcial: shell estático de HTML.
+     #spi-stats-block (4 celdas, reusa .sps-stats-block/.sps-stat-cell, IDs propios spi-stat-*
+     para no colisionar con #sps-stat-* de Sprints) + #spi-content-empty (familia
+     .spt-content-empty, mismo recipe que .msc-diff-empty mod:87) dentro de
+     #sprint-panel-items. #spt-identity agregado una sola vez en .sph-inner — compartido entre
+     Ítems y Planificar (BR-Execution §5, sin duplicación de estructura), cubre AC2 de TKT2 y
+     AC2 de TKT3 (REQ-202607-039) con una sola instancia. CSS de los 2 modificadores nuevos
+     (--en-revision/--bloqueado) y de la familia spt-* pendiente — ver locus-sprint.css, no
+     adjunto en esta sesión. Sin JS de wiring — ver locus-backlog-sprints.js/locus-sprint.js,
+     no adjuntos. -->
+<!-- [PP] mod:157 · autor:Nova · 2026-07-25 UTC-6 -->
 <!-- Ad-hoc (sin REQ/TKT vía Cael): <link> nuevo a locus-incidents.css, inmediatamente después
      de locus-backlog.css — Nova extrajo la rama Q-INC a archivo propio (locus-incidents.css
      mod:1, locus-backlog.css mod:127→128, ver CHECKPOINT de Nova de esta misma sesión). Sin
@@ -795,6 +806,13 @@
     <button class="sph-collapse-btn" id="sph-collapse-btn" type="button" aria-expanded="true" aria-label="Colapsar header"></button>
     <div class="sph-name" id="sph-name"></div>
     <div class="sph-inner">
+      <!-- spt-identity — TKT-202607-126/127 (REQ-202607-039, Nova): instancia única, compartida
+           entre Ítems y Planificar vía .sph-header — evita duplicación de estructura (BR-Execution
+           §5, regla dura 1). .pill-project reusado tal cual (CAEL-15) para el chip del sprint. -->
+      <div class="spt-identity" id="spt-identity">
+        <span class="pill-project" id="spt-identity-chip"></span>
+        <span class="spt-identity-label" id="spt-identity-label"></span>
+      </div>
       <!-- T-202606-130: badge visible solo cuando sprint.formallyOpened === false -->
       <span class="sph-pending-badge is-hidden" id="sph-pending-badge">Pendiente aprobación</span>
       <!-- B-202606-064: botón 'Aprobar apertura' eliminado — aprobación ocurre via Step 0 del DIFF -->
@@ -823,6 +841,43 @@
     <div class="spw-body" id="spw-body"></div>
   </div>
   <!-- /Workers vinculados al sprint -->
+
+  <!-- spi-stats-block — TKT-202607-126 (REQ-202607-039, Nova): shell estático, nunca se oculta
+       (mismo patrón que #sps-stats-block/#qdisc-stats-block, BR-Execution §5 — elemento
+       invariante). Reusa .sps-stats-block/.sps-stat-cell (locus-sprint.css mod:64) — IDs propios
+       (spi-stat-*) para no colisionar con #sps-stat-* del sub-tab Sprints. Modificadores de color
+       solo en en-revision (--amber)/bloqueado (--red) — pendiente/done neutros, AC1. Poblado por
+       JS (Rune) — sin datos aún en este entregable. -->
+  <div class="sps-stats-block" id="spi-stats-block">
+    <div class="sps-stat-cell">
+      <span class="sps-stat-label">Pendiente</span>
+      <span class="sps-stat-n" id="spi-stat-pendiente">0</span>
+    </div>
+    <div class="sps-stat-cell sps-stat-cell--en-revision" id="spi-stat-cell-en-revision">
+      <span class="sps-stat-label">En revisión</span>
+      <span class="sps-stat-n" id="spi-stat-en-revision">0</span>
+    </div>
+    <div class="sps-stat-cell sps-stat-cell--bloqueado" id="spi-stat-cell-bloqueado">
+      <span class="sps-stat-label">Bloqueado</span>
+      <span class="sps-stat-n" id="spi-stat-bloqueado">0</span>
+    </div>
+    <div class="sps-stat-cell">
+      <span class="sps-stat-label">Done</span>
+      <span class="sps-stat-n" id="spi-stat-done">0</span>
+    </div>
+  </div>
+  <!-- /spi-stats-block -->
+
+  <!-- spi-content-empty — TKT-202607-126 AC3: alterna con .spi-list/.sca-section (nunca ambos,
+       nunca ninguno — BR-Ecosystem §674 patrón shell/contenido). is-hidden por defecto — JS
+       (Rune) lo muestra cuando el sprint activo tiene 0 ítems. Reusa familia .spt-content-empty
+       (mismo recipe que .msc-diff-empty, mod:87). -->
+  <div class="spt-content-empty is-hidden" id="spi-content-empty">
+    <i class="ti ti-list-check spt-content-empty-icon" aria-hidden="true"></i>
+    <div class="spt-content-empty-title">Sin ítems en este sprint</div>
+    <div class="spt-content-empty-hint">Asigná ítems desde Planificar</div>
+  </div>
+  <!-- /spi-content-empty -->
 
   <div class="spi-list is-hidden" id="sprint-items-list" aria-label="Ítems del sprint activo">
     <div class="spi-section" id="spi-section-pendiente">
@@ -1500,6 +1555,16 @@
   <div class="promote-modal" id="promote-modal-body"></div>
 </div>
 
+<!-- modal-split__shell — TKT-202607-128 (REQ-202607-038, Nova): contenedor padre común
+     nuevo para #merge-diff-overlay + #ingest-modal-overlay. No declara position/transform/
+     filter/will-change propios — ambos hijos siguen siendo position:fixed contra el
+     viewport (locus-backlog-item.css, locus-modals-base.css), este wrapper no crea
+     containing block nuevo para ellos. Su único propósito es que el combinador de
+     hermano general #merge-diff-overlay.mdiff-overlay--docked ~ #ingest-modal-overlay
+     (locus-modals-base.css) resuelva contra una adyacencia DOM explícita y estable, en
+     vez de depender de que ningún otro nodo se intercale entre ambos bajo <body>. -->
+<div class="modal-split__shell" id="modal-split-shell">
+
 <!-- merge-diff-overlay — R-202604-071: rediseño two-column -->
 <div class="modal-overlay mdiff-overlay" id="merge-diff-overlay">
   <div class="mdiff-dialog">
@@ -1532,7 +1597,10 @@
      CAEL-06/CAEL-02) retirados — su función la asume el split coordinado (AC5 TKT1).
      Gap de impacto lateral declarado en CHECKPOINT: locus-sesiones.js (_openIngestModal)
      referenciaba ambos IDs para resetear el DIFF stale al cambiar de worker — TKT2
-     amplía su archivos/ac para reimplementar ese reset contra #merge-diff-overlay. -->
+     amplía su archivos/ac para reimplementar ese reset contra #merge-diff-overlay.
+     TKT-202607-128 (REQ-202607-038, Nova): movido de hijo directo de <body> a hijo
+     directo de .modal-split__shell, junto con #merge-diff-overlay — corrige la
+     dependencia del combinador de hermano general descrita en locus-modals-base.css. -->
 <div class="modal-overlay modal-split" id="ingest-modal-overlay"
      role="dialog" aria-modal="true" aria-labelledby="ingest-modal-title">
   <div class="modal modal--ingest modal-split__dialog">
@@ -1645,6 +1713,9 @@
     <div class="modal-split__divider" aria-hidden="true"></div>
   </div>
 </div>
+
+</div>
+<!-- /modal-split__shell -->
 
 
 <!-- status-confirm-overlay retirado — CAEL-0720-01 TKT3. Reemplazado por gconfirm-overlay con

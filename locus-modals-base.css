@@ -1,4 +1,4 @@
-/* [PP] mod:19 · autor:Nova · 2026-07-24 UTC-6 */
+/* [PP] mod:20 · autor:Nova · 2026-07-25 UTC-6 */
 /* TKT1 (REQ CAEL-0724-02, DISC-202607-029): .validation-result-item-type — badge de tipo por
    fila en #ingest-result-items. Conflicto CSS resuelto en sesión (dueño Nova co-presente, nivel
    Patch, sin bifurcación — BR-Core Excepción de dueño co-presente): las restricciones
@@ -544,8 +544,11 @@ body.radar-sb-collapsed {
 }
 
 /* Oculto cuando el panel de revisión está docked — #merge-diff-overlay precede a
-   #ingest-modal-overlay en el DOM (index.html), ambos hijos directos del mismo
-   contenedor raíz — el combinador ~ resuelve sin necesitar padre común explícito. */
+   #ingest-modal-overlay en el DOM (index.html), ambos hijos directos de
+   .modal-split__shell (TKT-202607-128, REQ-202607-038, Nova — antes ambos eran
+   hijos directos de <body> junto con el resto de overlays del ecosistema; la
+   adyacencia funcionaba en teoría pero dependía de que ningún nodo nuevo se
+   intercalara entre ambos con el tiempo. El wrapper la hace explícita y estable). */
 #merge-diff-overlay.mdiff-overlay--docked ~ #ingest-modal-overlay .msc-diff-empty {
   display: none;
 }
