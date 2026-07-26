@@ -1,4 +1,9 @@
-// [PP] mod:134 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:135 · autor:Rune · 2026-07-26 UTC-6
+// origen: CAEL-0726-04 (triggered_by: TKT-202607-134): shell:sprint-render → shell:render-sprint-tab.
+// TKT-202607-134 retiró renderSprintBurndown()/renderSprintItems() y su listener de
+// locus-backlog-sprints.js sin actualizar el evento que este módulo dispara — shell:sprint-render
+// quedó sin listener (dead event). locus-sprint.js escucha shell:render-sprint-tab (L2403) desde
+// la consolidación de TKT-202607-134; este módulo ahora dispara ese evento en los mismos 3 puntos.
 // INC-202607-XXX (triggered_by: reporte directo del founder — screenshot Backlog Vista Lista):
 // renderStats() — backlogCount ahora suma 'en-proceso' y 'bloqueado' además de 'pendiente'.
 // Antes, un REQ en cualquiera de esos dos estados era visible en la lista (statusOk ya los
@@ -303,7 +308,7 @@ export function _registerCoreCallback(name, fn) {
 //   shell:backlog-filter-changed → listener: updateClearFilterBtn()
 //   shell:backlog-modified       → listener: _setBacklogModified()
 //   shell:backlog-subtab-update  → listener: _updateSubTabButtons(detail.tab)
-//   shell:sprint-render          → listener: renderSprintBurndown() + renderSprintItems()
+//   shell:render-sprint-tab      → listener: locus-sprint.js — renderSprintTab() (origen: CAEL-0726-04, TKT-202607-134)
 
 // T-202604-216: Skeleton helpers
 const _SKEL_HTML_4 = Array(4).fill('<div class="skel-row"></div>').join('');
@@ -1930,7 +1935,7 @@ function _applyExitAnimOrRender(code, rCode) {
         window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
         if (rCode) window.dispatchEvent(new CustomEvent('shell:backlog-r-auto-advanced', { detail: { rCode } }));
         renderStats();
-        window.dispatchEvent(new CustomEvent('shell:sprint-render'));
+        window.dispatchEvent(new CustomEvent('shell:render-sprint-tab'));
       }, 360); // T-202605-058 T-202605-044
       return;
     }
@@ -1938,7 +1943,7 @@ function _applyExitAnimOrRender(code, rCode) {
   window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   if (rCode) window.dispatchEvent(new CustomEvent('shell:backlog-r-auto-advanced', { detail: { rCode } }));
   renderStats();
-  window.dispatchEvent(new CustomEvent('shell:sprint-render')); // T-202605-058 T-202605-044
+  window.dispatchEvent(new CustomEvent('shell:render-sprint-tab')); // T-202605-058 T-202605-044
 }
 
 // B-202606-039: transiciones automáticas de status en R padre al avanzar T hijo
@@ -2115,7 +2120,7 @@ function _applyStatusChange(code, newStatus, prevStatus) {
     window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
     if (_autoAdvancedRCode) window.dispatchEvent(new CustomEvent('shell:backlog-r-auto-advanced', { detail: { rCode: _autoAdvancedRCode } }));
     renderStats();
-    window.dispatchEvent(new CustomEvent('shell:sprint-render'));
+    window.dispatchEvent(new CustomEvent('shell:render-sprint-tab'));
   }
 }
 
