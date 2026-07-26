@@ -1,3 +1,17 @@
+// [PP] mod:55 · autor:Rune · 2026-07-29 UTC-6
+// INC-202607-049 (fix): mismo gap que INC-202607-047, en las otras dos funciones de export
+// que leen ITEMS/INCIDENTS del proyecto — exportFullHistoryMd() y exportSprintsMd() (mismo
+// archivo) solo llamaban await refreshHistoricoCache() antes de generar, sin await
+// _loadFromSupabase() previo. Ambas leen getItems()/getIncidents()/_allItemsWithHistorico()
+// (mismo universo en memoria que exportBacklogMd()) vía _generateFullHistoryBySprintMd() /
+// _generateSprintsExportMd() — con Realtime desactivado en tracker_items/tracker_incidents
+// (_pp-strategy §4, decisión 2026-07-08) comparten el mismo riesgo de snapshot desactualizado.
+// Fix: await _loadFromSupabase() agregado como primera línea de ambas funciones, antes de
+// refreshHistoricoCache() — mismo orden ya usado en exportBacklogMd() (mod:54).
+// Investigado también exportContextMd() — título original del INC lo incluía como candidato
+// sin confirmar. Descartado del scope tras revisar código real: _generateContextContent()
+// lee únicamente localStorage.getItem(_tplKey('context-raw')); nunca llama getItems() /
+// getIncidents() / _allItemsWithHistorico(). No comparte el gap — sin cambio en esa función.
 // [PP] mod:54 · autor:Rune · 2026-07-29 UTC-6
 // INC-202607-047 (fix): exportBacklogMd() nunca refrescaba ITEMS/INCIDENTS desde Supabase
 // antes de generar el export — solo llamaba refreshHistoricoCache() (ver INC-[pendiente-ID]
@@ -258,6 +272,7 @@ export async function exportFullHistoryMd() {
   const pfx = _docPrefix();
   const ver = _backlogVersion();
   const _canonVer2 = v => v.replace(/_/g, '.');
+  await _loadFromSupabase(); // INC-202607-049: ITEMS/INCIDENTS refrescados antes de leer getItems()/getIncidents() — mismo fix que exportBacklogMd() (INC-202607-047)
   await refreshHistoricoCache(); // fix INC — cache poblado antes de que el generador sync lea getHistoricoItemsSync()
   // INC-202607-034: naming alineado a patrón de Docs — guion bajo inicial + '-' antes de versión.
   // 'backlog-full' no está declarado como tipo en la Taxonomía (__OB-Strategy §5) — escalado a
@@ -272,6 +287,7 @@ async function exportSprintsMd() {
   const pfx = _docPrefix();
   const ver = _backlogVersion();
   const _canonVer3 = v => v.replace(/_/g, '.');
+  await _loadFromSupabase(); // INC-202607-049: ITEMS/INCIDENTS refrescados antes de leer getItems()/getIncidents() — mismo fix que exportBacklogMd() (INC-202607-047)
   await refreshHistoricoCache(); // fix INC — cache poblado antes de que el generador sync lea getHistoricoItemsSync()
   // INC-202607-033: mismo fix de naming que exportFullHistoryMd (INC-202607-034) — 'sprints'
   // tampoco está declarado como tipo en la Taxonomía, misma escalación a Vera pendiente.
