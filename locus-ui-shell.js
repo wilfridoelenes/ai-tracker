@@ -1,3 +1,10 @@
+// [PP] mod:63 · autor:Rune · 2026-07-27 UTC-6
+// TKT-202607-150 (REQ-202607-048, TKT2): breadcrumb-proj cambia de dispatch
+// 'shell:open-proj-panel' a switchTab('proyectos') directo — tab-btn-proyectos se retiró de
+// index.html (mismo REQ, TKT2), el nombre de proyecto es ahora el único punto de entrada a la
+// vista Documentos/Context. shell:open-proj-panel queda sin dispatcher conocido en este
+// archivo — si algún módulo no adjunto en esta sesión aún escucha ese evento, queda huérfano
+// (ver impacto lateral declarado en el CHECKPOINT).
 // [PP] mod:62 · autor:Rune · 2026-07-19 15:00 UTC-6
 // INC-PP-export-confirm-dead-shell: removido handler muerto de export-confirm-cancel-btn/
 //   export-confirm-overlay — ambos retirados de index.html en REQ CAEL-0720-01 TKT2, el listener
@@ -1360,13 +1367,14 @@ document.addEventListener('DOMContentLoaded', function () {
 // ── B-202605-019: Listeners — header, breadcrumb, more-menu, inputs ─────────
 document.addEventListener('DOMContentLoaded', function () {
 
-  // breadcrumb-proj → shell:open-proj-panel (INC-PP-openProjPanel: openProjPanel() directo
-  // no está importado en este módulo — importarlo crearía ciclo con locus-sprint-project.js,
-  // que ya importa esc/switchTab/switchSubTab/getCurrentSubTab/getCurrentTab de este archivo.
-  // Mismo patrón desacoplado que locus-backlog-render.js y locus-sesiones-capture.js — T-202606-167)
+  // breadcrumb-proj → switchTab('proyectos') (TKT-202607-150, REQ-202607-048: tab-btn-proyectos
+  // se retiró de la barra — el nombre de proyecto es ahora el único punto de entrada visible a
+  // la vista Documentos/Context, misma función que antes invocaba ese botón. Reemplaza el
+  // dispatch previo 'shell:open-proj-panel' — INC-PP-openProjPanel/T-202606-167 quedan
+  // obsoletos, switchTab ya vive en este mismo módulo, sin import nuevo ni ciclo ESM).
   const breadcrumbProj = document.getElementById('breadcrumb-proj');
   if (breadcrumbProj) breadcrumbProj.addEventListener('click', function () {
-    window.dispatchEvent(new CustomEvent('shell:open-proj-panel'));
+    switchTab('proyectos');
   });
 
   // header-pend-btn → openPendPanel()

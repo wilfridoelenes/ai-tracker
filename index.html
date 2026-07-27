@@ -1,3 +1,7 @@
+<!-- [PP] mod:162 · autor:Rune · 2026-07-27 UTC-6 -->
+<!-- TKT-202607-150 (REQ-202607-048, TKT2): #tab-btn-proyectos retirado de la barra de tabs
+     principal (#tab-btn-proyectos y su badge #tab-notif-badge-proyectos). #tab-proyectos
+     (panel) y switchTab('proyectos') no se tocan — solo el botón de la barra. -->
 <!-- [PP] mod:161 · autor:Nova · 2026-07-26 UTC-6 -->
 <!-- TKT-202607-127 (REQ-202607-039, Nova): #sprint-panel-planificar gana el Stats Shell
      (#spp-stats-block, 4 celdas: Q-Backlog/Asignados/Effort asignado/vs velocidad — reusa
@@ -244,7 +248,10 @@
         <button class="tab-btn" id="tab-btn-sesiones" title="Ver Sesiones"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5v4.5l3 2"/><circle cx="9" cy="9" r="6.5"/><path d="M4.5 3 3 4.5"/></svg>Sesiones<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sesiones"></span></button>
         <button class="tab-btn" id="tab-btn-sprint" title="Sprint — estado y ejecución del sprint activo"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 15 8 8l3 3 4-6"/><path d="M11 5h4v4"/></svg>Sprint<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sprint"></span></button>
         <button class="tab-btn" id="tab-btn-backlog" title="Backlog — ítems, sprints y estado del ecosistema"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h7"/><circle cx="14" cy="13" r="1.6"/></svg>Backlog<span class="tab-notif-badge is-hidden" id="tab-notif-badge-backlog"></span></button>
-        <button class="tab-btn" id="tab-btn-proyectos" title="Dashboard estratégico de proyectos"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 5.5c0-.6.4-1 1-1H7l1.5 1.8h6c.6 0 1 .4 1 1v6.2c0 .6-.4 1-1 1h-11c-.6 0-1-.4-1-1z"/></svg>Proyectos<span class="tab-notif-badge is-hidden" id="tab-notif-badge-proyectos"></span></button>
+        <!-- TKT2 (REQ-202607-048): tab-btn-proyectos retirado de la barra — el nombre de
+             proyecto en el header (#breadcrumb-proj) es ahora el único punto de entrada visible
+             a la vista Documentos/Context. #tab-proyectos y switchTab('proyectos') siguen
+             intactos, solo se retiró el botón redundante de la barra de tabs. -->
         <!-- TKT2 (REQ CAEL-01 · Q-INC tab top-level): nuevo tab de primer nivel, separa Rama Reactiva de Rama Planeada (Backlog) -->
         <button class="tab-btn" id="tab-btn-incidentes" title="Incidentes — INC · PRB · KE · CHG (Rama Reactiva)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3 2.5 14.5h13Z"/><path d="M9 7.5v3.2"/><circle cx="9" cy="12.6" r=".2" fill="currentColor" stroke="none"/></svg>Incidentes<span class="tab-notif-badge is-hidden" id="tab-notif-badge-incidentes"></span></button>
         <button class="tab-btn" id="tab-btn-analytics" title="Analytics — sesiones por mes"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 15V9M8 15V3M13 15v6"/></svg>Analytics<span class="tab-notif-badge is-hidden" id="tab-notif-badge-analytics"></span></button>
