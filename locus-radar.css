@@ -1,4 +1,4 @@
-/* [PP] mod:12 · autor:Nova · 2026-07-20 19:10 UTC-6 */
+/* [PP] mod:13 · autor:Nova · 2026-07-27 UTC-6 */
 /* Fix: .rsb-pin-icon base reordenado antes de .rsb-pin-icon--on/--off — ambos SVGs
    del pin (outline+filled) se mostraban simultáneamente en estado sin fijar porque
    la regla base (misma especificidad, posición posterior en el archivo) ganaba el
@@ -130,9 +130,8 @@
 }
 
 .radar-sidebar-title {
-  font-size: var(--text-sm);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: var(--text-lg);
+  font-weight: 600;
   color: var(--text);
   display: flex;
   align-items: center;
