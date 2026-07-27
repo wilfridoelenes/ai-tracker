@@ -566,7 +566,11 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // B-202606-032: sprintOverride — sprint del objeto diff para ítems nuevos que aún no existen en getItems()
   // INC-[pendiente-ID]: itemType (pos 3) — INC/PRB/KE/CHG viven exclusivamente en Q-INC (__BR-Ecosystem §5).
   //   Estos tipos no aceptan sprint ni Q-Backlog — el selector no se renderiza, se muestra badge de cola fija.
-  const _QINC_TYPES = ['INC', 'PRB', 'KE', 'CHG'];
+  // TKT-202607-152: 'KE' retirado — itemKind() nunca produce ese tipo desde la fusión
+  // KE→PRB.root_cause_confirmed (infra_version 51). Mismo criterio de residuo ya limpiado en
+  // _isQIncTerminal() (locus-incidents-render.js mod:10) — la entrada aquí quedaba muerta desde
+  // entonces, sin afectar el selector porque itemType nunca llegaba como 'KE'.
+  const _QINC_TYPES = ['INC', 'PRB', 'CHG'];
   // TKT-202607-001 (INC-[pendiente-ID], triggered_by hallazgo de sesión — DIFF mostraba
   //   "Sin sprint (Q-Backlog)" seleccionado para DISC): DISC vive exclusivamente en Q-DISC
   //   (__BR-Ecosystem §5) y nunca acepta sprint — mismo patrón ya aplicado a _QINC_TYPES.
