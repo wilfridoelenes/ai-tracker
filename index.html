@@ -1,4 +1,4 @@
-<!-- [PP] mod:159 · autor:Nova · 2026-07-25 17:40 UTC-6 -->
+<!-- [PP] mod:160 · autor:Nova · 2026-07-26 UTC-6 -->
 <!-- TKT-202607-132 (REQ-202607-042): #worker-header — .sc-header-right gana 2 hermanos
      estáticos, ambos ocultos por .is-hidden por default (integración de Rune, TKT2,
      alterna la clase por estado y wirea el click):
@@ -1568,73 +1568,39 @@
   <div class="promote-modal" id="promote-modal-body"></div>
 </div>
 
-<!-- modal-split__shell — TKT-202607-128 (REQ-202607-038, Nova): contenedor padre común
-     nuevo para #merge-diff-overlay + #ingest-modal-overlay. No declara position/transform/
-     filter/will-change propios — ambos hijos siguen siendo position:fixed contra el
-     viewport (locus-backlog-item.css, locus-modals-base.css), este wrapper no crea
-     containing block nuevo para ellos. Su único propósito es que el combinador de
-     hermano general #merge-diff-overlay.mdiff-overlay--docked ~ #ingest-modal-overlay
-     (locus-modals-base.css) resuelva contra una adyacencia DOM explícita y estable, en
-     vez de depender de que ningún otro nodo se intercale entre ambos bajo <body>. -->
-<div class="modal-split__shell" id="modal-split-shell">
-
-<!-- merge-diff-overlay — R-202604-071: rediseño two-column -->
-<div class="modal-overlay mdiff-overlay" id="merge-diff-overlay">
-  <div class="mdiff-dialog">
-    <!-- Header -->
-    <div class="mdiff-header" id="merge-diff-header"></div>
-    <!-- Body: two columns -->
-    <div class="mdiff-layout">
-      <!-- Left: sections scroll -->
-      <div class="mdiff-sections-col" id="merge-diff-body"></div>
-      <!-- Right: summary panel sticky -->
-      <div class="mdiff-summary-col" id="merge-diff-summary">
-        <div class="mdiff-summary-inner">
-          <div class="mdiff-summary-title">Resumen</div>
-          <div class="mdiff-summary-chips" id="mdiff-summary-chips"></div>
-          <div class="mdiff-pending-list" id="mdiff-pending-list"></div>
-        </div>
-        <!-- B-202606-033: footer anclado al fondo de .mdiff-summary-col — fuera del scroll -->
-        <div class="mdiff-summary-footer" id="merge-diff-footer"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ingest-modal-overlay — REQ[CAEL-0716-01] TKT1 (Nova): split view coordinado con
-     #merge-diff-overlay bajo .modal-split — 1/3 ingesta, 2/3 socket DIFF (ver
-     .modal-split__col--diff, locus-modals-base.css). El DIFF real que ocupa ese
-     espacio es #merge-diff-overlay en modo .mdiff-overlay--docked (Rune, TKT2/TKT3).
-     Stepper de 3 fases (#ingest-phasebar) removido — confirmado sin consumidor JS.
-     #diff-preview-modal/#ingest-diff-empty (columna interna de resumen de batch,
-     CAEL-06/CAEL-02) retirados — su función la asume el split coordinado (AC5 TKT1).
-     Gap de impacto lateral declarado en CHECKPOINT: locus-sesiones.js (_openIngestModal)
-     referenciaba ambos IDs para resetear el DIFF stale al cambiar de worker — TKT2
-     amplía su archivos/ac para reimplementar ese reset contra #merge-diff-overlay.
-     TKT-202607-128 (REQ-202607-038, Nova): movido de hijo directo de <body> a hijo
-     directo de .modal-split__shell, junto con #merge-diff-overlay — corrige la
-     dependencia del combinador de hermano general descrita en locus-modals-base.css. -->
-<div class="modal-overlay modal-split" id="ingest-modal-overlay"
+<!-- #modal-split-shell — TKT-202607-144 (REQ-202607-046, Nova): shell único —
+     reemplaza la coordinación por CSS entre dos overlays fixed independientes
+     (familia .modal-split/.mdiff-overlay--docked, REQ[CAEL-0716-01]->TKT-202607-128).
+     Es el único nodo con backdrop/z-index/estado open (clase modal-overlay, mismo
+     mecanismo que cualquier otro modal del ecosistema) — showMergeDiffPanel() y
+     _openIngestModal() operan sobre este ID (ver TKT-202607-145). #merge-diff-overlay
+     y #ingest-modal-overlay pasan a regiones internas (AC5) — sin backdrop propio,
+     dentro de .mss-box (dialog real: max-width 1600px / 90vh, no reactivo a
+     body.radar-sb-open/-collapsed — AC3, centrado contra el viewport completo).
+     Header compartido (AC2): .modal-split__header — antes solo identidad de worker,
+     ahora también dueño del único botón de cierre del shell (movido desde
+     #ingest-modal-close-btn, mismo id, sin cambio de listener). #merge-diff-header
+     se oculta vía CSS (locus-modals-base.css) — evita segundo header con chrome
+     propio sin tocar el contenido que Rune ya puebla ahí (BR-Execution §5). -->
+<div class="modal-overlay modal-split-shell" id="modal-split-shell"
      role="dialog" aria-modal="true" aria-labelledby="ingest-modal-title">
-  <div class="modal modal--ingest modal-split__dialog">
-    <!-- modal-split__header — identidad del worker, shell vacío (BR-Execution §5).
-         Vocabulario reutilizado de #worker-header/AI Card (.sc-header-left/-right,
-         .sc-avatar, .sc-project, .sc-badge) — sin clases .msh-* nuevas, corrección
-         de nomenclatura declarada en CHECKPOINT sobre el AC original de Cael.
-         Rune puebla estos nodos en _openIngestModal(aiId) (TKT2) — mismo patrón que
-         _populateWorkerHeader() ya usa para #worker-header. Estado vacío
-         (.modal-split__header--empty + .msh-empty) si el modal abre sin worker activo. -->
-    <div class="modal-split__header" id="ingest-split-header">
-      <div class="sc-header-left">
-        <div class="sc-avatar" id="ingest-split-avatar"></div>
-        <span class="sc-project" id="ingest-split-project"></span>
-      </div>
-      <div class="sc-header-right">
-        <span class="sc-badge" id="ingest-split-badge"></span>
-      </div>
-    </div>
+<div class="mss-box">
+<div class="modal-split__header" id="ingest-split-header">
+  <div class="sc-header-left">
+    <div class="sc-avatar" id="ingest-split-avatar"></div>
+    <span class="sc-project" id="ingest-split-project"></span>
+  </div>
+  <div class="sc-header-right">
+    <span class="sc-badge" id="ingest-split-badge"></span>
+  </div>
+  <button class="ingest-modal-close" id="ingest-modal-close-btn" type="button" aria-label="Cerrar">&times;</button>
+</div>
+<div class="mss-content">
 
-    <div class="modal-split__col--ingest">
+<!-- ingest-modal-overlay — región interna, columna 1/3 (AC5). Ya no es overlay propio:
+     sin backdrop, sin position:fixed, sin role/aria-modal propios (movidos al shell). -->
+<div class="mss-col mss-col--ingest" id="ingest-modal-overlay">
+  <div class="modal modal--ingest">
     <div class="ingest-modal-header">
       <div>
         <div class="ingest-modal-title-row">
@@ -1643,7 +1609,6 @@
         </div>
         <p class="ingest-modal-subtitle" id="ingest-modal-subtitle"></p>
       </div>
-      <button class="ingest-modal-close" id="ingest-modal-close-btn" type="button" aria-label="Cerrar">&times;</button>
     </div>
 
     <div class="ingest-modal-columns">
@@ -1700,35 +1665,54 @@
           </div>
         </div>
       </div>
-    </div>
+  </div>
 
-    <div class="modal-actions ingest-modal-actions">
-      <button class="btn-primary" id="ingest-process-batch-btn" type="button">Procesar batch</button>
-    </div>
-    </div>
+  <div class="modal-actions ingest-modal-actions">
+    <button class="btn-primary" id="ingest-process-batch-btn" type="button">Procesar batch</button>
+  </div>
+  </div>
+</div>
 
-    <!-- modal-split__col--diff — socket reservado, decorativo (pointer-events:none).
-         El DIFF real es #merge-diff-overlay en modo --docked, ver nota de arquitectura
-         arriba. aria-hidden: no es contenido, es reserva de layout.
-         .msc-diff-empty (TKT1, REQ CAEL-0717-01, Nova): estado vacío estático — texto
-         invariante, no depende de datos (BR-Execution §5). Visibilidad 100% CSS via
-         selector de hermano contra #merge-diff-overlay.mdiff-overlay--docked
-         (locus-modals-base.css) — sin JS nuevo, sin classList adicional aquí. -->
-    <div class="modal-split__col--diff" aria-hidden="true">
-      <div class="msc-diff-empty">
-        <div>
-          <i class="ti ti-git-compare msc-diff-empty-icon" aria-hidden="true"></i>
-          <p class="msc-diff-empty-title">El panel de revisión aparece aquí</p>
-          <p class="msc-diff-empty-hint">Se activa al procesar el batch</p>
+<!-- merge-diff-overlay — región interna, columna 2/3 (AC5). Ya no es overlay propio:
+     sin backdrop, sin position:fixed, sin clase modal-overlay. .msc-diff-empty (antes
+     socket decorativo separado, TKT1 REQ CAEL-0717-01) se mueve dentro de este nodo —
+     ambos estados (vacío / con diff) viven ahora en el mismo elemento DOM real. Sin el
+     toggle mdiff-overlay--docked (retirado, AC4), el estado por default es "vacío" —
+     un TKT posterior de Rune (TKT-202607-146, depends_on: TKT-202607-144) agrega la
+     clase de estado que alterna a .mdiff-dialog al popular #merge-diff-body. -->
+<div class="mdiff-overlay" id="merge-diff-overlay">
+  <div class="msc-diff-empty">
+    <div>
+      <i class="ti ti-git-compare msc-diff-empty-icon" aria-hidden="true"></i>
+      <p class="msc-diff-empty-title">El panel de revisión aparece aquí</p>
+      <p class="msc-diff-empty-hint">Se activa al procesar el batch</p>
+    </div>
+  </div>
+  <div class="mdiff-dialog">
+    <!-- Header -->
+    <div class="mdiff-header" id="merge-diff-header"></div>
+    <!-- Body: two columns -->
+    <div class="mdiff-layout">
+      <!-- Left: sections scroll -->
+      <div class="mdiff-sections-col" id="merge-diff-body"></div>
+      <!-- Right: summary panel sticky -->
+      <div class="mdiff-summary-col" id="merge-diff-summary">
+        <div class="mdiff-summary-inner">
+          <div class="mdiff-summary-title">Resumen</div>
+          <div class="mdiff-summary-chips" id="mdiff-summary-chips"></div>
+          <div class="mdiff-pending-list" id="mdiff-pending-list"></div>
         </div>
+        <!-- B-202606-033: footer anclado al fondo de .mdiff-summary-col — fuera del scroll -->
+        <div class="mdiff-summary-footer" id="merge-diff-footer"></div>
       </div>
     </div>
-    <div class="modal-split__divider" aria-hidden="true"></div>
   </div>
 </div>
 
 </div>
-<!-- /modal-split__shell -->
+</div>
+</div>
+<!-- /modal-split-shell -->
 
 
 <!-- status-confirm-overlay retirado — CAEL-0720-01 TKT3. Reemplazado por gconfirm-overlay con

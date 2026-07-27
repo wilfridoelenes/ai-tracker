@@ -1,4 +1,10 @@
-/* [PP] mod:20 · autor:Nova · 2026-07-25 UTC-6 */
+/* [PP] mod:21 · autor:Nova · 2026-07-26 UTC-6 */
+/* TKT-202607-144 (REQ-202607-046): familia .modal-split (REQ[CAEL-0716-01] → TKT-202607-128)
+   retirada — reemplazada por .modal-split-shell/.mss-box/.mss-content/.mss-col/.mss-col--ingest.
+   Retiro sin período de gracia (__BR-Execution §2): --split-total-w/-h/-gap/-header-h, la regla
+   .modal-overlay.modal-split, #ingest-modal-overlay .modal-split__dialog, .modal-split__col--diff,
+   .modal-split__divider. .modal-split__header conservado — reescrito para flujo (no absolute) y
+   ahora dueño del botón de cierre del shell. #merge-diff-header oculto (AC2, un solo header). */
 /* TKT1 (REQ CAEL-0724-02, DISC-202607-029): .validation-result-item-type — badge de tipo por
    fila en #ingest-result-items. Conflicto CSS resuelto en sesión (dueño Nova co-presente, nivel
    Patch, sin bifurcación — BR-Core Excepción de dueño co-presente): las restricciones
@@ -366,108 +372,44 @@
   flex-direction: column;
 }
 
-/* ══ .modal-split — REQ[CAEL-0716-01] TKT1 (Nova): split view coordinado
-   #ingest-modal-overlay (1/3, izq) + #merge-diff-overlay (2/3, der) bajo una
-   sola superficie visual, un solo backdrop real. Arquitectura: ambos overlays
-   siguen siendo nodos DOM independientes — sin restructuración de #merge-diff-overlay
-   dentro de #ingest-modal-overlay, evita blast radius sobre los 3 call sites de
-   showMergeDiffPanel (locus-session-save.js, locus-session-parse.js). Se coordinan
-   por posición fixed calculada contra las mismas custom properties — el backdrop
-   real lo pinta solo #ingest-modal-overlay (.modal-split); #merge-diff-overlay en
-   modo docked (.mdiff-overlay--docked, definida junto a .mdiff-overlay en
-   locus-backlog-item.css — mismo archivo dueño de esa clase, no se duplica aquí)
-   va sin backdrop propio. BR-Execution §5 — shell estático en HTML, contenido
-   dinámico vía JS (Rune, TKT2/TKT3). ══ */
-
-/* Full-viewport (REQ[CAEL-0716-02], wireframe aprobado por founder) — sin bandas
-   vacías: el split ocupa exactamente el área entre header, sidebar derecha y
-   footer. --split-total-h resta el offset real del header (--header-h mide solo
-   .header-inner — el <header> real suma 1.95rem + 1px de padding/border encima,
-   ver locus-layout.css L554-558, mismo cálculo ya usado en .tab-panel.active L1132)
-   y --footer-h (locus-base.css). --split-total-w se recalcula completo bajo
-   body.radar-sb-open/-collapsed más abajo — mismo mecanismo reactivo que ya usa
-   #global-footer (locus-radar.css L782-801), sin JS nuevo: todo calc() que
-   consume --split-total-w en este archivo y en locus-backlog-item.css hereda el
-   valor nuevo automáticamente. */
-/* Margen simétrico contra los bordes extremos del viewport — antes 0 (dialog flush
-   contra el borde izquierdo, socket diff flush contra el derecho). Se resta ×2 de
-   --split-total-w (una vez por lado) y se aplica como padding-left del dialog — el
-   borde derecho queda simétrico sin declaración propia, porque .modal-split__col--diff
-   ya calcula su ancho contra --split-total-w reducido. Sin JS nuevo — mismo mecanismo
-   reactivo que el resto de este bloque.
-   --split-viewport-gutter retirado (REQ CAEL-0717-02, TKT1, Nova) — consolidado en
-   --gutter-shell (locus-base.css), mismo valor (24px), sin período de gracia: se
-   introdujo y se retiró en el mismo sprint (__BR-Execution §2, sin retrocompatibilidad). */
-:root {
-  --split-total-w: calc(100vw - var(--gutter-shell) * 2);
-  --split-total-h: calc(100vh - var(--header-h) - 1.95rem - 1px - var(--footer-h));
-  --split-gap: 18px;
-  --split-header-h: 60px;
-}
-
-body.radar-sb-open {
-  --split-total-w: calc(100vw - var(--rsb-width, 340px) - var(--gutter-shell) * 2);
-}
-
-body.radar-sb-collapsed {
-  --split-total-w: calc(100vw - var(--rsb-strip, 14px) - var(--gutter-shell) * 2);
-}
-
-/* Aplicada a #ingest-modal-overlay. Ancla el diálogo al borde superior-izquierdo
-   real del área disponible — ya no centrado, dos diálogos fixed comparten la
-   misma franja calculada desde el mismo --split-total-w/-h. */
-.modal-overlay.modal-split {
-  justify-content: flex-start;
-  align-items: flex-start;
-  padding-top: calc(var(--header-h) + 1.95rem + 1px + var(--split-header-h));
-  padding-left: var(--gutter-shell);
-}
-
-/* Fix de raíz (Hallazgo Rune, mismo patrón de mod:83 — .modal-split__dialog conserva la
-   clase base .modal (`class="modal modal--ingest modal-split__dialog"`, index.html), y
-   .modal{max-width:360px} (declarada después en este archivo, especificidad 0,1,0 igual)
-   ganaba en cascade sobre max-width:none — el diálogo de ingesta quedaba clipeado a 360px
-   pese a que width/height calculan correctamente contra --split-total-w/-h. Selector
-   calificado con #ingest-modal-overlay (1,1,0) elimina la dependencia del orden de
-   declaración en el archivo, mismo criterio de raíz ya aplicado a
-   #merge-diff-overlay.mdiff-overlay--docked. */
-#ingest-modal-overlay .modal-split__dialog {
-  width: calc(var(--split-total-w) * 0.333 - var(--split-gap) / 2);
-  height: calc(var(--split-total-h) - var(--split-header-h));
-  max-width: none;
-  max-height: none;
-  overflow: visible;
-  position: relative;
+/* ══ .modal-split-shell — TKT-202607-144 (REQ-202607-046, Nova): shell único que
+   reemplaza la coordinación previa entre #ingest-modal-overlay y #merge-diff-overlay
+   como dos overlays fixed independientes acoplados por selector de hermano
+   (familia .modal-split/.mdiff-overlay--docked, REQ[CAEL-0716-01] → TKT-202607-128,
+   retirada en este TKT). El shell es el único nodo con backdrop/estado open — usa la
+   base .modal-overlay ya existente (arriba en este archivo), sin :root custom
+   properties de --split-total-w/-h/-gap/-header-h (retiradas, sin período de gracia,
+   __BR-Execution §2 — el shell no reacciona a body.radar-sb-open/-collapsed, AC3).
+   .mss-box es el dialog real: tamaño fijo centrado contra el viewport completo,
+   no calculado contra sidebar/header con calc() encadenados. ══ */
+.mss-box {
+  width: min(1600px, calc(100vw - 48px));
+  height: 90vh;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border2);
-  border-top: none;
-  border-radius: 0 0 0 var(--radius-xl);
-  box-sizing: border-box;
+  border-radius: var(--radius-xl);
   box-shadow: 0 24px 64px rgb(0 0 0 / 50%), 0 4px 16px rgb(0 0 0 / 30%);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-/* Header compartido — identidad del worker. Vive en el DOM de #ingest-modal-overlay
-   (único diálogo real disponible sin mover #merge-diff-overlay, ver nota arriba) y
-   se extiende visualmente sobre el ancho total (columna ingest + socket DIFF) vía
-   position:absolute + width calculado — .modal-split__dialog declara overflow:visible
-   para no recortarlo. Vocabulario reutilizado de AI Card / #worker-header
-   (_Locus-css-ref — .sc-header/.sc-avatar/.sc-project/.sc-badge), sin clases nuevas
-   .msh-* — mismo lenguaje visual que el resto del ecosistema para identidad de worker. */
+/* Header compartido — identidad del worker (.sc-header-left/-right, .sc-avatar,
+   .sc-project, .sc-badge — vocabulario reutilizado de #worker-header/AI Card, sin
+   clases .msh-* nuevas) + único botón de cierre del shell (AC2, movido desde el
+   nodo interno #ingest-modal-overlay que ya no controla su propio backdrop). */
 .modal-split__header {
-  position: absolute;
-  top: calc(-1 * var(--split-header-h));
-  left: 0;
-  width: calc(100% + var(--split-total-w) * 0.667 + var(--split-gap));
-  height: var(--split-header-h);
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 0 18px;
+  height: 60px;
   background: var(--surface);
-  border: 1px solid var(--border2);
   border-bottom: 1px solid var(--border);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   box-sizing: border-box;
 }
 
@@ -480,94 +422,39 @@ body.radar-sb-collapsed {
   color: var(--text3);
 }
 
-.modal-split__col--ingest {
-  width: 100%;
-  height: 100%;
+/* Body — dos regiones internas, ya no dos overlays coordinados. Proporción 1/3 · 2/3
+   mantenida (AC1) vía flex-basis en vez de calc() contra --split-total-w. */
+.mss-content {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
-  flex-direction: column;
+}
+
+.mss-col {
+  min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
 
-/* Socket reservado — decorativo, nunca captura clicks (pointer-events:none).
-   Establece la proporción 2/3 medible en DevTools (AC1 TKT1) sin duplicar
-   contenido: el diálogo real que ocupa ese espacio es #merge-diff-overlay en
-   modo --docked, posicionado por coordenadas fixed independientes que usan las
-   mismas custom properties declaradas arriba en este bloque. */
-.modal-split__col--diff {
-  position: absolute;
-  top: 0;
-  left: calc(100% + var(--split-gap));
-  width: calc(var(--split-total-w) * 0.667 - var(--split-gap) / 2);
-  height: 100%;
-  pointer-events: none;
-}
-
-/* ── .msc-diff-empty — REQ[CAEL-0717-01] TKT1 (Nova): estado vacío del socket
-   .modal-split__col--diff antes de procesar un batch/paste. Mismo patrón visual
-   que .scm-du-empty (dashed border, hint, padding 28px 16px). Nodo estático en
-   HTML (index.html, dentro de .modal-split__col--diff) — contenido invariante,
-   no depende de datos (BR-Execution §5). Visibilidad resuelta 100% por CSS via
-   selector de hermano general: sin JS nuevo, sin classList adicional sobre el
-   socket — #merge-diff-overlay.mdiff-overlay--docked ya existe como mecanismo
-   de estado en los 4 call sites reales (locus-session-save.js, locus-session-parse.js
-   ×2, locus-sesiones.js, locus-modals.js) sin que este TKT los toque. ── */
-.msc-diff-empty {
-  position: absolute;
-  inset: 0;
+.mss-col--ingest {
+  flex: 0 0 33.3333%;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  margin: 18px;
-  border: 1px dashed var(--border2);
-  border-radius: var(--radius-lg);
-  padding: 28px 16px;
-  box-sizing: border-box;
+  flex-direction: column;
+  border-right: 1px solid var(--border2);
 }
 
-.msc-diff-empty-icon {
-  font-size: var(--text-display-2xl);
-  color: var(--text3);
-}
+/* #merge-diff-overlay (fuera de .mss-col porque ya no lleva la clase — ver regla
+   dedicada más abajo, junto a .mdiff-overlay en locus-backlog-item.css que ahora
+   declara el layout de la región en vez de un segundo overlay fixed) ocupa el 2/3
+   restante vía flex:1 1 auto sin necesitar clase .mss-col adicional. */
 
-.msc-diff-empty-title {
-  margin: 10px 0 4px;
-  font-size: var(--text-sm);
-  color: var(--text2);
-}
-
-.msc-diff-empty-hint {
-  margin: 0;
-  font-size: var(--text-xs);
-  color: var(--text3);
-}
-
-/* Oculto cuando el panel de revisión está docked — #merge-diff-overlay precede a
-   #ingest-modal-overlay en el DOM (index.html), ambos hijos directos de
-   .modal-split__shell (TKT-202607-128, REQ-202607-038, Nova — antes ambos eran
-   hijos directos de <body> junto con el resto de overlays del ecosistema; la
-   adyacencia funcionaba en teoría pero dependía de que ningún nodo nuevo se
-   intercalara entre ambos con el tiempo. El wrapper la hace explícita y estable). */
-#merge-diff-overlay.mdiff-overlay--docked ~ #ingest-modal-overlay .msc-diff-empty {
+/* Header interno de #merge-diff-overlay retirado del layout visual (AC2 — un solo
+   header por shell). Contenido que Rune puebla en #merge-diff-header no se toca
+   (BR-Execution §5) — solo se oculta el nodo contenedor. */
+#merge-diff-header {
   display: none;
 }
 
-.modal-split__divider {
-  position: absolute;
-  top: 0;
-  left: calc(100% + var(--split-gap) / 2 - 0.5px);
-  width: 1px;
-  height: 100%;
-  background: var(--border2);
-  pointer-events: none;
-}
-
-/* Ingesta — layout interno de columna única (retirada la grid de dos columnas
-   CAEL-06/CAEL-02: el socket DIFF de esta iteración es .modal-split__col--diff,
-   ya no una columna interna de .modal--ingest — #diff-preview-modal/#ingest-diff-empty
-   se retiran del shell, ver AC5 TKT1 y CHECKPOINT — gap de impacto lateral en
-   locus-sesiones.js declarado ahí). */
 .ingest-modal-columns {
   display: flex;
   flex-direction: column;
