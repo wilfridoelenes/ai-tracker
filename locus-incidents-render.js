@@ -1,3 +1,13 @@
+// [PP] mod:15 · autor:Rune · 2026-07-27 15:10 UTC-6
+// TKT2 (TKT-202607-156, parent REQ-202607-050, depends_on TKT-202607-155): renderQIncPanel()
+// inserta .qinc-section-caption ("Agrupado por prioridad SLA de resolución") entre el header
+// "Activos" y _buildQIncColumnsHtml() — incondicional, no depende de _activeItems.length. CSS ya
+// entregado por Nova en locus-incidents.css mod:4. Cada .qinc-column-header generado en
+// _buildQIncColumnsHtml() agrega aria-label="Prioridad SLA: alta|media|baja" (reusa
+// _SLA_COLUMN_LABEL_LC, sin dato nuevo) — copy visible (_SLA_COLUMN_LABEL) sin cambio. "Terminados"
+// no recibe caption — sin tocar esa rama. Impacto lateral: ninguno — _slaColumnOf(), _qincColumnSort()
+// y el split Activos/Terminados no se tocan.
+
 // [PP] mod:14 · autor:Rune · 2026-07-27 UTC-6
 // Fast Track INC (ref_id CAEL-0727-01, triggered_by: auditoría visual del founder — captura de
 // pantalla del render Q-INC, 2026-07-27): la sección "Activos" desaparecía por completo
@@ -341,7 +351,7 @@ function _buildQIncColumnsHtml(activeItems) {
   _SLA_COLUMNS.forEach(col => {
     const items = groups[col];
     h += `<div class="qinc-column" data-qi-column="${col}">`;
-    h += `<div class="qinc-column-header">${_SLA_COLUMN_LABEL[col]} · ${items.length}</div>`;
+    h += `<div class="qinc-column-header" aria-label="Prioridad SLA: ${_SLA_COLUMN_LABEL_LC[col]}">${_SLA_COLUMN_LABEL[col]} · ${items.length}</div>`;
     if (items.length) {
       h += '<div class="qinc-column-body">';
       // buildQIncItem() directo — _buildQIncItemHtml es un wrapper local a renderQIncPanel(),
@@ -443,6 +453,10 @@ export function renderQIncPanel() {
         // ítems activos; ahora _buildQIncColumnsHtml([]) resuelve el caso vacío mostrando las
         // 3 columnas con su empty-state propio (.qinc-column-empty, sin markup nuevo).
         h += '<div class="qinc-section"><div class="qinc-section-header">Activos</div>';
+        // TKT2 (TKT-202607-156, parent REQ-202607-050, depends_on TKT-202607-155): caption fijo,
+        // sin condicionar al conteo de _activeItems — AC de coherencia del REQ exige que se
+        // renderice igual con las 3 columnas vacías. No se agrega a "Terminados" (más abajo).
+        h += '<div class="qinc-section-caption">Agrupado por prioridad SLA de resolución</div>';
         h += _buildQIncColumnsHtml(_activeItems);
         h += '</div>';
         // filteredQInc.length>0 está garantizado en este punto (branch de "Sin resultados" ya
