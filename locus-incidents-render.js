@@ -1,3 +1,12 @@
+// [PP] mod:12 · autor:Rune · 2026-07-27 UTC-6
+// Fast Track INC-202607-063 (triggered_by: auditoría de Finn — render Q-INC): umbral obsoleto
+// en renderQIncStats() — `_qiTypes.size < 4` sobrevivió al retiro de KE (mod:10, infra_version
+// 51). El array de tipos filtrables tiene 3 entradas (INC/PRB/CHG) desde entonces —
+// _qiTypes.size nunca supera 3, la condición era siempre verdadera y el botón "✕ Mostrar todos
+// los tipos" quedaba visible permanentemente aunque ningún filtro de tipo estuviera activo.
+// Corregido a `_qiTypes.size < 3`. Un solo archivo, sin lógica nueva, sla_priority: low —
+// Fast Track (__BR-Core §6).
+
 // [PP] mod:11 · autor:Rune · 2026-07-24 UTC-6
 // TKT1 (REQ CAEL-0724-14/TKT-202607-088, ref_id CAEL-0724-15): sección "Activos" de
 // renderQIncPanel() reemplaza el grid único por 3 columnas de prioridad SLA (alta/media/baja).
@@ -225,7 +234,7 @@ export function renderQIncStats() {
   // conteo. _countByType/_countByPri ya quedan en 0 cuando _displayable está vacío.
   statsEl.innerHTML = `
     <div class="qinc-stats-types">
-      ${_qiTypes.size < 4 ? `<button class="stat-type-chip stat-type-chip--all" data-qi-action="qi-clear-types" title="Mostrar todos los tipos">✕</button>` : ''}
+      ${_qiTypes.size < 3 ? `<button class="stat-type-chip stat-type-chip--all" data-qi-action="qi-clear-types" title="Mostrar todos los tipos">✕</button>` : ''}
       ${[['INC','INC'],['PRB','PRB'],['CHG','CHG']].map(([t, label]) =>
         `<button class="stat-type-chip tc-${t}${_qiTypes.has(t) ? ' active' : ''}" data-qi-action="qi-type" data-qi-type="${t}" title="Filtrar por tipo ${t}">\
 <span class="tc-count">${_countByType[t]}</span><span class="tc-label">${label}</span></button>`
