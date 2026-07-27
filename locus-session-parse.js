@@ -1,3 +1,8 @@
+// [PP] mod:152 · autor:Rune · 2026-07-27 UTC-6
+// INC-202607-062: rama de mismatch en _showIngestValidationResult() usaba
+// classList.replace('validation-badge--success','validation-badge--warning') — no-op si
+// --success no estaba presente (primer pegado de la sesión). Reemplazado por remove+add
+// explícito, mismo patrón que INC-202607-060 (rama 'sin campo Proyecto', mod:151).
 // [PP] mod:151 · autor:Rune · 2026-07-27 UTC-6
 // INC-202607-060: badge de proyecto en _showIngestValidationResult() conservaba
 // 'validation-badge--success' al pasar a la rama 'sin campo Proyecto' — solo la rama de
@@ -1342,7 +1347,13 @@ function _showIngestValidationResult({ ckptProyecto, activeProjectName, title, s
     badgeProjectEl.classList.add('validation-badge--success');
     badgeProjectEl.textContent = `✓ Proyecto: ${_ckptProj}`;
   } else if (_ckptProj) {
-    badgeProjectEl.classList.replace('validation-badge--success', 'validation-badge--warning');
+    // INC-202607-062 (Rune): .replace() no aplica el segundo token si el primero no está
+    // presente — si el badge no tiene aún ninguna clase --success/--warning (primer pegado
+    // de la sesión) y el proyecto no matchea, el texto se actualizaba pero --warning nunca
+    // se aplicaba (badge sin color de estado). Mismo fix que INC-202607-060: remove + add
+    // explícito, sin depender de que --success exista previamente.
+    badgeProjectEl.classList.remove('validation-badge--success');
+    badgeProjectEl.classList.add('validation-badge--warning');
     badgeProjectEl.textContent = `⚠ Proyecto: ${_ckptProj}`;
   } else {
     // INC-202607-060 (Rune): esta rama solo hacía .add('--warning') sin remover '--success'
