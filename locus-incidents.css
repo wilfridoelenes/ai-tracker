@@ -1,4 +1,10 @@
-/* [PP] mod:6 · autor:Nova · 2026-07-27 18:15 UTC-6 */
+/* [PP] mod:8 · autor:Nova · 2026-07-27 19:40 UTC-6 */
+/* Corrección de numeración (INC ref_id CAEL-0727-01): esta entrega era mod:6 en la primera
+   línea del archivo, duplicando el mod:6 ya usado por la entrega de TKT-202607-158 (17:05,
+   ver más abajo). Renumerada a mod:8 — siguiente número real tras la corrección de mod:7
+   (ver bloque de .qinc-section-header, más abajo), que este mismo comentario ya citaba como
+   existente sin que el número de esta entrega lo reflejara. Sin cambio de contenido — solo
+   de numeración y de esta nota. */
 /* TKT1 (TKT-202607-160, parent REQ-202607-053): .qinc-item-code-chip — fusiona el badge de
    tipo ITIL y el código real en un único elemento clicable, reemplazando la combinación
    badge+span separados. Reutiliza literalmente los 3 hex ya declarados en .qinc-type-badge
@@ -539,15 +545,17 @@
   gap: 6px;
 }
 
-/* [PP] mod:7 · autor:Rune · 2026-07-27 UTC-6 */
-/* Fix de token (Patch, sin cambio de comportamiento — DOC-UPDATE de Nova aplicado en
-   _Locus-css-ref §Panel Q-INC, "Secciones colapsables"): .qinc-section-header:focus-visible
-   usaba var(--border) — supuesto declarado por Nova en mod:6 por falta de _Locus-css-ref
-   adjunto en esa sesión. Con el doc disponible, el token real y consistente en todo el sistema
-   para :focus-visible de headers colapsables es var(--accent) (mismo patrón que
-   .qdisc-status-header, .qbacklog-draft-header, .sps-status-header, y el resto de controles
-   interactivos del sistema — ver _Locus-css-ref §Tokens de color). var(--border) no es un token
-   de foco en ningún otro selector del proyecto. Única línea tocada — outline-offset sin cambio. */
+/* [PP] mod:7 · autor:Nova · 2026-07-27 19:40 UTC-6 */
+/* Fix de token (Patch, sin cambio de comportamiento — resuelve INC ref_id CAEL-0727-01):
+   .qinc-section-header:focus-visible usaba var(--border) — supuesto que yo misma declaré en
+   mod:6 por falta de _Locus-css-ref adjunto en esa sesión, marcado explícitamente como
+   pendiente de señalar si difiere del token real. Con el doc disponible ahora, confirmo que
+   el token correcto y consistente en todo el sistema para :focus-visible de headers
+   colapsables es var(--accent) (mismo patrón que .qdisc-status-header, .qbacklog-draft-header,
+   .sps-status-header — ver _Locus-css-ref §Tokens de color). var(--border) no es un token de
+   foco en ningún otro selector del proyecto. Única línea tocada — outline-offset sin cambio.
+   Esta entrega reemplaza una edición previa hecha directamente sobre este archivo por Rune
+   (fuera de proceso — CSS Purity) con el mismo valor de token, ahora bajo mi propia autoría. */
 /* [PP] mod:6 · autor:Nova · 2026-07-27 17:05 UTC-6 */
 /* TKT1 (TKT-202607-158, parent REQ-202607-052): estados collapsed/expanded de .qinc-section —
    header clickeable con chevron que rota, body que se oculta por clase (nunca style= inline).
