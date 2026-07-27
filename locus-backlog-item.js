@@ -1,4 +1,7 @@
-// [PP] mod:152 · autor:Rune · 2026-07-26 UTC-6
+// [PP] mod:153 · autor:Rune · 2026-07-27 UTC-6
+// INC (__BR-Ecosystem §5): applyPatchesFromTG() no propagaba descartado a los TKT hijos
+// de un REQ patcheado a descartado — agregada cascada REQ→hijos en la rama genérica de
+// status (TKT-202607-139/140 huérfanos, ver bloque en el cuerpo del archivo).
 // TKT-202607-137 (REQ-202607-043): gate duro — applyPatchesFromTG() rechaza un patch
 // status:'done' sobre REQ si al menos un TKT hijo (parentId === existing.code) no está en
 // done/descartado. Dos partes: (1) pre-escaneo de batch (_projectedStatus, Map construido antes
@@ -3633,6 +3636,53 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
             // cubre retroceso desde done (en-revision → en-proceso) y avance a en-revision
             // TKT1 (REQ-202607-021): _syncParentRStatus reemplaza a _checkAndAdvanceParentR
             _syncParentRStatus(existing.code, normalized);
+            // INC (__BR-Ecosystem §5 — "REQ cancelado con TKTs en curso o done: sus TKTs en
+            // pendiente/en-revision se marcan descartado automáticamente"): esta cascada nunca
+            // estaba implementada — un REQ patcheado a descartado no propagaba el status a sus
+            // TKT hijos, que quedaban huérfanos en pendiente/en-revision, visibles en el backlog
+            // activo pese a que el REQ padre ya no es ítem operable (caso real: TKT-202607-139/
+            // 140 huérfanos tras descarte de REQ-202607-044, detectado por el founder vía UI).
+            // done/descartado ya son terminales — se excluyen del filtro. discard_reason se toma
+            // del mismo patch (patch.discard_reason, obligatorio en todo patch de descarte según
+            // §5) — fallback 'reemplazado' solo si el patch no lo declaró explícitamente, para no
+            // dejar el hijo sin discard_reason (violaría el mismo AC que _discardReasonFields ya
+            // audita para el ítem principal). Cada hijo descartado genera su propia entrada en
+            // `patched` — trazabilidad idéntica a si hubiera llegado su propio patch explícito.
+            if (normalized === 'descartado' && itemKind(existing) === 'REQ') {
+              const _cascadeReason = patch.discard_reason || 'reemplazado';
+              getItems()
+                .filter(it => itemKind(it) === 'TKT' && it.parentId === existing.code && !['done', 'descartado'].includes(it.status))
+                .forEach(child => {
+                  const _childChanges = [
+                    { field: 'status', from: child.status, to: 'descartado' },
+                    { field: 'discard_reason', from: child.discard_reason || '—', to: _cascadeReason }
+                  ];
+                  child.status = 'descartado';
+                  child.statusChangedAt = nowTs;
+                  child.discard_reason = _cascadeReason;
+                  child.discardReason = _cascadeReason;
+                  if (!child.history) child.history = [];
+                  child.history.push({
+                    type: 'field',
+                    ts: nowTs,
+                    origin: 'patch-cascade',
+                    sessionId: sessionId || null,
+                    data: { field: 'discard_reason', from: null, to: _cascadeReason }
+                  });
+                  _blogLog(
+                    'req-descartado-cascada-hijo',
+                    child.code,
+                    `${child.code} descartado en cascada — REQ padre ${existing.code} pasó a descartado (discard_reason: ${_cascadeReason}).`,
+                    'backlog'
+                  );
+                  patched.push({
+                    code: child.code,
+                    desc: child.title,
+                    changes: _childChanges,
+                    change: _childChanges.map(c => c.field).join(' · ')
+                  });
+                });
+            }
           }
         } else if (normalized === 'done' && existing.parentId) {
           // INC-[pendiente-ID] (fix idempotencia): un patch status:done sobre un ítem que YA
