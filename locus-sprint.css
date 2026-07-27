@@ -1,3 +1,14 @@
+/* [PP] mod:68 · autor:Nova · 2026-07-26 16:40 UTC-6 */
+/* TKT-202607-127 (REQ-202607-039): Stats Shell + empty-state — sub-tab Planificar.
+   Reuso casi total de TKT-202607-126: .sps-stats-block/.sps-stat-cell (grid+celda base),
+   .spt-identity (chip de sprint, instancia única ya compartida Ítems/Planificar) y
+   .spt-content-empty* (empty-state ícono+título+hint) se consumen tal cual — cero cambio
+   en esas reglas. Único gap real: "asignados" y "vs velocidad" (AC1) no son estados de
+   TKT/sprint como --en-revision/--bloqueado — son métricas de capacidad, sin modificador
+   propio. Se declaran .sps-stat-cell--asignados/--vs-velocidad al final del archivo,
+   mismo recipe visual que --programados/--en-revision respectivamente (azul/ámbar ya
+   validados WCAG AA en este mismo archivo) — nombre propio para no heredar semántica de
+   estado ajena a la métrica. Ver bloque de reglas al final del archivo. */
 /* [PP] mod:67 · autor:Nova · 2026-07-26 UTC-6 */
 /* TKT-202607-126 (REQ-202607-039): fix de QA (Finn) sobre el entregable de mod:66 — el
    supuesto declarado ahí ("si el markup real difiere, señalar antes de declarar el TKT
@@ -3672,3 +3683,43 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   color: var(--text3);
 }
 /* ══ END TKT-202607-126 ══════════════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════════════════════════════════
+   TKT-202607-127 (REQ-202607-039): Stats Shell + empty-state — sub-tab
+   Planificar. design_intent: n/a — hereda el patrón ya aprobado de
+   .sps-stats-block (TKT-202607-126, mismo sub-módulo Sprint). Sin tokens
+   nuevos — reuso exclusivo de --blue-*/--amber-* ya validados WCAG AA en
+   este archivo (ver .sps-stat-cell--programados/--en-revision arriba).
+
+   Grid y celda base (.sps-stats-block/.sps-stat-cell, L3328) y el
+   empty-state (.spt-content-empty*, bloque TKT-202607-126 arriba) se
+   reusan tal cual — sin redeclarar. Solo dos modificadores de color
+   nuevos: "asignados" y "vs velocidad" son métricas de capacidad de
+   sprint, no estados de TKT (a diferencia de --en-revision/--bloqueado)
+   — nombre propio para no heredar esa semántica, mismo recipe visual
+   que --programados (azul) y --en-revision (ámbar) respectivamente.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── AC1 — modificadores de color sobre .sps-stat-cell (reusado en
+   sub-tab Planificar vía #spp-stats-block) — 2 celdas con tinte
+   (asignados/vs velocidad), Q-Backlog/effort asignado neutras. ── */
+.sps-stat-cell--asignados {
+  background: var(--blue-dim);
+  border-color: var(--blue-border);
+}
+
+.sps-stat-cell--asignados .sps-stat-label,
+.sps-stat-cell--asignados .sps-stat-n {
+  color: var(--blue-text);
+}
+
+.sps-stat-cell--vs-velocidad {
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
+  border-color: color-mix(in srgb, var(--amber) 28%, transparent);
+}
+
+.sps-stat-cell--vs-velocidad .sps-stat-label,
+.sps-stat-cell--vs-velocidad .sps-stat-n {
+  color: var(--amber-text);
+}
+/* ══ END TKT-202607-127 ══════════════════════════════════════════════════ */

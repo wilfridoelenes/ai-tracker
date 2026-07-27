@@ -1,7 +1,13 @@
+// [PP] mod:151 · autor:Rune · 2026-07-27 UTC-6
+// Fix inline (triggered_by: verificación de Finn sobre PRB-202607-001): las 3 citas al PRB
+// en mod:150 (header + comentarios internos de _mergeItemsFromRemote()/_mergeIncidentsFromRemote())
+// seguían redactadas como "código real aún sin confirmar... [pendiente-ID]" — código ya
+// confirmado por Locus antes de esta entrega. Actualizadas a PRB-202607-001 (__BR-Execution §9
+// — referencia a ítem con código real ya asignado). Sin cambio de lógica ni de comportamiento.
+
 // [PP] mod:150 · autor:Rune · 2026-07-27 UTC-6
-// PRB derivado de INC-202607-046/053/055 (código real aún sin confirmar en Locus — Finn lo
-// emitió con [pendiente-ID], sin ref_id declarado; ver `_Locus-module-contracts` para el
-// contrato completo una vez el código real esté disponible): causa raíz de la reversión
+// PRB-202607-001 (derivado de INC-202607-046/053/055 — código real confirmado; ver
+// `_Locus-module-contracts` para el contrato completo): causa raíz de la reversión
 // persistente de CHG-202607-001 confirmada en _mergeItemsFromRemote()/_mergeIncidentsFromRemote()
 // — ambas comparaban "¿gana lo local?" contra un snapshot de localStorage releído en cada
 // llamada, no contra el array vivo (_itemsRef/_incidentsRef, mismo parámetro ya recibido).
@@ -2979,8 +2985,7 @@ async function _mergeItemsFromRemote(itemsResult, _itemsRef) {
       // Determinar si vale la pena evaluar merge: ITEMS local vacío → siempre.
       // ITEMS local con datos → solo si hay al menos una fila remota más reciente
       // que su contraparte local (ver merge por fila más abajo — B-202606-094).
-      // PRB derivado de INC-202607-046 (código real del PRB aún sin confirmar en Locus —
-      // Finn lo emitió con [pendiente-ID], sin ref_id): "local" ya
+      // PRB-202607-001 (derivado de INC-202607-046 — código real confirmado): "local" ya
       // no se relee desde localStorage — se construye directo sobre _itemsRef, el mismo
       // array vivo que este merge termina reemplazando. localStorage.setItem('backlog-items')
       // se escribe ANTES del stamp de _updatedAtMs (pre-upsert, ver saveBacklog() L1975),
@@ -3105,9 +3110,8 @@ function _mergeIncidentsFromRemote(incidentsResult, _incidentsRef) {
     if (incidentsResult.status === 'fulfilled' && !incidentsResult.value.error) {
       const remoteIncRows = incidentsResult.value.data || [];
       const incidentsKey     = _tplKey('backlog-incidents');
-      // PRB derivado de INC-202607-046 / INC-202607-053 / INC-202607-055 (código real del
-      // PRB aún sin confirmar en Locus — Finn lo emitió con [pendiente-ID], sin ref_id;
-      // causa raíz confirmada — origen real de la reversión de CHG-202607-001): "local" ya
+      // PRB-202607-001 (derivado de INC-202607-046 / INC-202607-053 / INC-202607-055 —
+      // código real confirmado; causa raíz — origen real de la reversión de CHG-202607-001): "local" ya
       // no se relee desde localStorage — se construye directo sobre _incidentsRef, el mismo
       // array vivo que este merge reemplaza al final. localStorage.setItem(incidentsKey) se
       // escribe ANTES del stamp de _updatedAtMs (pre-upsert, saveBacklog() L1985), y el stamp
