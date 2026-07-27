@@ -3831,7 +3831,14 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
             _blogLog('discard-reason-no-canonico', code, 'discard_reason con valor no canónico: ' + incoming, 'backlog');
           }
           changes.push({ field, from: current !== undefined ? current : '—', to: incoming });
-          existing[field] = incoming;
+          // INC-202607-054: existing[field] (solo discard_reason, snake_case) dejaba
+          // discardReason (camelCase) sin escribir — render.js (L1474-1479) y el flujo de
+          // descarte automático (L1753/L1839, mergeBacklogFromTG L2848) leen exclusivamente
+          // discardReason. incDiscardReason() (locus-inc-fields.js) sigue leyendo discard_reason
+          // snake_case para el export ITIL de Q-INC — sin cambio en ese consumidor, se escribe
+          // ambas keys en vez de reemplazar una por otra.
+          existing.discard_reason = incoming;
+          existing.discardReason = incoming;
         }
         return;
       }
