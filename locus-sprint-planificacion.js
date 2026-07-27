@@ -1,3 +1,16 @@
+// [PP] mod:41 · autor:Rune · 2026-07-26 UTC-6
+// TKT-202607-127 (REQ-202607-039): puebla el Stats Shell (#spp-stats-block, entregado por
+// Nova en index.html mod:161) y alterna el empty-state (#spp-content-empty) desde
+// _renderPlanningView() vía nuevo helper _updatePlanStatsShell(unassigned, openSprints,
+// velocityAvg) — recibe los tres valores ya computados en el render, sin segunda pasada
+// sobre getItems(). 4 celdas: Q-Backlog (unassigned.length) · Asignados (suma de ítems
+// activos en todos los openSprints) · Effort asignado (suma de effort de esos mismos ítems)
+// · vs velocidad (% sobre _calcEstimatedVelocity().avg, '—' sin velocidad histórica — mismo
+// fallback que _sprintMeterHtml). Shell nunca se oculta con las 4 celdas en 0 (AC de
+// TKT-202607-127, mismo criterio que TKT-202607-126) — solo #sprint-planificar-container
+// alterna con #spp-content-empty según unassigned.length. Sin cambio de firma en ninguna
+// función existente — _updatePlanStatsShell es función nueva, no exportada.
+// contract_update: no.
 // [PP] mod:40 · autor:Rune · 2026-07-24 UTC-6
 // INC (triggered_by análisis de render de Planificación, sla_priority: high — módulo crítico
 // locus-backlog-item.js referenciado por contrato, jerarquía REQ→TKT es invariante estructural):
@@ -368,6 +381,13 @@ export function _renderPlanningView(listEl, closeCallback) {
     ? openSprints.map(_sprintDestCard).join('')
     : `<div class="bl-plan-empty bl-plan-dest-empty">No hay sprints abiertos</div>`;
 
+  // TKT-202607-127 (REQ-202607-039): Stats Shell + empty-state viven en index.html (mod:161,
+  // Nova), fuera de listEl — #spp-stats-block/#spp-content-empty son hermanos estáticos de
+  // #sprint-planificar-container, no se regeneran en cada render. _updatePlanStatsShell()
+  // solo actualiza textContent + alterna is-hidden, mismo patrón ya usado por Rune en el
+  // sub-tab Ítems (TKT-202607-126) para #spi-stats-block/#spi-content-empty.
+  _updatePlanStatsShell(unassigned, openSprints, velocityAvg);
+
   listEl.innerHTML = `
     <div class="bl-planning-view" id="bl-planning-view">
       <div class="bl-plan-header">
@@ -413,6 +433,53 @@ export function _renderPlanningView(listEl, closeCallback) {
 
       ${!openSprints.length ? '<div class="bl-plan-no-sprint">No hay sprints abiertos. Crea un sprint para empezar a planificar.</div>' : ''}
     </div>`;
+}
+
+// TKT-202607-127 (REQ-202607-039): puebla el Stats Shell estático (#spp-stats-block) y
+// alterna el empty-state (#spp-content-empty) entregados por Nova en index.html mod:161.
+// Mismo criterio que #spi-stats-block/#spi-content-empty (TKT-202607-126, sub-tab Ítems):
+// shell nunca se oculta (BR-Execution §5) — solo textContent cambia. El empty-state alterna
+// con #sprint-planificar-container (nunca ambos, nunca ninguno) cuando Q-Backlog no tiene
+// ítems elegibles para asignar al sprint — mismo criterio que "unassigned" ya calculado
+// arriba, sin duplicar el filtro.
+// no_incluye: no recalcula unassigned/openSprints/velocityAvg — recibe los ya computados
+// por _renderPlanningView() para evitar dos pasadas sobre getItems().
+function _updatePlanStatsShell(unassigned, openSprints, velocityAvg) {
+  const statsBlock = document.getElementById('spp-stats-block');
+  const emptyState  = document.getElementById('spp-content-empty');
+  const container   = document.getElementById('sprint-planificar-container');
+  if (!statsBlock) return; // shell no adjunto en esta sesión de DOM — no bloquear el render principal
+
+  const assigned = openSprints.reduce((acc, s) =>
+    acc + getItems().filter(i =>
+      i.sprint === s.id &&
+      i.status !== 'done' &&
+      i.status !== 'descartado' &&
+      i.status !== 'historico'
+    ).length, 0);
+  const assignedEffort = openSprints.reduce((acc, s) =>
+    acc + getItems()
+      .filter(i => i.sprint === s.id && i.status !== 'done' && i.status !== 'descartado' && i.status !== 'historico')
+      .reduce((sum, i) => sum + (parseInt(i.effort) || 1), 0), 0);
+  const vsVelocidad = (velocityAvg !== null && velocityAvg > 0)
+    ? `${Math.round((assignedEffort / velocityAvg) * 100)}%`
+    : '—';
+
+  const qbEl  = document.getElementById('spp-stat-qbacklog');
+  const asEl  = document.getElementById('spp-stat-asignados');
+  const efEl  = document.getElementById('spp-stat-effort');
+  const vvEl  = document.getElementById('spp-stat-vs-velocidad');
+  if (qbEl) qbEl.textContent = String(unassigned.length);
+  if (asEl) asEl.textContent = String(assigned);
+  if (efEl) efEl.textContent = String(assignedEffort);
+  if (vvEl) vvEl.textContent = vsVelocidad;
+
+  // AC — empty-state: Q-Backlog sin ítems elegibles para el sprint. El Stats Shell (arriba)
+  // permanece visible con las 4 celdas en 0 — no colapsa, no se oculta (mismo AC que
+  // TKT-202607-126). Solo #sprint-planificar-container alterna con #spp-content-empty.
+  const isEmpty = unassigned.length === 0;
+  if (emptyState) emptyState.classList.toggle('is-hidden', !isEmpty);
+  if (container) container.classList.toggle('is-hidden', isEmpty);
 }
 
 // ---------------------------------------------------------------------------
