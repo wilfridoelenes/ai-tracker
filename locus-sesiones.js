@@ -1152,7 +1152,12 @@ export function _openIngestModal(aiId) {
   // distinto del que dejó el overlay abierto por última vez; mismo aiId conserva el batch.
   const _prevAiId = overlay.dataset.aiId;
   overlay.dataset.aiId = aiId;
-  overlay.classList.add('open');
+  // TKT2 (TKT-202607-145, Rune): #modal-split-shell es ahora el único .modal-overlay real
+  // (Opción A, merge completo — ver locus-backlog-merge.js mod:69, design_intent
+  // split_view_merged_shell). #ingest-modal-overlay ya no abre su propio backdrop — solo
+  // #modal-split-shell recibe 'open'.
+  const shell = document.getElementById('modal-split-shell');
+  if (shell) shell.classList.add('open');
   // TKT2 (REQ CAEL-0716-01) — gap declarado por Nova en TKT1: puebla el header compartido
   // del split view con el worker entrante en cada apertura (mismo aiId o distinto).
   _populateIngestModalHeader(getAI(aiId));
@@ -1194,19 +1199,16 @@ export function _openIngestModal(aiId) {
     batchBtn._ingestBatchWired = true;
     batchBtn.addEventListener('click', () => _processIngestBatch());
   }
-  // Fix inline (TKT3, REQ CAEL-01) + TKT2 (REQ CAEL-0716-01): si el Worker entrante difiere
-  // del anterior (texto ya limpiado arriba), el DIFF docked de un batch/paste del Worker
-  // previo no debe quedar visible para el Worker entrante. #diff-preview-modal/#ingest-diff-empty
-  // (guard original) se retiraron del shell en TKT1 (CAEL-0716-02, AC5) — el mecanismo de
-  // resumen de batch que protegían ya no existe; el equivalente hoy es #merge-diff-overlay
-  // en modo mdiff-overlay--docked, coordinado desde el flujo unificado de ingesta (TKT2/TKT3).
-  if (_prevAiId !== aiId) {
-    const _mdiffOverlay = document.getElementById('merge-diff-overlay');
-    if (_mdiffOverlay && _mdiffOverlay.classList.contains('mdiff-overlay--docked')) {
-      _mdiffOverlay.classList.remove('open');
-      _mdiffOverlay.classList.remove('mdiff-overlay--docked');
-    }
-  }
+  // Fix inline (TKT3, REQ CAEL-01) + TKT2 (REQ CAEL-0716-01): #diff-preview-modal/#ingest-diff-empty
+  // (guard original) se retiraron del shell en TKT1 (CAEL-0716-02, AC5). El mecanismo que los
+  // reemplazó (#merge-diff-overlay en modo mdiff-overlay--docked) fue a su vez retirado por
+  // TKT-202607-144/145 (split_view_merged_shell, Opción A) — #modal-split-shell es hoy el único
+  // backdrop, y #merge-diff-overlay solo alterna mdiff-overlay--empty/--filled internamente (ver
+  // locus-backlog-merge.js mod:69). Cascada de cierre por cambio de Worker retirada — sin
+  // clase 'mdiff-overlay--docked' que verificar, esta rama nunca ejecutaba (verificado por grep,
+  // 0 asignaciones de esa clase en el codebase). Si el founder detecta que el panel de diff de
+  // un Worker anterior queda visible al abrir un Worker distinto, es un AC nuevo a especificar
+  // con Cael — no una regresión de este fix.
 }
 
 

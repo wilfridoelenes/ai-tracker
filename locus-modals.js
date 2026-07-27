@@ -1,3 +1,10 @@
+// [PP] mod:6 · autor:Rune · 2026-07-26 UTC-6
+// TKT2 (TKT-202607-145, REQ-202607-046 split_view_merged_shell): ingestModalClose
+// (#ingest-modal-close-btn) todavía cerraba vía la cascada docked (AC4 de CAEL-0716-01
+// TKT2) — mdiff-overlay--docked ya no se asigna en ningún archivo del codebase desde
+// TKT1/TKT2 (Opción A, merge completo). El handler ahora cierra directamente
+// #modal-split-shell, único nodo con backdrop/estado open real. Sin cambio de AC en
+// closeModal() ni en el resto del módulo.
 // [PP] mod:5 · autor:Rune · 2026-07-25 UTC-6
 // TKT-202607-113: _gconfirmOpen() no gestionaba foco ni teclado de forma genérica —
 //   Enter/Escape solo funcionaban cuando había inputLabel (listener propio de #gconfirm-input).
@@ -119,23 +126,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const tagModalClose = document.getElementById('tag-modal-close');
   if (tagModalClose) tagModalClose.addEventListener('click', () => closeModal('tag-modal'));
 
-  // INC-ingest-modal-close-unwired: botón × del modal de ingesta sin wiring — hallazgo
-  // colateral de la investigación de #ingest-ta, resuelto inline a pedido del founder.
-  // TKT2 (REQ CAEL-0716-01): closeModal('ingest-modal-overlay') solo cerraba el propio
-  // overlay — #merge-diff-overlay quedaba huérfano abierto si el DIFF estaba visible.
-  // Cascada explícita: si #merge-diff-overlay está open+docked al momento del cierre,
-  // se cierra junto con el ingest modal (AC4 TKT2 — "ambos overlays pierden open juntos").
-  // No usa onClose de showMergeDiffPanel (ese callback es para cierre iniciado DESDE el
-  // propio panel DIFF, no desde el botón × del modal de ingesta — flujo inverso).
+  // TKT2 (TKT-202607-145, Rune): la cascada docked (INC-ingest-modal-close-unwired /
+  // AC4 de CAEL-0716-01 TKT2) queda retirada — mdiff-overlay--docked no vuelve a asignarse
+  // en ningún punto del codebase (0 coincidencias verificadas, ver locus-sesiones.js mod:56
+  // y locus-backlog-merge.js mod:69). #ingest-modal-overlay y #merge-diff-overlay ya no
+  // gestionan su propio 'open' desde TKT1 (split_view_merged_shell, Opción A) —
+  // #modal-split-shell es hoy el único nodo con backdrop/estado open real. closeModal()
+  // sobre el id anterior quedaba inerte; este botón cierra directamente el shell compartido.
   const ingestModalClose = document.getElementById('ingest-modal-close-btn');
   if (ingestModalClose) {
     ingestModalClose.addEventListener('click', () => {
-      closeModal('ingest-modal-overlay');
-      const _mdiffOverlay = document.getElementById('merge-diff-overlay');
-      if (_mdiffOverlay && _mdiffOverlay.classList.contains('mdiff-overlay--docked')) {
-        _mdiffOverlay.classList.remove('open');
-        _mdiffOverlay.classList.remove('mdiff-overlay--docked');
-      }
+      const shell = document.getElementById('modal-split-shell');
+      if (shell) shell.classList.remove('open');
+      _restoreModalFocus('modal-split-shell');
     });
   }
 

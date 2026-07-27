@@ -1,3 +1,41 @@
+// [PP] mod:149 · autor:Rune · 2026-07-27 UTC-6
+// INC-202607-055 (triggered_by INC-202607-054 — mod:148 corrigió _toIncidentRow() pero no
+// resolvía el síntoma completo): saveBacklog() — el upsert de tracker_incidents corría fuera
+// de syncState.withSaveLock(), el wrap quedaba acotado solo al bloque de tracker_items. Ventana
+// de carrera confirmada contra código real: mientras el upsert de incidentes estaba en vuelo,
+// syncState.isSaveInFlight() devolvía false, y _mergeIncidentsFromRemote() (que guarda sobre
+// ese mismo flag antes de mergear datos remotos) podía correr en esa ventana y sobreescribir
+// INCIDENTS con la fila stale de antes del patch — el mismo síntoma de CHG-202607-001
+// (descartado→pendiente sin patch nuevo) reaparecía aunque mod:148 ya resolvía correctamente
+// el valor escrito. Fix: el bloque de upsert de tracker_incidents ahora tiene su propio wrap de
+// syncState.withSaveLock() — secuencial respecto al de ITEMS (no anidado, ese await ya se
+// asentó), cierra la ventana sin fusionar ambos upserts en una transacción compartida. El
+// stamp de _updatedAtMs (INC-202607-053) se conserva sin cambio — sigue resolviendo el
+// desempate de timestamp para lecturas remotas legítimas fuera de la ventana del lock.
+
+// [PP] mod:148 · autor:Rune · 2026-07-27 UTC-6
+// INC (triggered_by INC-202607-054, código real pendiente de confirmar por el founder):
+// _toIncidentRow() — incident_status para CHG ya no pasa por incIncidentStatus() en ninguna
+// rama. Causa raíz confirmada de la reversión persistente de CHG-202607-001 (descartado→
+// pendiente sin patch nuevo, sobreviviendo al fix de _updatedAtMs de INC-202607-053 y a la
+// query de constraint que descartó chk_incident_status_by_type como culpable — 'descartado'
+// SÍ es valor válido ahí para CHG): _mapRowToIncident() (mod anterior, TKT1 REQ CAEL-0722-01)
+// escribe incidentStatus:row.incident_status para los 4 tipos ITIL sin excepción de tipo,
+// incluido CHG — pese a que CHG nunca debería consultarse por esa vía (BR-Ecosystem §4b, CHG
+// usa status/vocabulario Scrum, no incidentStatus). Ese mirror queda con el valor remoto stale
+// tras cada hidratación y ningún patch de 'status' lo actualiza (CHG no pasa por
+// validateIncidentTransitions/resolution_type, que sí mantienen incidentStatus sincronizado
+// para INC/PRB/KE). El _toIncidentRow() anterior evaluaba `incIncidentStatus(inc) || (CHG ?
+// inc.status : null)` — incIncidentStatus(inc) devolvía el incidentStatus stale (truthy) y
+// GANABA por cortocircuito antes de llegar al fallback de CHG: cada upsert "exitoso" posterior
+// a un patch de descarte re-escribía el valor viejo en Postgres sin error visible — el patch
+// nunca sobrevivía al primer saveBacklog() siguiente, y como el respaldo local optimista sí
+// capturaba el status correcto, el síntoma solo se veía en un refresh que re-hidrata desde la
+// fila real (nunca corregida). Fix: para type==='CHG', usar inc.status directo sin consultar
+// incIncidentStatus() en ninguna rama — CHG es la única excepción de vocabulario declarada en
+// el ecosistema y no debe compartir precedencia con los otros 3 tipos ITIL. Sin cambio de
+// comportamiento para INC/PRB/KE.
+
 // [PP] mod:147 · autor:Rune · 2026-07-26 13:40 UTC-6
 // TKT-202607-122 (origen_disc DISC-202607-040): _toIncidentRow()/_mapRowToIncident() —
 // status_changed_at agregado. existing.statusChangedAt (aplicado en memoria por
@@ -1747,10 +1785,15 @@ function _toIncidentRow(inc, { projId, userId, updatedAtMs }) {
     // INC-202607-012: CHG no declara incident_status en el modelo de ítems
     // (__BR-Ecosystem §4b) — declara status con vocabulario Planeada. La
     // columna física no distingue: chk_incident_status_by_type valida el
-    // vocabulario CHG directo sobre incident_status. Sin este fallback,
-    // incIncidentStatus(inc) devolvía null para todo CHG y el NOT NULL de
-    // la columna rechazaba la fila — tumbando el batch completo (23502).
-    incident_status:       incIncidentStatus(inc) || (inc.type === 'CHG' ? (inc.status || null) : null),
+    // vocabulario CHG directo sobre incident_status.
+    // Fix mod:148 (INC triggered_by INC-202607-054, código real pendiente): antes,
+    // `incIncidentStatus(inc) || (CHG ? inc.status : null)` dejaba que un incidentStatus
+    // stale (poblado por _mapRowToIncident() en cualquier hidratación previa, sin excepción
+    // de tipo) ganara por cortocircuito sobre inc.status para CHG — un patch de status nunca
+    // sobrevivía al siguiente upsert. CHG ahora resuelve incident_status exclusivamente desde
+    // inc.status, sin consultar incIncidentStatus() en ninguna rama — la única excepción de
+    // vocabulario del ecosistema no comparte precedencia con los otros 3 tipos ITIL.
+    incident_status:       inc.type === 'CHG' ? (inc.status || null) : incIncidentStatus(inc),
     resolution_type:       incResolutionType(inc),
     // INC-[pendiente-ID]: mismo fallback camelCase que _toItemRow() — ver nota ahí.
     discard_reason:        inc.discard_reason     || inc.discardReason || null,
@@ -1947,9 +1990,20 @@ export async function saveBacklog() {
   // TKT2 (REQ-202607-018): el bloque de upsert a tracker_items (antes: incremento manual +
   // try/catch/finally con decremento manual) queda envuelto en syncState.withSaveLock() —
   // el conteo in-flight (incremento, decremento garantizado incluso ante throw) ahora lo
-  // gestiona locus-sync-state.js. Acotado exclusivamente a este bloque — el upsert de
-  // tracker_incidents que sigue después queda fuera del lock, sin cambio de comportamiento
-  // respecto al contrato original (AC6/AC7 del TKT).
+  // gestiona locus-sync-state.js.
+  // Fix INC-202607-055 (causa raíz confirmada por Finn, posterior al fix de _toIncidentRow()
+  // en mod:148): este wrap quedaba acotado exclusivamente al bloque de ITEMS — el upsert de
+  // tracker_incidents que sigue después corría fuera del lock, dejando una ventana donde
+  // syncState.isSaveInFlight() devolvía false mientras el upsert de incidentes seguía en
+  // vuelo. _mergeIncidentsFromRemote() guarda exactamente sobre ese mismo flag (línea ~3018)
+  // para saltar el merge remoto si hay un save local en curso — con la ventana abierta, un
+  // _loadFromSupabase() concurrente podía sobreescribir INCIDENTS con datos stale (ej.
+  // incident_status pre-patch) antes de que el upsert local completara, revirtiendo
+  // silenciosamente un patch recién aplicado (caso de origen: CHG-202607-001). El bloque de
+  // incidentes (ver más abajo) ahora tiene su propio wrap de syncState.withSaveLock() —
+  // secuencial respecto a este, no anidado — que cierra esa ventana sin fusionar ambos
+  // upserts en una sola transacción (siguen siendo tablas distintas, sin rollback
+  // compartido, mismo criterio que ya declaraba el AC-1 original del bloque de incidentes).
   await syncState.withSaveLock(async () => {
   try {
     const rows = items.map(it => _toItemRow(it, { projId, userId: _supabaseUser.id, updatedAtMs: _updatedAtMs }));
@@ -2008,6 +2062,18 @@ export async function saveBacklog() {
   // no se encola en _offlineQueuePush — sin reintento. El respaldo local optimista escrito
   // arriba (pre-upsert) es la única garantía de no pérdida de dato hasta el siguiente
   // saveBacklog() exitoso.
+  // Fix INC-202607-055: envuelto en su propio syncState.withSaveLock() — secuencial respecto
+  // al wrap de ITEMS de arriba (ese `await` ya se asentó antes de llegar aquí), no anidado.
+  // Antes de este fix, este bloque completo corría fuera de cualquier lock: la ventana entre
+  // el `await` del upsert de Supabase y su resolución dejaba syncState.isSaveInFlight() en
+  // false, y _mergeIncidentsFromRemote() (que guarda sobre ese mismo flag antes de mergear
+  // datos remotos sobre INCIDENTS) no tenía forma de saber que un upsert local de incidentes
+  // seguía en vuelo — un _loadFromSupabase() disparado en esa ventana podía sobreescribir
+  // INCIDENTS con la fila stale de antes del patch, revirtiendo el cambio en silencio sin que
+  // ningún error apareciera (mismo síntoma que INC-202607-053 atacó del lado del stamp de
+  // _updatedAtMs, pero esto cierra la causa estructural: la ventana sin lock, no solo el
+  // desempate de timestamp una vez que la carrera ya ocurrió).
+  await syncState.withSaveLock(async () => {
   try {
     const incidentRows = incidents.map(inc => _toIncidentRow(inc, { projId, userId: _supabaseUser.id, updatedAtMs: _updatedAtMs }));
     const _incRowsMap = new Map();
@@ -2021,7 +2087,8 @@ export async function saveBacklog() {
       // arriba. Sin este wrap, un fetch colgado aquí no afecta el lock de ITEMS (tablas
       // independientes, ver nota AC-1 arriba) pero sí deja este upsert de incidentes sin
       // resolver ni rechazar nunca — el catch de abajo nunca corre y el founder no ve el toast
-      // de "no sincronizado".
+      // de "no sincronizado". Con el fix de INC-202607-055, un timeout aquí también libera el
+      // lock de incidentes correctamente vía el `finally` interno de withSaveLock().
       const { error: incError } = await _withTimeout(
         _supabase.from('tracker_incidents').upsert(dedupedIncidentRows, { onConflict: 'code' }),
         _SAVE_UPSERT_TIMEOUT_MS,
@@ -2041,6 +2108,10 @@ export async function saveBacklog() {
       // refleja de inmediato en _getIncidents(). Se estampa sobre `incidents` (post-filtro),
       // no sobre `_rawIncidents`, para no marcar como confirmado un ítem excluido del upsert
       // por chk_incident_status_by_type u otro gate del filtro.
+      // Con el fix de INC-202607-055, este stamp sigue siendo necesario para el caso de
+      // lecturas remotas fuera de la ventana del lock (después de que este bloque libera el
+      // lock) — el lock cierra la ventana de carrera concurrente, el stamp sigue resolviendo
+      // el desempate de timestamp en lecturas posteriores legítimas.
       for (const inc of dedupedIncidentRows) {
         const _liveInc = incidents.find(i => i.code === inc.code);
         if (_liveInc) _liveInc._updatedAtMs = _updatedAtMs;
@@ -2050,6 +2121,7 @@ export async function saveBacklog() {
     logger.error('[AI Tracker] Supabase saveBacklog() — upsert de tracker_incidents falló:', incErr);
     showToast('warning', '⚠️ Incidentes no sincronizados con Supabase — guardado localmente');
   }
+  });
 }
 
 // TKT1 (REQ-202607-026): backfillSprintFields() — migración one-off contra Supabase de

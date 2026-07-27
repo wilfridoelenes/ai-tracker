@@ -1,3 +1,9 @@
+// [PP] mod:69 · autor:Rune · 2026-07-26 UTC-6
+// TKT2 (TKT-202607-145 · REQ-202607-046): comentarios de esta sesión actualizados de placeholder
+// "REQ-202607-XXX" a código real, confirmado por el founder tras ingesta en Locus — mismo criterio
+// de __BR-Execution §9 (referencias a ítems embebidas en código: código real cuando ya está
+// asignado). Sin cambio funcional — solo trazabilidad de comentarios en los 5 puntos ya tocados
+// en esta sesión (apertura del shell, cierre por aplicar, cierre por cancelar, cierre por Escape).
 // [PP] mod:68 · autor:Rune · 2026-07-24 UTC-6
 // TKT2 (REQ CAEL-0724-11, ref_id CAEL-0724-11): retorno de applyPatchesFromTG() (L~1793) capturado
 // en _patchResult — antes se descartaba sin ningún consumo. Si _patchResult.ignored trae 1+
@@ -257,7 +263,9 @@ let _mdiffUnresolvedSelect = null;
 let _mdiffUnresolvedRemove = null;
 
 // T-202606-006: true mientras el DIFF está abierto — consultable por otros módulos vía getter.
-// Se pone true al hacer overlay.classList.add('open') y false en todos los cierres del DIFF.
+// Se pone true al abrir el panel (TKT-202607-145: ahora shell.classList.add('open') sobre
+// #modal-split-shell, antes overlay.classList.add('open') sobre #merge-diff-overlay) y false
+// en todos los cierres del DIFF.
 export let _mdiffStepZeroActive = false;
 export function getMdiffStepZeroActive() { return _mdiffStepZeroActive; }
 
@@ -835,6 +843,10 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // ── Inyectar en shell ──
   const overlay = document.getElementById('merge-diff-overlay');
   if (!overlay) return;
+  // TKT2 (TKT-202607-145, Rune): #modal-split-shell es ahora el único .modal-overlay real
+  // (Opción A, merge completo — ver design_intent: split_view_merged_shell). #merge-diff-overlay
+  // ya no abre/cierra su propio backdrop — solo alterna --empty/--filled dentro del shell.
+  const shell = document.getElementById('modal-split-shell');
   const header      = document.getElementById('merge-diff-header');
   const body        = document.getElementById('merge-diff-body');
   const footer      = document.getElementById('merge-diff-footer');
@@ -1654,7 +1666,11 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       </div>`;
   }
 
-  overlay.classList.add('open');
+  // TKT2 (TKT-202607-145, Rune): abre el shell compartido — #merge-diff-overlay ya no tiene
+  // backdrop/open propio, solo pasa de socket vacío a panel con contenido dentro del shell.
+  if (shell) shell.classList.add('open');
+  overlay.classList.remove('mdiff-overlay--empty');
+  overlay.classList.add('mdiff-overlay--filled');
   _mdiffStepZeroActive = true; // T-202606-006
 
   // T-202606-006: listener storage:item-excluded — agrega fila en Step 0 del DIFF.
@@ -1768,10 +1784,12 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     const _durationInput = document.getElementById('mdiff-duration-input');
     const _horaRaw = _durationInput ? (_durationInput.value.trim() || '') : '';
 
-    overlay.classList.remove('open');
-    // TKT2 (REQ CAEL-0716-01): limpiar mdiff-overlay--docked en todo cierre del panel — no-op
-    // si el overlay no estaba docked (caller no-ingesta), seguro incondicional.
-    overlay.classList.remove('mdiff-overlay--docked');
+    // TKT2 (TKT-202607-145, Rune): cierra el shell compartido — no-op seguro si ya estaba
+    // cerrado (caller no-ingesta). mdiff-overlay--docked eliminado — el panel revierte a
+    // --empty en vez de perder un backdrop propio que ya no tiene.
+    if (shell) shell.classList.remove('open');
+    overlay.classList.remove('mdiff-overlay--filled');
+    overlay.classList.add('mdiff-overlay--empty');
     document.removeEventListener('keydown', _mdiffKeyHandler);
     // B-202605-050: limpiar todas las referencias _mdiff* al cerrar el panel
     _mdiffUpdateConfirmBtn = null;
@@ -1891,8 +1909,10 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   });
 
   overlay.querySelector('#mdiff-cancel-btn').addEventListener('click', () => {
-    overlay.classList.remove('open');
-    overlay.classList.remove('mdiff-overlay--docked'); // TKT2 (REQ CAEL-0716-01)
+    // TKT2 (TKT-202607-145, Rune): cierra el shell compartido — mdiff-overlay--docked eliminado.
+    if (shell) shell.classList.remove('open');
+    overlay.classList.remove('mdiff-overlay--filled');
+    overlay.classList.add('mdiff-overlay--empty');
     document.removeEventListener('keydown', _mdiffKeyHandler);
     // TKT2 (REQ CAEL-01) Opción A: onClose — el DIFF se cerró sin confirmar, revertir fase 2→1
     if (typeof onClose === 'function') onClose();
@@ -1972,8 +1992,10 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       }
     } else if (e.key === 'Escape') {
       document.removeEventListener('keydown', _mdiffKeyHandler);
-      overlay.classList.remove('open');
-      overlay.classList.remove('mdiff-overlay--docked'); // TKT2 (REQ CAEL-0716-01)
+      // TKT2 (TKT-202607-145, Rune): cierra el shell compartido — mdiff-overlay--docked eliminado.
+      if (shell) shell.classList.remove('open');
+      overlay.classList.remove('mdiff-overlay--filled');
+      overlay.classList.add('mdiff-overlay--empty');
       // TKT2 (REQ CAEL-01) Opción A: onClose — el DIFF se cerró sin confirmar, revertir fase 2→1
       if (typeof onClose === 'function') onClose();
       // B-202605-050: limpiar todas las referencias _mdiff* al cerrar el panel
