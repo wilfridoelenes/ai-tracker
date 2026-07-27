@@ -1,3 +1,18 @@
+/* [PP] mod:4 · autor:Nova · 2026-07-27 14:30 UTC-6 */
+/* TKT1 (TKT-202607-155, parent REQ-202607-050, ref_id CAEL-0727-02): .qinc-section-caption —
+   caption estático bajo el header "Activos" que aclara que las 3 columnas (Alta/Media/Baja)
+   agrupan por prioridad SLA de resolución, no por otro criterio ITIL. Mismo tratamiento
+   tipográfico que .qdisc-stats-caption (locus-backlog.css, ver _Locus-css-ref §Cambios mod:51)
+   — font-size: var(--text-2xs), color: var(--text3), sin font-weight propio (hereda peso normal
+   del contenedor .qinc-section). Ambos tokens ya validados WCAG AA como texto terciario
+   (_Locus-css-ref §Tokens de color) — sin verificación de contraste nueva requerida. No toca
+   .qinc-section-header, .qinc-column-header ni los colores de acento por columna
+   (--red-text/--amber-text) — regla nueva, aislada, cero líneas existentes modificadas. */
+.qinc-section-caption {
+  font-size: var(--text-2xs);
+  color: var(--text3);
+}
+
 /* [PP] mod:3 · autor:Nova · 2026-07-27 UTC-6 */
 /* TKT1 (REQ-[pendiente-ID]/TKT-[pendiente-ID], design_intent: empty_state_qinc_sin_incidentes):
    modificador .qinc-empty-success — reemplaza el ícono emoji genérico del empty-state de
