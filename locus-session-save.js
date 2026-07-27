@@ -1,3 +1,13 @@
+// [PP] mod:79 · autor:Rune · 2026-07-26 20:13 UTC-6
+// TKT3 (REQ-202607-046, depends_on TKT-202607-145): _doSaveSession() — retirado el bloque que
+// coordinaba #merge-diff-overlay contra #ingest-modal-overlay antes de invocar
+// showMergeDiffPanel. Esa coordinación era necesaria bajo la arquitectura de dos overlays
+// independientes (TKT-202607-128/129, superada); con el shell único (#modal-split-shell,
+// TKT-202607-144/145) showMergeDiffPanel abre el shell directamente. Guard de proyecto activo
+// (línea ~358, _needsProject → _showProjRequiredInPanel) sin cambio — solo se eliminó el
+// bloque de coordinación previa. contract_update: no — firma de la invocación sin cambio
+// (mismos 4 argumentos). Ver mismo fix aplicado en locus-session-parse.js (mod:150) y en
+// locus-sesiones.js (TKT-202607-145 AC2).
 // [PP] mod:78 · autor:Rune · 2026-07-25 09:10 UTC-6
 // Hallazgo fuera de scope de INC-202607-019, resuelto en la misma sesión (excepción de
 // resolución directa — dueño presente, nivel Patch, sin bifurcación de founder, confirmado
@@ -722,16 +732,13 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   // locus-session-parse.js). Edge case (revertir si se cierra sin confirmar) resuelto vía
   // onClose (L692) — comentario previo quedó desactualizado tras esa entrega, corregido aquí.
   _setPhase(id, 2);
-  // TKT2 (REQ CAEL-0716-01): dockear #merge-diff-overlay contra #ingest-modal-overlay antes
-  // de abrir — la coordinación de posición/z-index vive en CSS (mdiff-overlay--docked,
-  // locus-backlog-item.css mod:57, Nova/TKT1); aquí solo se aplica la clase. Guard sobre
-  // .classList.contains('open') — si #ingest-modal-overlay no está abierto (llamada desde otro
-  // flujo, no debería ocurrir hoy pero evita dockear contra un overlay invisible), no dockea.
-  const _ingestOverlayForDock = document.getElementById('ingest-modal-overlay');
-  const _mdiffOverlayForDock = document.getElementById('merge-diff-overlay');
-  if (_ingestOverlayForDock && _ingestOverlayForDock.classList.contains('open') && _mdiffOverlayForDock) {
-    _mdiffOverlayForDock.classList.add('mdiff-overlay--docked');
-  }
+  // TKT3 (REQ-202607-046, depends_on TKT-202607-145): mecanismo de acoplamiento por CSS
+  // retirado — showMergeDiffPanel (locus-backlog-merge.js, TKT2) abre #modal-split-shell
+  // directamente, sin necesitar que este caller coordine el overlay de diff contra el de
+  // ingesta primero. La clase CSS que aplicaba ese acoplamiento ya no existe (retirada por
+  // Nova en TKT1) ni tiene consumidores JS. Guard de proyecto activo (línea ~358, _needsProject
+  // → _showProjRequiredInPanel) sin cambio — este bloque solo eliminaba ese código de
+  // coordinación, no tocó la condición de gate.
   showMergeDiffPanel(_tgItemsForPanel, sessId, activeProj.id, (horaRaw) => {
     // B-202606-037: leer horaRaw desde el input del DIFF (mdiff-duration-input).
     // interpretHora convierte HHMM → { label, hhmm, epoch }. Si vacío → null → worker disponible.

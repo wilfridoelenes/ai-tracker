@@ -1,3 +1,15 @@
+// [PP] mod:150 · autor:Rune · 2026-07-26 20:13 UTC-6
+// TKT3 (REQ-202607-046, depends_on TKT-202607-145): _processIngestBatch() — retirado el bloque
+// que coordinaba #merge-diff-overlay contra #ingest-modal-overlay antes de invocar
+// showMergeDiffPanel. Esa coordinación era necesaria bajo la arquitectura de dos overlays
+// independientes (TKT-202607-128/129, superada); con el shell único (#modal-split-shell,
+// TKT-202607-144/145) showMergeDiffPanel abre el shell directamente y este call site no
+// necesita preparar nada antes de invocarla. Guard de proyecto activo (líneas ~2269-2273)
+// sin cambio — solo se eliminó el bloque de coordinación previa. no_incluye del TKT: no toca
+// _processIngestBatch más allá de ese bloque, no cambia showMergeDiffPanel (TKT2, ya
+// entregado), no agrega call sites nuevos. contract_update: no — firma de la invocación sin
+// cambio (mismos 5 argumentos). Ver mismo fix aplicado en locus-session-save.js (mod:79) y en
+// locus-sesiones.js (TKT-202607-145 AC2).
 // [PP] mod:149 · autor:Rune · 2026-07-26 UTC-6
 // TKT-202607-138 (REQ-202607-043, depends_on TKT-202607-137): gate visible en el panel de
 // ingesta para el mismo rechazo que TKT1 aplica silenciosamente en storage (applyPatchesFromTG,
@@ -2272,16 +2284,14 @@ export async function _processIngestBatch() {
     return;
   }
 
-  // TKT2 (REQ CAEL-0716-01) — extendido aquí: dockear #merge-diff-overlay contra
-  // #ingest-modal-overlay antes de abrir. Mismo mecanismo que _doSaveSession
-  // (locus-session-save.js) — TKT2 dejó el flujo batch fuera de su scope (no_incluye) porque
-  // no tocaba este archivo; TKT3 aplica el mismo patrón aquí para que ambos flujos converjan
-  // en el mismo panel docked.
-  const _ingestOverlayForDock = document.getElementById('ingest-modal-overlay');
-  const _mdiffOverlayForDock = document.getElementById('merge-diff-overlay');
-  if (_ingestOverlayForDock && _ingestOverlayForDock.classList.contains('open') && _mdiffOverlayForDock) {
-    _mdiffOverlayForDock.classList.add('mdiff-overlay--docked');
-  }
+  // TKT3 (REQ-202607-046, depends_on TKT-202607-145): mecanismo de acoplamiento por CSS
+  // retirado de este call site — showMergeDiffPanel (locus-backlog-merge.js, TKT2) abre
+  // #modal-split-shell directamente, sin necesitar que este flujo batch coordine el overlay
+  // de diff contra el de ingesta primero. La clase CSS que aplicaba ese acoplamiento ya no
+  // existe (retirada por Nova en TKT1) ni tiene consumidores JS — mismo fix ya aplicado en
+  // _doSaveSession (locus-session-save.js) y en locus-sesiones.js (TKT-202607-145 AC2). Guard
+  // de proyecto activo (líneas ~2269-2273) sin cambio — este bloque solo eliminaba ese código
+  // de coordinación, no la condición de gate.
 
   // AC2 — Aplicar del batch: mismo patrón que probaba _gatedDoApplyBatch (saveStandaloneCheckpoint,
   // eliminada por TKT4) — _applyCheckpointBatch persiste vía mergeBacklogFromTG(dryRun:false)
