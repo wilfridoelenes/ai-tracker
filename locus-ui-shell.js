@@ -95,6 +95,11 @@ import { closeImportDiff, confirmImport, downloadGlobalReport, exportData, impor
 import { openChangelog } from './locus-session-save.js';
 import { searchContratos } from './locus-contracts.js';
 import { toggleContextSection, _dropzoneHandle } from './locus-docs.js'; // T-202606-089 AC-3 — ciclo seguro: uso solo dentro de handler
+// INC-202607-059: import circular ui-shell → modals → backlog-merge → ui-shell (esc/switchTab/
+// switchSubTab). Mismo patrón ya documentado como seguro en locus-modals.js mod:7 — ninguna
+// de las funciones se invoca en top-level de su módulo, todas corren dentro de callbacks de
+// evento (_escCascade, DOMContentLoaded), después de que el grafo de módulos ya resolvió.
+import { closeIngestModal } from './locus-modals.js';
 
 // ── Global utility ────────────────────────────────────────────────────────
 // esc() usada por múltiples módulos (backlog, session, toast, checkpoint)
@@ -803,6 +808,12 @@ export function _escCascade() {
     () => { const el = document.getElementById('proj-modal-overlay'); if (el && el.offsetParent !== null) { window.dispatchEvent(new CustomEvent('shell:close-proj-modal')); return true; } },
     // (a) event dispatch — locus-sprint-project.js escucha 'shell:close-proj-panel'
     () => { const el = document.getElementById('proj-panel-overlay'); if (el && el.offsetParent !== null) { window.dispatchEvent(new CustomEvent('shell:close-proj-panel')); return true; } },
+    // INC-202607-059: #modal-split-shell no tenía entrada en la cascada — Escape solo cerraba
+    // el DIFF vía _mdiffKeyHandler (registrado dentro de showMergeDiffPanel, solo si el panel
+    // de Revisión ya está abierto). Con solo la columna de ingesta abierta, Escape no hacía
+    // nada. closeIngestModal() ya limpia el panel DIFF si estaba abierto (teardownMergeDiffPanel
+    // es idempotente) — cubre ambos casos sin duplicar la rama por estado del panel.
+    () => { const el = document.getElementById('modal-split-shell'); if (el && el.classList.contains('open')) { closeIngestModal(); return true; } },
   ];
   for (const check of _overlayChecks) {
     if (check()) return;
@@ -1529,6 +1540,14 @@ document.addEventListener('DOMContentLoaded', function () {
   const itemEditorOverlay = document.getElementById('item-editor-overlay');
   if (itemEditorOverlay) itemEditorOverlay.addEventListener('click', function (e) {
     if (e.target === this) closeItemEditor();
+  });
+
+  // INC-202607-059: modal-split-shell — click outside to close (backdrop-click, uno de los
+  // 4 mecanismos exigidos por _Locus-ux-ref §E-12). closeIngestModal() ya limpia el panel
+  // DIFF si estaba abierto — mismo camino que × y Escape.
+  const modalSplitShell = document.getElementById('modal-split-shell');
+  if (modalSplitShell) modalSplitShell.addEventListener('click', function (e) {
+    if (e.target === this) closeIngestModal();
   });
 
   // ie-cancel-btn

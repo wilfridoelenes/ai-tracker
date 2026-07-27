@@ -1,4 +1,7 @@
-// [PP] mod:150 · autor:Rune · 2026-07-26 20:13 UTC-6
+// [PP] mod:151 · autor:Rune · 2026-07-27 UTC-6
+// INC-202607-060: badge de proyecto en _showIngestValidationResult() conservaba
+// 'validation-badge--success' al pasar a la rama 'sin campo Proyecto' — solo la rama de
+// mismatch usaba .replace(). Ahora remueve --success explícitamente antes de agregar --warning.
 // TKT3 (REQ-202607-046, depends_on TKT-202607-145): _processIngestBatch() — retirado el bloque
 // que coordinaba #merge-diff-overlay contra #ingest-modal-overlay antes de invocar
 // showMergeDiffPanel. Esa coordinación era necesaria bajo la arquitectura de dos overlays
@@ -1342,6 +1345,13 @@ function _showIngestValidationResult({ ckptProyecto, activeProjectName, title, s
     badgeProjectEl.classList.replace('validation-badge--success', 'validation-badge--warning');
     badgeProjectEl.textContent = `⚠ Proyecto: ${_ckptProj}`;
   } else {
+    // INC-202607-060 (Rune): esta rama solo hacía .add('--warning') sin remover '--success'
+    // previa — si un pegado anterior en la misma sesión tuvo proyecto coincidente (badge en
+    // --success) y una edición posterior borra el campo Proyecto:, el badge quedaba con ambas
+    // clases simultáneas. Funcionaba visualmente por orden de cascada CSS, no por lógica de
+    // estado. Mismo criterio que la rama de mismatch (arriba, vía .replace()): remover
+    // explícitamente antes de agregar.
+    badgeProjectEl.classList.remove('validation-badge--success');
     badgeProjectEl.classList.add('validation-badge--warning');
     badgeProjectEl.textContent = '⚠ Sin campo Proyecto';
   }

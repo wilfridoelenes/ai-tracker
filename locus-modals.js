@@ -1,4 +1,10 @@
-// [PP] mod:7 · autor:Rune · 2026-07-27 UTC-6
+// [PP] mod:8 · autor:Rune · 2026-07-27 UTC-6
+// INC-202607-059: closeIngestModal() extraída del handler de × (antes inline) — Escape
+// (_escCascade) y backdrop-click sobre #modal-split-shell (ambos en locus-ui-shell.js) la
+// reusan en vez de duplicar teardownMergeDiffPanel+remove('open')+_restoreModalFocus una
+// tercera vez. Ningún cambio de comportamiento en el path de × — mismo orden de llamadas.
+// contract_update: sí — nuevo export consumido por locus-ui-shell.js, ver contract_detail
+// en el CHECKPOINT de esta sesión.
 // Fix de esta sesión (auditoría E2E modal de ingesta, hallazgo #1): ingestModalClose cerraba
 // #modal-split-shell sin limpiar el estado del panel DIFF (locus-backlog-merge.js) — a
 // diferencia de Cancelar/Escape dentro del panel, dejaba _mdiffKeyHandler vivo en document.
@@ -130,6 +136,22 @@ export function closeModal(id) {
   _restoreModalFocus(id);
 }
 
+// INC-202607-059 (Rune): closeIngestModal() extraída del handler de × — antes la limpieza
+// (teardownMergeDiffPanel + remove 'open' + _restoreModalFocus) vivía inline solo en el
+// listener de #ingest-modal-close-btn. Escape (_escCascade, locus-ui-shell.js) y
+// backdrop-click sobre #modal-split-shell no cerraban el shell en absoluto cuando solo la
+// columna de ingesta estaba abierta (sin panel de Revisión) — _Locus-ux-ref §E-12 exige que
+// los cuatro mecanismos de cierre (×, Escape, Cancelar, backdrop) operen sobre el mismo
+// shell. Causa raíz: la lógica de cierre no era reusable — se extrae aquí para que Escape y
+// backdrop-click (locus-ui-shell.js) la importen en vez de duplicarla una tercera vez.
+// closeModal() genérico NO sirve para este caso — no conoce teardownMergeDiffPanel().
+export function closeIngestModal() {
+  teardownMergeDiffPanel();
+  const shell = document.getElementById('modal-split-shell');
+  if (shell) shell.classList.remove('open');
+  _restoreModalFocus('modal-split-shell');
+}
+
 // ── addEventListener — T-202605-030 ──
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -148,15 +170,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // sobre el id anterior quedaba inerte; este botón cierra directamente el shell compartido.
   const ingestModalClose = document.getElementById('ingest-modal-close-btn');
   if (ingestModalClose) {
-    ingestModalClose.addEventListener('click', () => {
-      // Fix de esta sesión: limpia el panel DIFF (keydown listener, storage:item-excluded,
-      // estado _mdiff*, onClose del caller) antes de cerrar el shell — no-op si el panel DIFF
-      // no estaba abierto (columna de ingesta sola, sin batch procesado).
-      teardownMergeDiffPanel();
-      const shell = document.getElementById('modal-split-shell');
-      if (shell) shell.classList.remove('open');
-      _restoreModalFocus('modal-split-shell');
-    });
+    // INC-202607-059: lógica de cierre extraída a closeIngestModal() (más arriba en este
+    // módulo) — Escape y backdrop-click (locus-ui-shell.js) la reusan en vez de duplicarla.
+    ingestModalClose.addEventListener('click', closeIngestModal);
   }
 
   const gconfirmOverlay = document.getElementById('gconfirm-overlay');

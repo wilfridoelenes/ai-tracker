@@ -1,4 +1,4 @@
-// [PP] mod:15 · autor:Rune · 2026-07-23 04:20 UTC-6
+// [PP] mod:16 · autor:Rune · 2026-07-27 UTC-6
 // TKT2 (REQ CAEL-0722-01): _rsbCfgExpanded, _renderCfgPanel(), _rsbToggleCfg() y la
 // delegación de rsbToggleCfg/cfgReset/cfgSetThreshold/cfgSetEnabled dentro de
 // #global-radar-sidebar retirados — la configuración de alertas migró a modal propio
@@ -277,15 +277,12 @@ export function renderGlobalRadarSidebar() {
   const _getSessions = (ai) => _sessionsCache[ai.id] || [];
 
   const interrupted = active.filter(a => a.interrupted);
-  // T-202606-037: inSession ordenado por recencia de última sesión — descendente
-  // Timestamp: Math.max de createdAt||date||0 por sesión — consistente con B-202606-044
+  // Cambio (sesión 2026-07-27, founder): inSession ordenado alfabéticamente por nombre —
+  // reemplaza el sort por recencia de última sesión (T-202606-037). Mismo criterio que
+  // available (T-202606-038) — guardar un CHECKPOINT ya no mueve al worker al tope del grupo.
   const inSession   = active
     .filter(a => !a.interrupted && _isInSession(a))
-    .sort((a, b) => {
-      const tA = _getSessions(a).reduce((mx, s) => Math.max(mx, s.createdAt || s.date || 0), 0);
-      const tB = _getSessions(b).reduce((mx, s) => Math.max(mx, s.createdAt || s.date || 0), 0);
-      return tB - tA;
-    });
+    .sort((a, b) => a.name.localeCompare(b.name));
   // T-202606-038: available ordenado alfabéticamente por nombre — reemplaza sort por _hoyMsUntilReset
   const available   = active
     .filter(a => a.status === 'available' && !a.interrupted && !_isInSession(a))
