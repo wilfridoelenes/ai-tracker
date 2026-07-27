@@ -1,4 +1,16 @@
-// [PP] mod:5 · autor:Rune · 2026-07-25 UTC-6
+// [PP] mod:6 · autor:Rune · 2026-07-27 UTC-6
+// INC-202607-056 (triggered_by INC-202607-046): _VALID_INCIDENT_TRANSITIONS no declaraba
+// transiciones salientes desde 'escalated_to_prb' ni 'escalated_to_chg' — quedaron marcadas
+// como terminales por scope explícito de TKT-PARSER-2a ("fuera de scope"), pero __BR-Core §6
+// sí declara ambas como transiciones válidas: 'escalated_to_prb → closed' (Finn cierra el INC
+// cuando el PRB derivado llega a closed) y 'escalated_to_chg → closed' (Finn cierra el INC
+// cuando el CHG derivado llega a done, o cuando el fix llegó por vía alterna y el CHG fue
+// descartado — ver INC-202607-046). Sin estas dos entradas, validateIncidentTransitions()
+// rechazaba el par con 'transición ITIL inválida' vía _blogLog('patch-incidentstatus-invalido', ...)
+// — rechazo silencioso, sin alerta visible al founder, indistinguible de un patch no aplicado
+// (síntoma reportado: type:patch pegado en Locus, incident_status no cambia en el export
+// siguiente). Fix: agregadas ambas entradas con destino único 'closed', consistente con
+// __BR-Core §6 (ninguna otra transición saliente declarada desde esos dos estados).
 // INC-202607-038 (reapertura): buildQIncItem() calculaba slaClass y el texto/clase VENCIDO
 // del countdown solo contra slaDeadline vs Date.now(), sin gate de estado terminal — un INC
 // closed (o CHG done) conserva su slaDeadline histórico y siempre salía "vencido". Agregado
@@ -57,10 +69,16 @@ const _VALID_INCIDENT_TRANSITIONS = {
   // que todo patch detected→resolved se rechazaba en silencio vía _blogLog sin aparecer como
   // error en el export — causa raíz real del fallo de cierre de INC-202607-004 e INC-202607-003.
   detected: new Set(['resolved', 'escalated_to_prb', 'escalated_to_chg']),
-  resolved: new Set(['closed'])
-  // closed, escalated_to_prb, escalated_to_chg, descartado: sin transiciones salientes declaradas —
-  // estados terminales del ciclo dentro de este merge. Reabrir un INC closed no es un caso cubierto
-  // por este AC — fuera de scope de TKT-PARSER-2a.
+  resolved: new Set(['closed']),
+  // INC-202607-056: agregadas — __BR-Core §6 declara ambas transiciones ("El PRB/CHG derivado
+  // llega a closed/done — Finn cierra el INC original en la misma sesión de cierre"). Antes de
+  // este fix, un patch escalated_to_prb→closed o escalated_to_chg→closed se rechazaba en
+  // silencio como "transición ITIL inválida" pese a estar autorizado por BR.
+  escalated_to_prb: new Set(['closed']),
+  escalated_to_chg: new Set(['closed'])
+  // closed, descartado: sin transiciones salientes declaradas — estados terminales del ciclo
+  // dentro de este merge. Reabrir un INC closed no es un caso cubierto por este AC — fuera de
+  // scope de TKT-PARSER-2a.
 };
 
 // TKT1 (REQ CAEL-01): tabla de transiciones propia de PRB — BR-Core §6.
