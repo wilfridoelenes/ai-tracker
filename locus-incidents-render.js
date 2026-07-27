@@ -1,3 +1,16 @@
+// [PP] mod:19 · autor:Rune · 2026-07-27 UTC-6
+// TKT-202607-161 (parent REQ-202607-053, depends_on TKT-202607-160): rama copy-code de
+// _attachQIncDelegation() — antes agregaba is-copied de forma síncrona sin esperar la
+// Promise de navigator.clipboard.writeText() y silenciaba cualquier fallo (.catch(() => {})
+// vacío), sin AC de error separado del happy path (AC2/AC3 de este TKT). Corregido a
+// .then()/.catch() explícito: is-copied solo si el copiado resolvió, is-copy-error si
+// falló — mismo patrón ya usado por qi-copy-item en este mismo archivo (ver rama
+// qi-copy-item más abajo). CSS de ambos modificadores ya entregado por Nova sobre
+// .qinc-item-code-chip (locus-incidents.css, TKT-202607-160) — sin cambio de CSS en este
+// TKT. Ver locus-incidents-item.js mod:7 para el otro extremo del fix (clase
+// qinc-item-code-chip agregada al nodo). AC4 — impacto lateral: única instancia de
+// data-action="copy-code" en el módulo es esta misma rama; sin otro caller que actualizar.
+
 // [PP] mod:18 · autor:Rune · 2026-07-27 UTC-6
 // TKT2 (TKT-202607-159, parent REQ-202607-052, depends_on TKT-202607-158): toggle de colapso
 // para .qinc-section-header (Activos/Terminados) — click y teclado (Enter/Espacio). AC1: click
@@ -614,9 +627,15 @@ function _attachQIncDelegation(container) {
       e.stopPropagation();
       const code = copyBtn.dataset.code;
       if (code) {
-        navigator.clipboard.writeText(code).catch(() => {});
-        copyBtn.classList.add('is-copied');
-        setTimeout(() => copyBtn.classList.remove('is-copied'), 1500);
+        // TKT-202607-161 AC2/AC3: is-copied solo en éxito, is-copy-error en fallo — antes
+        // is-copied se aplicaba de forma incondicional y el fallo quedaba silenciado.
+        navigator.clipboard.writeText(code).then(() => {
+          copyBtn.classList.add('is-copied');
+          setTimeout(() => copyBtn.classList.remove('is-copied'), 1500);
+        }).catch(() => {
+          copyBtn.classList.add('is-copy-error');
+          setTimeout(() => copyBtn.classList.remove('is-copy-error'), 1500);
+        });
       }
       return;
     }

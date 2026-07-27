@@ -1,3 +1,21 @@
+// [PP] mod:7 · autor:Rune · 2026-07-27 UTC-6
+// TKT-202607-161 (parent REQ-202607-053, depends_on TKT-202607-160): buildQIncItem() —
+// copyCodeHtml agrega la clase qinc-item-code-chip junto a bitem-subline-code, sin
+// reemplazarla — bitem-subline-code es el patrón compartido con el Backlog principal (ver
+// comentario original más abajo, "patrón idéntico al Backlog principal"); retirarla habría
+// dejado sin estilo base a los chips de código de REQ/TKT que reusan esa misma clase fuera
+// de Q-INC. AC1: sin la clase nueva, los estados hover/active/focus-visible que Nova
+// declaró en TKT-202607-160 (locus-incidents.css) no tenían ningún nodo real que matchear
+// en el DOM — el selector .qinc-item-code-chip nunca aplicaba. AC2/AC3 (locus-incidents-render.js,
+// mismo REQ): la rama de click de copy-code no distinguía éxito de fallo de clipboard —
+// is-copied se agregaba de forma síncrona sin esperar la Promise, y un fallo quedaba
+// silenciado sin is-copy-error. Corregido para gatear ambas clases contra el resultado real
+// de navigator.clipboard.writeText(), mismo patrón ya usado por qi-copy-item en ese archivo.
+// AC4 — impacto lateral: grep contra todo el módulo Q-INC confirma una única instancia de
+// data-action="copy-code" (locus-incidents-render.js L612) — sin otro caller que actualizar.
+// bitem-subline-code queda fuera de scope — no se audita ni se toca, pertenece a
+// locus-backlog-item.js/locus-backlog.css.
+
 // [PP] mod:6 · autor:Rune · 2026-07-27 UTC-6
 // INC-202607-056 (triggered_by INC-202607-046): _VALID_INCIDENT_TRANSITIONS no declaraba
 // transiciones salientes desde 'escalated_to_prb' ni 'escalated_to_chg' — quedaron marcadas
@@ -244,7 +262,7 @@ export function buildQIncItem(item) {
     : '';
 
   // Copy-code badge — patrón idéntico al Backlog principal (AC TKT-B2a AC2)
-  const copyCodeHtml = `<span class="bitem-subline-code" data-action="copy-code" data-code="${esc(code)}" data-idx="-1" title="Click para copiar ID">${esc(code)}</span>`;
+  const copyCodeHtml = `<span class="bitem-subline-code qinc-item-code-chip" data-action="copy-code" data-code="${esc(code)}" data-idx="-1" title="Click para copiar ID">${esc(code)}</span>`;
 
   // TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-06): botón "Copiar ítem" — copia el bloque
   // completo del ítem (mismo formato que _PP-incidents.md §Ítems) sin exportar el archivo
