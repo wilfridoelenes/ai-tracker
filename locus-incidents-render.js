@@ -1,3 +1,16 @@
+// [PP] mod:14 · autor:Rune · 2026-07-27 UTC-6
+// Fast Track INC (ref_id CAEL-0727-01, triggered_by: auditoría visual del founder — captura de
+// pantalla del render Q-INC, 2026-07-27): la sección "Activos" desaparecía por completo
+// (header + columnas) cuando `_activeItems.length === 0` — a diferencia de "Terminados", que
+// siempre se renderiza y muestra su propio empty-state (mod:8). El gate `if (_activeItems.length)`
+// suprimía toda la sección en vez de dejar que cada columna mostrara su empty-state individual
+// (`.qinc-column-empty`, ya resuelto en `_buildQIncColumnsHtml()` desde mod:11 — una columna sin
+// ítems ya renderiza "Sin incidentes de prioridad alta/media/baja", el problema era que el
+// contenedor completo nunca llegaba a montarse). Fix: se retira el gate — "Activos" se renderiza
+// siempre, igual que "Terminados"; `_buildQIncColumnsHtml([])` ya produce las 3 columnas vacías
+// con su empty-state propio sin necesitar markup nuevo. Un solo archivo, sin lógica nueva
+// (reutiliza código ya existente), sla_priority: low — Fast Track (__BR-Core §6).
+
 // [PP] mod:13 · autor:Rune · 2026-07-27 UTC-6
 // TKT2 (REQ-[pendiente-ID], parent REQ, depends_on TKT1 mismo REQ — .qinc-empty-success):
 // reemplaza el markup del empty-state "sin incidentes activos" — antes emoji 🚨 genérico, ahora
@@ -424,15 +437,17 @@ export function renderQIncPanel() {
         const _activeItems   = filteredQInc.filter(i => !_isQIncTerminal(i));
         const _terminalItems = filteredQInc.filter(i => _isQIncTerminal(i));
         let h = '';
-        if (_activeItems.length) {
-          h += '<div class="qinc-section"><div class="qinc-section-header">Activos</div>';
-          h += _buildQIncColumnsHtml(_activeItems);
-          h += '</div>';
-        }
-        // TKT1 (REQ CAEL-0723-03): "Terminados" siempre se renderiza — a diferencia de
-        // "Activos", que se omite si vacío. filteredQInc.length>0 está garantizado en este punto
-        // (branch de "Sin resultados" ya se resolvió arriba), así que _activeItems y
-        // _terminalItems nunca están vacíos los dos a la vez — pero cada uno individualmente sí.
+        // Fix INC (ref_id CAEL-0727-01, mod:14): "Activos" ahora se renderiza siempre — mismo
+        // criterio de simetría que "Terminados" ya aplicaba desde mod:8. Antes el gate
+        // `if (_activeItems.length)` ocultaba header + columnas completos cuando no había
+        // ítems activos; ahora _buildQIncColumnsHtml([]) resuelve el caso vacío mostrando las
+        // 3 columnas con su empty-state propio (.qinc-column-empty, sin markup nuevo).
+        h += '<div class="qinc-section"><div class="qinc-section-header">Activos</div>';
+        h += _buildQIncColumnsHtml(_activeItems);
+        h += '</div>';
+        // filteredQInc.length>0 está garantizado en este punto (branch de "Sin resultados" ya
+        // se resolvió arriba), así que _activeItems y _terminalItems nunca están vacíos los dos
+        // a la vez — pero cada uno individualmente sí, y ambas secciones ya lo cubren.
         h += '<div class="qinc-section"><div class="qinc-section-header">Terminados</div>';
         h += _terminalItems.length
           ? `<div class="items-grid">${_terminalItems.map(item => _buildQIncItemHtml(item)).join('')}</div>`
