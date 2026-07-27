@@ -1,12 +1,21 @@
+/* [PP] mod:78 · autor:Nova · 2026-07-26 UTC-6 */
+/* TKT-202607-146 (REQ-202607-046, depends_on: TKT-202607-144) — Opción A (bifurcación
+   resuelta por Cael, confirmada por el founder): #merge-diff-overlay.has-diff se retira
+   sin haber tenido consumidor JS. locus-backlog-merge.js (mod:69) ya alterna
+   mdiff-overlay--empty/--filled en los 4 puntos de apertura/cierre del panel (grep
+   confirmado por Rune: L1672-1673 apertura · L1791-1792 cierre-aplicar · L1914-1915
+   cierre-cancelar · L1997-1998 cierre-Escape — 0 usos de has-diff en el codebase).
+   .msc-diff-empty/.mdiff-dialog pasan a alternar contra
+   #merge-diff-overlay.mdiff-overlay--filled — mismo par de reglas de mod:77, selector
+   distinto, sin cambio de JS ni de los 4 puntos de mutación. */
 /* [PP] mod:77 · autor:Nova · 2026-07-26 UTC-6 */
 /* TKT-202607-144 (REQ-202607-046): .mdiff-overlay pasa de overlay fixed con backdrop
    propio a región estática dentro de .mss-content (locus-modals-base.css). Retirado
    sin período de gracia: .mdiff-overlay--docked (REQ[CAEL-0716-01] → TKT-202607-128),
    .mdiff-overlay.open, .mdiff-dialog 92vw×88vh standalone + su @keyframes mdiffIn de
    entrada (el shell ya anima su propia apertura). .msc-diff-empty reubicada aquí desde
-   locus-modals-base.css (su socket .modal-split__col--diff se retiró). Contrato nuevo
-   para Rune (TKT-202607-146, depends_on: TKT-202607-144): #merge-diff-overlay.has-diff
-   alterna .msc-diff-empty/.mdiff-dialog — sin consumidor JS todavía. */
+   locus-modals-base.css (su socket .modal-split__col--diff se retiró). Contrato de
+   alternancia empty/dialog corregido en mod:78 — ver arriba, ya no usa .has-diff. */
 /* TKT-202607-086 (bloqueo CSS señalado por Rune, resuelto por Nova antes de implementación):
    .mdiff-narrative-section:not(:only-of-type) gana border/border-radius de framing, y el
    selector de truncado del título de _attrRow se corrige para el nuevo nivel de anidación
@@ -2062,9 +2071,9 @@
 
 /* Dialog — llena la región 2/3 del shell (antes 92vw × 88vh standalone, o docked
    contra --split-total-w). .mdiff-dialog oculto por default junto a .msc-diff-empty
-   visible — contrato pendiente para TKT-202607-146 (Rune, depends_on:
-   TKT-202607-144): agregar la clase de estado que alterna ambos al popular
-   #merge-diff-body, mismo criterio ya declarado en el HTML de este TKT. */
+   visible — alterna contra #merge-diff-overlay.mdiff-overlay--filled, clase que
+   locus-backlog-merge.js ya aplica/retira en sus 4 puntos de apertura/cierre del
+   panel (TKT-202607-146, ver §Cambios mod:78). */
 .mdiff-dialog {
   display: none;
   width: 100%;
@@ -2074,14 +2083,15 @@
   overflow: hidden;
 }
 
-/* #merge-diff-overlay.has-diff — placeholder de contrato, no consumido aún por JS
-   (Rune lo activa en TKT-202607-146). Declarado aquí para que el primer entregable
-   de Rune sobre este TKT no requiera tocar CSS — solo aplicar/retirar la clase. */
-#merge-diff-overlay.has-diff .msc-diff-empty {
+/* #merge-diff-overlay.mdiff-overlay--filled — reusa el toggle que
+   locus-backlog-merge.js ya emite en sus 4 puntos de apertura/cierre del panel
+   (mod:69) en vez de introducir .has-diff como segunda fuente de verdad para el
+   mismo estado (Opción A sobre Opción B, TKT-202607-146). Sin JS nuevo. */
+#merge-diff-overlay.mdiff-overlay--filled .msc-diff-empty {
   display: none;
 }
 
-#merge-diff-overlay.has-diff .mdiff-dialog {
+#merge-diff-overlay.mdiff-overlay--filled .mdiff-dialog {
   display: flex;
 }
 
