@@ -1,3 +1,14 @@
+<!-- [PP] mod:161 · autor:Nova · 2026-07-26 UTC-6 -->
+<!-- TKT-202607-127 (REQ-202607-039, Nova): #sprint-panel-planificar gana el Stats Shell
+     (#spp-stats-block, 4 celdas: Q-Backlog/Asignados/Effort asignado/vs velocidad — reusa
+     .sps-stats-block/.sps-stat-cell, IDs propios spp-stat-* para no colisionar con
+     #spi-stat-*/#sps-stat-*) + empty-state (#spp-content-empty, familia .spt-content-empty,
+     mismo recipe que #spi-content-empty). AC2 (spt-identity) ya cubierto desde TKT-202607-126
+     — instancia única en .sph-inner, sin cambio en esta entrega. CSS de los 2 modificadores
+     nuevos (--asignados/--vs-velocidad) ya vigente en locus-sprint.css mod:68 (sesión previa,
+     verificado sin gaps). Sin JS de wiring — Rune adapta _renderPlanningView() para poblar
+     textContent + alternar is-hidden (mismo patrón que TKT-202607-126), no adjunto en esta
+     sesión. -->
 <!-- [PP] mod:160 · autor:Nova · 2026-07-26 UTC-6 -->
 <!-- TKT-202607-132 (REQ-202607-042): #worker-header — .sc-header-right gana 2 hermanos
      estáticos, ambos ocultos por .is-hidden por default (integración de Rune, TKT2,
@@ -936,6 +947,45 @@
 
   <!-- Panel Planificar — R-202605-052 -->
   <div id="sprint-panel-planificar" role="tabpanel" aria-labelledby="spt-tab-planificar" class="is-hidden">
+
+    <!-- spp-stats-block — TKT-202607-127 (REQ-202607-039, Nova): shell estático, nunca se oculta
+         (mismo patrón que #spi-stats-block/#sps-stats-block, BR-Execution §5 — elemento
+         invariante, permanece visible con las 4 celdas en 0). Reusa .sps-stats-block/.sps-stat-cell
+         (locus-sprint.css) — IDs propios (spp-stat-*) para no colisionar con #spi-stat-*/#sps-stat-*.
+         Modificadores de color solo en asignados (--asignados, azul) y vs velocidad
+         (--vs-velocidad, ámbar) — Q-Backlog/effort asignado neutros, AC1. Poblado por JS (Rune)
+         dentro de _renderPlanningView() — sin datos aún en este entregable. -->
+    <div class="sps-stats-block" id="spp-stats-block">
+      <div class="sps-stat-cell">
+        <span class="sps-stat-label">Q-Backlog</span>
+        <span class="sps-stat-n" id="spp-stat-qbacklog">0</span>
+      </div>
+      <div class="sps-stat-cell sps-stat-cell--asignados" id="spp-stat-cell-asignados">
+        <span class="sps-stat-label">Asignados</span>
+        <span class="sps-stat-n" id="spp-stat-asignados">0</span>
+      </div>
+      <div class="sps-stat-cell">
+        <span class="sps-stat-label">Effort asignado</span>
+        <span class="sps-stat-n" id="spp-stat-effort">0</span>
+      </div>
+      <div class="sps-stat-cell sps-stat-cell--vs-velocidad" id="spp-stat-cell-vs-velocidad">
+        <span class="sps-stat-label">vs velocidad</span>
+        <span class="sps-stat-n" id="spp-stat-vs-velocidad">—</span>
+      </div>
+    </div>
+    <!-- /spp-stats-block -->
+
+    <!-- spp-content-empty — TKT-202607-127 AC3: alterna con #sprint-planificar-container (nunca
+         ambos, nunca ninguno — BR-Ecosystem §674 patrón shell/contenido). is-hidden por defecto —
+         JS (Rune) lo muestra cuando Q-Backlog no tiene ítems elegibles para el sprint. Reusa
+         familia .spt-content-empty (mismo recipe que .msc-diff-empty / #spi-content-empty). -->
+    <div class="spt-content-empty is-hidden" id="spp-content-empty">
+      <i class="ti ti-drag-drop spt-content-empty-icon" aria-hidden="true"></i>
+      <div class="spt-content-empty-title">Sin ítems elegibles para asignar</div>
+      <div class="spt-content-empty-hint">Los ítems de Q-Backlog aparecerán aquí para arrastrar al sprint</div>
+    </div>
+    <!-- /spp-content-empty -->
+
     <div id="sprint-planificar-container"></div>
   </div>
   <!-- END Panel Planificar — R-202605-052 -->
