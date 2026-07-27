@@ -1,4 +1,13 @@
-/* [PP] mod:23 · autor:Nova · 2026-07-20 19:10 UTC-6 */
+/* [PP] mod:24 · autor:Nova · 2026-07-27 UTC-6 */
+/* mod:24 — TKT-202607-149 (REQ-202607-048): .breadcrumb-seg--proj — font-size hardcoded
+   (13px) reemplazado por var(--text-md)/14px para prominencia (AC-1); transición de
+   .breadcrumb-seg (base compartida) migrada a var(--trans-color) — mismo valor efectivo
+   que el hardcoded previo, ahora referenciando el token de §Velocidades (AC-2). Sin cambio
+   de color/hover/focus: .breadcrumb-seg--proj:hover ya usaba --accent-text/--accent-dim
+   (WCAG-safe) y :focus-visible ya hereda la regla global (línea ~744). Selector real
+   confirmado: .breadcrumb-seg--proj — no existe #breadcrumb-proj como id en este archivo;
+   ver doc-update _Locus-css-ref mod:136 para el detalle de por qué el borrador previo
+   (id-selector) se descarta. */
 /* mod:21 — retirado .status-confirm-overlay del bloque light-theme backdrop blur (L1543 previa) —
    clase huérfana, retirada de HTML/JS por TKT4 (CAEL-0720-05, REQ CAEL-0720-01). Selector nunca
    volvía a matchear tras el retiro; DISC [pendiente-ID] cerrada con este fix. */
@@ -435,7 +444,7 @@ button {
   font-size: var(--text-xs);
   line-height: 1.2;
   white-space: nowrap;
-  transition: color 0.15s var(--ease-out);
+  transition: var(--trans-color); /* TKT-202607-149 — mismo valor efectivo (0.15s var(--ease-out)), ahora vía token de §Velocidades */
 
   /* Foco visible — no suprimir outline */
   outline-offset: 2px;
@@ -452,7 +461,7 @@ button {
 .breadcrumb-seg--proj {
   color: var(--text2);
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--text-md); /* TKT-202607-149 — sube desde 13px hardcoded, prominencia AC-1 */
   max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
