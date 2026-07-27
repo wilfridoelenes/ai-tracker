@@ -1,3 +1,17 @@
+// [PP] mod:8 · autor:Rune · 2026-07-27 UTC-6
+// TKT-202607-161 — fix Bug mayor (QA bloqueado por Finn, AC1 no cumplido en mod:7): el mod
+// anterior agregaba qinc-item-code-chip "junto a" bitem-subline-code sin fusionar con
+// .qinc-type-badge — AC1 exige un único elemento reemplazando ambos. Corregido: se retira el
+// <span class="qinc-type-badge"> del header de buildQIncItem() (ver return) y copyCodeHtml
+// absorbe el modificador de tipo --inc/--prb/--chg que locus-incidents.css ya declaraba desde
+// TKT-202607-160 (Nova) sin ningún caller que lo aplicara — CSS dejó de estar muerto. El
+// código (INC-XXXXXX-NNN) ya lleva el prefijo de tipo como texto, por lo que la etiqueta
+// separada del badge quedaba redundante una vez fusionado; typeLabel se conserva en el
+// atributo title del chip. copy-code (data-action) y sus AC2/AC3/AC4 (mod:7,
+// locus-incidents-render.js) no cambian — mismo nodo, mismo dataset, mismo handler.
+// Impacto lateral: .qinc-type-badge (CSS) puede quedar sin consumidor en el módulo Q-INC —
+// Rune no audita ni edita archivos .css (CSS Purity). Señalado a Nova para verificar si la
+// clase es huérfana en este scope antes de considerarla deuda.
 // [PP] mod:7 · autor:Rune · 2026-07-27 UTC-6
 // TKT-202607-161 (parent REQ-202607-053, depends_on TKT-202607-160): buildQIncItem() —
 // copyCodeHtml agrega la clase qinc-item-code-chip junto a bitem-subline-code, sin
@@ -261,8 +275,15 @@ export function buildQIncItem(item) {
   <div class="qinc-item-comportamiento" id="${comportId}">${esc(comportamiento)}</div>`
     : '';
 
-  // Copy-code badge — patrón idéntico al Backlog principal (AC TKT-B2a AC2)
-  const copyCodeHtml = `<span class="bitem-subline-code qinc-item-code-chip" data-action="copy-code" data-code="${esc(code)}" data-idx="-1" title="Click para copiar ID">${esc(code)}</span>`;
+  // TKT-202607-161 AC1 (fix Bug mayor, QA bloqueado por Finn — sesión 2026-07-27): antes
+  // .qinc-type-badge y el chip de código eran dos elementos hermanos ("junto a", no
+  // fusionados) — AC1 exige un único elemento reemplazando ambos. El código (INC-XXXXXX-NNN)
+  // ya contiene el prefijo de tipo como texto — la etiqueta separada del badge era redundante
+  // una vez fusionado. Se retira el <span class="qinc-type-badge"> del header (ver return más
+  // abajo) y este chip absorbe el modificador de tipo --inc/--prb/--chg que locus-incidents.css
+  // ya declaraba (TKT-202607-160, Nova) pero que ningún caller aplicaba — CSS dejó de estar
+  // muerto. title conserva typeLabel (antes solo en el badge) + el hint de copiar.
+  const copyCodeHtml = `<span class="bitem-subline-code qinc-item-code-chip qinc-item-code-chip--${esc(type.toLowerCase())}" data-action="copy-code" data-code="${esc(code)}" data-idx="-1" title="${esc(typeLabel)} · Click para copiar ID">${esc(code)}</span>`;
 
   // TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-06): botón "Copiar ítem" — copia el bloque
   // completo del ítem (mismo formato que _PP-incidents.md §Ítems) sin exportar el archivo
@@ -289,7 +310,6 @@ export function buildQIncItem(item) {
   return `
 <div class="qinc-item ${slaClass}" data-code="${esc(code)}" data-type="${esc(type)}">
   <div class="qinc-item-header" data-qi-action="qi-open-panel" role="button" tabindex="0" aria-label="Abrir detalle de ${esc(code)}">
-    <span class="qinc-type-badge qinc-type-badge--${type.toLowerCase()}" title="${esc(typeLabel)}">${esc(type)}</span>
     ${copyCodeHtml}
     <span class="qinc-item-title">${esc(item.title || '(sin título)')}</span>
     ${copyItemHtml}
