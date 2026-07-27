@@ -1,4 +1,12 @@
-/* [PP] mod:76 · autor:Nova · 2026-07-25 UTC-6 */
+/* [PP] mod:77 · autor:Nova · 2026-07-26 UTC-6 */
+/* TKT-202607-144 (REQ-202607-046): .mdiff-overlay pasa de overlay fixed con backdrop
+   propio a región estática dentro de .mss-content (locus-modals-base.css). Retirado
+   sin período de gracia: .mdiff-overlay--docked (REQ[CAEL-0716-01] → TKT-202607-128),
+   .mdiff-overlay.open, .mdiff-dialog 92vw×88vh standalone + su @keyframes mdiffIn de
+   entrada (el shell ya anima su propia apertura). .msc-diff-empty reubicada aquí desde
+   locus-modals-base.css (su socket .modal-split__col--diff se retiró). Contrato nuevo
+   para Rune (TKT-202607-146, depends_on: TKT-202607-144): #merge-diff-overlay.has-diff
+   alterna .msc-diff-empty/.mdiff-dialog — sin consumidor JS todavía. */
 /* TKT-202607-086 (bloqueo CSS señalado por Rune, resuelto por Nova antes de implementación):
    .mdiff-narrative-section:not(:only-of-type) gana border/border-radius de framing, y el
    selector de truncado del título de _attrRow se corrige para el nuevo nivel de anidación
@@ -1999,135 +2007,84 @@
    Funciones: showMergeDiffPanel · _confirmRetroceso · _confirmDiscard · _mdiffDoApply */
 
 /* ══ R-202604-071: Merge Diff Panel — rediseño completo two-column ══ */
-
-/* Overlay — más generoso que el modal base */
-/* T-202606-033: transición de entrada opacity 0→1 + translateY(8px)→0 · 150ms ease-out */
-/* position:fixed garantiza que la animación no introduce layout shift (AC-6) */
+/* TKT-202607-144 (REQ-202607-046, Nova): #merge-diff-overlay deja de ser overlay
+   independiente (position:fixed + backdrop + apertura/cierre propia). Ahora es una
+   región estática dentro de .mss-content (locus-modals-base.css) — el único backdrop
+   y el único estado open/closing viven en #modal-split-shell. .mdiff-overlay--docked
+   (REQ[CAEL-0716-01] → TKT-202607-128) retirado sin período de gracia junto con las
+   custom properties --split-total-w/-h/-gap/-header-h que consumía. */
 .mdiff-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-modal);
+  flex: 1 1 auto;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgb(0 0 0 / 60%);
-  opacity: 0;
-  transform: translateY(8px);
-  pointer-events: none;
-  transition: opacity 150ms ease-out, transform 150ms ease-out;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
 }
 
-/* AC-2: la transición inicia en el mismo frame en que .open se agrega al overlay */
-.mdiff-overlay.open {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-}
+/* .mdiff-overlay.open retirada — sin función: la visibilidad de esta región la
+   gobierna el estado open/closing del shell padre (#modal-split-shell), no una
+   clase propia. Contrato de estado interno (empty vs dialog poblado) → ver
+   .msc-diff-empty / .mdiff-dialog abajo. */
 
-/* AC-4: prefers-reduced-motion — overlay aparece sin animación */
-@media (prefers-reduced-motion: reduce) {
-  .mdiff-overlay {
-    transition: none;
-  }
-}
-
-/* ── .mdiff-overlay--docked — REQ[CAEL-0716-01] TKT1 (Nova): modo split desde
-   #ingest-modal-overlay (TKT2, Rune, aplica/retira la clase vía JS al invocar/cerrar
-   showMergeDiffPanel desde el flujo de ingesta — single paste y batch unificado,
-   TKT2/TKT3). Sin backdrop propio — el backdrop real lo pinta #ingest-modal-overlay
-   (.modal-split, locus-modals-base.css). Posición fixed calculada contra las mismas
-   custom properties --split-total-w/-h/-gap/-header-h (declaradas en :root,
-   locus-modals-base.css) — ambos diálogos quedan visualmente contiguos sin acoplar
-   su DOM. z-index explícito ≥ --z-modal-plus: antes de esta clase, .mdiff-overlay
-   dependía del orden de <link> entre este archivo y locus-modals-base.css para
-   ganar 900 sobre su propio z-index:500 declarado abajo (ambas reglas .modal-overlay/
-   .mdiff-overlay con igual especificidad, gana la última en el cascade) — el elemento
-   #merge-diff-overlay (class="modal-overlay mdiff-overlay") ya computaba 900 hoy por
-   ese orden de carga, no por diseño explícito; frágil ante cualquier reordenamiento de
-   <link> en index.html.
-   Fix (Hallazgo Rune, triggered_by diagnóstico modales de ingesta): el mismo problema
-   de especificidad-empatada-gana-la-última-en-cascade que motivó fijar z-index arriba
-   afectaba también background/justify-content/align-items — .modal-overlay (línea 78,
-   locus-modals-base.css, cargado después de este archivo) sobrescribía los tres,
-   dejando el panel centrado con backdrop propio en vez de dockeado. Selector calificado
-   con #merge-diff-overlay eleva la especificidad de esta regla (1,1,0) por encima de
-   .modal-overlay (0,1,0) de forma explícita — ya no depende del orden de <link>, mismo
-   criterio de raíz que z-index, aplicado ahora a las cuatro propiedades.
-   Fix 2 (Hallazgo Finn, mismo ciclo): con la especificidad ya corregida, z-index dejó
-   de heredar el 900 "accidental" que el empate previo producía — var(--z-modal-plus)
-   (600) es el valor real declarado, y #ingest-modal-overlay (.modal-overlay.modal-split,
-   locus-modals-base.css L415-420, sin override propio de z-index) hereda var(--z-overlay)
-   (900) de .modal-overlay base. Sin corregir, el backdrop full-viewport del ingest
-   (900) pinta sobre el panel dockeado (600). calc(var(--z-overlay) + 1) garantiza que
-   el docked queda por encima del ingest sin introducir un token nuevo en la escalera
-   de z-index de locus-base.css — no hay hueco definido entre --z-overlay (900) y
-   --z-toast (1000) para "elementos sobre overlay base", mismo patrón semántico que
-   --z-modal-plus ya usa para "elementos sobre modal base". ── */
-/* Full-viewport (REQ[CAEL-0716-02]): mismo offset vertical que .modal-overlay.modal-split
-   (locus-modals-base.css) — header real + split-header-h.
-   Fix de raíz (TKT-202607-128, REQ-202607-038, Nova — AC-2, desalineación horizontal):
-   este padding-left calculaba el borde izquierdo del panel docked contra --split-total-w
-   sin sumar --gutter-shell — pero el borde izquierdo real del panel de ingesta
-   (#ingest-modal-overlay.modal-split, locus-modals-base.css) sí arranca en
-   var(--gutter-shell), no en left:0. El offsetLeft de .mdiff-dialog quedaba corrido
-   --gutter-shell hacia la izquierda respecto al borde derecho real de
-   .modal-split__dialog + --split-gap. Términos: --gutter-shell (borde real de la
-   columna ingesta) + split-total-w*0.333 (ancho de esa columna) + split-gap/2 (la
-   mitad del gap ya está en el propio ancho de .modal-split__dialog — ver
-   locus-modals-base.css L435 — el resto compensa aquí). Identidad algebraica, no
-   depende del valor de --split-total-w — se mantiene en cualquier estado de
-   body.radar-sb-open/-collapsed/ninguno sin declaración adicional. */
-#merge-diff-overlay.mdiff-overlay--docked {
-  background: transparent;
-  justify-content: flex-start;
-  align-items: flex-start;
-  padding-top: calc(var(--header-h) + 1.95rem + 1px + var(--split-header-h));
-  padding-left: calc(var(--gutter-shell) + var(--split-total-w) * 0.333 + var(--split-gap) / 2);
-  z-index: calc(var(--z-overlay) + 1);
-}
-
-#merge-diff-overlay.mdiff-overlay--docked .mdiff-dialog {
-  width: calc(var(--split-total-w) * 0.667 - var(--split-gap) / 2);
-  max-width: none;
-  height: calc(var(--split-total-h) - var(--split-header-h));
-  max-height: none;
-  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
-  animation: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mdiff-overlay--docked .mdiff-dialog {
-    transition: none;
-  }
-}
-
-/* Dialog — 92vw × 88vh (standalone, sin .mdiff-overlay--docked) */
-.mdiff-dialog {
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius-xl);
-  width: 92vw;
-  max-width: 1100px;
-  height: 88vh;
-  max-height: 88vh;
+/* .msc-diff-empty (antes en locus-modals-base.css, dentro de .modal-split__col--diff
+   — socket retirado en este TKT) — estado por default de #merge-diff-overlay dentro
+   del shell único: texto invariante, no depende de datos (BR-Execution §5). Ya no
+   position:absolute inset:0 de un socket decorativo — es contenido normal de flujo
+   dentro de la región flex. */
+.msc-diff-empty {
   display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 28px 16px;
+  box-sizing: border-box;
+}
+
+.msc-diff-empty-icon {
+  font-size: var(--text-display-2xl);
+  color: var(--text3);
+}
+
+.msc-diff-empty-title {
+  margin: 10px 0 4px;
+  font-size: var(--text-sm);
+  color: var(--text2);
+}
+
+.msc-diff-empty-hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text3);
+}
+
+/* Dialog — llena la región 2/3 del shell (antes 92vw × 88vh standalone, o docked
+   contra --split-total-w). .mdiff-dialog oculto por default junto a .msc-diff-empty
+   visible — contrato pendiente para TKT-202607-146 (Rune, depends_on:
+   TKT-202607-144): agregar la clase de estado que alterna ambos al popular
+   #merge-diff-body, mismo criterio ya declarado en el HTML de este TKT. */
+.mdiff-dialog {
+  display: none;
+  width: 100%;
+  height: 100%;
+  background: var(--surface);
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 24px 64px rgb(0 0 0 / 50%), 0 4px 16px rgb(0 0 0 / 30%);
-  animation: mdiffIn 0.22s var(--ease-out);
 }
 
-@keyframes mdiffIn {
-  from {
-    opacity: 0;
-    transform: scale(0.97) translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+/* #merge-diff-overlay.has-diff — placeholder de contrato, no consumido aún por JS
+   (Rune lo activa en TKT-202607-146). Declarado aquí para que el primer entregable
+   de Rune sobre este TKT no requiera tocar CSS — solo aplicar/retirar la clase. */
+#merge-diff-overlay.has-diff .msc-diff-empty {
+  display: none;
 }
+
+#merge-diff-overlay.has-diff .mdiff-dialog {
+  display: flex;
+}
+
 
 /* Header */
 .mdiff-header {
