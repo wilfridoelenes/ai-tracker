@@ -1,3 +1,20 @@
+// [PP] mod:153 · autor:Rune · 2026-07-27 UTC-6
+// INC-202607-066: _splitCheckpointBlocks() solo detectaba bloques delimitados por fence ```
+// (con o sin especificador json) — texto pegado como JSON puro sin fence devolvía [] pese a que
+// parsePaste() (isCheckpoint, línea ~1410) sí lo procesaba y guardaba correctamente vía su propio
+// fallback (text.trim().startsWith('{') && .endsWith('}')). Resultado observable: el contador
+// #ingest-block-count mostraba "0 bloques detectados" con un CHECKPOINT único sin fence ya
+// guardado y con detección de duplicado funcionando — dos funciones con criterios distintos de
+// "qué es un bloque CHECKPOINT" sobre el mismo texto. Fix: heurístico de bloque único sin fence
+// extraído a _looksLikeBareCheckpointJson() (función pura, sin efectos laterales) y reutilizado
+// en ambos call sites — _splitCheckpointBlocks() gana el mismo fallback como último recurso
+// (solo si el regex de fence no matchea nada), parsePaste() se refactoriza para consumir la
+// misma función en vez de duplicar el heurístico inline, sin cambio de comportamiento en ese
+// call site. No cubre batch (2+ objetos JSON concatenados sin fence) — sin fence no hay
+// delimitador confiable entre objetos, requeriría parsing por profundidad de llaves — registrado
+// como DISC-202607-050, fuera de scope de este fix. contract_update: no — ninguna firma exportada
+// cambia (_splitCheckpointBlocks conserva firma y tipo de retorno; _looksLikeBareCheckpointJson
+// es interna, sin export, sin consumidores externos).
 // [PP] mod:152 · autor:Rune · 2026-07-27 UTC-6
 // INC-202607-062: rama de mismatch en _showIngestValidationResult() usaba
 // classList.replace('validation-badge--success','validation-badge--warning') — no-op si
@@ -412,11 +429,28 @@
 //   ejemplo de fence) corta el bloque en ese punto — mismo riesgo ya documentado en
 //   T-202606-019 para el path de parseCheckpoint. Fuera de los AC de este TKT — señalar a
 //   Cael si aparece en uso real.
+// INC-202607-066: heurístico de "texto es un único objeto JSON sin fence ```" — extraído a
+//   función pura y compartido entre _splitCheckpointBlocks() (más abajo) y parsePaste()
+//   (isCheckpoint, línea ~1410, antes duplicado inline). Sin efectos laterales, no muta `text`.
+//   Deliberadamente no cubre 2+ objetos concatenados sin fence — sin delimitador entre ellos, no
+//   hay forma confiable de saber dónde termina uno y empieza el siguiente sin parsear por
+//   profundidad de llaves (ver DISC-202607-050, fuera de scope de este fix).
+function _looksLikeBareCheckpointJson(text) {
+  const _t = text.trim();
+  return _t.startsWith('{') && _t.endsWith('}');
+}
+
 export function _splitCheckpointBlocks(text) {
   if (!text) return [];
   const _re = /```(?:json)?\s*[\s\S]*?```/g;
   const _matches = text.match(_re);
-  return _matches || [];
+  if (_matches) return _matches;
+  // INC-202607-066: sin match de fence — fallback a bloque único de JSON puro, mismo criterio
+  // que ya usa parsePaste(). Antes de este fix, esta función devolvía [] aquí incondicionalmente,
+  // desincronizando el contador del resultado real del parseo. Batch sin fence permanece [] — sin
+  // regresión (ver DISC-202607-050).
+  const _trimmed = text.trim();
+  return _looksLikeBareCheckpointJson(_trimmed) ? [_trimmed] : [];
 }
 // [PP] mod:87 · autor:Rune · 2026-07-01 15:40 UTC-6
 // TKT-202606-014 (REQ-202606-003 · AC2): agregado draftRaw — valor crudo de _parsed.draft
@@ -1407,7 +1441,9 @@ export function parsePaste(id) {
   const ai = getAI(id); // B-202606-017: declarado al inicio de parsePaste — disponible en todos los branches (incluido el else de texto vacío, línea ~729)
   if (!ai) return;
   // T-202606-005: detectar CHECKPOINT via fence (con o sin especificador json) o JSON puro sin fence
-  const isCheckpoint = /^\s*```(?:json)?\s*\{/.test(text) || (text.trim().startsWith('{') && text.trim().endsWith('}'));
+  // INC-202607-066: heurístico de JSON sin fence extraído a _looksLikeBareCheckpointJson —
+  // mismo comportamiento, ahora compartido con _splitCheckpointBlocks. Sin cambio en este call site.
+  const isCheckpoint = /^\s*```(?:json)?\s*\{/.test(text) || _looksLikeBareCheckpointJson(text);
 
   let title = '', summary = '', files = '', nextStep = '', bloqueantesRaw = '', tgItems = [], ckpt = null;
   if (isCheckpoint) {
