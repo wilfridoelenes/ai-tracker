@@ -1,3 +1,31 @@
+// [PP] mod:150 · autor:Rune · 2026-07-27 UTC-6
+// PRB derivado de INC-202607-046/053/055 (código real aún sin confirmar en Locus — Finn lo
+// emitió con [pendiente-ID], sin ref_id declarado; ver `_Locus-module-contracts` para el
+// contrato completo una vez el código real esté disponible): causa raíz de la reversión
+// persistente de CHG-202607-001 confirmada en _mergeItemsFromRemote()/_mergeIncidentsFromRemote()
+// — ambas comparaban "¿gana lo local?" contra un snapshot de localStorage releído en cada
+// llamada, no contra el array vivo (_itemsRef/_incidentsRef, mismo parámetro ya recibido).
+// localStorage se escribe ANTES del stamp de _updatedAtMs (pre-upsert); el stamp llega a los
+// objetos vivos DESPUÉS del upsert — el disco puede quedar un ciclo de guardado detrás del
+// array vivo. Un merge que compara contra ese snapshot rezagado puede reemplazar el array
+// vivo completo con la copia de disco desactualizada, descartando en silencio un patch ya
+// aplicado en memoria — el síntoma exacto de CHG-202607-001. Distinto y adicional a
+// INC-202607-053 (stamp) e INC-202607-055 (alcance del lock) — ninguno de los dos cerraba
+// esta ventana. Fix: ambas funciones comparan contra _itemsRef/_incidentsRef directamente,
+// sin re-leer localStorage. Corrección de esta misma sesión sobre ese fix (verificación de
+// cierre de edición, `__BR-Core`): _mergeIncidentsFromRemote() quedó con una referencia
+// huérfana a `localIncidentsRaw` (variable eliminada del scope junto con el re-read de
+// localStorage, pero una condición de `shouldEvaluateInc` seguía citándola) — ReferenceError
+// en cada llamada, atrapado en silencio por el catch envolvente, dejando el merge de
+// incidentes completamente inoperante en cada carga. Retirada la condición — mismo criterio
+// que `_mergeItemsFromRemote()`, que nunca tuvo esa cláusula. También se retiró la cita a un
+// código "PRB-202607-XXX" en los comentarios de ambas funciones — código fabricado sin
+// ref_id ni confirmación de Locus, viola `__BR-Execution §9` (Referencias a ítems del
+// backlog embebidas en código). Impacto lateral: locus-storage.js es módulo crítico
+// (transversal a todo el proyecto) — _mergeItemsFromRemote()/_mergeIncidentsFromRemote()
+// invocadas exclusivamente desde _loadFromSupabase(). Sin cambio de firma.
+// Módulo crítico: locus-storage.js — activar verificación de regresiones en Finn.
+
 // [PP] mod:149 · autor:Rune · 2026-07-27 UTC-6
 // INC-202607-055 (triggered_by INC-202607-054 — mod:148 corrigió _toIncidentRow() pero no
 // resolvía el síntoma completo): saveBacklog() — el upsert de tracker_incidents corría fuera
@@ -2951,14 +2979,25 @@ async function _mergeItemsFromRemote(itemsResult, _itemsRef) {
       // Determinar si vale la pena evaluar merge: ITEMS local vacío → siempre.
       // ITEMS local con datos → solo si hay al menos una fila remota más reciente
       // que su contraparte local (ver merge por fila más abajo — B-202606-094).
-      const localItemsRaw = localStorage.getItem(_tplKey('backlog-items'));
-      const localItems    = (() => { try { return JSON.parse(localItemsRaw || '[]'); } catch { return []; } })();
-      const localByCode   = new Map(localItems.map(it => [it.code, it]));
+      // PRB derivado de INC-202607-046 (código real del PRB aún sin confirmar en Locus —
+      // Finn lo emitió con [pendiente-ID], sin ref_id): "local" ya
+      // no se relee desde localStorage — se construye directo sobre _itemsRef, el mismo
+      // array vivo que este merge termina reemplazando. localStorage.setItem('backlog-items')
+      // se escribe ANTES del stamp de _updatedAtMs (pre-upsert, ver saveBacklog() L1975),
+      // mientras que el stamp llega a los objetos vivos DESPUÉS del upsert (L2041) — el disco
+      // puede quedar un ciclo de guardado detrás del array vivo. Un merge que compara contra
+      // ese snapshot rezagado puede juzgar "remoto gana" y reemplazar _itemsRef completo con
+      // una copia que no refleja un patch recién aplicado en memoria y aún no guardado —
+      // descartándolo en silencio antes de que llegue a Supabase. Usar _itemsRef directamente
+      // como fuente del lado "local" cierra la ventana sin perder el propósito original de
+      // B-202606-094 (protegerse de un read-after-write stale de Supabase): el array vivo
+      // siempre es igual o más reciente que cualquier snapshot de disco.
+      const localByCode = new Map(_itemsRef.map(it => [it.code, it]));
       const remoteMaxTs   = remoteRows.reduce((m, row) => {
         const ts = row.updated_at || 0; // BIGINT epoch ms desde DDL
         return ts > m ? ts : m;
       }, 0);
-      const localMaxTs    = localItems.reduce((m, it) => {
+      const localMaxTs    = _itemsRef.reduce((m, it) => {
         const ts = it._updatedAtMs || 0;
         return ts > m ? ts : m;
       }, 0);
@@ -2969,10 +3008,9 @@ async function _mergeItemsFromRemote(itemsResult, _itemsRef) {
       // remoteActiveCount !== localCount es una señal barata y segura de alta/baja de filas
       // — se excluye 'historico' del conteo remoto porque el forEach de abajo también lo excluye.
       const remoteActiveCount = remoteRows.filter(row => row.status !== 'historico').length;
-      const localCount        = localItems.length;
+      const localCount        = _itemsRef.length;
       const shouldEvaluate = _itemsRef !== null && (
         _itemsRef.length === 0 ||
-        !localItemsRaw     ||
         remoteMaxTs > localMaxTs ||
         remoteActiveCount !== localCount
       );
@@ -3067,24 +3105,33 @@ function _mergeIncidentsFromRemote(incidentsResult, _incidentsRef) {
     if (incidentsResult.status === 'fulfilled' && !incidentsResult.value.error) {
       const remoteIncRows = incidentsResult.value.data || [];
       const incidentsKey     = _tplKey('backlog-incidents');
-      const localIncidentsRaw = localStorage.getItem(incidentsKey);
-      const localIncidents    = (() => { try { return JSON.parse(localIncidentsRaw || '[]'); } catch { return []; } })();
-      const localIncByCode    = new Map(localIncidents.map(inc => [inc.code, inc]));
+      // PRB derivado de INC-202607-046 / INC-202607-053 / INC-202607-055 (código real del
+      // PRB aún sin confirmar en Locus — Finn lo emitió con [pendiente-ID], sin ref_id;
+      // causa raíz confirmada — origen real de la reversión de CHG-202607-001): "local" ya
+      // no se relee desde localStorage — se construye directo sobre _incidentsRef, el mismo
+      // array vivo que este merge reemplaza al final. localStorage.setItem(incidentsKey) se
+      // escribe ANTES del stamp de _updatedAtMs (pre-upsert, saveBacklog() L1985), y el stamp
+      // llega a los objetos vivos DESPUÉS del upsert (L2117) — el disco puede quedar un ciclo
+      // de guardado detrás del array vivo. INC-202607-053 (stamp) e INC-202607-055 (alcance
+      // del lock) cerraron la ventana de carrera DURANTE un upsert en vuelo — ninguno de los
+      // dos protege este merge cuando corre fuera de esa ventana, comparando igual contra un
+      // snapshot de disco rezagado en vez del array vivo ya actualizado. Mismo fix que
+      // _mergeItemsFromRemote — ver nota ahí para el detalle completo.
+      const localIncByCode = new Map(_incidentsRef.map(inc => [inc.code, inc]));
       const remoteIncMaxTs    = remoteIncRows.reduce((m, row) => {
         const ts = row.updated_at || 0;
         return ts > m ? ts : m;
       }, 0);
-      const localIncMaxTs     = localIncidents.reduce((m, inc) => {
+      const localIncMaxTs     = _incidentsRef.reduce((m, inc) => {
         const ts = inc._updatedAtMs || 0;
         return ts > m ? ts : m;
       }, 0);
       // incident_status:historico se excluye del conteo remoto — mismo criterio que
       // remoteActiveCount para ITEMS, para detectar altas/bajas de filas de forma barata.
       const remoteActiveIncCount = remoteIncRows.filter(row => row.incident_status !== 'historico').length;
-      const localIncCount        = localIncidents.length;
+      const localIncCount        = _incidentsRef.length;
       const shouldEvaluateInc = _incidentsRef !== null && (
         _incidentsRef.length === 0 ||
-        !localIncidentsRaw ||
         remoteIncMaxTs > localIncMaxTs ||
         remoteActiveIncCount !== localIncCount
       );
