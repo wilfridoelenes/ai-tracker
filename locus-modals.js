@@ -1,3 +1,13 @@
+// [PP] mod:7 · autor:Rune · 2026-07-27 UTC-6
+// Fix de esta sesión (auditoría E2E modal de ingesta, hallazgo #1): ingestModalClose cerraba
+// #modal-split-shell sin limpiar el estado del panel DIFF (locus-backlog-merge.js) — a
+// diferencia de Cancelar/Escape dentro del panel, dejaba _mdiffKeyHandler vivo en document.
+// Fix: llama teardownMergeDiffPanel() (nuevo export, mod:70 de locus-backlog-merge.js) antes
+// de cerrar el shell — idempotente, no-op si el panel DIFF no estaba abierto. Import circular
+// con locus-backlog-merge.js (que ya importa _gconfirmOpen de este módulo) — seguro: ninguna
+// de las dos funciones se invoca en top-level de su módulo, ambas corren dentro de callbacks
+// de evento, después de que el grafo de módulos ya resolvió. contract_update: n/a — este
+// módulo no expone contract_detail, solo consume el export nuevo.
 // [PP] mod:6 · autor:Rune · 2026-07-26 UTC-6
 // TKT2 (TKT-202607-145, REQ-202607-046 split_view_merged_shell): ingestModalClose
 // (#ingest-modal-close-btn) todavía cerraba vía la cascada docked (AC4 de CAEL-0716-01
@@ -33,6 +43,9 @@
 
 // T-202606-077: registrar _gconfirmOpen en _coreCallbacks
 import { _registerCoreCallback } from './locus-backlog-core.js';
+
+// Fix de esta sesión: limpieza del panel DIFF al cerrar el shell con × — ver mod:7 arriba.
+import { teardownMergeDiffPanel } from './locus-backlog-merge.js';
 
 // ── Generic confirm/prompt modal (T-090) ──
 // _gconfirmCb: interno del módulo — no expuesto públicamente
@@ -136,6 +149,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const ingestModalClose = document.getElementById('ingest-modal-close-btn');
   if (ingestModalClose) {
     ingestModalClose.addEventListener('click', () => {
+      // Fix de esta sesión: limpia el panel DIFF (keydown listener, storage:item-excluded,
+      // estado _mdiff*, onClose del caller) antes de cerrar el shell — no-op si el panel DIFF
+      // no estaba abierto (columna de ingesta sola, sin batch procesado).
+      teardownMergeDiffPanel();
       const shell = document.getElementById('modal-split-shell');
       if (shell) shell.classList.remove('open');
       _restoreModalFocus('modal-split-shell');

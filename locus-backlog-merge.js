@@ -1,3 +1,16 @@
+// [PP] mod:70 · autor:Rune · 2026-07-27 UTC-6
+// Fix de esta sesión (auditoría E2E del modal de ingesta, hallazgo #1 · triggered_by TKT
+// TKT-202607-145): _mdiffKeyHandler y el listener window 'storage:item-excluded' vivían
+// atados a un const local (_itemExcludedAC) y un removeEventListener manual repetido en 3
+// puntos (_mdiffDoApply, Cancelar, Escape) — ningún cierre externo al closure (× del shell,
+// locus-modals.js) podía limpiarlos. Fix (Opción B, founder): AbortController promovido a
+// módulo (_mdiffPanelAC) + onClose capturado en _mdiffOnClose (módulo) + nueva función
+// exportada teardownMergeDiffPanel() — idempotente, no conoce _mdiffKeyHandler por nombre,
+// solo aborta el controller compartido. Cancelar y Escape ahora llaman teardownMergeDiffPanel()
+// en vez de duplicar la limpieza — _mdiffDoApply mantiene su propia rama (no invoca onClose,
+// es un cierre confirmado, no "cierre sin confirmar"). contract_update: sí — export nuevo,
+// consumido por locus-modals.js (mod:7, mismo TKT) — import circular ya preexistente en
+// sentido inverso (_gconfirmOpen), declarado como impacto lateral ESM en el CHECKPOINT.
 // [PP] mod:69 · autor:Rune · 2026-07-26 UTC-6
 // TKT2 (TKT-202607-145 · REQ-202607-046): comentarios de esta sesión actualizados de placeholder
 // "REQ-202607-XXX" a código real, confirmado por el founder tras ingesta en Locus — mismo criterio
@@ -261,6 +274,16 @@ let _mdiffUpdateConfirmBtn = null;
 let _mdiffUnresolvedFilter = null;
 let _mdiffUnresolvedSelect = null;
 let _mdiffUnresolvedRemove = null;
+// Fix de esta sesión: AbortController compartido para el listener de keydown del panel y el
+// listener de window 'storage:item-excluded' — antes _itemExcludedAC vivía como const local al
+// closure de showMergeDiffPanel(); un cierre externo (× del shell, locus-modals.js) no tenía
+// forma de invocarlo. Módulo-level para que teardownMergeDiffPanel() (más abajo) pueda abortarlo
+// sin conocer _mdiffKeyHandler, que sigue siendo local al closure — nunca se exporta.
+let _mdiffPanelAC = null;
+// onClose capturado del caller activo — Cancelar/Escape ya lo invocaban ("cierre sin confirmar,
+// revertir fase 2→1"); teardownMergeDiffPanel() lo replica para que cerrar con × tenga el mismo
+// efecto sobre el caller que cerrar con Cancelar/Escape.
+let _mdiffOnClose = null;
 
 // T-202606-006: true mientras el DIFF está abierto — consultable por otros módulos vía getter.
 // Se pone true al abrir el panel (TKT-202607-145: ahora shell.classList.add('open') sobre
@@ -268,6 +291,41 @@ let _mdiffUnresolvedRemove = null;
 // en todos los cierres del DIFF.
 export let _mdiffStepZeroActive = false;
 export function getMdiffStepZeroActive() { return _mdiffStepZeroActive; }
+
+// Fix de esta sesión (auditoría E2E modal de ingesta, hallazgo #1): expuesto para que
+// closeModal() (locus-modals.js) pueda limpiar el estado del panel DIFF al cerrar el shell
+// con × — antes solo Cancelar/Escape corrían esta limpieza, dejando _mdiffKeyHandler vivo en
+// document tras un cierre por ×. Idempotente — no-op si el panel no está abierto
+// (_mdiffStepZeroActive === false), seguro de llamar aunque el shell nunca haya tenido el
+// panel DIFF cargado (ej. columna de ingesta sola, sin batch procesado). Mismo camino de
+// limpieza que Cancelar/Escape: aborta _mdiffPanelAC (retira keydown + storage:item-excluded
+// en un solo gesto — _mdiffKeyHandler nunca se exporta, este teardown no necesita conocerlo),
+// resetea shell/overlay a --empty, invoca _mdiffOnClose (mismo criterio ya documentado en
+// Cancelar/Escape: "el DIFF se cerró sin confirmar, revertir fase 2→1") y limpia las
+// referencias _mdiff* de módulo. Cancelar y Escape llaman esta misma función en vez de
+// duplicar la limpieza tres veces — _mdiffDoApply (confirmar) NO la usa: aplicar no invoca
+// onClose, es una rama de cierre distinta.
+export function teardownMergeDiffPanel() {
+  if (!_mdiffStepZeroActive) return;
+  const shell = document.getElementById('modal-split-shell');
+  const overlay = document.getElementById('merge-diff-overlay');
+  if (shell) shell.classList.remove('open');
+  if (overlay) {
+    overlay.classList.remove('mdiff-overlay--filled');
+    overlay.classList.add('mdiff-overlay--empty');
+  }
+  if (_mdiffPanelAC) { _mdiffPanelAC.abort(); _mdiffPanelAC = null; }
+  if (typeof _mdiffOnClose === 'function') _mdiffOnClose();
+  _mdiffUpdateConfirmBtn = null;
+  _mdiffToggleSection = null;
+  _mdiffJumpTo = null;
+  _mdiffSetItemSprint = null;
+  _mdiffUnresolvedFilter = null;
+  _mdiffUnresolvedSelect = null;
+  _mdiffUnresolvedRemove = null;
+  _mdiffOnClose = null;
+  _mdiffStepZeroActive = false; // T-202606-006
+}
 
 // TKT1/TKT3 (REQ CAEL-01): helper compartido — resuelve la bifurcación de arquitectura
 // detectada al implementar (Rune, grounding pre-código): _chipDefs (más abajo en este
@@ -1673,9 +1731,17 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   overlay.classList.add('mdiff-overlay--filled');
   _mdiffStepZeroActive = true; // T-202606-006
 
+  // Fix de esta sesión: onClose capturado en la referencia de módulo — teardownMergeDiffPanel()
+  // lo necesita para replicar "cierre sin confirmar, revertir fase 2→1" cuando el cierre viene
+  // de fuera del closure (× del shell).
+  _mdiffOnClose = onClose;
+
   // T-202606-006: listener storage:item-excluded — agrega fila en Step 0 del DIFF.
   // Se registra con { once: false } y se limpia al cerrar el panel vía AbortController.
-  const _itemExcludedAC = new AbortController();
+  // Fix de esta sesión: _mdiffPanelAC (módulo) reemplaza el const local _itemExcludedAC —
+  // mismo controller ahora también cubre el listener de keydown (más abajo), un solo abort()
+  // retira ambos.
+  _mdiffPanelAC = new AbortController();
   window.addEventListener('storage:item-excluded', (e) => {
     if (!_mdiffStepZeroActive) return;
     const { code, type, reason } = e.detail || {};
@@ -1711,7 +1777,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     _row.innerHTML = `<summary class="mdiff-excluded-summary">${_shortCopy}</summary>` +
       `<div class="mdiff-excluded-detail">${reason || ''}</div>`;
     _rows.appendChild(_row);
-  }, { signal: _itemExcludedAC.signal });
+  }, { signal: _mdiffPanelAC.signal });
 
   // T-202606-173 AC-1: foco inicial en input de hora al abrir el modal
   requestAnimationFrame(() => {
@@ -1790,7 +1856,9 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     if (shell) shell.classList.remove('open');
     overlay.classList.remove('mdiff-overlay--filled');
     overlay.classList.add('mdiff-overlay--empty');
-    document.removeEventListener('keydown', _mdiffKeyHandler);
+    // Fix de esta sesión: keydown + storage:item-excluded comparten _mdiffPanelAC — un solo
+    // abort() reemplaza el removeEventListener + _itemExcludedAC.abort() separados de antes.
+    if (_mdiffPanelAC) { _mdiffPanelAC.abort(); _mdiffPanelAC = null; }
     // B-202605-050: limpiar todas las referencias _mdiff* al cerrar el panel
     _mdiffUpdateConfirmBtn = null;
     _mdiffToggleSection = null;
@@ -1799,8 +1867,8 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     _mdiffUnresolvedFilter = null;
     _mdiffUnresolvedSelect = null;
     _mdiffUnresolvedRemove = null;
+    _mdiffOnClose = null; // aplicar no invoca onClose — solo se limpia la referencia
     _mdiffStepZeroActive = false; // T-202606-006
-    _itemExcludedAC.abort(); // T-202606-006 — limpiar listener
 
     if (appliedCount > 0) {
       showToast('success', `Sesión guardada — ${appliedCount} ítem${appliedCount !== 1 ? 's' : ''} aplicado${appliedCount !== 1 ? 's' : ''}`);
@@ -1909,24 +1977,10 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   });
 
   overlay.querySelector('#mdiff-cancel-btn').addEventListener('click', () => {
-    // TKT2 (TKT-202607-145, Rune): cierra el shell compartido — mdiff-overlay--docked eliminado.
-    if (shell) shell.classList.remove('open');
-    overlay.classList.remove('mdiff-overlay--filled');
-    overlay.classList.add('mdiff-overlay--empty');
-    document.removeEventListener('keydown', _mdiffKeyHandler);
-    // TKT2 (REQ CAEL-01) Opción A: onClose — el DIFF se cerró sin confirmar, revertir fase 2→1
-    if (typeof onClose === 'function') onClose();
-    // B-202605-050: limpiar todas las referencias _mdiff* al cerrar el panel
-    _mdiffUpdateConfirmBtn = null;
-    _mdiffToggleSection = null;
-    _mdiffJumpTo = null;
-    _mdiffSetItemSprint = null;
-    _mdiffUnresolvedFilter = null;
-    _mdiffUnresolvedSelect = null;
-    _mdiffUnresolvedRemove = null;
-    _mdiffStepZeroActive = false; // T-202606-006
-    _itemExcludedAC.abort(); // T-202606-006 — limpiar listener
-    // Sin toast — el usuario canceló deliberadamente
+    // Fix de esta sesión: cleanup consolidado en teardownMergeDiffPanel() — mismo camino que
+    // usa closeModal() (locus-modals.js) al cerrar con ×. Sin toast — el usuario canceló
+    // deliberadamente.
+    teardownMergeDiffPanel();
   });
 
   // AC-7: parseo de hora de desbloqueo — feedback visual inline con interpretHora
@@ -1991,26 +2045,16 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         _mdiffDoApply(false);
       }
     } else if (e.key === 'Escape') {
-      document.removeEventListener('keydown', _mdiffKeyHandler);
-      // TKT2 (TKT-202607-145, Rune): cierra el shell compartido — mdiff-overlay--docked eliminado.
-      if (shell) shell.classList.remove('open');
-      overlay.classList.remove('mdiff-overlay--filled');
-      overlay.classList.add('mdiff-overlay--empty');
-      // TKT2 (REQ CAEL-01) Opción A: onClose — el DIFF se cerró sin confirmar, revertir fase 2→1
-      if (typeof onClose === 'function') onClose();
-      // B-202605-050: limpiar todas las referencias _mdiff* al cerrar el panel
-      _mdiffUpdateConfirmBtn = null;
-      _mdiffToggleSection = null;
-      _mdiffJumpTo = null;
-      _mdiffSetItemSprint = null;
-      _mdiffUnresolvedFilter = null;
-      _mdiffUnresolvedSelect = null;
-      _mdiffUnresolvedRemove = null;
-      _mdiffStepZeroActive = false; // T-202606-006
-      _itemExcludedAC.abort(); // T-202606-006 — limpiar listener
+      // Fix de esta sesión: cleanup consolidado en teardownMergeDiffPanel() — el propio
+      // teardown aborta _mdiffPanelAC, que es lo que retira este mismo listener de keydown
+      // (seguro invocarlo desde dentro del handler que está corriendo).
+      teardownMergeDiffPanel();
     }
   }
-  document.addEventListener('keydown', _mdiffKeyHandler);
+  // Fix de esta sesión: registrado con { signal } sobre _mdiffPanelAC — el mismo controller
+  // que ya cubre 'storage:item-excluded'. teardownMergeDiffPanel() lo aborta desde fuera del
+  // closure sin necesitar una referencia a _mdiffKeyHandler.
+  document.addEventListener('keydown', _mdiffKeyHandler, { signal: _mdiffPanelAC.signal });
 }
 
 // CAEL-0720-01 TKT3: shell legacy de confirmación de status retirado — reemplazado
