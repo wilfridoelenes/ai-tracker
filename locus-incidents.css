@@ -1,3 +1,13 @@
+/* [PP] mod:5 · autor:Nova · 2026-07-27 16:20 UTC-6 */
+/* Limpieza (Patch, resolución directa — __BR-Core NO DEJAR DEUDA EN SILENCIO, Excepción de
+   resolución directa: dueño Nova presente, sin cambio de comportamiento, sin bifurcación de
+   founder): el bloque .qinc-empty-success (mod:3, más abajo) citaba un placeholder de código de
+   REQ/TKT sin resolver — founder confirmó que el código real no existe y no se recuperará (ver
+   Hallazgo fuera de scope, sesión de auditoría de referencias sin resolver, 2026-07-27).
+   Placeholder retirado por instrucción directa del founder — __BR-Execution §9 prohíbe ese
+   marcador persistido en archivo real; sin código que confirmar, la única salida es eliminar la
+   referencia, no dejarla pendiente indefinidamente. El resto del comentario (design_intent,
+   detalle técnico, tokens reusados) se conserva sin cambio — solo pierde la cita de código. */
 /* [PP] mod:4 · autor:Nova · 2026-07-27 14:30 UTC-6 */
 /* TKT1 (TKT-202607-155, parent REQ-202607-050, ref_id CAEL-0727-02): .qinc-section-caption —
    caption estático bajo el header "Activos" que aclara que las 3 columnas (Alta/Media/Baja)
@@ -14,7 +24,8 @@
 }
 
 /* [PP] mod:3 · autor:Nova · 2026-07-27 UTC-6 */
-/* TKT1 (REQ-[pendiente-ID]/TKT-[pendiente-ID], design_intent: empty_state_qinc_sin_incidentes):
+/* TKT1 (código histórico no recuperable — founder confirmó no perseguirlo, 2026-07-27;
+   design_intent: empty_state_qinc_sin_incidentes):
    modificador .qinc-empty-success — reemplaza el ícono emoji genérico del empty-state de
    "sin incidentes activos" (renderQIncPanel, TKT2 mismo REQ) por un círculo de estado saludable.
    Reutiliza --bg-success/--text-success ya declarados en locus-base.css §Tokens ITIL derivados
@@ -397,6 +408,15 @@
   gap: 6px;
 }
 
+/* [PP] mod:6 · autor:Nova · 2026-07-27 17:05 UTC-6 */
+/* TKT1 (TKT-202607-158, parent REQ-202607-052): estados collapsed/expanded de .qinc-section —
+   header clickeable con chevron que rota, body que se oculta por clase (nunca style= inline).
+   Mismo patrón visual ya usado en Q-DISC (_initQDiscStatusToggles, locus-backlog-qdisc.js) y
+   Q-Backlog (.bl-done-*, locus-backlog-zone-engine.js) — sin componente nuevo, solo aplicado a
+   .qinc-section. Supuesto declarado: _Locus-css-ref no estuvo adjunto en esta sesión — el token
+   de foco (:focus-visible) reutiliza var(--border), ya presente en este mismo archivo
+   (.qinc-badge, L430), en vez de inventar un token nuevo sin poder confirmarlo contra el doc de
+   sistema de diseño. Señalar si difiere del token real usado en el resto del proyecto. */
 .qinc-section-header {
   display: flex;
   align-items: center;
@@ -406,6 +426,41 @@
   color: var(--text2);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  margin: -4px -6px;
+  transition: background 120ms ease;
+}
+
+.qinc-section-header:hover {
+  background: var(--surface3);
+}
+
+.qinc-section-header:focus-visible {
+  outline: 2px solid var(--border);
+  outline-offset: 2px;
+}
+
+.qinc-section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qinc-section-chevron {
+  font-size: var(--text-xs);
+  color: var(--text3);
+  transition: transform 150ms ease;
+  transform: rotate(0deg);
+}
+
+.qinc-section-header--collapsed .qinc-section-chevron {
+  transform: rotate(-90deg);
+}
+
+.qinc-section-body--collapsed {
+  display: none;
 }
 
 /* ── Badge genérico — .qinc-badge (distinto de .qinc-type-badge: no es por tipo ITIL) ── */

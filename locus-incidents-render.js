@@ -1,3 +1,33 @@
+// [PP] mod:17 · autor:Rune · 2026-07-27 17:40 UTC-6
+// TKT1 (REQ-202607-051, TKT-202607-157, origen DISC-202607-048): "Terminados" no declaraba
+// criterio de orden — a diferencia de "Activos" (_qincColumnSort, SLA deadline ascendente por
+// columna), _terminalItems se mapeaba directo desde el .filter() sin .sort() propio. Nueva
+// función _qincTerminalSort(a,b) — descendente por statusChangedAt (más recientemente cerrado
+// primero), declarada inmediatamente después de _qincColumnSort, mismo estilo. Aplicada con un
+// único .sort() sobre _terminalItems en renderQIncPanel() — no toca _activeItems,
+// _qincColumnSort, _buildQIncColumnsHtml() ni ninguna otra rama de "Activos".
+// item.statusChangedAt se lee directo (sin accessor en locus-inc-fields.js) — mismo patrón ya
+// vigente para item.slaDeadline en este módulo (_qincItemClasses, línea ~443). Columna agregada
+// a tracker_incidents en TKT-202607-122 (bigint, epoch ms) — filas pre-ALTER o transiciones sin
+// escritura hidratan statusChangedAt en null/undefined; fallback 0 las ordena al final de la
+// lista sin excluirlas del render, mismo criterio "ningún ítem se pierde" ya usado en
+// _slaColumnOf(). No se unificó con _qincColumnSort en una utilidad genérica parametrizable —
+// _qincColumnSort ya establece el patrón de función dedicada por necesidad de orden; con un solo
+// consumidor adicional, una segunda función del mismo tipo es consistente con ese patrón y no
+// introduce abstracción sin caso de uso declarado (decisión registrada en el CHECKPOINT de Cael,
+// REQ-202607-051).
+
+// [PP] mod:16 · autor:Rune · 2026-07-27 16:20 UTC-6
+// Limpieza (Patch, resolución directa — __BR-Core NO DEJAR DEUDA EN SILENCIO, Excepción de
+// resolución directa: dueño Rune presente, sin cambio de comportamiento, sin bifurcación de
+// founder): 2 comentarios (mod:13 y el listener shell:render-qinc, más abajo) citaban un
+// placeholder de código de REQ sin resolver — founder confirmó que ninguno de los dos códigos
+// reales existe ni se recuperará (ver Hallazgo fuera de scope, sesión de auditoría de
+// referencias sin resolver, 2026-07-27). Placeholders retirados por instrucción directa del
+// founder — __BR-Execution §9 prohíbe ese marcador persistido en archivo real; sin código que
+// confirmar, la única salida es eliminar la referencia. Resto de cada comentario (contexto
+// técnico, alcance, depends_on) se conserva sin cambio — solo pierde la cita de código.
+
 // [PP] mod:15 · autor:Rune · 2026-07-27 15:10 UTC-6
 // TKT2 (TKT-202607-156, parent REQ-202607-050, depends_on TKT-202607-155): renderQIncPanel()
 // inserta .qinc-section-caption ("Agrupado por prioridad SLA de resolución") entre el header
@@ -22,7 +52,8 @@
 // (reutiliza código ya existente), sla_priority: low — Fast Track (__BR-Core §6).
 
 // [PP] mod:13 · autor:Rune · 2026-07-27 UTC-6
-// TKT2 (REQ-[pendiente-ID], parent REQ, depends_on TKT1 mismo REQ — .qinc-empty-success):
+// TKT2 (código histórico no recuperable — founder confirmó no perseguirlo, 2026-07-27;
+// depends_on TKT1 mismo REQ — .qinc-empty-success):
 // reemplaza el markup del empty-state "sin incidentes activos" — antes emoji 🚨 genérico, ahora
 // ícono circular de estado saludable (clase .qinc-empty-success, Nova/TKT1 mismo REQ) + copy
 // alineado a mockup del founder ("Sin incidentes activos" / "Q-INC está en cero — no hay INC,
@@ -338,6 +369,18 @@ function _qincColumnSort(a, b) {
   return da - db;
 }
 
+// TKT1 (REQ-202607-051, TKT-202607-157, origen DISC-202607-048): orden de "Terminados" —
+// descendente por statusChangedAt, el ítem más recientemente cerrado primero. Ítems sin
+// statusChangedAt numérico (filas pre-ALTER de tracker_incidents, columna agregada en
+// TKT-202607-122, o transiciones sin escritura del campo) caen al final via fallback 0 — mismo
+// criterio "ningún ítem se pierde" que ya usa _slaColumnOf(). No toca _qincColumnSort ni el
+// orden de "Activos".
+function _qincTerminalSort(a, b) {
+  const ta = typeof a.statusChangedAt === 'number' ? a.statusChangedAt : 0;
+  const tb = typeof b.statusChangedAt === 'number' ? b.statusChangedAt : 0;
+  return tb - ta;
+}
+
 // Construye el markup de las 3 columnas de prioridad para la sección "Activos". Cada columna
 // declara data-qi-column="high|medium|low" para que el CSS de Nova (TKT2, mismo REQ) la
 // seleccione. Header con conteo ("Alta · 2") y empty-state propio por columna cuando no tiene
@@ -445,7 +488,9 @@ export function renderQIncPanel() {
     ? `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">Sin resultados</div><div class="empty-state-hint">Ningún ítem coincide con el filtro activo.</div></div>`
     : (() => {
         const _activeItems   = filteredQInc.filter(i => !_isQIncTerminal(i));
-        const _terminalItems = filteredQInc.filter(i => _isQIncTerminal(i));
+        // TKT1 (REQ-202607-051, TKT-202607-157): .sort(_qincTerminalSort) agregado — antes
+        // _terminalItems se mapeaba en el orden de filteredQInc sin criterio propio (DISC-202607-048).
+        const _terminalItems = filteredQInc.filter(i => _isQIncTerminal(i)).sort(_qincTerminalSort);
         let h = '';
         // Fix INC (ref_id CAEL-0727-01, mod:14): "Activos" ahora se renderiza siempre — mismo
         // criterio de simetría que "Terminados" ya aplicaba desde mod:8. Antes el gate
@@ -576,7 +621,8 @@ function _attachQIncDelegation(container) {
   });
 }
 
-// TKT (REQ-[pendiente-ID]): listener shell:render-qinc — despachado por switchSubTab en locus-ui-shell.js
+// TKT (código histórico no recuperable — founder confirmó no perseguirlo, 2026-07-27): listener
+// shell:render-qinc — despachado por switchSubTab en locus-ui-shell.js
 // Proyecto cambiado con sub-tab Q-INC activo → re-render automático vía este evento.
 window.addEventListener('shell:render-qinc', () => { renderQIncPanel(); });
 
