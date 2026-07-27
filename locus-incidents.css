@@ -1,3 +1,36 @@
+/* [PP] mod:3 · autor:Nova · 2026-07-27 UTC-6 */
+/* TKT1 (REQ-[pendiente-ID]/TKT-[pendiente-ID], design_intent: empty_state_qinc_sin_incidentes):
+   modificador .qinc-empty-success — reemplaza el ícono emoji genérico del empty-state de
+   "sin incidentes activos" (renderQIncPanel, TKT2 mismo REQ) por un círculo de estado saludable.
+   Reutiliza --bg-success/--text-success ya declarados en locus-base.css §Tokens ITIL derivados
+   (dark: L184 · light: L335) — sin token nuevo. Extiende .empty-state/.empty-state-icon/
+   .empty-state-title/.empty-state-hint (patrón compartido del ecosistema, base class no vive en
+   este archivo) — solo agrega el modificador de ícono circular + ancho máximo, no redefine el
+   patrón base. Contraste verificado: ambos temas ya auditados como parte de los tokens ITIL
+   derivados existentes — sin ajuste adicional necesario para 4.5:1. */
+.qinc-empty-success {
+  max-width: 420px;
+  margin-inline: auto;
+}
+
+.qinc-empty-success .empty-state-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: var(--bg-success);
+  color: var(--text-success);
+}
+
+.qinc-empty-success .empty-state-icon svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+}
+
 /* [PP] mod:2 · autor:Nova · 2026-07-25 UTC-6 */
 /* Corrección de atribución (Patch, sin cambio de comportamiento): los comentarios de
    .qinc-item--sla-vencido y .qinc-item--sla-riesgo citaban "TKT2 (REQ CAEL-0724-14,

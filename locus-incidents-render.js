@@ -1,3 +1,12 @@
+// [PP] mod:13 · autor:Rune · 2026-07-27 UTC-6
+// TKT2 (REQ-[pendiente-ID], parent REQ, depends_on TKT1 mismo REQ — .qinc-empty-success):
+// reemplaza el markup del empty-state "sin incidentes activos" — antes emoji 🚨 genérico, ahora
+// ícono circular de estado saludable (clase .qinc-empty-success, Nova/TKT1 mismo REQ) + copy
+// alineado a mockup del founder ("Sin incidentes activos" / "Q-INC está en cero — no hay INC,
+// PRB ni CHG esperando resolución."). Condición de disparo sin cambio — sigue siendo
+// `!_displayable.length` (línea ~375, sin modificar). No toca el empty-state de "sin proyecto
+// seleccionado" (línea ~350-358, ícono 📁) ni renderQIncStats() — ambos fuera de scope del TKT.
+
 // [PP] mod:12 · autor:Rune · 2026-07-27 UTC-6
 // Fast Track INC-202607-063 (triggered_by: auditoría de Finn — render Q-INC): umbral obsoleto
 // en renderQIncStats() — `_qiTypes.size < 4` sobrevivió al retiro de KE (mod:10, infra_version
@@ -374,9 +383,10 @@ export function renderQIncPanel() {
   // allQInc está vacío, _displayable también lo está.
   if (!_displayable.length) {
     body.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">🚨</div>
-        <div class="empty-state-title">No hay incidentes activos en Q-INC</div>
+      <div class="empty-state qinc-empty-success">
+        <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3" stroke-width="2"/></svg></div>
+        <div class="empty-state-title">Sin incidentes activos</div>
+        <div class="empty-state-hint">Q-INC está en cero — no hay INC, PRB ni CHG esperando resolución.</div>
       </div>`;
     return;
   }
