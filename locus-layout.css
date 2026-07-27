@@ -1,4 +1,13 @@
-/* [PP] mod:24 · autor:Nova · 2026-07-27 UTC-6 */
+/* [PP] mod:25 · autor:Nova · 2026-07-27 UTC-6 */
+/* mod:25 — instrucción directa del founder, aplicada inline (sin REQ/TKT/Fase 1-4 de Cael ni
+   Fase 5 de Finn — founder explícito, ver jerarquía de autoridad §3 BR-Core): .breadcrumb-seg--proj
+   escala de --text-md/500 (14px, coincide con Nivel 3 A-08) a --text-lg/600 (16px, Nivel 2 A-08 —
+   Modal-section title) para tratamiento de header-title. Se agrega ::before con glifo de carpeta
+   (📁) — mismo patrón que el chevron ::after ya existente (content vía Unicode, sin SVG nuevo, sin
+   tocar HTML/JS). color sube de --text2 a --text (texto primario). max-width 140px→160px +
+   padding-left:18px para dar espacio al ícono. Estado :disabled hereda el ícono (sin proyecto
+   activo sigue siendo identificable como "carpeta de proyecto"); solo pierde chevron y
+   padding-right, sin cambio ahí. Sin ítem de backlog formal abierto — ver CHECKPOINT de sesión. */
 /* mod:24 — TKT-202607-149 (REQ-202607-048): .breadcrumb-seg--proj — font-size hardcoded
    (13px) reemplazado por var(--text-md)/14px para prominencia (AC-1); transición de
    .breadcrumb-seg (base compartida) migrada a var(--trans-color) — mismo valor efectivo
@@ -459,15 +468,26 @@ button {
    trigger primario destacado (se reubica en .header-zone--utils junto al separador, TKT2).
    Affordance de interactividad se conserva vía chevron + hover accent-dim — ver abajo. */
 .breadcrumb-seg--proj {
-  color: var(--text2);
-  font-weight: 500;
-  font-size: var(--text-md); /* TKT-202607-149 — sube desde 13px hardcoded, prominencia AC-1 */
-  max-width: 140px;
+  color: var(--text);
+  font-weight: 600;
+  font-size: var(--text-lg); /* mod:25 — instrucción directa del founder, aplicada inline: sube de --text-md (14px/500) a --text-lg (16px/600) — Nivel 2 A-08 (Modal-section title), tratamiento de header-title */
+  max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
   position: relative;
   background: transparent;
+  padding-left: 18px;
   padding-right: 16px;
+}
+
+.breadcrumb-seg--proj::before {
+  content: '📁';
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--text-sm);
+  line-height: 1;
 }
 
 .breadcrumb-seg--proj::after {
