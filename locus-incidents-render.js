@@ -1,3 +1,27 @@
+// [PP] mod:18 · autor:Rune · 2026-07-27 UTC-6
+// TKT2 (TKT-202607-159, parent REQ-202607-052, depends_on TKT-202607-158): toggle de colapso
+// para .qinc-section-header (Activos/Terminados) — click y teclado (Enter/Espacio). AC1: click
+// alterna .qinc-section-header--collapsed en el header, .qinc-section-body--collapsed en su
+// body (resuelto vía aria-controls), y aria-expanded "true"/"false". AC2/AC3: mismo efecto por
+// Enter y Espacio con el header enfocado — Espacio con preventDefault (sin scroll de página).
+// AC4: estado default por render — Activos nace aria-expanded="true" sin clase collapsed,
+// Terminados nace aria-expanded="false" con la clase — sin persistencia entre renders/reloads,
+// mismo criterio ya declarado para .sps-status-group. AC5: el header de Activos no depende del
+// gate de _activeItems.length (retirado en mod:14) — sigue togglable con 0 ítems activos, las 3
+// columnas vacías se renderizan igual dentro del body colapsable.
+// Función nueva _toggleQIncSection(header) — único punto de mutación de estado, compartido
+// entre el listener de click y el de keydown, evita duplicar la lógica de toggle. Markup:
+// role="button" tabindex="0" + .qinc-section-header-left (wrapper de chevron+título) +
+// .qinc-section-chevron (▸, mismo glifo de disclosure del sistema — CSS ya resuelve la rotación)
+// — mismo patrón role/tabindex que .qinc-item-header (E-13, _Locus-ux-ref), pero elemento
+// distinto: header de sección vs. header de card individual, sin conflicto de target (jerarquía
+// plana, un header de sección nunca es ancestro de un trigger de card). CSS consumido sin
+// cambio — .qinc-section-header/-chevron/-body ya entregados por Nova en TKT-202607-158
+// (locus-incidents.css mod:6, token :focus-visible corregido a var(--accent) en mod:7).
+// Impacto lateral: ninguno fuera de este módulo — _isQIncTerminal(), _qincColumnSort(),
+// _buildQIncColumnsHtml() y el resto del pipeline de datos no se tocan, solo el markup/eventos
+// de los dos headers de sección ya existentes.
+
 // [PP] mod:17 · autor:Rune · 2026-07-27 17:40 UTC-6
 // TKT1 (REQ-202607-051, TKT-202607-157, origen DISC-202607-048): "Terminados" no declaraba
 // criterio de orden — a diferencia de "Activos" (_qincColumnSort, SLA deadline ascendente por
@@ -497,17 +521,28 @@ export function renderQIncPanel() {
         // `if (_activeItems.length)` ocultaba header + columnas completos cuando no había
         // ítems activos; ahora _buildQIncColumnsHtml([]) resuelve el caso vacío mostrando las
         // 3 columnas con su empty-state propio (.qinc-column-empty, sin markup nuevo).
-        h += '<div class="qinc-section"><div class="qinc-section-header">Activos</div>';
+        // TKT2 (TKT-202607-159, parent REQ-202607-052, depends_on TKT-202607-158): headers de
+        // sección ahora son triggers de toggle — role="button" tabindex="0" (mismo patrón que
+        // .qinc-item-header, E-13 de _Locus-ux-ref), aria-expanded/aria-controls para lectores
+        // de pantalla, chevron .qinc-section-chevron (▸, mismo glifo que el resto del sistema
+        // usa para disclosure — CSS ya resuelve la rotación vía .qinc-section-header--collapsed).
+        // Estado default por render (AC4): "Activos" nace expandido, "Terminados" nace colapsado
+        // — sin persistencia entre renders ni recargas, mismo criterio ya declarado para
+        // .sps-status-group (_Locus-css-ref, "estado en memoria, resetea a expandido en reload").
+        h += '<div class="qinc-section"><div class="qinc-section-header" role="button" tabindex="0" aria-expanded="true" aria-controls="qinc-active-body" id="qinc-active-header"><div class="qinc-section-header-left"><span class="qinc-section-chevron" aria-hidden="true">▸</span><span>Activos</span></div></div>';
         // TKT2 (TKT-202607-156, parent REQ-202607-050, depends_on TKT-202607-155): caption fijo,
         // sin condicionar al conteo de _activeItems — AC de coherencia del REQ exige que se
         // renderice igual con las 3 columnas vacías. No se agrega a "Terminados" (más abajo).
+        h += '<div id="qinc-active-body">';
         h += '<div class="qinc-section-caption">Agrupado por prioridad SLA de resolución</div>';
         h += _buildQIncColumnsHtml(_activeItems);
+        h += '</div>';
         h += '</div>';
         // filteredQInc.length>0 está garantizado en este punto (branch de "Sin resultados" ya
         // se resolvió arriba), así que _activeItems y _terminalItems nunca están vacíos los dos
         // a la vez — pero cada uno individualmente sí, y ambas secciones ya lo cubren.
-        h += '<div class="qinc-section"><div class="qinc-section-header">Terminados</div>';
+        h += '<div class="qinc-section"><div class="qinc-section-header qinc-section-header--collapsed" role="button" tabindex="0" aria-expanded="false" aria-controls="qinc-terminal-body" id="qinc-terminal-header"><div class="qinc-section-header-left"><span class="qinc-section-chevron" aria-hidden="true">▸</span><span>Terminados</span></div></div>';
+        h += '<div id="qinc-terminal-body" class="qinc-section-body--collapsed">';
         h += _terminalItems.length
           ? `<div class="items-grid">${_terminalItems.map(item => _buildQIncItemHtml(item)).join('')}</div>`
           : `<div class="empty-state">
@@ -515,6 +550,7 @@ export function renderQIncPanel() {
               <div class="empty-state-title">Sin ítems terminados aún</div>
               <div class="empty-state-hint">Los INC/PRB en closed y CHG en done aparecerán aquí.</div>
             </div>`;
+        h += '</div>';
         h += '</div>';
         return h;
       })();
@@ -535,12 +571,39 @@ export function renderQIncPanel() {
 // TKT3 (REQ CAEL-0720-05): maneja únicamente copy-code de cards ITIL y expand de
 // comportamientoActual — filtros de stats-bar y export salieron de aquí (ver renderQIncStats()
 // y listener shell:export-qinc al final del archivo).
+// TKT2 (TKT-202607-159, parent REQ-202607-052): toggle compartido entre click y teclado —
+// alterna .qinc-section-header--collapsed en el header, .qinc-section-body--collapsed en el
+// nodo referenciado por aria-controls, y espeja el estado en aria-expanded. Único punto de
+// mutación de estado de colapso — evita duplicar la lógica entre los dos event listeners.
+function _toggleQIncSection(header) {
+  const collapsed = header.classList.toggle('qinc-section-header--collapsed');
+  header.setAttribute('aria-expanded', String(!collapsed));
+  const bodyId = header.getAttribute('aria-controls');
+  const bodyEl = bodyId ? document.getElementById(bodyId) : null;
+  if (bodyEl) bodyEl.classList.toggle('qinc-section-body--collapsed', collapsed);
+}
+
 // AC: exactamente un listener activo — flag _qiDelegationAttached previene acumulación en re-renders.
 function _attachQIncDelegation(container) {
   if (!container || container._qiDelegationAttached) return;
   container._qiDelegationAttached = true;
 
   container.addEventListener('click', function _qiClick(e) {
+    // --- qinc-section-header: toggle de colapso de sección (Activos/Terminados) ---
+    // TKT2 (TKT-202607-159, parent REQ-202607-052, depends_on TKT-202607-158): AC1 — click
+    // alterna .qinc-section-header--collapsed en el header, .qinc-section-body--collapsed en
+    // aria-controls, y aria-expanded entre "true"/"false". Evaluado antes que qi-open-panel:
+    // .qinc-section-header no anida ningún trigger de card (no comparte ancestro con
+    // .qinc-item-header, a diferencia de copy-code/qi-toggle-comportamiento) — sin riesgo de
+    // que closest() del header de sección matchee algo de una card individual, pero se coloca
+    // primero por el mismo criterio de "controles más específicos primero" ya usado en el resto
+    // del delegador.
+    const sectionHeader = e.target.closest('.qinc-section-header');
+    if (sectionHeader) {
+      _toggleQIncSection(sectionHeader);
+      return;
+    }
+
     // --- copy-code: patrón idéntico al Backlog principal ---
     // Orden crítico: debe evaluarse ANTES que qi-open-panel — el botón copy-code vive anidado
     // dentro de .qinc-item-header, que ahora también lleva data-qi-action="qi-open-panel"
@@ -614,6 +677,18 @@ function _attachQIncDelegation(container) {
   // viene del navegador.
   container.addEventListener('keydown', function _qiKeydown(e) {
     if (e.key !== 'Enter' && e.key !== ' ') return;
+    // TKT2 (TKT-202607-159, parent REQ-202607-052): AC2/AC3 — .qinc-section-header es el mismo
+    // patrón role="button" tabindex="0" que .qinc-item-header, mismo criterio de activación por
+    // teclado. Evaluado primero: un header de sección nunca es ancestro de un trigger de card
+    // (jerarquía plana, sin anidamiento entre ambos), así que el orden no genera ambigüedad con
+    // la rama de abajo. preventDefault() en ambas teclas — Espacio nunca debe hacer scroll de
+    // página cuando el foco está en un trigger de toggle (AC3 explícito).
+    const sectionHeader = e.target.closest('.qinc-section-header');
+    if (sectionHeader) {
+      e.preventDefault();
+      _toggleQIncSection(sectionHeader);
+      return;
+    }
     const trigger = e.target.closest('[data-qi-action="qi-open-panel"]');
     if (!trigger) return;
     e.preventDefault();
