@@ -1,4 +1,4 @@
-// [PP] mod:79 · autor:Rune · 2026-07-26 20:13 UTC-6
+// [PP] mod:80 · autor:Rune · 2026-07-28 00:12 UTC-6
 // TKT3 (REQ-202607-046, depends_on TKT-202607-145): _doSaveSession() — retirado el bloque que
 // coordinaba #merge-diff-overlay contra #ingest-modal-overlay antes de invocar
 // showMergeDiffPanel. Esa coordinación era necesaria bajo la arquitectura de dos overlays
@@ -660,6 +660,15 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     bloqueantes: parsed.bloqueantes || '',
     decision:    parsed.decision    || '',
     proximoPaso: parsed.nextStep    || '',
+    // TKT-202607-172 (REQ-202607-058 · AC4-6, gap cerrado — hallazgo de Finn en Momento 1):
+    //   nextStep/nextRole no existían en este objeto — _singleMeta.nextStep/.nextRole en
+    //   locus-backlog-merge.js (const _metaSiguiente) siempre resolvían a undefined para el
+    //   flujo single, cayendo directo a proximoPaso pese a que _extractCkptMeta ya calculaba
+    //   ambos campos correctamente desde TKT-202607-172. parsed.nextStepMeta/.nextRoleMeta
+    //   (locus-session-parse.js, mismo TKT) son la fuente — no colisionan con parsed.nextStep
+    //   (arriba, alias legacy de proximoPaso, sin cambio).
+    nextStep:    parsed.nextStepMeta || '',
+    nextRole:    parsed.nextRoleMeta || '',
     // TKT-202606-011 AC1: pendiente de aval Finn — el DIFF renderiza el badge y deshabilita
     // el botón de confirmar (ver locus-backlog-merge.js) en vez de bloquear antes de llegar aquí.
     draftPending: parsed.draft === true,

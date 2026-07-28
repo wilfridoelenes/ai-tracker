@@ -1,4 +1,4 @@
-// [PP] mod:160 · autor:Rune · 2026-07-27 23:54 UTC-6
+// [PP] mod:161 · autor:Rune · 2026-07-28 00:12 UTC-6
 // TKT-202607-172 (REQ-202607-058, kill_criteria aprobado por el founder — módulo crítico):
 // _extractCkptMeta() gana 2 campos — nextStep y nextRole. nextStep lee
 // pendientes_y_siguiente_paso.next_step (campo vigente, __BR-Ecosystem §8 infra_version 62) vía
@@ -1188,6 +1188,17 @@ export function parseCheckpoint(text) {
         rawCounts: { DISC: 0, TKT: 0, REQ: 0, INC: 0 }
       };
     }
+    // INC-202607-069 (triggered_by: TKT-202607-172 · causa raíz corregida, no solo el síntoma):
+    //   proximoPaso leía _parsed.next_step a nivel raíz — ubicación eliminada del schema desde
+    //   infra_version 62 (__BR-Ecosystem §8: "next_step ahora vive exclusivamente dentro" de
+    //   pendientes_y_siguiente_paso). Ese root-level read resolvía siempre a '' para todo
+    //   CHECKPOINT del schema vigente — path muerto desde que infra_version 62 se activó, sin
+    //   corrección hasta esta auditoría. Fix de raíz (BR-Execution §2 — sin retrocompatibilidad
+    //   con ubicaciones de schema anteriores): un único cálculo, reusado por proximoPaso y
+    //   nextStepRaw — elimina la duplicación en vez de mantener dos lecturas del mismo dato.
+    const _resolvedNextStep = (_parsed.pendientes_y_siguiente_paso && typeof _parsed.pendientes_y_siguiente_paso === 'object' && !Array.isArray(_parsed.pendientes_y_siguiente_paso))
+      ? (_parsed.pendientes_y_siguiente_paso.next_step || '')
+      : '';
     return {
       titulo:       _parsed.title        || '',
       proyecto:     _parsed.project      || '',
@@ -1200,18 +1211,14 @@ export function parseCheckpoint(text) {
       incItems:     _typedLines('INC'),
       estado:       '',
       decision:     _parsed.decision     || '',
-      proximoPaso:  _parsed.next_step    || '',
+      proximoPaso:  _resolvedNextStep,
       // TKT-202607-172 (REQ-202607-058 · AC2/AC3, kill_criteria aprobado — módulo crítico):
-      //   nextStepRaw/nextRoleRaw — distintos de proximoPaso arriba, que lee _parsed.next_step
-      //   a nivel raíz (ubicación pre-infra_version 62, conservada sin cambio por no_incluye del
-      //   TKT). nextStepRaw lee el campo vigente (__BR-Ecosystem §8, infra_version 62):
-      //   pendientes_y_siguiente_paso.next_step — objeto anidado, nunca string ni array.
-      //   nextRoleRaw lee next_role de raíz del CHECKPOINT (campo ya existente en el schema,
-      //   nunca antes extraído hacia el objeto ckpt). Ambos '' si ausentes — nunca undefined,
-      //   mismo criterio que el resto de este objeto (AC2 de _extractCkptMeta, línea ~1257).
-      nextStepRaw:  (_parsed.pendientes_y_siguiente_paso && typeof _parsed.pendientes_y_siguiente_paso === 'object' && !Array.isArray(_parsed.pendientes_y_siguiente_paso))
-                      ? (_parsed.pendientes_y_siguiente_paso.next_step || '')
-                      : '',
+      //   nextStepRaw/nextRoleRaw expuestos como campos propios además de proximoPaso — mismo
+      //   valor que proximoPaso para nextStepRaw (ver _resolvedNextStep arriba, fix de
+      //   INC-202607-069), distinto para nextRoleRaw (next_role de raíz del CHECKPOINT, campo
+      //   ya existente en el schema, nunca antes extraído hacia el objeto ckpt). Ambos '' si
+      //   ausentes — nunca undefined, mismo criterio que el resto de este objeto.
+      nextStepRaw:  _resolvedNextStep,
       nextRoleRaw:  _parsed.next_role     || '',
       contexto:     _parsed.context      || '',
       bloqueantes:  _parsed.blockers     || '',
@@ -2029,6 +2036,16 @@ export function parsePaste(id) {
   //   construyéndose inline aquí sin cambio, retiro completo pendiente de TKT4.
   const _ckptMetaShared = _extractCkptMeta(ckpt);
   ai._parsed = { title, summary, files, tgItems, patchItems: _pendingPatches, isCheckpoint, nextStep, ckptProyecto: ckpt ? (ckpt.proyecto || '') : '', inlineFixes: _inlineFixes,
+    // TKT-202607-172 (REQ-202607-058 · gap AC4-6 cerrado en esta sesión, hallazgo de Finn):
+    //   _ckptMetaShared.nextStep/.nextRole se calculaban en esta misma función pero nunca se
+    //   propagaban a ai._parsed — quedaban muertos. nextStepMeta/nextRoleMeta son el único canal
+    //   por el que _doSaveSession (locus-session-save.js) puede construir ckptMeta.nextStep/
+    //   .nextRole para el flujo single de showMergeDiffPanel (locus-backlog-merge.js), completando
+    //   la precedencia nextStep > nextRole > proximoPaso también fuera del flujo batch. No
+    //   reemplaza el campo `nextStep` existente arriba — ese sigue siendo ckpt.proximoPaso, fuente
+    //   del panel de validación de ingesta (no_incluye del TKT, sin cambio).
+    nextStepMeta:     _ckptMetaShared.nextStep,
+    nextRoleMeta:     _ckptMetaShared.nextRole,
     // T-202606-016: campos informativos adicionales
     duration:         ckpt ? (ckpt.duration         || '') : '',
     docsVerified:     ckpt ? (ckpt.docsVerified      || '') : '',
