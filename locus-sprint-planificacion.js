@@ -1,4 +1,12 @@
-// [PP] mod:41 · autor:Rune · 2026-07-26 UTC-6
+// [PP] mod:43 · autor:Rune · 2026-07-27 UTC-6
+// TKT-202607-167 (REQ-202607-056), reapertura — cierre completo. AC3 aplicado: rightColContent
+// reusa .spt-content-empty (clase genérica, locus-sprint.css L3662 — no ligada a IDs, ya
+// consumida en 3 instancias antes de esta) con ícono real ti-calendar-off (Tabler, confirmado
+// contra index.html — el supuesto emoji 🗓️ de la entrega anterior era incorrecto, nunca se
+// había verificado). Retracto mi propia devolución previa: NO era un gap de arquitectura —
+// esta parte de la vista se regenera completa vía innerHTML en cada render de
+// _renderPlanningView() junto con headers/columnas, distinto del shell persistente
+// #spp-content-empty (separado por performance de drag&drop, no por regla general de §5).
 // TKT-202607-127 (REQ-202607-039): puebla el Stats Shell (#spp-stats-block, entregado por
 // Nova en index.html mod:161) y alterna el empty-state (#spp-content-empty) desde
 // _renderPlanningView() vía nuevo helper _updatePlanStatsShell(unassigned, openSprints,
@@ -379,7 +387,11 @@ export function _renderPlanningView(listEl, closeCallback) {
   // Construir columna derecha — T-202605-028: N cards, uno por sprint active
   const rightColContent = openSprints.length
     ? openSprints.map(_sprintDestCard).join('')
-    : `<div class="bl-plan-empty bl-plan-dest-empty">No hay sprints abiertos</div>`;
+    : `<div class="spt-content-empty bl-plan-dest-empty">
+        <i class="ti ti-calendar-off spt-content-empty-icon" aria-hidden="true"></i>
+        <div class="spt-content-empty-title">No hay sprints abiertos</div>
+        <div class="spt-content-empty-hint">La apertura de sprint se propone desde Cael — no hay creación manual</div>
+      </div>`;
 
   // TKT-202607-127 (REQ-202607-039): Stats Shell + empty-state viven en index.html (mod:161,
   // Nova), fuera de listEl — #spp-stats-block/#spp-content-empty son hermanos estáticos de
@@ -430,8 +442,6 @@ export function _renderPlanningView(listEl, closeCallback) {
           </div>
         </div>
       </div>
-
-      ${!openSprints.length ? '<div class="bl-plan-no-sprint">No hay sprints abiertos. Crea un sprint para empezar a planificar.</div>' : ''}
     </div>`;
 }
 
