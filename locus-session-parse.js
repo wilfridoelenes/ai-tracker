@@ -1,4 +1,8 @@
-// [PP] mod:157 · autor:Rune · 2026-07-27 UTC-6
+// [PP] mod:159 · autor:Rune · 2026-07-27 UTC-6
+// Corrección de header (esta sesión): el archivo ya contenía el wiring de TKT-202607-169
+// (doc_updates/inline_fix/finn_release en _onApplyBatch, ver más abajo) pero la línea de
+// header nunca se incrementó de mod:157 a mod:158 en la entrega anterior — omisión de Rune,
+// corregida aquí junto con el incremento a mod:159 por TKT-202607-170 (esta entrega).
 // TKT1 (REQ CAEL-0727-01, triggered_by INC-202607-068, Opción B — resolución de causa raíz):
 // _extractBareJsonBlocks() trackeaba profundidad de llaves sobre TODO el texto, incluida la
 // prosa entre bloques CHECKPOINT — un par balanceado suelto en prosa (ej. una mención a
@@ -3098,6 +3102,37 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
   return _result;
 }
 
+
+// TKT1 (REQ-202607-058): clasifica cada tarjeta de CHECKPOINT del batch en una de 7 categorías
+//   para el Panel de Revisión — {borrador, avalado, entrega, cierre, incidente, liberación,
+//   sin-clasificar}. Filtra tgItems.concat(patchItems) por idx === meta.idx (ambos ya llevan
+//   idx: b.idx desde _resolveCheckpointBatch — sin cambio a esa función ni a
+//   _buildTgItemsFromParsed, per no_incluye del TKT). Precedencia: liberación > incidente >
+//   cierre > avalado > borrador > entrega > sin-clasificar. 'liberación' manda sobre cualquier
+//   otra condición cuando meta.finnRelease está presente — precedencia explícita del AC del TKT.
+//   No consumida todavía por render alguno — TKT2 (Nova, entregable visual) y TKT3 (Rune,
+//   integración) son quienes la invocan; ambos bloqueados hasta este TKT1.
+export function classifyCheckpointCategory(meta, tgItems, patchItems) {
+  if (!meta) return 'sin-clasificar';
+  if (meta.finnRelease) return 'liberación';
+
+  const _blockItems = (tgItems || []).concat(patchItems || []).filter(it => it && it.idx === meta.idx);
+  if (!_blockItems.length) return 'sin-clasificar';
+
+  if (_blockItems.some(it => _ITIL_TYPES.has(it.type))) return 'incidente';
+  if (_blockItems.some(it => it.status === 'done')) return 'cierre';
+
+  const _patchAvalado = (patchItems || []).some(it => it && it.idx === meta.idx && it.draft === false && it.verified_by);
+  if (_patchAvalado) return 'avalado';
+
+  const _hasPatchDraftFalse = (patchItems || []).some(it => it && it.idx === meta.idx && it.draft === false);
+  const _tgBorrador = (tgItems || []).some(it => it && it.idx === meta.idx && it.draft === true);
+  if (_tgBorrador && !_hasPatchDraftFalse) return 'borrador';
+
+  if (_blockItems.some(it => it.status === 'en-revision')) return 'entrega';
+
+  return 'sin-clasificar';
+}
 
 // T-202606-021: Trigger 3 — sugerencia 1-tap de sprint para B nuevo con triggered_by
 // apuntando a un ítem en sprint activo. No es automático (a diferencia de Trigger 1/2):
