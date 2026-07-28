@@ -1,4 +1,4 @@
-// [PP] mod:72 · autor:Rune · 2026-07-28 UTC-6
+// [PP] mod:73 · autor:Rune · 2026-07-27 23:54 UTC-6
 // TKT-202607-170 (REQ-202607-058, AC corregido en Fase 5 v2 por Cael tras hallazgo de Finn en
 // Momento 1): taxonomía de 7 categorías renombrada para coincidir exactamente con los sufijos
 // reales de locus-backlog-item.css mod:79 (Nova, TKT-202607-171) — 'liberacion'→'liberado',
@@ -383,6 +383,15 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   const _metaBloqueantes = _singleMeta.bloqueantes  || '';
   const _metaDecision    = _singleMeta.decision     || '';
   const _metaProxPaso    = _singleMeta.proximoPaso  || '';
+  // TKT-202607-172 (REQ-202607-058 · AC4-6): precedencia de la línea "Siguiente" —
+  //   nextStep (pendientes_y_siguiente_paso.next_step, __BR-Ecosystem §8 infra_version 62) >
+  //   nextRole (next_role de raíz del CHECKPOINT) > _metaProxPaso (fallback final, sin cambio —
+  //   no_incluye del TKT). _singleMeta.nextStep/.nextRole solo llegan poblados cuando el
+  //   ckptMeta pasado a showMergeDiffPanel los incluye — el flujo batch (metas, vía
+  //   _extractCkptMeta) ya los trae; el flujo single depende de locus-session-save.js
+  //   (no adjunto en este TKT, ver Hallazgo fuera de scope en el CHECKPOINT de entrega) — si
+  //   ese archivo aún no los propaga, esta const cae a _metaProxPaso sin romper nada (AC6).
+  const _metaSiguiente   = _singleMeta.nextStep || _singleMeta.nextRole || _metaProxPaso || '';
 
   // B-202606-001: separar type:patch antes del dry-run — no deben pasar por mergeBacklogFromTG.
   // Los patches actualizan campos de ítems existentes via applyPatchesFromTG y no generan diff visual.
@@ -946,10 +955,10 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       </div>`
     ).join('');
 
-    const _proxPasoHtml = _metaProxPaso
+    const _proxPasoHtml = _metaSiguiente
       ? `<div class="mdiff-narrative-proxpaso">
-          <span class="mdiff-narrative-label">Próximo paso</span>
-          <span class="mdiff-narrative-value">${esc(_metaProxPaso)}</span>
+          <span class="mdiff-narrative-label">Siguiente</span>
+          <span class="mdiff-narrative-value">${esc(_metaSiguiente)}</span>
         </div>`
       : '';
 
@@ -1036,11 +1045,17 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       </div>`
     ).join('');
 
-    const _proxPasoHtml = meta.proximoPaso
+    // TKT-202607-172 (REQ-202607-058 · AC1/AC4-6): misma precedencia que el flujo single
+    // (const _metaSiguiente, más arriba en este archivo) — nextStep > nextRole > proximoPaso.
+    // meta.nextStep/meta.nextRole llegan poblados desde _extractCkptMeta (locus-session-parse.js,
+    // AC2/AC3) vía metas[i], siempre presentes en el flujo batch — sin dependencia de
+    // locus-session-save.js, a diferencia del flujo single (ver Hallazgo fuera de scope).
+    const _metaSiguienteAttr = meta.nextStep || meta.nextRole || meta.proximoPaso || '';
+    const _proxPasoHtml = _metaSiguienteAttr
       ? `<div class="mdiff-narrative-proxpaso-wrap">
           <div class="mdiff-narrative-proxpaso">
-            <span class="mdiff-narrative-label">Próximo paso</span>
-            <span class="mdiff-narrative-value">${esc(meta.proximoPaso)}</span>
+            <span class="mdiff-narrative-label">Siguiente</span>
+            <span class="mdiff-narrative-value">${esc(_metaSiguienteAttr)}</span>
           </div>
         </div>`
       : '';

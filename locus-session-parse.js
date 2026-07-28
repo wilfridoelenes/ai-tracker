@@ -1,3 +1,23 @@
+// [PP] mod:160 · autor:Rune · 2026-07-27 23:54 UTC-6
+// TKT-202607-172 (REQ-202607-058, kill_criteria aprobado por el founder — módulo crítico):
+// _extractCkptMeta() gana 2 campos — nextStep y nextRole. nextStep lee
+// pendientes_y_siguiente_paso.next_step (campo vigente, __BR-Ecosystem §8 infra_version 62) vía
+// el nuevo campo intermedio nextStepRaw en el objeto retornado por parseCheckpoint(); nextRole
+// lee next_role de raíz del CHECKPOINT vía nextRoleRaw. Ninguno de los dos reemplaza proximoPaso
+// (que sigue leyendo _parsed.next_step a nivel raíz, ubicación pre-infra_version 62 — no_incluye
+// del TKT: no se corrige esa lectura obsoleta en este alcance, queda registrada como hallazgo
+// separado). AC de contrato verificado: sin validación de allow-list de keys sobre el objeto
+// ckpt ni sobre el retorno de _extractCkptMeta en ningún punto de este archivo (grep confirmado)
+// — los 6 módulos que importan de este archivo no pueden rechazar los 2 campos nuevos por
+// desestructuración estricta, JS no lanza excepción por propiedades desconocidas en un objeto.
+// Consumidor real de los campos nuevos: locus-backlog-merge.js (metas[i].nextStep/.nextRole, vía
+// el spread ya existente en _resolveCheckpointBatch — sin cambio en ese spread, los campos
+// llegan automáticamente). El flujo single (ai._parsed, más abajo en este archivo) NO propaga
+// estos 2 campos — ese objeto cherry-picking explícito de _ckptMetaShared no los incluye, y no
+// se amplía en este TKT (locus-session-save.js, donde vive la construcción de ckptMeta para el
+// flujo single, no está declarado en `archivos` de este TKT ni adjunto en esta sesión — ver
+// Hallazgo fuera de scope en el CHECKPOINT de entrega). contract_update: sí — ver contract_detail
+// del CHECKPOINT de entrega.
 // [PP] mod:159 · autor:Rune · 2026-07-27 UTC-6
 // Corrección de header (esta sesión): el archivo ya contenía el wiring de TKT-202607-169
 // (doc_updates/inline_fix/finn_release en _onApplyBatch, ver más abajo) pero la línea de
@@ -1181,6 +1201,18 @@ export function parseCheckpoint(text) {
       estado:       '',
       decision:     _parsed.decision     || '',
       proximoPaso:  _parsed.next_step    || '',
+      // TKT-202607-172 (REQ-202607-058 · AC2/AC3, kill_criteria aprobado — módulo crítico):
+      //   nextStepRaw/nextRoleRaw — distintos de proximoPaso arriba, que lee _parsed.next_step
+      //   a nivel raíz (ubicación pre-infra_version 62, conservada sin cambio por no_incluye del
+      //   TKT). nextStepRaw lee el campo vigente (__BR-Ecosystem §8, infra_version 62):
+      //   pendientes_y_siguiente_paso.next_step — objeto anidado, nunca string ni array.
+      //   nextRoleRaw lee next_role de raíz del CHECKPOINT (campo ya existente en el schema,
+      //   nunca antes extraído hacia el objeto ckpt). Ambos '' si ausentes — nunca undefined,
+      //   mismo criterio que el resto de este objeto (AC2 de _extractCkptMeta, línea ~1257).
+      nextStepRaw:  (_parsed.pendientes_y_siguiente_paso && typeof _parsed.pendientes_y_siguiente_paso === 'object' && !Array.isArray(_parsed.pendientes_y_siguiente_paso))
+                      ? (_parsed.pendientes_y_siguiente_paso.next_step || '')
+                      : '',
+      nextRoleRaw:  _parsed.next_role     || '',
       contexto:     _parsed.context      || '',
       bloqueantes:  _parsed.blockers     || '',
       aprendizaje:  _parsed.learning      || '',
@@ -1273,6 +1305,11 @@ function _extractCkptMeta(ckpt) {
     bloqueantes:      _c.bloqueantes || '',
     decision:         _c.decision    || '',
     proximoPaso:      _c.proximoPaso || '',
+    // TKT-202607-172 (REQ-202607-058 · AC2/AC3): campos nuevos — 13avo/14avo del objeto (antes
+    //   11, contract_detail declara 13). Consumidos por locus-backlog-merge.js con precedencia
+    //   nextStep > nextRole > proximoPaso para la línea "Siguiente" (AC4-6, ese archivo).
+    nextStep:         _c.nextStepRaw || '',
+    nextRole:         _c.nextRoleRaw || '',
     docUpdates:       _c._isJsonFormat ? (_c._rawDocUpdates || [])        : [],
     finnObservations: _c._isJsonFormat ? (_c._rawFinnObservations || null) : null,
     finnRelease:      _c._isJsonFormat ? (_c._rawFinnRelease || null)      : null,

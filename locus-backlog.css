@@ -1,4 +1,4 @@
-/* [PP] mod:129 · autor:Rune · 2026-07-27 20:15 UTC-6 */
+/* [PP] mod:129 · autor:Rune · 2026-07-27 20:35 UTC-6 */
 /* Ad-hoc (sin REQ/TKT vía Cael, ítem directo de founder): extracción de la rama Reactiva
    (Q-INC) a locus-incidents.css (alta, mod:1) — mismo criterio arquitectónico ya aplicado al
    split de locus-modals.css en 5 archivos. 504 líneas movidas, extracción mecánica sin cambio
@@ -146,7 +146,7 @@
 /* TKT-202607-009 AC-1/AC-4: chip de trazabilidad origen_disc en la subline — reutiliza
    tokens --idea-* (DISC = idea = purple, ya declarados en :root/[data-theme]). Variante
    --orphan cubre AC edge case: origenDisc apunta a código inexistente en ITEMS. */
-/* INC-histórico — sin CHECKPOINT confirmado fix: --idea-hue:42 eliminado (:root L3738 + [data-theme="dark"] L4298) —
+/* INC histórico — sin CHECKPOINT confirmado fix: --idea-hue:42 eliminado (:root L3738 + [data-theme="dark"] L4298) —
    causa raíz de "DISC renderiza naranja". Todos los derivados (--idea-color/-dim/-bg/-bg-hover/
    -border/-badge-bg/-badge-text) ahora vienen de var(--purple) vía color-mix, mismo token que
    .bitem-type-DISC (locus-backlog-item.css) y .item-type-pill.DISC. Contraste verificado:
@@ -156,10 +156,10 @@
 /* [PP] mod:73 · autor:Nova · 2026-07-04 UTC-6 */
 /* Merge de ramas divergentes por colisión de mod — ver CHECKPOINT de la sesión.
    Reaplicado sobre base de Nova (mod:66 declarado, contenido = INC overlap margin fix):
-   eliminadas .fbar-clear-btn/.filter-clear-btn (INC-histórico — sin CHECKPOINT confirmado) y
+   eliminadas .fbar-clear-btn/.filter-clear-btn (INC histórico — sin CHECKPOINT confirmado) y
    .toolbar/.filter-bar-types/.filter-bar-status (TKT1). Trabajo de Nova preservado
    sin cambios. */
-/* INC-histórico — sin CHECKPOINT confirmado (triggered_by TKT4-[tmp:tkt4-merge-visual]): corrige overlap visual
+/* INC histórico — sin CHECKPOINT confirmado (triggered_by TKT4-[tmp:tkt4-merge-visual]): corrige overlap visual
    reportado por founder en producción. Causa raíz: margin-top:-0.5rem en
    .active-filter-chips dependía de colapso de márgenes con .bl-toolbar (sibling con
    position:sticky) — colapso no confiable, chips renderizaban superpuestos sobre el
@@ -167,7 +167,7 @@
    sin cancelación). Ambos AC de TKT4 se mantienen: sin gap visible con chips activos,
    sin gap/artefacto con chips ocultos (edge case ya pedía "sin gap", no preservar 0.5rem). */
 /* [PP] mod:64 · autor:Nova · 2026-07-04 UTC-6 */
-/* TKT4-histórico — sin CHECKPOINT confirmado (REQ-B): fusión visual .bl-toolbar + #active-filter-chips en un
+/* TKT4 histórico — sin CHECKPOINT confirmado (REQ-B): fusión visual .bl-toolbar + #active-filter-chips en un
    solo bloque. Toolbar: esquinas inferiores cuadradas siempre (no_incluye — variación
    aceptada sin chips visibles). Chips: fondo/borde unificados a tokens del toolbar
    (--surface/--border), sin borde superior, esquinas superiores cuadradas, margin-top
@@ -2518,7 +2518,7 @@
   color: var(--text2);
 }
 
-/* B-histórico — sin CHECKPOINT confirmado: bloque .card-dot-menu/.card-dot-btn/.card-dot-dropdown/.card-dot-item/
+/* B histórico — sin CHECKPOINT confirmado: bloque .card-dot-menu/.card-dot-btn/.card-dot-dropdown/.card-dot-item/
    .card-dot-divider/.card-dot-dropdown .danger-zone eliminado — superseded por
    locus-sesiones-card.css (B-202605-020, portal position:fixed + --card-menu-top/-left).
    Cero consumidor en index.html ni en ningún otro .css del codebase — confirmado con grep
@@ -2761,7 +2761,7 @@
   border-color: var(--border2);
 }
 
-/* TKT1-histórico — sin CHECKPOINT confirmado (REQ-clutter-backlog): popover "Filtros ▾" — consolida
+/* TKT1 histórico — sin CHECKPOINT confirmado (REQ-clutter-backlog): popover "Filtros ▾" — consolida
    Deps/Hijos/Sin AC/Orden/Colapsar. Patrón reutilizado de .sps-menu-wrap/.sps-dropdown
    (locus-sprint.css) — visibilidad via atributo HTML [hidden] nativo, no .is-hidden. */
 .blf-wrap {
@@ -2884,7 +2884,7 @@
   margin-left: 0;
 }
 
-/* TKT2-histórico — sin CHECKPOINT confirmado (REQ-clutter-backlog): popover "Tipos ▾" — stats bar.
+/* TKT2 histórico — sin CHECKPOINT confirmado (REQ-clutter-backlog): popover "Tipos ▾" — stats bar.
    Mismo patrón .blf-* — reutilizado también aquí, sin duplicar reglas. */
 .blt-wrap {
   position: relative;
@@ -3277,7 +3277,7 @@
 
 /* ══ END R-202605-007 ══ */
 
-/* ══ R-202605-008 eliminado — SCB removido, ver REQ-histórico — sin CHECKPOINT confirmado TKT2 ══ */
+/* ══ R-202605-008 eliminado — SCB removido, ver REQ histórico — sin CHECKPOINT confirmado TKT2 ══ */
 
 .item:hover {
   transform: translateY(-1px);
@@ -3705,7 +3705,7 @@
   --mm-bar-js: var(--green);
   --mm-bar-css: var(--blue);
   --mm-bar-html: var(--amber);
-  /* INC-histórico — sin CHECKPOINT confirmado (histórico): --idea-hue:42 (naranja) eliminado — desconectado de
+  /* INC histórico — sin CHECKPOINT confirmado (histórico): --idea-hue:42 (naranja) eliminado — desconectado de
      --purple, causa raíz del bug "DISC renderiza naranja". TKT1 (CAEL-08 — REQ
      DISC-REQ-color-swap): origen reasignado de var(--purple) a var(--blue) — DISC pasa a
      azul, mismo token que .bitem-type-DISC (locus-backlog-item.css) y .item-type-pill.DISC
@@ -3787,7 +3787,7 @@
 }
 
 [data-theme="dark"] {
-  /* INC-histórico — sin CHECKPOINT confirmado (histórico): derivados alineados al bloque :root. TKT1 (CAEL-08 —
+  /* INC histórico — sin CHECKPOINT confirmado (histórico): derivados alineados al bloque :root. TKT1 (CAEL-08 —
      REQ DISC-REQ-color-swap): origen reasignado de var(--purple) a var(--blue), mismo
      criterio que el bloque :root de arriba. Mezcla con black en vez de white — fondo
      oscuro requiere tintes oscuros, texto/label claros (--idea-color-dim más luminoso
@@ -4125,7 +4125,7 @@
 @media (prefers-reduced-motion: reduce) {
   /* CSS-05: Cobertura extendida — keyframes sin cobertura previa */
 
-  /* B-histórico — sin CHECKPOINT confirmado: override .bl-sprint-dropdown/.bl-sprint-dropdown.is-closing eliminado
+  /* B histórico — sin CHECKPOINT confirmado: override .bl-sprint-dropdown/.bl-sprint-dropdown.is-closing eliminado
      — huérfano. Ni la clase base ni las keyframes bl-sprint-drop-in/bl-sprint-drop-out
      existen en ningún .css del codebase (confirmado con grep completo) — override de
      reduced-motion sin regla base que anular. */
@@ -4152,13 +4152,13 @@
   flex-wrap: wrap;
   min-width: 0;
   padding: 6px 10px;
-  margin-top: 0; /* INC-histórico — sin CHECKPOINT confirmado: era -0.5rem — colapso de márgenes con hermano sticky no es confiable, causaba overlap visual */
+  margin-top: 0; /* INC histórico — sin CHECKPOINT confirmado: era -0.5rem — colapso de márgenes con hermano sticky no es confiable, causaba overlap visual */
   margin-bottom: 6px;
   max-width: 2200px; /* B-202607: unificado con .bl-toolbar — antes sin tope, se estiraba distinto */
   width: 100%; /* fix 3: mismo root cause que .bl-header-unified arriba — era calc(100% - 12px), compensaba sidebar Gen1 ya eliminado. Sin margin-left para quedar flush y con los bordes alineados verticalmente con el wrapper de arriba. */
-  background: var(--surface); /* TKT4-histórico — sin CHECKPOINT confirmado: era --surface2 — unificado con .bl-toolbar */
-  border: 1px solid var(--border); /* TKT4-histórico — sin CHECKPOINT confirmado: era --border2 — unificado con .bl-toolbar */
-  border-top: none; /* TKT4-histórico — sin CHECKPOINT confirmado: evita doble borde en el punto de unión con .bl-toolbar */
+  background: var(--surface); /* TKT4 histórico — sin CHECKPOINT confirmado: era --surface2 — unificado con .bl-toolbar */
+  border: 1px solid var(--border); /* TKT4 histórico — sin CHECKPOINT confirmado: era --border2 — unificado con .bl-toolbar */
+  border-top: none; /* TKT4 histórico — sin CHECKPOINT confirmado: evita doble borde en el punto de unión con .bl-toolbar */
   border-radius: var(--radius-md-plus);
   border-top-left-radius: 0;
   border-top-right-radius: 0;
@@ -4596,7 +4596,7 @@
 }
 
 /* .frole-bar eliminada — TKT1 REQ1 S'02 (nunca renderizada, _buildRoleChips no se invocaba) */
-/* .setup-checklist-banner (class) eliminada — TKT2 REQ-histórico — sin CHECKPOINT confirmado S'?? — duplicaba cascada sobre #setup-checklist-banner, ahora removido con el SCB */
+/* .setup-checklist-banner (class) eliminada — TKT2 REQ histórico — sin CHECKPOINT confirmado S'?? — duplicaba cascada sobre #setup-checklist-banner, ahora removido con el SCB */
 
 .stat-effort-missing {
   color: var(--amber-text);

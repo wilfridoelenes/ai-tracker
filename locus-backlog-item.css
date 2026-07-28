@@ -1,4 +1,4 @@
-/* [PP] mod:80 · autor:Rune · 2026-07-27 20:15 UTC-6 */
+/* [PP] mod:80 · autor:Rune · 2026-07-27 20:35 UTC-6 */
 /* TKT-202607-171 (REQ-202607-058, ref_id CAEL-0727-03): familia .mdiff-ckpt-category — 7
    badges de identidad visual por categoría de CHECKPOINT (borrador/avalado/entrega/cierre/
    liberado/incidente/lite), consumidos por TKT3 (locus-backlog-merge.js) sobre el resultado de
@@ -91,7 +91,7 @@
    CHECKPOINTs') ya satisfecho por JS de TKT3 + .mdiff-step-label existente — sin cambio CSS
    necesario, verificado por lectura. */
 /* [PP] mod:62 · autor:Nova · 2026-07-17 UTC-6 */
-/* TKT2 (REQ-histórico — sin CHECKPOINT confirmado · footer DOC-UPDATE vencido): .gf-ckpt--alert-docupdate agregada —
+/* TKT2 (REQ histórico — sin CHECKPOINT confirmado · footer DOC-UPDATE vencido): .gf-ckpt--alert-docupdate agregada —
    var(--blue-text), mismo patrón que las 3 variantes existentes (--red/--amber/--purple).
    Sin tokens nuevos — --blue-text ya validado WCAG AA como texto (mod:54 de css-ref). */
 /* [PP] mod:55 · autor:Nova · 2026-07-14 UTC-6 */
@@ -233,7 +233,7 @@
   border-left-width: 3px;
 }
 
-/* ── T-histórico — sin CHECKPOINT confirmado: Header accent por tipo — border-left sólido + tint de fondo ── */
+/* ── T histórico — sin CHECKPOINT confirmado: Header accent por tipo — border-left sólido + tint de fondo ── */
 /* TKT → verde */
 .item.bitem[data-type="TKT"] { border-left-color: var(--green); }
 .item.bitem[data-type="TKT"] .bitem-header {
@@ -994,7 +994,7 @@
   border: 1px solid color-mix(in srgb, var(--_type-color, var(--purple)) 30%, transparent);
 }
 
-/* INC-histórico — sin CHECKPOINT confirmado: variantes por tipo — mismo patrón --_type-color de .mdiff-card (línea ~3231) */
+/* INC histórico — sin CHECKPOINT confirmado: variantes por tipo — mismo patrón --_type-color de .mdiff-card (línea ~3231) */
 .idp-type-chip.idp-type-INC,  .idp-ac-dot.idp-type-INC  { --_type-color: var(--red); }
 .idp-type-chip.idp-type-TKT,  .idp-ac-dot.idp-type-TKT  { --_type-color: var(--green); }
 [data-theme="light"] .idp-type-chip.idp-type-TKT,
@@ -1292,7 +1292,7 @@
   box-shadow: 0 0 0 2px var(--surface);
 }
 
-/* INC-histórico — sin CHECKPOINT confirmado: variantes semánticas — JS ya no calcula color, solo declara la clave */
+/* INC histórico — sin CHECKPOINT confirmado: variantes semánticas — JS ya no calcula color, solo declara la clave */
 .idp-tl-dot--success { background: var(--green); }
 .idp-tl-dot--info     { background: var(--blue); }
 .idp-tl-dot--muted    { background: var(--text2); }
@@ -3045,7 +3045,7 @@ body:not([data-theme]) .theme-toggle-btn::before {
   color: var(--text);
 }
 
-/* REQ-histórico — sin CHECKPOINT confirmado TKT2: estados de alerta de salud del proyecto — reemplazan el color
+/* REQ histórico — sin CHECKPOINT confirmado TKT2: estados de alerta de salud del proyecto — reemplazan el color
    neutro de .gf-ckpt cuando _getFooterAlert() (locus-sesiones-stats.js) retorna una alerta
    activa. Todas heredan pointer-events/cursor de .gf-ckpt--link (siempre clickeable). */
 .gf-ckpt--alert-inc {
@@ -3063,7 +3063,7 @@ body:not([data-theme]) .theme-toggle-btn::before {
   font-weight: 600;
 }
 
-/* REQ-histórico — sin CHECKPOINT confirmado TKT2: 4ª variante — DOC-UPDATE vencido (prioridad más baja de las 4).
+/* REQ histórico — sin CHECKPOINT confirmado TKT2: 4ª variante — DOC-UPDATE vencido (prioridad más baja de las 4).
    --blue directo falla 4.5:1 en light (~3.31–4.11:1, ver css-ref §Tokens de color utilitarios)
    — se usa --blue-text (mismo criterio ya aplicado a inc/sprint/backlog: color de texto
    verificado, no el token base). --blue-text es "informativo", coherente con la naturaleza
@@ -3259,7 +3259,7 @@ body {
 
 /* END R-202604-060 */
 
-/* ══ R-histórico — sin CHECKPOINT confirmado: Unified Merge Diff Panel — retrocesos y descartes inline ══ */
+/* ══ R histórico — sin CHECKPOINT confirmado: Unified Merge Diff Panel — retrocesos y descartes inline ══ */
 
 /* Fila de retroceso */
 .mdiff-row--retroceso {
@@ -3287,7 +3287,7 @@ body {
   color: var(--red);
 }
 
-/* ══ END R-histórico — sin CHECKPOINT confirmado: Unified Merge Diff Panel ══ */
+/* ══ END R histórico — sin CHECKPOINT confirmado: Unified Merge Diff Panel ══ */
 
 /* ══ T-202604-414: Panel diff — delta real por campo en actualizaciones ══ */
 .ckpt-item--updated {
@@ -3426,7 +3426,7 @@ body {
   border-color: var(--accent);
 }
 
-/* INC-histórico — sin CHECKPOINT confirmado: badge de cola fija para INC/PRB/KE/CHG en modal DIFF —
+/* INC histórico — sin CHECKPOINT confirmado: badge de cola fija para INC/PRB/KE/CHG en modal DIFF —
    reemplaza .mdiff-sprint-select cuando el ítem no acepta sprint/Q-Backlog (vive en Q-INC).
    No interactivo — mismo tratamiento neutro que .sps-card--pausado (surface2/hint). */
 .mdiff-queue-badge {
