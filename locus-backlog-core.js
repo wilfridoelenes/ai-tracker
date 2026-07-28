@@ -1,4 +1,4 @@
-// [PP] mod:137 · autor:Rune · 2026-07-26 UTC-6
+// [PP] mod:138 · autor:Rune · 2026-07-27 21:10 UTC-6
 // TKT-202607-142 (REQ-202607-045): segunda referencia a 'CAEL-0726-04' detectada en la
 // tabla de shell:* events (línea ~317, comentario de shell:render-sprint-tab) — el fix de
 // mod:136 solo cubrió el comentario de origen del bloque mod:135. Misma corrección de
@@ -1027,7 +1027,7 @@ export function _calcRelevanceScore(item, allSessionsCache) { // B-202605-009: a
 
   // 1. TIPO — urgencia intrínseca (0–25)
   // TKT-A2: PRB/KE/CHG agregados — viven en Q-INC, score relativo entre INC(25) y DISC(6)
-  const typeScores = { INC: 25, TKT: 18, REQ: 12, PRB: 20, KE: 15, CHG: 10, DISC: 6 };
+  const typeScores = { INC: 25, TKT: 18, REQ: 12, PRB: 20, CHG: 10, DISC: 6 };
   const type = itemKind(item) || 'TKT';
   score += typeScores[type] ?? 10;
 

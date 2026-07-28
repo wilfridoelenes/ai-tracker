@@ -1,4 +1,4 @@
-// [PP] mod:63 · autor:Rune · 2026-07-27 UTC-6
+// [PP] mod:64 · autor:Rune · 2026-07-27 21:10 UTC-6
 // TKT-202607-150 (REQ-202607-048, TKT2): breadcrumb-proj cambia de dispatch
 // 'shell:open-proj-panel' a switchTab('proyectos') directo — tab-btn-proyectos se retiró de
 // index.html (mismo REQ, TKT2), el nombre de proyecto es ahora el único punto de entrada a la
@@ -492,14 +492,14 @@ function _toggleSearchScope() {
 // REQ CAEL-búsqueda-tipos TKT1: descartado unificado — INC/PRB/KE usan incident_status,
 // REQ/TKT/DISC/CHG usan status (CHG es excepción de vocabulario, __BR-Ecosystem §4b).
 function _isDiscardedItem(item, kind) {
-  if (kind === 'INC' || kind === 'PRB' || kind === 'KE') return item.incident_status === 'descartado';
+  if (kind === 'INC' || kind === 'PRB') return item.incident_status === 'descartado';
   return item.status === 'descartado';
 }
 
 // REQ CAEL-búsqueda-tipos TKT1: icono canónico por tipo — itemKind(item), nunca code.charAt(0)
 // (anti-pattern Gen1 documentado en _Locus-module-contracts §4). Colores/orden según
 // __BR-Ecosystem §4 — tabla de tipos.
-const _TYPE_ICONS = { REQ: '🔵', TKT: '🟢', DISC: '🟣', INC: '🔴', PRB: '🟠', KE: '🟡', CHG: '⚪' };
+const _TYPE_ICONS = { REQ: '🔵', TKT: '🟢', DISC: '🟣', INC: '🔴', PRB: '🟠', CHG: '⚪' };
 
 export function onSearch() {
   const state = getState();
@@ -650,8 +650,7 @@ export function onSearch() {
     tSlice.forEach(item => {
       const kind = itemKind(item);
       const icon = _TYPE_ICONS[kind] || '📌';
-      const isTerminal = kind === 'KE' ? item.incident_status === 'resolved'
-        : (kind === 'INC' || kind === 'PRB') ? item.incident_status === 'closed'
+      const isTerminal = (kind === 'INC' || kind === 'PRB') ? item.incident_status === 'closed'
         : item.status === 'done';
       const statusLabel = isTerminal ? ' · ✓' : '';
       html += `<div class="sur-row" data-action="navigateToItem" data-item-code="${_esc(item.code)}">

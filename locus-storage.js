@@ -1,4 +1,4 @@
-// [PP] mod:151 · autor:Rune · 2026-07-27 UTC-6
+// [PP] mod:152 · autor:Rune · 2026-07-27 21:10 UTC-6
 // Fix inline (triggered_by: verificación de Finn sobre PRB-202607-001): las 3 citas al PRB
 // en mod:150 (header + comentarios internos de _mergeItemsFromRemote()/_mergeIncidentsFromRemote())
 // seguían redactadas como "código real aún sin confirmar... [pendiente-ID]" — código ya
@@ -1016,13 +1016,12 @@ export function getSupabaseContext() {
 // _VALID_STATUS_BY_TYPE / _VALID_ITEM_TYPES definidos localmente dentro de saveBacklog()
 // (línea ~867). No se extraen a constante de módulo compartida en este TKT — saveBacklog()
 // está fuera de su impacto lateral declarado. Candidato a refactor de unificación, prioridad low.
-const _CANONICAL_TYPES = ['REQ', 'TKT', 'DISC', 'INC', 'PRB', 'KE', 'CHG'];
+const _CANONICAL_TYPES = ['REQ', 'TKT', 'DISC', 'INC', 'PRB', 'CHG'];
 const _CANONICAL_STATUS_BY_TYPE = {
   REQ:  ['pendiente', 'en-proceso', 'en-revision', 'done', 'bloqueado', 'orphaned', 'descartado'],
   TKT:  ['pendiente', 'en-revision', 'done', 'descartado'],
   INC:  ['detected', 'assigned', 'in_progress', 'resolved', 'closed', 'escalated_to_prb', 'escalated_to_chg', 'descartado'],
   PRB:  ['detected', 'in_progress', 'resolved', 'closed', 'descartado'],
-  KE:   ['active', 'resolved', 'descartado'],
   CHG:  ['pendiente', 'en-revision', 'done', 'descartado'],
   DISC: ['discovery', 'promoted', 'descartado'],
 };
@@ -1514,7 +1513,6 @@ function _filterValidItemsForUpsert(_rawItems) {
   //   TKT:  pendiente · en-revision · done · descartado
   //   INC:  detected · assigned · in_progress · resolved · closed · escalated_to_prb · escalated_to_chg · descartado
   //   PRB:  detected · in_progress · resolved · closed · descartado
-  //   KE:   active · resolved · descartado
   //   CHG:  pendiente · en-revision · done · descartado
   //   DISC: discovery · promoted · descartado
   // Nota: historico se excluye antes de llegar aquí por el gate `it.status === 'historico'`
@@ -1525,7 +1523,6 @@ function _filterValidItemsForUpsert(_rawItems) {
     TKT:  new Set(['pendiente', 'en-revision', 'done', 'descartado']),
     INC:  new Set(['detected', 'assigned', 'in_progress', 'resolved', 'closed', 'escalated_to_prb', 'escalated_to_chg', 'descartado']),
     PRB:  new Set(['detected', 'in_progress', 'resolved', 'closed', 'descartado']),
-    KE:   new Set(['active', 'resolved', 'descartado']),
     CHG:  new Set(['pendiente', 'en-revision', 'done', 'descartado']),
     DISC: new Set(['discovery', 'promoted', 'descartado']),
   };
@@ -1555,10 +1552,10 @@ function _filterValidItemsForUpsert(_rawItems) {
     // status+type porque _VALID_STATUS_BY_TYPE[it.type] sería undefined para un type inválido,
     // y `if (_validStatuses && ...)` con _validStatuses undefined NO filtra — dejaba pasar
     // silenciosamente cualquier type corrupto. Este gate cierra ese hueco.
-    // INC-202607-009: ITIL (INC/PRB/KE/CHG) es una exclusión esperada de esta tabla — no un
+    // INC-202607-009: ITIL (INC/PRB/CHG) es una exclusión esperada de esta tabla — no un
     // dato corrupto — desde que _VALID_ITEM_TYPES se acotó a BACKLOG_TYPES. Se distingue del
     // resto para no alarmar al founder con un toast de "dato corrupto" ante algo por diseño.
-    if (['INC', 'PRB', 'KE', 'CHG'].includes(it.type)) {
+    if (['INC', 'PRB', 'CHG'].includes(it.type)) {
       logger.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido de tracker_items — type:${it.type} es ITIL, vive exclusivamente en tracker_incidents.`);
       return false;
     }
@@ -1592,11 +1589,10 @@ function _filterValidIncidentsForUpsert(_rawIncidents) {
   // TKT-202607-005, persiste en tabla propia tracker_incidents (no tracker_items).
   // Mismo criterio de gate que ITEMS — una fila de tipo o incident_status inválido
   // haría rechazar el batch completo en Postgres (chk_incident_status_by_type).
-  const _VALID_INCIDENT_TYPES = new Set(['INC', 'PRB', 'KE', 'CHG']);
+  const _VALID_INCIDENT_TYPES = new Set(['INC', 'PRB', 'CHG']);
   const _VALID_INCIDENT_STATUS_BY_TYPE = {
     INC: new Set(['detected', 'assigned', 'in_progress', 'resolved', 'closed', 'escalated_to_prb', 'escalated_to_chg', 'descartado']),
     PRB: new Set(['detected', 'in_progress', 'resolved', 'closed', 'descartado']),
-    KE:  new Set(['active', 'resolved', 'descartado']),
     CHG: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
   };
   return _rawIncidents.filter(inc => {
@@ -3034,13 +3030,13 @@ async function _mergeItemsFromRemote(itemsResult, _itemsRef) {
         remoteRows.forEach(row => {
           if (row.status === 'historico') return;
           // INC-202607-009: tracker_items conserva filas remanentes de tipo ITIL
-          // (INC/PRB/KE/CHG) de antes de TKT-202607-005 — nunca tuvieron sla_priority
+          // (INC/PRB/CHG) de antes de TKT-202607-005 — nunca tuvieron sla_priority
           // en esta tabla porque no es su columna. Sin este gate, cada carga las
           // volvía a mergear en ITEMS, _migrateItemTypes() las reenrutaba a INCIDENTS
           // pisando la fila correcta ya persistida en tracker_incidents (con
           // sla_priority) con esta copia obsoleta sin el campo — loop de saveBacklog().
           // ITIL no vive en tracker_items — se excluye del merge, nunca se escribe aquí.
-          if (['INC', 'PRB', 'KE', 'CHG'].includes(row.type)) {
+          if (['INC', 'PRB', 'CHG'].includes(row.type)) {
             logger.warn(`[AI Tracker] _loadFromSupabase: fila remanente tipo ITIL en tracker_items excluida del merge — ${row.code || '[sin code]'} (type:${row.type}). Vive en tracker_incidents, no aquí.`);
             return;
           }

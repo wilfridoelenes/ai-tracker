@@ -1,4 +1,4 @@
-// [PP] mod:18 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:19 · autor:Rune · 2026-07-27 21:10 UTC-6
 // Hallazgo fuera de scope — resuelto en sesión (Excepción de resolución directa: dueño presente,
 // Patch, sin bifurcación de founder): _esc(o.code) en la fila de outliers de Cycle Time era typo
 // de esc(o.code) — _esc nunca se declaró ni importó en ningún módulo de Analytics. esc ya está
@@ -564,7 +564,7 @@ export async function renderAnalytics() {
   // ── T-202605-453: Tiempo promedio pendiente → done ──
   // Recolecta todos los ítems done con createdAt + closedAt de todos los proyectos
   function _cycleTimeData() {
-    const byType   = { REQ: [], TKT: [], DISC: [], INC: [], PRB: [], KE: [], CHG: [] };
+    const byType   = { REQ: [], TKT: [], DISC: [], INC: [], PRB: [], CHG: [] };
     const byEffort = { 1: [], 2: [], 3: [] };
     const outlierCandidates = [];
 
@@ -659,7 +659,6 @@ export async function renderAnalytics() {
         DISC: avg(byType.DISC),
         INC:  avg(byType.INC),
         PRB:  avg(byType.PRB),
-        KE:   avg(byType.KE),
         CHG:  avg(byType.CHG),
       },
       byEffort:{ 1: avg(byEffort[1]), 2: avg(byEffort[2]), 3: avg(byEffort[3]) },
@@ -755,7 +754,6 @@ export async function renderAnalytics() {
               ];
               const CT_RIGHT = [
                 { key: 'PRB', cls: 'ct-pill-prb', label: 'P', bar: 'var(--orange,#f59e0b)' },
-                { key: 'KE',  cls: 'ct-pill-ke',  label: 'K', bar: 'var(--yellow,#eab308)' },
                 { key: 'CHG', cls: 'ct-pill-chg', label: 'C', bar: 'var(--slate,#64748b)' },
               ];
               const row = t => `
@@ -1013,7 +1011,6 @@ export async function renderAnalytics() {
             <option value="DISC" ${_cfTypeFilter === 'DISC' ? 'selected' : ''}>DISC — Discovery</option>
             <option value="INC" ${_cfTypeFilter === 'INC' ? 'selected' : ''}>INC — Incidentes</option>
             <option value="PRB" ${_cfTypeFilter === 'PRB' ? 'selected' : ''}>PRB — Problems</option>
-            <option value="KE" ${_cfTypeFilter === 'KE' ? 'selected' : ''}>KE — Known Errors</option>
             <option value="CHG" ${_cfTypeFilter === 'CHG' ? 'selected' : ''}>CHG — Changes</option>
           </select>
         </div>

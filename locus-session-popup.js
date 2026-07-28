@@ -1,4 +1,4 @@
-// [PP] mod:22 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:23 · autor:Rune · 2026-07-27 21:10 UTC-6
 // INC-202607-002: class="log-scroll-top hidden" → "log-scroll-top is-hidden" — .hidden no
 // tenía regla CSS en ninguna hoja del proyecto; el botón "↑" renderizaba visible por defecto
 // hasta el primer evento de scroll. _logScrollHandler ya togglea is-hidden — sin cambio de
@@ -25,7 +25,7 @@ function _codeKind(codeOrItem) {
   if (!codeOrItem) return '';
   const code = typeof codeOrItem === 'string' ? codeOrItem : (codeOrItem.code || '');
   const type = typeof codeOrItem === 'object' ? (codeOrItem.type || '') : '';
-  for (const t of ['REQ','TKT','INC','DISC','PRB','KE','CHG']) {
+  for (const t of ['REQ','TKT','INC','DISC','PRB','CHG']) {
     if (type === t || code.startsWith(t + '-')) return t;
   }
   return '';

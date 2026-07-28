@@ -1,4 +1,4 @@
-// [PP] mod:56 · autor:Rune · 2026-07-26 UTC-6
+// [PP] mod:57 · autor:Rune · 2026-07-27 21:10 UTC-6
 // Fix Finn (TKT-202607-133, AC3): .worker-header-cd-inline-value mostraba texto vacío en vez
 // de 'Sin hora de desbloqueo asignada' cuando ai.resetTime era null — el fallback solo existía
 // en cdInline.title (tooltip). Ahora la línea visible muestra el texto, no solo el hover.
@@ -662,13 +662,13 @@ function _codeKind(codeOrItem) {
   if (!codeOrItem) return '';
   const code = typeof codeOrItem === 'string' ? codeOrItem : (codeOrItem.code || '');
   const type = typeof codeOrItem === 'object' ? (codeOrItem.type || '') : '';
-  for (const t of ['REQ','TKT','INC','DISC','PRB','KE','CHG']) {
+  for (const t of ['REQ','TKT','INC','DISC','PRB','CHG']) {
     if (type === t || code.startsWith(t + '-')) return t;
   }
   return '';
 }
 
-const TG_TYPE_NAMES = {DISC:'Discovery', TKT:'Ticket', REQ:'Requerimiento', INC:'Incidente', PRB:'Problem', KE:'Known Error', CHG:'Change'};
+const TG_TYPE_NAMES = {DISC:'Discovery', TKT:'Ticket', REQ:'Requerimiento', INC:'Incidente', PRB:'Problem', CHG:'Change'};
 
 // T-202604-047: tiempo promedio entre sesiones consecutivas
 function buildHoyCard(ai, idx = 0, opts = {}) {
