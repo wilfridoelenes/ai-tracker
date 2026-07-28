@@ -1,3 +1,18 @@
+// [PP] mod:156 · autor:Rune · 2026-07-27 UTC-6
+// TKT4 (REQ-202607-054, depends_on TKT-202607-162, origen_disc DISC-202607-051):
+// _splitCheckpointBlocks() ganaba fence-priority absoluta — si el regex de fence matcheaba
+// algo, el resto del texto nunca pasaba por el scanner de llaves de TKT-202607-162, sin
+// importar si contenía bloques bare mezclados. Corregido: cuando hay fences, el remanente del
+// texto (los fences ya removidos vía .replace(_re,'')) se escanea con el mismo
+// _extractBareJsonBlocks() ya existente — los bare mezclados se agregan a continuación de los
+// fenced, en vez de ignorarse en silencio. AC happy path: 1 fenced + 2 bare → array de 3. AC
+// error: bloque bare incompleto al final se descarta igual que antes (comportamiento heredado
+// de _extractBareJsonBlocks, sin cambio en esa función). AC edge case: solo fences sin ningún
+// bare → _extractBareJsonBlocks(_remainder) devuelve [] de forma natural (no hay JSON
+// balanceado en el remanente) → _matches se retorna sin concatenar, sin regresión sobre el
+// comportamiento previo. contract_update: no — _splitCheckpointBlocks conserva firma y tipo de
+// retorno (text) → string[]; _extractBareJsonBlocks se reutiliza sin cambio de firma, ya era
+// interna sin consumidores externos.
 // [PP] mod:155 · autor:Rune · 2026-07-27 UTC-6
 // TKT-202607-163 (REQ-202607-054, depends_on TKT-202607-162): verificación — sin refactor.
 // AC1 pedía confirmar si _resolveCheckpointBatch()/_processIngestBatch() ya consumen
@@ -559,7 +574,15 @@ export function _splitCheckpointBlocks(text) {
   if (!text) return [];
   const _re = /```(?:json)?\s*[\s\S]*?```/g;
   const _matches = text.match(_re);
-  if (_matches) return _matches;
+  if (_matches) {
+    // TKT4 (REQ-202607-054, origen_disc DISC-202607-051): fence-priority se conserva — los
+    // bloques fenced siempre encabezan el array, en orden de aparición. El remanente (texto
+    // con los fences ya removidos) pasa por el mismo scanner de llaves para capturar bloques
+    // bare mezclados en el mismo texto, que antes se ignoraban en silencio.
+    const _remainder = text.replace(_re, '');
+    const _bareInRemainder = _extractBareJsonBlocks(_remainder);
+    return _bareInRemainder.length ? _matches.concat(_bareInRemainder) : _matches;
+  }
   // TKT-202607-162: sin match de fence — scanner de profundidad de llaves detecta 0, 1 o N
   // bloques JSON bare, reemplazando el heurístico de bloque único de INC-202607-066 (caso
   // trivial N=1 del mismo scanner, sin regresión — ver header de mod:154).
