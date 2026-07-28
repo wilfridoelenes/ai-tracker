@@ -1,3 +1,13 @@
+// [PP] mod:74 · autor:Rune · 2026-07-28 UTC-6
+// TKT-202607-172 (REQ-202607-058, AC-9a): chip de docs pendientes por tarjeta atribuida —
+// _buildAttributedDocsChip(meta), scoped a meta.docUpdates del bloque, distinto de
+// _buildDocUpdatesBlock (TKT6, agregado de batch completo). Reusa .mdiff-docupdate-* ya
+// entregado por Nova en TKT6 — sin CSS nuevo, Archivos: del TKT no declara .css. Gate de
+// ausencia total de _buildAttributedCardsBlock extendido con !_docsChip — un bloque cuyo único
+// contenido es un doc_update ya no queda huérfano sin tarjeta. AC-9 original (fusionaba docs +
+// archivos, asumía meta.archivos inexistente en _extractCkptMeta) devuelto por Rune y dividido
+// por Cael — la mitad de archivos queda fuera de scope, ver DISC-[pendiente-ID] (triggered_by
+// este TKT). contract_update: no — _buildAttributedCardsBlock no es export, sin cambio de firma.
 // [PP] mod:73 · autor:Rune · 2026-07-27 23:54 UTC-6
 // TKT-202607-170 (REQ-202607-058, AC corregido en Fase 5 v2 por Cael tras hallazgo de Finn en
 // Momento 1): taxonomía de 7 categorías renombrada para coincidir exactamente con los sufijos
@@ -1188,6 +1198,34 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     return 'lite';
   };
 
+  // TKT-202607-172 (AC-9a, REQ-202607-058 — redactado por Cael tras gap de Rune sobre el AC-9
+  // original, que fusionaba 'docs pendientes' + 'archivos tocados' en un solo criterio y asumía
+  // un campo `meta.archivos` inexistente en el contrato de _extractCkptMeta, __BR-Ecosystem §2/
+  // _Locus-module-contracts §2). Chip de docs pendientes por tarjeta — scoped a meta.docUpdates
+  // del bloque activo, a diferencia de _buildDocUpdatesBlock (TKT6, más abajo en este archivo),
+  // que agrega TODOS los bloques del batch en una sola sección al pie del panel. Reusa las
+  // mismas clases .mdiff-docupdate-* ya entregadas por Nova en TKT6 — Archivos: de TKT-172 no
+  // declara ningún .css, sin CSS nuevo. Ausencia total si meta.docUpdates está vacío/ausente —
+  // mismo criterio de _Locus-ux-ref §E-14 ya aplicado al resto de secciones condicionales de la
+  // tarjeta atribuida (_releaseInfo/_narrativeHtml/_itemsBlockHtml).
+  const _buildAttributedDocsChip = (meta) => {
+    const _docs = Array.isArray(meta.docUpdates) ? meta.docUpdates : [];
+    if (!_docs.length) return '';
+    const _rows = _docs
+      .filter(d => d && typeof d === 'object')
+      .map(d => `<div class="mdiff-docupdate-row">
+        <span class="mdiff-docupdate-doc">${esc(d.doc || '')}</span>
+        <span class="mdiff-docupdate-section">${esc(d.section || '')}</span>
+        <span class="mdiff-docupdate-action">${esc(d.action || '')}</span>
+      </div>`)
+      .join('');
+    if (!_rows) return '';
+    return `<div class="mdiff-docupdate-section-wrap">
+      <div class="mdiff-docupdate-header">Docs pendientes</div>
+      ${_rows}
+    </div>`;
+  };
+
   const _buildAttributedCardsBlock = () => {
     if (!_ckptMetas || _ckptMetas.length < 2) return '';
 
@@ -1206,10 +1244,14 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       // mod:79 (Nova, TKT-202607-171) en Fase 5 v2 — ya no es assumption: las 7 claves de
       // _CKPT_CATEGORY_LABELS coinciden exactamente con .mdiff-ckpt-category--[key] entregado.
       const _category      = _ckptCategoryFor(meta);
+      // TKT-202607-172 (AC-9a): calculado una vez por bloque, mismo patrón que _category/_badge.
+      const _docsChip      = _buildAttributedDocsChip(meta);
 
-      // Bloque sin ningún campo narrativo, sin finn_release y sin ítems filtrados → no genera
-      // tarjeta (mismo criterio que hoy: ausencia total, sin hueco visual).
-      if (!_narrativeHtml && !_releaseInfo.hasRelease && !_itemCards.length) return '';
+      // Bloque sin ningún campo narrativo, sin finn_release, sin ítems filtrados y sin docs
+      // pendientes propios → no genera tarjeta (mismo criterio que hoy: ausencia total, sin
+      // hueco visual — extendido en AC-9a para no dejar huérfano un bloque cuyo único contenido
+      // es un doc_update).
+      if (!_narrativeHtml && !_releaseInfo.hasRelease && !_itemCards.length && !_docsChip) return '';
 
       const _attrRow = `<div class="mdiff-narrative-row">
         <span class="mdiff-narrative-label">${esc(meta.rol || '')}</span>
@@ -1242,6 +1284,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         <div class="mdiff-section-body">
           ${_releaseInfo.html}
           ${_narrativeHtml}
+          ${_docsChip}
           ${_itemsBlockHtml}
         </div>
       </div>`;
