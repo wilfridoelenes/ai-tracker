@@ -1,4 +1,4 @@
-/* [PP] mod:17 · autor:Nova · 2026-07-21 10:40 UTC-6 */
+/* [PP] mod:18 · autor:Nova · 2026-07-27 21:25 UTC-6 */
 /* DISC ejecutada: removidas .rm-chip--active y .rm-chip--selected (+ .rm-chip--active
    .rm-chip-mark) — sin consumidor confirmado en JS/HTML (grep completo, 0 matches). */
 /* [PP] mod:13 · autor:Nova · 2026-07-20 16:10 UTC-6 */
@@ -2552,11 +2552,6 @@
 .ct-pill-prb {
   background: color-mix(in srgb, var(--orange,var(--orange)) 18%, transparent);
   color: var(--orange-text,var(--orange));
-}
-
-.ct-pill-ke {
-  background: color-mix(in srgb, var(--yellow,var(--yellow)) 18%, transparent);
-  color: var(--yellow-text,var(--yellow));
 }
 
 .ct-pill-chg {
