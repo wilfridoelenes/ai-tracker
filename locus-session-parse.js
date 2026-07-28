@@ -1,3 +1,22 @@
+// [PP] mod:162 · autor:Rune · 2026-07-29 UTC-6
+// INC-202607-070 (triggered_by: INC-202607-069 · corrección de header, sin cambio de código):
+// El bloque de mod:161 (TKT-202607-172, abajo) declaraba "no_incluye: no se corrige esa
+// lectura obsoleta en este alcance, queda registrada como hallazgo separado" respecto al read
+// raíz de next_step en proximoPaso — pero el propio cuerpo del archivo (líneas ~1191-1221 en
+// esa misma entrega) ya contenía ese fix, atribuido inline a INC-202607-069. La entrada de
+// mod:161 quedó desactualizada frente a su propio contenido; no se reescribe esa entrada
+// histórica — se corrige aquí con una entrada nueva, mismo criterio ya aplicado en la
+// corrección de header de mod:159 (abajo). Sin cambio de código en esta entrega — solo
+// corrección de documentación de header.
+// AC1 (entrada de header consistente con el contenido real del archivo): cumplido — esta
+// entrada documenta explícitamente que el fix de INC-202607-069 aplicó en mod:161, corrigiendo
+// la afirmación contraria de esa misma entrada.
+// AC2 (secuencia de mod sin saltos sin explicar): el salto 159→161 (sin entrada de mod:160) no
+// se puede reconstruir — no hay CHECKPOINT ni registro de qué entrega ocurrió en mod:160
+// disponible en esta sesión. Se declara como gap conocido y no resuelto — no se inventa una
+// entrada retroactiva para un mod que esta sesión no puede verificar (mismo criterio que ya
+// aplica este archivo: ver retirada de cita a PRB fabricado en comentarios, PRB-202607-001).
+// contract_update: no — ningún cambio de código, solo header.
 // [PP] mod:161 · autor:Rune · 2026-07-28 00:12 UTC-6
 // TKT-202607-172 (REQ-202607-058, kill_criteria aprobado por el founder — módulo crítico):
 // _extractCkptMeta() gana 2 campos — nextStep y nextRole. nextStep lee
