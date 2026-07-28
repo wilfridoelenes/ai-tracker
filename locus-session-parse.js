@@ -1,3 +1,41 @@
+// [PP] mod:154 · autor:Rune · 2026-07-27 UTC-6
+// TKT-202607-162 (REQ-202607-054, depends_on TKT-202607-163): _splitCheckpointBlocks() gana
+// soporte para 2+ objetos JSON CHECKPOINT concatenados sin fence — el gap declarado en
+// DISC-202607-050 (INC-202607-066, mod:153, solo cubría un único bloque bare). Nuevo scanner
+// interno _extractBareJsonBlocks(text) recorre el texto carácter por carácter contando
+// profundidad de llaves, respetando el estado "dentro de string" (comillas dobles con escape
+// \") para no contar llaves literales dentro de valores JSON como delimitador estructural (AC
+// edge case: "llaves en strings"). Cada substring balanceado que abre en '{' de profundidad 0
+// y cierra en el '}' correspondiente es un bloque — la prosa entre bloques ("Se ejecutaron 3
+// comandos...", "Confirmado...") se ignora sin usarse como delimitador, simplemente no cae
+// dentro de ningún rango balanceado. Bloque incompleto al final del texto (llave sin cierre)
+// se descarta silenciosamente — sin entrada parcial, sin excepción lanzada (AC edge case:
+// "bloque incompleto"). Fence-priority preservado sin cambio: _splitCheckpointBlocks sigue
+// devolviendo los matches de fence ``` primero si el regex matchea algo — el scanner de
+// llaves solo corre cuando no hay ningún fence en el texto, mismo orden que ya regía para el
+// fallback de INC-202607-066 (AC regresión INC-066: un único bloque bare sigue detectándose,
+// ahora vía el caso trivial N=1 del mismo scanner en vez del heurístico startsWith/endsWith
+// dedicado). _looksLikeBareCheckpointJson() se conserva sin cambio de firma — parsePaste()
+// la sigue usando directamente para su propio gate de isCheckpoint (línea ~1446), fuera de
+// scope de este TKT tocar ese call site; el scanner nuevo no la reemplaza, coexiste con ella.
+// Deliberadamente no resuelve: bloque con ``` embebido dentro de un string JSON (mismo riesgo
+// ya documentado en T-202606-019 y en el TKT1 de este mismo REQ, línea ~427) — fence-priority
+// se evalúa primero, así que el regex de fence corta ahí antes de que el scanner de llaves
+// entre en juego; no es un caso nuevo introducido por este TKT. no_incluye: no modifica
+// parsePaste() ni el gate de isCheckpoint de un único bloque bare (usa su propio heurístico
+// sin tocar); no valida JSON.parse de los bloques extraídos — eso sigue ocurriendo en
+// parseCheckpoint vía _parseBatchBlock, sin cambio. contract_update: no — _splitCheckpointBlocks
+// conserva firma (text) → string[]; _extractBareJsonBlocks es interna, sin export, sin
+// consumidores externos.
+// Hallazgo fuera de scope (verificado con harness funcional antes de entregar): un fragmento de
+// prosa con llaves balanceadas que no forman JSON válido (ej. "resultado {ok}.") produce un
+// bloque candidato extra que _parseBatchBlock rechaza como CHECKPOINT inválido — mismo pill de
+// error ya vigente para bloques malformados (AC2 de TKT3, ver línea ~407), sin abortar el resto
+// del batch. No es regresión de este TKT — es el mismo comportamiento de tolerancia a bloques
+// inválidos ya diseñado en el pipeline batch, ahora también alcanzable desde texto sin fence.
+// Registrado para que Cael/Finn lo tengan presente si el AC de "sin ruido visual" del panel de
+// ingesta llega a cubrir explícitamente este caso — no corregido aquí por estar fuera del
+// alcance declarado del TKT (extracción de bloques, no filtrado heurístico de prosa con llaves).
 // [PP] mod:153 · autor:Rune · 2026-07-27 UTC-6
 // INC-202607-066: _splitCheckpointBlocks() solo detectaba bloques delimitados por fence ```
 // (con o sin especificador json) — texto pegado como JSON puro sin fence devolvía [] pese a que
@@ -440,17 +478,65 @@ function _looksLikeBareCheckpointJson(text) {
   return _t.startsWith('{') && _t.endsWith('}');
 }
 
+// TKT-202607-162 (REQ-202607-054): scanner de profundidad de llaves — separa N objetos JSON
+// balanceados de un texto sin fence, ignorando prosa intercalada y sin contar llaves que
+// aparecen dentro de valores string (comillas dobles con escape \"). Función pura, sin efectos
+// laterales, no valida JSON (eso ocurre después, en parseCheckpoint por bloque). Retorna
+// string[] — [] si no hay ningún bloque balanceado completo en el texto.
+function _extractBareJsonBlocks(text) {
+  const _blocks = [];
+  let _depth = 0;
+  let _start = -1;
+  let _inString = false;
+  let _escaped = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+
+    if (_inString) {
+      if (_escaped) {
+        _escaped = false;
+      } else if (ch === '\\') {
+        _escaped = true;
+      } else if (ch === '"') {
+        _inString = false;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      _inString = true;
+      continue;
+    }
+
+    if (ch === '{') {
+      if (_depth === 0) _start = i;
+      _depth++;
+    } else if (ch === '}') {
+      if (_depth > 0) {
+        _depth--;
+        if (_depth === 0 && _start !== -1) {
+          _blocks.push(text.slice(_start, i + 1));
+          _start = -1;
+        }
+      }
+    }
+  }
+  // AC edge case "bloque incompleto": si el texto termina con _depth > 0 (llave sin cerrar),
+  // el bloque abierto en _start nunca se hace push — se descarta silenciosamente, sin entrada
+  // parcial ni excepción.
+  return _blocks;
+}
+
 export function _splitCheckpointBlocks(text) {
   if (!text) return [];
   const _re = /```(?:json)?\s*[\s\S]*?```/g;
   const _matches = text.match(_re);
   if (_matches) return _matches;
-  // INC-202607-066: sin match de fence — fallback a bloque único de JSON puro, mismo criterio
-  // que ya usa parsePaste(). Antes de este fix, esta función devolvía [] aquí incondicionalmente,
-  // desincronizando el contador del resultado real del parseo. Batch sin fence permanece [] — sin
-  // regresión (ver DISC-202607-050).
-  const _trimmed = text.trim();
-  return _looksLikeBareCheckpointJson(_trimmed) ? [_trimmed] : [];
+  // TKT-202607-162: sin match de fence — scanner de profundidad de llaves detecta 0, 1 o N
+  // bloques JSON bare, reemplazando el heurístico de bloque único de INC-202607-066 (caso
+  // trivial N=1 del mismo scanner, sin regresión — ver header de mod:154).
+  return _extractBareJsonBlocks(text);
 }
 // [PP] mod:87 · autor:Rune · 2026-07-01 15:40 UTC-6
 // TKT-202606-014 (REQ-202606-003 · AC2): agregado draftRaw — valor crudo de _parsed.draft

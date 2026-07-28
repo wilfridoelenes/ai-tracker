@@ -1,3 +1,13 @@
+// [PP] mod:9 · autor:Rune · 2026-07-27 UTC-6
+// TKT-202607-164 (parent REQ-202607-053, depends_on TKT-202607-161): gap de integración
+// detectado por Finn en sesión de cierre del REQ — locus-incidents.css (TKT-202607-160, Nova)
+// ya declaraba las reglas :hover/is-copied de .qinc-item-code-chip contra un nodo hijo
+// .qinc-item-code-chip-icon que ningún TKT insertaba en el markup (ver comentario mod:1 de
+// locus-incidents.css y el fix mod:8 de este mismo archivo — el ícono quedó fuera de scope
+// de ambos TKTs). AC1: copyCodeHtml agrega <i class="ti ti-copy qinc-item-code-chip-icon">
+// como primer hijo del chip, antes del texto del código — mismo patrón ya usado por
+// copyItemHtml (ti-copy) en este archivo. El swap ti-copy↔ti-check de AC2 se resuelve en
+// locus-incidents-render.js (mod:20) — este archivo solo declara el nodo base.
 // [PP] mod:8 · autor:Rune · 2026-07-27 UTC-6
 // TKT-202607-161 — fix Bug mayor (QA bloqueado por Finn, AC1 no cumplido en mod:7): el mod
 // anterior agregaba qinc-item-code-chip "junto a" bitem-subline-code sin fusionar con
@@ -283,7 +293,7 @@ export function buildQIncItem(item) {
   // abajo) y este chip absorbe el modificador de tipo --inc/--prb/--chg que locus-incidents.css
   // ya declaraba (TKT-202607-160, Nova) pero que ningún caller aplicaba — CSS dejó de estar
   // muerto. title conserva typeLabel (antes solo en el badge) + el hint de copiar.
-  const copyCodeHtml = `<span class="bitem-subline-code qinc-item-code-chip qinc-item-code-chip--${esc(type.toLowerCase())}" data-action="copy-code" data-code="${esc(code)}" data-idx="-1" title="${esc(typeLabel)} · Click para copiar ID">${esc(code)}</span>`;
+  const copyCodeHtml = `<span class="bitem-subline-code qinc-item-code-chip qinc-item-code-chip--${esc(type.toLowerCase())}" data-action="copy-code" data-code="${esc(code)}" data-idx="-1" title="${esc(typeLabel)} · Click para copiar ID"><i class="ti ti-copy qinc-item-code-chip-icon" aria-hidden="true"></i>${esc(code)}</span>`;
 
   // TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-06): botón "Copiar ítem" — copia el bloque
   // completo del ítem (mismo formato que _PP-incidents.md §Ítems) sin exportar el archivo

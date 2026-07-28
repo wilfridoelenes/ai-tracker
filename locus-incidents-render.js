@@ -1,3 +1,11 @@
+// [PP] mod:20 · autor:Rune · 2026-07-27 UTC-6
+// TKT-202607-164 (parent REQ-202607-053, depends_on TKT-202607-161): AC2 — el ícono
+// .qinc-item-code-chip-icon (nodo agregado en locus-incidents-item.js mod:9) cambia de
+// ti-copy a ti-check mientras is-copied está activo, revirtiendo al expirar el timeout —
+// mismo ciclo de vida que ya gobernaba is-copied/is-copy-error, sin nodo nuevo que
+// resolver aparte del ícono ya presente en el DOM. No-op silencioso si el ícono no está
+// presente (defensivo — no debería ocurrir tras mod:9, pero evita null-deref si un chip
+// llega sin el nodo por cualquier motivo no previsto).
 // [PP] mod:19 · autor:Rune · 2026-07-27 UTC-6
 // TKT-202607-161 (parent REQ-202607-053, depends_on TKT-202607-160): rama copy-code de
 // _attachQIncDelegation() — antes agregaba is-copied de forma síncrona sin esperar la
@@ -629,9 +637,14 @@ function _attachQIncDelegation(container) {
       if (code) {
         // TKT-202607-161 AC2/AC3: is-copied solo en éxito, is-copy-error en fallo — antes
         // is-copied se aplicaba de forma incondicional y el fallo quedaba silenciado.
+        const icon = copyBtn.querySelector('.qinc-item-code-chip-icon');
         navigator.clipboard.writeText(code).then(() => {
           copyBtn.classList.add('is-copied');
-          setTimeout(() => copyBtn.classList.remove('is-copied'), 1500);
+          if (icon) icon.classList.replace('ti-copy', 'ti-check');
+          setTimeout(() => {
+            copyBtn.classList.remove('is-copied');
+            if (icon) icon.classList.replace('ti-check', 'ti-copy');
+          }, 1500);
         }).catch(() => {
           copyBtn.classList.add('is-copy-error');
           setTimeout(() => copyBtn.classList.remove('is-copy-error'), 1500);
