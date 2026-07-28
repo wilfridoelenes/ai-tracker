@@ -1,3 +1,30 @@
+// [PP] mod:157 · autor:Rune · 2026-07-27 UTC-6
+// TKT1 (REQ CAEL-0727-01, triggered_by INC-202607-068, Opción B — resolución de causa raíz):
+// _extractBareJsonBlocks() trackeaba profundidad de llaves sobre TODO el texto, incluida la
+// prosa entre bloques CHECKPOINT — un par balanceado suelto en prosa (ej. una mención a
+// "{ref_id, title}", patrón de escritura común en este ecosistema al documentar schema) se
+// extraía como "bloque" propio en cuanto _depth volvía a 0, corrompiendo la extracción del
+// batch completo (JSON.parse falla sobre ese candidato → 0 ítems aplicables, ver INC-202607-068).
+// Fix: nueva función pura _looksLikeJsonObjectStart(text, i) — lookahead schema-aware que, al
+// encontrar '{' en _depth===0, verifica que lo que sigue (tras espacios en blanco) sea una
+// clave entre comillas seguida de ':' (o '}' para objeto vacío) antes de empezar a trackear esa
+// apertura como un candidato real. Si el lookahead falla, la llave se ignora — no incrementa
+// _depth, no toca _start, se comporta como texto literal. AC happy path: prosa con
+// "{ref_id, title}" entre 2 CHECKPOINTs bare → los 2 bloques reales resuelven, la mención en
+// prosa no genera un tercer candidato espurio. AC edge case (llave suelta sin par, ej. una '{'
+// de prosa sin cierre correspondiente): el lookahead la descarta antes de que _depth se
+// incremente, por lo que no absorbe el resto del texto hasta el próximo '}' real — el bloque
+// CHECKPOINT que sigue no ve su _start desplazado. AC regresión: un solo bloque bare sin
+// prosa intermedia sigue resolviendo igual — el '{' inicial de un CHECKPOINT real siempre pasa
+// el lookahead (primera clave siempre entre comillas, ej. "title":). contract_update: no —
+// _extractBareJsonBlocks y _splitCheckpointBlocks conservan firma y tipo de retorno
+// (text) → string[]; _looksLikeJsonObjectStart es interna nueva, sin export, sin consumidores
+// externos. Hallazgo fuera de scope (no bloqueante, registrado para Vera): el header de este
+// archivo vive en la primera línea, antes de los imports (línea ~650) — contradice
+// _pp-strategy §7 ("el header va inmediatamente después del bloque de imports"). Discrepancia
+// preexistente en todos los mods anteriores de este archivo, no introducida por este TKT —
+// se mantiene el patrón ya establecido para no mezclar un cambio estructural fuera de scope
+// con este fix.
 // [PP] mod:156 · autor:Rune · 2026-07-27 UTC-6
 // TKT4 (REQ-202607-054, depends_on TKT-202607-162, origen_disc DISC-202607-051):
 // _splitCheckpointBlocks() ganaba fence-priority absoluta — si el regex de fence matcheaba
@@ -520,11 +547,48 @@ function _looksLikeBareCheckpointJson(text) {
   return _t.startsWith('{') && _t.endsWith('}');
 }
 
+// TKT1 (REQ CAEL-0727-01, triggered_by INC-202607-068): lookahead schema-aware — antes de
+// trackear una '{' en _depth===0 como apertura real de bloque, verifica que lo que sigue (tras
+// espacios en blanco) sea una clave entre comillas seguida de ':' (o '}' de objeto vacío). Un
+// CHECKPOINT real siempre abre con una clave entre comillas (ej. "title": ...) — una llave
+// suelta en prosa (ej. mencionar el objeto {ref_id, title} al documentar schema) casi nunca la
+// sigue de ese patrón exacto, así que se descarta como candidato sin tocar _depth. Función pura,
+// sin efectos laterales, sin export — interna a este módulo, único consumidor es
+// _extractBareJsonBlocks.
+function _looksLikeJsonObjectStart(text, i) {
+  let j = i + 1;
+  while (j < text.length && /\s/.test(text[j])) j++;
+  if (text[j] === '}') return true; // objeto vacío {} — candidato válido
+  if (text[j] !== '"') return false;
+  let k = j + 1;
+  let _escaped = false;
+  while (k < text.length) {
+    const c = text[k];
+    if (_escaped) {
+      _escaped = false;
+    } else if (c === '\\') {
+      _escaped = true;
+    } else if (c === '"') {
+      break;
+    }
+    k++;
+  }
+  if (k >= text.length) return false; // comilla de clave sin cerrar — no es JSON válido
+  let m = k + 1;
+  while (m < text.length && /\s/.test(text[m])) m++;
+  return text[m] === ':';
+}
+
 // TKT-202607-162 (REQ-202607-054): scanner de profundidad de llaves — separa N objetos JSON
 // balanceados de un texto sin fence, ignorando prosa intercalada y sin contar llaves que
 // aparecen dentro de valores string (comillas dobles con escape \"). Función pura, sin efectos
 // laterales, no valida JSON (eso ocurre después, en parseCheckpoint por bloque). Retorna
 // string[] — [] si no hay ningún bloque balanceado completo en el texto.
+// TKT1 (REQ CAEL-0727-01): apertura en _depth===0 pasa por _looksLikeJsonObjectStart() antes de
+// contar — una '{' que no supera el lookahead se ignora completamente (no incrementa _depth, no
+// toca _start), evitando que llaves sueltas de prosa desplacen el offset de bloques reales
+// posteriores. Aperturas anidadas (_depth>0, ya dentro de un candidato validado) no pasan por el
+// lookahead — se cuentan igual que antes, sin cambio de comportamiento ahí.
 function _extractBareJsonBlocks(text) {
   const _blocks = [];
   let _depth = 0;
@@ -552,7 +616,10 @@ function _extractBareJsonBlocks(text) {
     }
 
     if (ch === '{') {
-      if (_depth === 0) _start = i;
+      if (_depth === 0) {
+        if (!_looksLikeJsonObjectStart(text, i)) continue;
+        _start = i;
+      }
       _depth++;
     } else if (ch === '}') {
       if (_depth > 0) {
