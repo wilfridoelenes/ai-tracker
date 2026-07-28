@@ -2611,14 +2611,14 @@
 }
 
 /* TKT2 (REQ CAEL-0721-01, mod:119) → corregido en TKT3 (REQ-202607-010): #qbacklog-panel-body
-   ya no vive dentro de .bl-header-unified — el stats-bar de Q-Backlog ahora es
-   #qbacklog-stats-bar, hijo directo del wrapper (ver index.html). Mismo criterio de
-   neutralización de padding que .stats-bar arriba — sin esto, .qinc-stats-bar traería su
-   padding base (6px 0, §Stats bar y search Q-INC), pensado para vivir suelto en el tab
-   Incidentes, no dentro de un wrapper con su propio padding lateral. */
-.bl-header-unified > #qbacklog-stats-bar {
-  padding: 4px 10px 6px;
-}
+   ya no vive dentro de .bl-header-unified — el stats-bar de Q-Backlog es #qbacklog-stats-bar,
+   hijo directo del wrapper (ver index.html). REQ homologación visual Q-Backlog/Q-DISC: el shell
+   estático pasó de class="qinc-stats-bar" a class="stats-bar" (mismo patrón que
+   #stats-bar/#historico-stats-bar) — la regla por-ID que vivía aquí (padding: 4px 10px 6px)
+   quedó duplicada byte a byte con `.bl-header-unified > .stats-bar` de arriba y se retira. La
+   fila interna real (.stats-row--compact, con chips .stat-type-chip/.stat-pri-chip
+   interactivos sin cambio de comportamiento) la inyecta _renderZonePanel() vía opts.statsBarId
+   — locus-backlog-zone-engine.js. */
 
 /* TKT3 (REQ-202607-010, design_intent: QBacklog-header-unified-homologacion): contenedor de la
    lista/empty-state de Q-Backlog — vive fuera de .bl-header-unified (no sticky), cierra
@@ -5685,81 +5685,38 @@
   border-color: color-mix(in srgb, var(--amber) 28%, transparent);
 }
 
-/* Hallazgo fuera de scope resuelto en sesión (dueño presente + patch + sin bifurcación de
-   founder): aclara que #qdisc-stats-block es universo global (discovery+promoted+descartado),
-   distinto del universo de #qdisc-panel-body (solo discovery). Misma tipografía que
-   .stat-detail-label — reuso de patrón, no variable nueva. */
+/* REQ homologación visual Q-Backlog/Q-DISC (TKT pendiente-ID) — RETIRADO: .qdisc-stats-block/
+   .qdisc-stat-cell (grid de 4 celdas con íconos, design_intent: qdisc_stats_block_v2, mod:90/91)
+   migró a .stats-row--compact dentro de .bl-header-unified, mismo patrón que Backlog Vista
+   Lista/Histórico (mod:33) — decisión confirmada por el founder de convertir en vez de mantener
+   como excepción consciente. Los 4 IDs de conteo (#qdisc-stat-total/-discovery/-promoted/
+   -discarded) NO cambiaron — _renderQDiscStatsBlock() (locus-backlog-qdisc.js) sigue
+   rellenándolos igual, solo cambia el markup estático que los envuelve (ver index.html). Discovery
+   y Promoted reusan los MISMOS tokens de color que tenían las celdas retiradas — ver
+   .stat-type-chip--qdisc-discovery/--promoted abajo, sin paleta nueva. Descartado sigue neutro
+   a propósito (decisión ya vigente: descartar una idea es deliberado, no error — nunca rojo). */
 .qdisc-stats-caption {
   display: block;
   font-size: var(--text-2xs);
   color: var(--text3);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  margin: 4px 0 0 12px;
 }
 
-/* TKT-[pendiente-ID] (Nova — REQ-[pendiente-ID], design_intent: qdisc_stats_block_v2):
-   bloque de 4 métricas por status — Total/Discovery/Promoted/Descartado. Neutro por default;
-   Discovery reusa el tratamiento púrpura ya establecido en .stat-type-chip.tc-DISC, Promoted
-   el verde de .stat-type-chip.tc-TKT — mismos tokens, sin paleta nueva. Descartado se queda
-   neutro a propósito: descartar una idea es una decisión deliberada, no un error — nunca rojo. */
-.qdisc-stats-block {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-  gap: 8px;
-  margin: 8px 0 0 12px;
-}
-
-.qdisc-stat-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 6px 10px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--surface2);
-}
-
-.qdisc-stat-cell--discovery {
+/* Discovery/Promoted en la fila compacta — mismos valores de color que .qdisc-stat-cell--discovery/
+   --promoted (retirados arriba): azul rgb(56 189 248) / verde rgb(46 204 120). NO reusan
+   .stat-type-chip.tc-DISC (púrpura) a propósito — ese selector quedó desalineado del swap
+   DISC→azul de mod:55 (gap ya registrado en _Locus-css-ref, fuera de scope corregirlo aquí; usarlo
+   habría introducido un choque de color dentro del mismo panel que se está homologando). */
+.stat-type-chip--qdisc-discovery {
   background: rgb(56 189 248 / 12%);
   border-color: rgb(56 189 248 / 40%);
+  color: var(--blue);
 }
 
-.qdisc-stat-cell--promoted {
+.stat-type-chip--qdisc-promoted {
   background: rgb(46 204 120 / 12%);
   border-color: rgb(46 204 120 / 40%);
-}
-
-.qdisc-stat-label {
-  font-size: var(--text-2xs);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text2);
-}
-
-.qdisc-stat-cell--discovery .qdisc-stat-label {
-  color: var(--blue);
-}
-
-.qdisc-stat-cell--promoted .qdisc-stat-label {
-  color: var(--green-text);
-}
-
-.qdisc-stat-n {
-  font-size: var(--text-lg);
-  font-weight: 700;
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  color: var(--text);
-}
-
-.qdisc-stat-cell--discovery .qdisc-stat-n {
-  color: var(--blue);
-}
-
-.qdisc-stat-cell--promoted .qdisc-stat-n {
   color: var(--green-text);
 }
 
@@ -6059,55 +6016,17 @@
   opacity: 0.85;
 }
 
-/* ══ Mejora visual DISC (aprobada por founder) — TKT-[pendiente-ID] (REQ-[pendiente-ID]) ══
-   Seis piezas, todas sobre tokens ya existentes (mismo principio que TKT-202607-014:
-   consistencia sobre novedad). Detalle de qué implementa cada regla en su comentario propio. */
-
-/* ── 1) Icono por celda de stats block — .qdisc-stat-icon ── */
-/* Ancla visual junto al color-coding ya existente — refuerza sin duplicar información
-   (mismo tamaño que el resto de metadatos compactos del bloque). */
-.qdisc-stat-icon {
-  font-size: var(--text-xs);
-  line-height: 1;
-  margin-right: 2px;
-}
-
-/* ── 2) Barra de proporción — #qdisc-proportion-bar (3 segmentos) ── */
-/* Franja delgada bajo el stats block: traduce los 4 números absolutos a una proporción
-   de un vistazo. Ancho de cada segmento vía custom property --w (CSS Purity — ver
-   _renderQDiscProportionBar, locus-backlog-qdisc.js). Track neutro (surface2) para que
-   un total en 0 se vea como "vacío", no como error. */
-.qdisc-proportion-bar {
-  display: flex;
-  width: calc(100% - 12px);
-  height: 5px;
-  margin: 6px 0 0 12px;
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-}
-
-.qdisc-proportion-seg {
-  display: block;
-  height: 100%;
-  width: var(--w, 0%);
-  transition: width 0.25s ease;
-}
-
-.qdisc-proportion-seg--discovery {
-  background: var(--purple);
-}
-
-.qdisc-proportion-seg--promoted {
-  background: var(--green);
-}
-
-.qdisc-proportion-seg--discarded {
-  background: var(--border2);
-}
-
-/* ── 3) Barra de progreso en limit indicator — .qdisc-limit-bar ── */
+/* ══ REQ homologación visual Q-Backlog/Q-DISC — RETIRADO: .qdisc-stat-icon y
+   .qdisc-proportion-bar (piezas 1 y 2 de "Mejora visual DISC", aprobadas por founder en su
+   momento) quedaron sin contenedor tras retirar el grid .qdisc-stats-block arriba — ninguna
+   de las dos tiene equivalente en el estándar .stats-row--compact (Backlog/Histórico no llevan
+   ícono por chip ni franja de proporción). Retiro explícito, no huérfano: _renderQDiscProportionBar()
+   queda comentada (no borrada) en locus-backlog-qdisc.js — restaurable como fila aparte bajo
+   .stats-row--compact si el founder la quiere de vuelta. Nota aparte detectada en el proceso:
+   .qdisc-proportion-seg--discovery usaba var(--purple) — mismo gap de mod:55 (DISC→azul) que
+   .stat-type-chip.tc-DISC, no corregido aquí porque toda la regla se retira. ══ */
+/* ── Barra de progreso en limit indicator — .qdisc-limit-bar (pieza 3 de "Mejora visual
+   DISC" — piezas 1/2 retiradas arriba, ver nota de retiro) ── */
 /* Complementa el texto "N / 15" ya existente — no lo reemplaza. Mismo umbral de color
    que .qdisc-limit--warn, aplicado al fill vía currentColor (hereda del texto, sin
    duplicar el color de advertencia en una segunda variable). */

@@ -406,7 +406,40 @@ export function _renderZonePanel(opts) {
       : '';
   }
 
-  const _statsBarHtml = `
+  // Homologación de identidad visual (REQ Locus — estándar .stats-row--compact, ver
+  // .bl-header-unified > .stats-bar en locus-backlog.css y precedente de Histórico mod:33):
+  // con statsBarId (caso qbacklog — nodo propio dentro de .bl-header-unified sticky, ver
+  // index.html #qbacklog-stats-bar), el stats-bar adopta la misma fila compacta que Backlog
+  // Vista Lista/Histórico — chip "Total" en .stat-compact-item--primary + separadores
+  // .stat-compact-sep, con los MISMOS chips interactivos de antes (.stat-type-chip/
+  // .stat-pri-chip, data-zp-action sin cambio — la delegación no depende de la clase del
+  // wrapper). Sin statsBarId (qdisc — embebido inline dentro de #qdisc-panel-body, sin pasar
+  // por .bl-header-unified, ver comentario de statsBarEl más arriba), preserva el markup
+  // .qinc-stats-bar exacto de siempre — ese mini-bar de prioridad+área es un filtro interno
+  // del bloque Discovery, no el header del panel (ese es #qdisc-stats-block, fuera de este
+  // archivo) — sin cambio de scope aquí, decisión pendiente por separado.
+  const _statsBarHtml = statsBarEl ? `
+    <div class="stats-row stats-row--compact">
+      <div class="stat-compact-counts">
+        <div class="stat-compact-item stat-compact-item--primary">
+          <span class="stat-compact-n">${activeZoneItems.length}</span>
+          <span class="stat-compact-l">total</span>
+        </div>
+      </div>
+      ${_typeChipDefs.length ? `<div class="stat-compact-sep"></div>
+      <div class="stat-compact-types">
+        ${_typeChipDefs.map(([t, label]) =>
+          `<button class="stat-type-chip tc-${t}${_activeTypesZ0.has(t) ? ' active' : ''}" data-zp-action="zp-type" data-zp-type="${t}" title="Filtrar por tipo ${t}"><span class="tc-count">${_countByTypeZ[t] || 0}</span><span class="tc-label">${label}</span></button>`
+        ).join('')}
+      </div>` : ''}
+      <div class="stat-compact-sep"></div>
+      <div class="stat-compact-priority">
+        <button class="stat-pri-chip pri-high${_activePriorityZ0.has('high') ? ' active' : ''}" data-zp-action="zp-priority" data-zp-priority="high" title="Filtrar prioridad alta"><span class="spc-n">${_countByPriZ.high}</span> Alto</button>
+        <button class="stat-pri-chip pri-medium${_activePriorityZ0.has('medium') ? ' active' : ''}" data-zp-action="zp-priority" data-zp-priority="medium" title="Filtrar prioridad media"><span class="spc-n">${_countByPriZ.medium}</span> Med</button>
+        <button class="stat-pri-chip pri-low${_activePriorityZ0.has('low') ? ' active' : ''}" data-zp-action="zp-priority" data-zp-priority="low" title="Filtrar prioridad baja"><span class="spc-n">${_countByPriZ.low}</span> Bajo</button>
+      </div>
+      ${_areaChipsHtml}
+    </div>` : `
     <div class="qinc-stats-bar" id="${bodyId}-stats-bar">
       ${opts.showTypeChips !== false && _typeChipDefs.length ? `<div class="qinc-stats-types">
         ${_typeChipDefs.map(([t, label]) =>

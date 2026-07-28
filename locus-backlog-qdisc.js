@@ -27,7 +27,7 @@
 //   pendiente, mismo patrón de shell estático que _renderQDiscLimitIndicator (rellena/vacía un
 //   nodo que ya existe en index.html, nunca lo crea ni destruye).
 
-import { _isQDiscActive, _isQDisc, getItems, QDISC_ACTIVE_LIMIT } from './locus-backlog-core.js';
+import { _isQDiscActive, _isQDisc, getItems, QDISC_ACTIVE_LIMIT, _nsGetQuery, _nsSetQuery } from './locus-backlog-core.js';
 import { _renderZonePanel, _zoneStaleness } from './locus-backlog-zone-engine.js';
 // TKT2 (REQ CAEL-01): buildBacklogItem + delegation reusados directamente — mismo import que
 // zone-engine.js usa internamente para el bloque Discovery. Promoted/Descartadas no pasan por
@@ -74,23 +74,24 @@ function _renderQDiscStatsBlock() {
   discoveryEl.textContent = discoveryCount;
   promotedEl.textContent = promotedCount;
   discardedEl.textContent = discardedCount;
-  _renderQDiscProportionBar(discItems.length, discoveryCount, promotedCount, discardedCount);
+  // REQ homologación visual Q-Backlog/Q-DISC: llamada retirada — #qdisc-proportion-bar ya no
+  // existe en el DOM (index.html), sin contenedor donde pintar. Función queda comentada abajo,
+  // no borrada — restaurable como fila aparte bajo .stats-row--compact si el founder la pide.
 }
 
-// Mejora visual DISC (aprobada por founder): franja de proporción bajo el stats block —
-// mismo universo y mismos tres contadores ya calculados por _renderQDiscStatsBlock, solo
-// se traducen a % de ancho. Sin DISCs (total 0) los tres segmentos quedan en 0% — la franja
-// no se oculta, queda visualmente vacía (consistente con el stats block, que nunca se oculta).
-function _renderQDiscProportionBar(total, discoveryCount, promotedCount, discardedCount) {
-  const discoveryEl = document.getElementById('qdisc-prop-discovery');
-  const promotedEl = document.getElementById('qdisc-prop-promoted');
-  const discardedEl = document.getElementById('qdisc-prop-discarded');
-  if (!discoveryEl || !promotedEl || !discardedEl) return;
-  const pct = n => total > 0 ? (n / total * 100).toFixed(2) : 0;
-  discoveryEl.style.setProperty('--w', pct(discoveryCount) + '%');
-  promotedEl.style.setProperty('--w', pct(promotedCount) + '%');
-  discardedEl.style.setProperty('--w', pct(discardedCount) + '%');
-}
+// RETIRADA (REQ homologación visual Q-Backlog/Q-DISC) — sin caller activo, #qdisc-proportion-bar
+// ya no existe en index.html. Se conserva comentada (no se borra el archivo) para restauración
+// rápida si el founder decide traer de vuelta la franja de proporción.
+// function _renderQDiscProportionBar(total, discoveryCount, promotedCount, discardedCount) {
+//   const discoveryEl = document.getElementById('qdisc-prop-discovery');
+//   const promotedEl = document.getElementById('qdisc-prop-promoted');
+//   const discardedEl = document.getElementById('qdisc-prop-discarded');
+//   if (!discoveryEl || !promotedEl || !discardedEl) return;
+//   const pct = n => total > 0 ? (n / total * 100).toFixed(2) : 0;
+//   discoveryEl.style.setProperty('--w', pct(discoveryCount) + '%');
+//   promotedEl.style.setProperty('--w', pct(promotedCount) + '%');
+//   discardedEl.style.setProperty('--w', pct(discardedCount) + '%');
+// }
 
 // TKT-202607-013 (TKT5 REQ-202607-006): rellena #qdisc-grooming-banner (shell estático, ver
 // index.html) con el aviso de grooming pendiente. Universo idéntico a _isQDiscActive — mismo
@@ -133,11 +134,22 @@ function _renderQDiscDiscoveryCount() {
 // locus-backlog.css). Delegación de eventos por contenedor — mismo patrón que
 // _renderZonePanel (zone-engine.js línea ~132), necesario porque estos dos contenedores no
 // pasan por ese motor.
+// REQ nuevo toolbar Q-DISC (buscar + colapsar todo): mismo criterio de búsqueda que
+// _renderZonePanel usa para Discovery (zone-engine.js ~L518-532) — código/título/área,
+// case-insensitive. El contador (countEl) sigue reflejando el universo YA filtrado por
+// búsqueda (mismo criterio que _renderQDiscDiscoveryCount vía _renderZonePanel) — con
+// búsqueda activa y 0 matches, el header muestra "0" en vez de esconderse (AC-2 ya vigente
+// para el estado vacío de estos bloques, sin cambio).
 function _renderQDiscStatusGroup(status, containerId, countId) {
   const container = document.getElementById(containerId);
   const countEl = document.getElementById(countId);
   if (!container || !countEl) return;
-  const items = getItems().filter(i => _isQDisc(i) && i.status === status);
+  const _q = (_nsGetQuery('qdisc') || '').trim().toLowerCase();
+  const items = getItems().filter(i => {
+    if (!_isQDisc(i) || i.status !== status) return false;
+    if (!_q) return true;
+    return i.code.toLowerCase().includes(_q) || (i.title || '').toLowerCase().includes(_q) || (i.area || '').toLowerCase().includes(_q);
+  });
   countEl.textContent = items.length;
   container.innerHTML = items.map(i => buildBacklogItem(i, {})).join('');
   _resetBacklogListDelegation(containerId);
@@ -211,6 +223,49 @@ function _initQDiscStatusToggles() {
   });
 }
 _initQDiscStatusToggles();
+
+// REQ nuevo toolbar Q-DISC (buscar + colapsar todo, homologado con Backlog/Histórico —
+// #qdisc-toolbar es shell estático en index.html, dentro de #qdisc-header-unified, nunca se
+// recrea — wiring una sola vez al cargar el módulo, mismo criterio que _initQDiscStatusToggles
+// arriba, sin necesidad de guard _wired por render (a diferencia de _initHistoricoToolbar, que
+// si necesita el guard porque su toolbar SÍ se recrea en cada renderHistoricoPanel).
+function _initQDiscToolbar() {
+  const collapseBtn = document.getElementById('qdisc-collapse-all-btn');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', () => {
+      const groups = document.querySelectorAll('#sspanel-qdisc .qdisc-status-group');
+      if (!groups.length) return;
+      const anyExpanded = Array.from(groups).some(g => !g.classList.contains('is-collapsed'));
+      groups.forEach(group => {
+        group.classList.toggle('is-collapsed', anyExpanded);
+        const header = group.querySelector('.qdisc-status-header');
+        if (header) header.setAttribute('aria-expanded', String(!anyExpanded));
+      });
+      collapseBtn.setAttribute('aria-pressed', String(anyExpanded));
+      const label = collapseBtn.querySelector('.bl-collapse-btn-label');
+      if (label) label.textContent = anyExpanded ? 'Expandir todo' : 'Colapsar todo';
+    });
+  }
+
+  const searchInput = document.getElementById('qdisc-search-input');
+  const searchClear = document.getElementById('qdisc-search-clear');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      _nsSetQuery('qdisc', searchInput.value);
+      renderQDiscPanel();
+    });
+  }
+  if (searchClear) {
+    searchClear.addEventListener('click', () => {
+      if (!searchInput) return;
+      searchInput.value = '';
+      _nsSetQuery('qdisc', '');
+      renderQDiscPanel();
+      searchInput.focus();
+    });
+  }
+}
+_initQDiscToolbar();
 
 // B-202606-052 → TKT-C1: listener sub-tab Discoveries (Q-DISC) — reemplaza al listener único
 // sstab-btn-icebox.

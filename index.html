@@ -652,7 +652,7 @@
          que no declara statsBarId y no pasa por este wrapper. -->
     <div class="session-subpanel" id="sspanel-qbacklog">
       <div class="bl-header-unified" id="qbacklog-header-unified">
-        <div class="qinc-stats-bar" id="qbacklog-stats-bar"></div>
+        <div class="stats-bar" id="qbacklog-stats-bar"></div>
       </div>
       <div class="bl-zone-body" id="qbacklog-zone-body">
         <div id="qbacklog-panel-body"></div>
@@ -672,45 +672,60 @@
          alcanza status 'done' (__BR-Ecosystem §5), el shell quedó muerto desde REQ congruencia-qdisc.
          Ver locus-backlog-qdisc.js / locus-backlog-zone-engine.js para el resto del cleanup. -->
     <div class="session-subpanel" id="sspanel-qdisc">
-      <!-- TKT-[pendiente-ID] (REQ-[pendiente-ID]): shell estático del bloque de estadísticas
-           por status — siempre presente en el DOM, 4 celdas fijas (Total/Discovery/Promoted/
-           Descartado), contenido vía _renderQDiscStatsBlock() en locus-backlog-qdisc.js. Nunca
-           se oculta, a diferencia de #qdisc-grooming-banner — con 0 DISCs muestra 0 en las 4. -->
-      <div class="qdisc-stats-block" id="qdisc-stats-block">
-        <div class="qdisc-stat-cell">
-          <span class="qdisc-stat-icon" aria-hidden="true">📊</span>
-          <span class="qdisc-stat-label">Total</span>
-          <span class="qdisc-stat-n" id="qdisc-stat-total">0</span>
+      <!-- REQ homologación visual Q-Backlog/Q-DISC (TKT pendiente-ID): .qdisc-stats-block (grid
+           de 4 celdas con íconos, design_intent qdisc_stats_block_v2) + .qdisc-proportion-bar
+           RETIRADOS — decisión confirmada del founder de convertir a .stats-row--compact dentro
+           de .bl-header-unified, mismo patrón que #bl-header-unified (Vista Lista, L578) y
+           #historico-header-unified (mod:33), en vez de mantenerlos como excepción consciente.
+           Los 4 IDs de conteo (#qdisc-stat-total/-discovery/-promoted/-discarded) se conservan
+           sin cambio — _renderQDiscStatsBlock() (locus-backlog-qdisc.js) sigue rellenándolos
+           igual, solo cambia el markup estático que los envuelve. Discovery/Promoted usan los
+           modificadores nuevos .stat-type-chip--qdisc-discovery/--promoted (mismos tokens de
+           color que las celdas retiradas, ver locus-backlog.css) — no .tc-DISC (púrpura,
+           desalineado del swap DISC→azul de mod:55, gap ya registrado, sin corregir aquí).
+           .qdisc-stats-caption sin cambio de contenido, solo de contexto (ahora inline en la
+           fila compacta). Toolbar (#qdisc-toolbar) nuevo — antes Q-DISC no tenía buscar/
+           colapsar-todo; reusa .bl-toolbar/.bl-collapse-btn/.fbar-search-wrap/.fbar-search-input/
+           .fbar-search-clear TAL CUAL (mismas clases globales que Backlog/Histórico) — sin CSS
+           nuevo. Wiring en locus-backlog-qdisc.js (_initQDiscToolbar, análogo a
+           _initHistoricoToolbar). -->
+      <div class="bl-header-unified" id="qdisc-header-unified">
+        <div class="stats-bar" id="qdisc-stats-bar">
+          <div class="stats-row stats-row--compact">
+            <div class="stat-compact-counts">
+              <div class="stat-compact-item stat-compact-item--primary">
+                <span class="stat-compact-n" id="qdisc-stat-total">0</span>
+                <span class="stat-compact-l">total</span>
+              </div>
+            </div>
+            <div class="stat-compact-sep"></div>
+            <div class="stat-compact-types">
+              <span class="stat-type-chip stat-type-chip--static stat-type-chip--qdisc-discovery"><span class="tc-count" id="qdisc-stat-discovery">0</span><span class="tc-label">Discovery</span></span>
+              <span class="stat-type-chip stat-type-chip--static stat-type-chip--qdisc-promoted"><span class="tc-count" id="qdisc-stat-promoted">0</span><span class="tc-label">Promoted</span></span>
+              <span class="stat-type-chip stat-type-chip--static"><span class="tc-count" id="qdisc-stat-discarded">0</span><span class="tc-label">Descartado</span></span>
+            </div>
+            <div class="stat-compact-sep"></div>
+            <!-- Hallazgo fuera de scope resuelto en sesión (dueño presente + nivel patch + sin
+                 bifurcación de founder): stats globales vs lista filtrada a discovery — caption
+                 estático, sin dato dinámico, no requiere JS. -->
+            <span class="qdisc-stats-caption">Todo el proyecto — incluye promovidas y descartadas</span>
+          </div>
         </div>
-        <div class="qdisc-stat-cell qdisc-stat-cell--discovery">
-          <span class="qdisc-stat-icon" aria-hidden="true">💡</span>
-          <span class="qdisc-stat-label">Discovery</span>
-          <span class="qdisc-stat-n" id="qdisc-stat-discovery">0</span>
-        </div>
-        <div class="qdisc-stat-cell qdisc-stat-cell--promoted">
-          <span class="qdisc-stat-icon" aria-hidden="true">⬆</span>
-          <span class="qdisc-stat-label">Promoted</span>
-          <span class="qdisc-stat-n" id="qdisc-stat-promoted">0</span>
-        </div>
-        <div class="qdisc-stat-cell">
-          <span class="qdisc-stat-icon" aria-hidden="true">🗑</span>
-          <span class="qdisc-stat-label">Descartado</span>
-          <span class="qdisc-stat-n" id="qdisc-stat-discarded">0</span>
+        <div class="bl-header-sep"></div>
+        <div class="bl-toolbar" id="qdisc-toolbar">
+          <div class="bl-toolbar-group">
+            <button class="bl-collapse-btn" id="qdisc-collapse-all-btn" title="Colapsar / expandir los 3 bloques" aria-pressed="false">
+              <span class="bl-collapse-btn-icon">⊟</span>
+              <span class="bl-collapse-btn-label">Colapsar todo</span>
+            </button>
+          </div>
+          <div class="bl-toolbar-spacer"></div>
+          <div class="fbar-search-wrap">
+            <input class="fbar-search-input" id="qdisc-search-input" type="text" placeholder="🔍 Buscar en Discoveries…" autocomplete="off">
+            <button class="fbar-search-clear" id="qdisc-search-clear" title="Limpiar búsqueda">✕</button>
+          </div>
         </div>
       </div>
-      <!-- TKT-[pendiente-ID] (mejora visual DISC): shell estático de la barra de proporción —
-           siempre presente, 3 segmentos fijos (discovery/promoted/descartado), ancho vía
-           custom properties (--w-*) escritas por _renderQDiscStatsBlock() — CSS Purity: solo
-           custom properties en el atributo style, ninguna propiedad de presentación literal. -->
-      <div class="qdisc-proportion-bar" id="qdisc-proportion-bar" aria-hidden="true">
-        <span class="qdisc-proportion-seg qdisc-proportion-seg--discovery" id="qdisc-prop-discovery"></span>
-        <span class="qdisc-proportion-seg qdisc-proportion-seg--promoted" id="qdisc-prop-promoted"></span>
-        <span class="qdisc-proportion-seg qdisc-proportion-seg--discarded" id="qdisc-prop-discarded"></span>
-      </div>
-      <!-- Hallazgo fuera de scope resuelto en sesión (dueño presente + nivel patch + sin
-           bifurcación de founder): stats globales vs lista filtrada a discovery — caption
-           estático, sin dato dinámico, no requiere JS. -->
-      <span class="qdisc-stats-caption">Todo el proyecto — incluye promovidas y descartadas</span>
       <!-- TKT-202607-010 (TKT2 REQ-202607-006): shell estático del indicador de límite
            (15 activos máx) — siempre presente en el DOM, contenido/color vía
            renderQDiscPanel() en locus-backlog-qdisc.js. -->

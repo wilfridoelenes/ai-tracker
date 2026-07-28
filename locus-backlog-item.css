@@ -1,3 +1,16 @@
+/* [PP] mod:79 · autor:Nova · 2026-07-27 UTC-6 */
+/* TKT-202607-171 (REQ-202607-058, ref_id CAEL-0727-03): familia .mdiff-ckpt-category — 7
+   badges de identidad visual por categoría de CHECKPOINT (borrador/avalado/entrega/cierre/
+   liberado/incidente/lite), consumidos por TKT3 (locus-backlog-merge.js) sobre el resultado de
+   la función de clasificación de TKT1. Cero hex nuevo — reuso exclusivo de --text2/--surface2
+   (neutral), --accent/--accent-text, --blue/--blue-text, --green/--green-text, --red-text/
+   --bg-danger-subtle, --purple/--purple-text, --border, --radius-pill, --text-xs — todos ya
+   verificados WCAG AA en este mismo archivo (.mdiff-block-badge, mod:65-77). 'liberado' reusa
+   el verde de 'cierre' — AC4 exige distinguirlo sin introducir un octavo color; la
+   diferenciación es .mdiff-narrative-section--liberado (borde 2px, abajo) + ícono/label propio
+   en JS, no el color del badge. TKT1 (clasificación) quedó bloqueado por Rune — ambigüedad de
+   arquitectura, ver CHECKPOINT. Este TKT no depende de TKT1 (contract: solo declara clases,
+   no consume la función) — se entrega igual. */
 /* [PP] mod:78 · autor:Nova · 2026-07-26 UTC-6 */
 /* TKT-202607-146 (REQ-202607-046, depends_on: TKT-202607-144) — Opción A (bifurcación
    resuelta por Cael, confirmada por el founder): #merge-diff-overlay.has-diff se retira
@@ -4565,3 +4578,64 @@ body {
   border-color: color-mix(in srgb, var(--red) 28%, transparent);
 }
 /* ══ END mdiff-block-badge ══ */
+
+/* ══ mdiff-ckpt-category — TKT-202607-171 (REQ-202607-058) ══ */
+/* Badge de categoría de CHECKPOINT — 7 variantes según qué hace el checkpoint. Consumido por
+   TKT3 sobre el resultado de la función de clasificación de TKT1 (locus-backlog-merge.js). */
+.mdiff-ckpt-category {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.mdiff-ckpt-category--borrador {
+  background: var(--surface2);
+  color: var(--text2);
+  border-style: dashed;
+  border-color: var(--border);
+}
+
+.mdiff-ckpt-category--avalado {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent-text);
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.mdiff-ckpt-category--entrega {
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
+  color: var(--blue-text);
+  border-color: color-mix(in srgb, var(--blue) 28%, transparent);
+}
+
+.mdiff-ckpt-category--cierre,
+.mdiff-ckpt-category--liberado {
+  background: color-mix(in srgb, var(--green) 10%, transparent);
+  color: var(--green-text);
+  border-color: color-mix(in srgb, var(--green) 28%, transparent);
+}
+
+.mdiff-ckpt-category--incidente {
+  background: var(--bg-danger-subtle);
+  color: var(--red-text);
+  border-color: color-mix(in srgb, var(--red) 28%, transparent);
+}
+
+.mdiff-ckpt-category--lite {
+  background: color-mix(in srgb, var(--purple) 10%, transparent);
+  color: var(--purple-text);
+  border-color: color-mix(in srgb, var(--purple) 28%, transparent);
+}
+
+/* Borde de card reforzado — única diferenciación visual de 'liberado' frente a 'cierre' (mismo
+   verde, AC4 de TKT2). Aplicado por TKT3 sobre .mdiff-narrative-section de la tarjeta cuando la
+   categoría calculada es 'liberado'. */
+.mdiff-narrative-section--liberado {
+  border: 2px solid var(--green);
+}
+/* ══ END mdiff-ckpt-category ══ */

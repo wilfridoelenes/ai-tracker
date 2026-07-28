@@ -1253,6 +1253,14 @@ export function parseCheckpoint(text) {
 // AC2: ckpt sin resumen (o ckpt null) → resumen: '' — nunca undefined, sin excepción lanzada.
 // AC3: ckpt._rawSprintProposal presente (no-null) → el objeto retornado no declara ninguna clave
 //   sprintProposal, ni siquiera undefined.
+// TKT1 (REQ CAEL-0727-01, ref_id CAEL-0727-02 · origen DISC-202607-055): campo `inlineFixes`
+//   agregado — mismo patrón que docUpdates/finnObservations/finnRelease, leyendo ckpt._inlineFixes
+//   (ya poblado por parseCheckpoint() para todo bloque, single o batch — sin cambio en la
+//   extracción previa a este TKT). Antes de este campo, _extractCkptMeta() era el único de los
+//   cuatro campos narrativos con dato real en el schema JSON (BR-Ecosystem §8) que no llegaba a
+//   `metas` en absoluto — no solo se perdía en el flujo batch al aplicar (ver _onApplyBatch más
+//   abajo), no existía ningún punto donde se propagara para batch. contract_update: sí — ver
+//   contract_detail del TKT en el CHECKPOINT de entrega.
 function _extractCkptMeta(ckpt) {
   const _c = ckpt || {};
   return {
@@ -1264,6 +1272,7 @@ function _extractCkptMeta(ckpt) {
     docUpdates:       _c._isJsonFormat ? (_c._rawDocUpdates || [])        : [],
     finnObservations: _c._isJsonFormat ? (_c._rawFinnObservations || null) : null,
     finnRelease:      _c._isJsonFormat ? (_c._rawFinnRelease || null)      : null,
+    inlineFixes:      _c._isJsonFormat ? (_c._inlineFixes || [])          : [], // TKT1 (REQ CAEL-0727-01 · ref_id CAEL-0727-02)
     draft:            _c.draft === true,
     draftRaw:         _c.draftRaw,
     rol:              _c.rol    || '',
@@ -2582,6 +2591,49 @@ export async function _processIngestBatch() {
       (metas || []).forEach(m => { if (m && m.idx !== undefined) _roleByIdx.set(m.idx, m.rol || ''); });
       applyPatchesFromTG(patchItems, syntheticSessId, { slugMap: _batchMergeResult.slugMap, refIdTitleMap: _batchMergeResult.refIdTitleMap, roleByIdx: _roleByIdx });
     }
+
+    // TKT1 (REQ CAEL-0727-01, ref_id CAEL-0727-02 · origen DISC-202607-055): registrar
+    // doc_updates/inline_fix/finn_release de cada bloque del batch al momento de aplicar —
+    // antes de este TKT, `metas` (poblado por _resolveCheckpointBatch desde REQ CAEL-0718-01)
+    // llegaba a showMergeDiffPanel (más abajo, para el preview del DIFF) pero ninguno de los
+    // tres campos sobrevivía hasta este punto — se perdían en silencio al confirmar, mismo
+    // síntoma que el flujo single (_doApplyMergeAndFinish, locus-session-save.js) no tiene.
+    // doc_updates: registrado vía processDocUpdate() por entrada — mismo mecanismo que el flujo
+    // single usa para su propio parsed.docUpdates. inline_fix: agregado a showCheckpointPanel()
+    // para visibilidad al founder — mismo panel que usa el flujo single ("Locus lo indexa para
+    // trazabilidad", __BR-Core §7); el batch no crea un newSess por bloque, así que este panel es
+    // el único punto de indexación disponible aquí, no una sesión individual. finn_release: no
+    // gana mecanismo de persistencia nuevo en este TKT — su tarjeta en el DIFF panel depende de
+    // que showMergeDiffPanel (locus-backlog-merge.js) lea metas[i].finnRelease, wireado desde
+    // REQ CAEL-0718-01/TKT-078 pero no verificado en esta sesión (archivo no adjunto, fuera de
+    // `archivos` de este TKT) — se cuenta igual para el toast de conteo, independiente de si ese
+    // archivo ya lo renderiza o no.
+    let _docUpdatesApplied = 0;
+    const _allInlineFixes = [];
+    let _finnReleaseCount = 0;
+    (metas || []).forEach(m => {
+      if (!m) return;
+      const _blockTitle = m.titulo || '';
+      (m.docUpdates || []).forEach(update => {
+        const { conflicto, msg } = processDocUpdate(update, _blockTitle);
+        if (conflicto && msg) showToast('warn', msg);
+        _docUpdatesApplied++;
+      });
+      if (Array.isArray(m.inlineFixes) && m.inlineFixes.length) _allInlineFixes.push(...m.inlineFixes);
+      if (m.finnRelease) _finnReleaseCount++;
+    });
+    if (_allInlineFixes.length) {
+      showCheckpointPanel({ ...(_batchMergeResult || {}), inlineFixes: _allInlineFixes });
+    }
+    const _narrativeTotal = _docUpdatesApplied + _allInlineFixes.length + _finnReleaseCount;
+    if (_narrativeTotal) {
+      const _parts = [];
+      if (_docUpdatesApplied)     _parts.push(`${_docUpdatesApplied} doc_update${_docUpdatesApplied !== 1 ? 's' : ''}`);
+      if (_allInlineFixes.length) _parts.push(`${_allInlineFixes.length} inline_fix${_allInlineFixes.length !== 1 ? 'es' : ''}`);
+      if (_finnReleaseCount)      _parts.push(`${_finnReleaseCount} finn_release`);
+      showToast('info', `${_parts.join(' · ')} registrado${_narrativeTotal !== 1 ? 's' : ''} del batch`);
+    }
+
     renderBacklogList();
     renderStats();
     window.dispatchEvent(new CustomEvent('shell:render-tracker'));
