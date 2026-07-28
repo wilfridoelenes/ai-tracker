@@ -1,3 +1,30 @@
+// [PP] mod:155 · autor:Rune · 2026-07-27 UTC-6
+// TKT-202607-163 (REQ-202607-054, depends_on TKT-202607-162): verificación — sin refactor.
+// AC1 pedía confirmar si _resolveCheckpointBatch()/_processIngestBatch() ya consumen
+// _splitCheckpointBlocks() como fuente única o duplican criterio propio de detección de
+// bloques (mismo patrón de divergencia que causó INC-202607-066). Verificado contra el cuerpo
+// real de ambas funciones: _processIngestBatch() llama _splitCheckpointBlocks(ta.value) para
+// obtener rawBlocks (línea ~2384) y pasa ese array ya resuelto a _resolveCheckpointBatch(blocks,
+// sessionId) — esta última no vuelve a invocar ningún criterio de detección de bloques, solo
+// itera blocks.map(...) y delega cada elemento a _parseBatchBlock. No hay duplicación de
+// criterio en ningún punto del pipeline batch — ambas funciones ya consumían la fuente única
+// antes de este TKT, incluido el fix de TKT-202607-162 (mod:154): con el scanner de profundidad
+// de llaves ahora devolviendo N bloques bare, _routeParse() (que decide single vs batch
+// contando _splitCheckpointBlocks(ta.value).length > 1) enruta correctamente a
+// _processIngestBatch(), que resuelve y combina los N bloques en tgItems — no solo los cuenta.
+// Condición "si duplican, refactoriza" del AC1 evaluada como falsa — sin cambio de código
+// funcional en este TKT.
+// AC de contrato: _splitCheckpointBlocks, _resolveCheckpointBatch y _processIngestBatch
+// conservan su firma — sin alteración. Call sites conocidos dentro de este archivo
+// (_routeParse, _updateIngestBlockCount, _processIngestBatch) siguen funcionando igual.
+// No se pudo confirmar contra el MAP si algún módulo externo importa _resolveCheckpointBatch
+// o _processIngestBatch directamente — el MAP adjunto (_PP-map-v1.11.1.md) está desactualizado
+// respecto al mod real de este archivo (declara "Changed in: TKT-202607-145", mod 150; el
+// archivo real está en mod:155) y no lista _resolveCheckpointBatch en sus entradas. Sin otros
+// archivos reales del proyecto adjuntos en esta sesión para grep de imports externos — riesgo
+// bajo dado que ambas funciones son internas al pipeline de ingesta de este mismo módulo, pero
+// gap de verificación registrado explícitamente en vez de asumido.
+// contract_update: no — ninguna firma exportada cambia en este TKT.
 // [PP] mod:154 · autor:Rune · 2026-07-27 UTC-6
 // TKT-202607-162 (REQ-202607-054, depends_on TKT-202607-163): _splitCheckpointBlocks() gana
 // soporte para 2+ objetos JSON CHECKPOINT concatenados sin fence — el gap declarado en
