@@ -1,4 +1,4 @@
-// [PP] mod:11 · autor:Rune · 2026-07-23 21:40 UTC-6
+// [PP] mod:12 · autor:Rune · 2026-07-27 20:15 UTC-6
 // Housekeeping (Excepción de resolución directa — dueño presente, nivel Patch, sin
 // bifurcación): eliminada línea muerta querySelectorAll('.tpl-nav-btn') — clase sin
 // referencias en el DOM desde la limpieza de locus-proyectos.css (REQ CAEL-01). No-op sin
@@ -51,7 +51,7 @@ function _renderQDiscLimitIndicator() {
   el.classList.toggle('qdisc-limit--warn', count >= QDISC_ACTIVE_LIMIT);
 }
 
-// TKT-[pendiente-ID] (REQ-[pendiente-ID]): rellena #qdisc-stats-block (shell estático, ver
+// TKT-histórico — sin CHECKPOINT confirmado (REQ-histórico — sin CHECKPOINT confirmado): rellena #qdisc-stats-block (shell estático, ver
 // index.html) con el conteo por status. Universo: _isQDisc — todos los DISC del proyecto,
 // sin filtrar por status (a diferencia de _isQDiscActive, que excluye descartado/promoted).
 // Total es la suma exacta de los tres — no hay un cuarto status posible para DISC
@@ -185,7 +185,7 @@ export function renderQDiscPanel() {
   // siempre refleja el conteo real de activos, incluso sin proyecto seleccionado (getItems()
   // ya resuelve vacío en ese caso, indicador cae a "0 / 15" sin error).
   _renderQDiscLimitIndicator();
-  // TKT-[pendiente-ID]: universo propio (_isQDisc, todos los status) — independiente del
+  // TKT-histórico — sin CHECKPOINT confirmado: universo propio (_isQDisc, todos los status) — independiente del
   // universo filtrado de _renderZonePanel y del universo activo de _renderQDiscLimitIndicator.
   _renderQDiscStatsBlock();
   // TKT-202607-013: misma razón — señal independiente del universo filtrado por chips/búsqueda.

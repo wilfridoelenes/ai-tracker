@@ -1,4 +1,4 @@
-<!-- [PP] mod:162 · autor:Rune · 2026-07-27 UTC-6 -->
+<!-- [PP] mod:163 · autor:Rune · 2026-07-27 20:15 UTC-6 -->
 <!-- TKT-202607-150 (REQ-202607-048, TKT2): #tab-btn-proyectos retirado de la barra de tabs
      principal (#tab-btn-proyectos y su badge #tab-notif-badge-proyectos). #tab-proyectos
      (panel) y switchTab('proyectos') no se tocan — solo el botón de la barra. -->
@@ -74,7 +74,7 @@
      mod:144: contenedor gconfirm-body-html insertado, export-confirm-overlay y
      status-confirm-overlay removidos (ambos reemplazados por gconfirm-overlay + bodyHtml). -->
 <!-- [PP] mod:143 · autor:Rune · 2026-07-20 11:35 UTC-6 -->
-<!-- INC-[pendiente-ID] (íconos Tabler no cargaban — cuadros grises transversales): agregado <link> CDN
+<!-- INC-histórico — sin CHECKPOINT confirmado (íconos Tabler no cargaban — cuadros grises transversales): agregado <link> CDN
      de @tabler/icons-webfont en <head>, aprobado por founder. Ningún archivo CSS/JS tocado — hallazgo
      era ausencia total del webfont, no error de clase ni de estilo. -->
 <!-- [PP] mod:133 · autor:Rune · 2026-07-14 19:35 UTC-6 -->
@@ -96,14 +96,14 @@
      #tracker-grid-header por getElementById; impacto lateral para Rune, ver CHECKPOINT).
      #log-card relocalizado como overlay propio (.log-overlay) — abierto por #log-open-btn
      en header de Col2. -->
-<!-- INC-[pendiente-ID] (Doc Log roto): agregado #btn-view-doclog único en .tpl-sidebar-actions
+<!-- INC-histórico — sin CHECKPOINT confirmado (Doc Log roto): agregado #btn-view-doclog único en .tpl-sidebar-actions
      (#tpl-toolbar) — locus-docs.js mod:15 y locus-doc-log.js mod:3 ya esperaban este botón desde
      su migración pero index.html nunca se actualizó. Eliminados los 3 botones obsoletos sin listener
      (#doc-log-btn-backlog, #doc-log-btn-htmlmap, #doc-log-btn-context). Reutiliza clase .doc-log-btn
      existente — sin cambio de CSS, Nova no interviene. -->
 <!-- TKT2 (REQ CAEL-01 · Q-INC tab top-level): #tab-incidentes agregado como tab de primer nivel,
      #sspanel-qinc/#sstab-btn-qinc removidos del sub-tab de Backlog. Ver locus-ui-shell.js/locus-backlog-render.js. -->
-<!-- TKT2 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): agregado shell estático
+<!-- TKT2 (REQ-histórico — sin CHECKPOINT confirmado · migración Step 0 DIFF → panel Sprint subtab): agregado shell estático
      dentro de #sprint-panel-sprints — #spnp-trigger-btn ("+ Sprint nuevo") + #spnp-panel (vacío,
      is-hidden). Contenido del panel se puebla vía JS al abrir (locus-sprint.js) — E-01. Nova entrega
      CSS de la familia spnp-* en locus-sprint.css en la misma sesión. -->
@@ -113,12 +113,12 @@
      de contenido CSS. Contratos (#sspanel-contratos) y AC VIVO (.acv-*) siguen
      estilados por el mismo archivo bajo el nuevo nombre. -->
 <!-- [PP] mod:109 · autor:Rune · 2026-07-07 UTC-6 -->
-<!-- INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminado markup de
+<!-- INC-histórico — sin CHECKPOINT confirmado (deprecación Sesiones/Pulso, founder confirmó): eliminado markup de
      #pulso-overlay/#pulso-panel, #arranque-overlay/#arranque-panel y el dot #gf-pulso del
      footer. Los <link> de locus-sprint-plan.css y las clases .arranque-* / .pulso-* en
      locus-backlog.css / locus-backlog-item.css quedan pendientes de limpieza — Nova
      (CSS Purity, Rune no escribe .css). Ver CHECKPOINT. -->
-<!-- INC-[pendiente-ID]: restaurado <link> de locus-sprint-plan.css — TKT-202607-053 lo eliminó
+<!-- INC-histórico — sin CHECKPOINT confirmado: restaurado <link> de locus-sprint-plan.css — TKT-202607-053 lo eliminó
      asumiendo que era exclusivo de la feature Plan; el archivo también estiliza Pulso (activo,
      pendiente de deprecación propia) y Contratos (activo, no deprecado). El markup de Plan
      (spt-tab-plan, sprint-panel-plan, sspanel-plan) permanece eliminado — solo se revierte la
@@ -144,27 +144,27 @@
      sin tab que lo etiquete). REQ-202607-013 completo del lado de Rune — pendiente solo
      locus-backlog.css y locus-backlog-item.css, escalado a Nova (Rune no escribe .css). -->
 <!-- [PP] mod:103 · autor:Rune · 2026-07-06 UTC-6 -->
-<!-- TKT2-[pendiente-ID] (REQ split locus-modals.css): link único a locus-modals.css
+<!-- TKT2-histórico — sin CHECKPOINT confirmado (REQ split locus-modals.css): link único a locus-modals.css
      reemplazado por 5 links (base/toast/tracker/editor/misc), mismo orden relativo
      respecto a locus-analytics.css (antes) y locus-docs.css (después). -->
-<!-- REQ-[pendiente-ID] Unificar vocabulario historico — TKT2: link de stylesheet
+<!-- REQ-histórico — sin CHECKPOINT confirmado Unificar vocabulario historico — TKT2: link de stylesheet
      locus-archive.css → locus-historico.css + comentario de sub-panel Histórico
      actualizado a los identificadores vivos (renderHistoricoSection, #historico-section). -->
-<!-- TKT3-[pendiente-ID]: #proj-modal-close-btn, #clean-project-close-btn y
+<!-- TKT3-histórico — sin CHECKPOINT confirmado: #proj-modal-close-btn, #clean-project-close-btn y
      #weekly-modal-close-btn migrados a class="modal-close" (box 28x28 canónico).
      #weekly-modal-close-btn: title="Cerrar" → aria-label="Cerrar" (gap de a11y cerrado). -->
-<!-- TKT1-[pendiente-ID] (REQ-[pendiente-ID] corrección deuda visual auditoría UI Inventory):
+<!-- TKT1-histórico — sin CHECKPOINT confirmado (REQ-histórico — sin CHECKPOINT confirmado corrección deuda visual auditoría UI Inventory):
      #proj-modal-close-btn recibe class="modal-close-btn" + aria-label="Cerrar" — reusa
      patrón existente (#clean-project-close-btn), sin CSS nuevo. Sin cambios de comportamiento. -->
 <!-- Merge de ramas divergentes en mod:94 (Nova/TKT3 vs Rune/TKT1) por colisión de mod
      — ver CHECKPOINT de la sesión. Reaplicado sobre base de Nova: eliminado
-     #filter-clear-btn (INC-[pendiente-ID]) y #toolbar dead code (TKT1). TKT3 de Nova
+     #filter-clear-btn (INC-histórico — sin CHECKPOINT confirmado) y #toolbar dead code (TKT1). TKT3 de Nova
      (reordenado de #active-filter-chips) preservado sin cambios. -->
-<!-- TKT3-[pendiente-ID] (REQ-B): reordenado #active-filter-chips — ahora después del
+<!-- TKT3-histórico — sin CHECKPOINT confirmado (REQ-B): reordenado #active-filter-chips — ahora después del
      cierre de #filter-bar-status, antes del comentario "toolbar vieja". Sin cambios
      de atributos, clases, ids ni contenido — solo posición en el markup. -->
 <!-- [PP] mod:90 · autor:Rune · 2026-07-03 UTC-6 -->
-<!-- TKT-[pendiente-ID] (REQ-[pendiente-ID] simplificar toolbar de backlog): eliminado
+<!-- TKT-histórico — sin CHECKPOINT confirmado (REQ-histórico — sin CHECKPOINT confirmado simplificar toolbar de backlog): eliminado
      #backlog-meta-banner (T-048/T-050) del sub-panel Backlog. Consumidores en JS
      (updateBacklogBanner en locus-backlog-core.js · updateBacklogModificationBadge en
      locus-docs.js · _mgDownload en locus-map-generator.js) ya usan null-checks defensivos
@@ -172,7 +172,7 @@
      updateBacklogModificationBadge() queda con lógica inerte — deuda registrada, no resuelta
      en este TKT (out of scope: solo se pidió eliminar el banner, no su JS de soporte). -->
 <!-- [PP] mod:83 · autor:Rune · 2026-07-01 UTC-6 -->
-<!-- TKT (REQ-[pendiente-ID]): IDs hotfix → qinc en nav y sub-panel del Backlog.
+<!-- TKT (REQ-histórico — sin CHECKPOINT confirmado): IDs hotfix → qinc en nav y sub-panel del Backlog.
      #sspanel-hotfix→#sspanel-qinc · #sstab-btn-hotfix→#sstab-btn-qinc ·
      #tpl-badge-hotfix→#tpl-badge-qinc [HISTÓRICO — #tpl-badge-qinc removido del DOM en
      REQ CAEL-01/TKT2 (Q-INC → tab top-level) sin re-creación; confirmado código muerto y
@@ -287,7 +287,7 @@
           <button class="header-search-clear is-hidden" id="search-global-clear" aria-label="Limpiar búsqueda">×</button>
         </div>
 
-        <!-- [pendiente-ID]: Panel pendientes — trigger header -->
+        <!-- histórico — sin CHECKPOINT confirmado: Panel pendientes — trigger header -->
         <button class="header-pend-btn is-hidden" id="header-pend-btn"
                 aria-label="Ver pendientes">
           <span class="header-pend-btn__icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/><path d="M9 5.5V9l2.5 1.5"/></svg></span>
@@ -385,7 +385,7 @@
 <!-- ═══ TAB SESIONES ═══ -->
 <div class="tab-panel active" id="tab-sesiones">
 
-  <!-- SCB eliminado — REQ-[pendiente-ID] TKT1. Slot ocupado por TKT3a (teaser de notificación). -->
+  <!-- SCB eliminado — REQ-histórico — sin CHECKPOINT confirmado TKT1. Slot ocupado por TKT3a (teaser de notificación). -->
 
   <div class="tracker-view-header" id="tracker-view-header">
     <div class="tvh-notif-teaser is-hidden" id="tvh-notif-teaser">
@@ -504,7 +504,7 @@
     <div class="log-card" id="log-card"></div>
   </div>
 
-  <!-- [pendiente-ID]: aria-live="polite" + aria-atomic + role="region" + tabindex para gestión de foco -->
+  <!-- histórico — sin CHECKPOINT confirmado: aria-live="polite" + aria-atomic + role="region" + tabindex para gestión de foco -->
   <div class="item-viz-overlay is-hidden" id="item-viz-overlay"
        role="region"
        aria-label="Ítems detectados"
@@ -630,7 +630,7 @@
 
     <div class="active-filter-chips is-hidden" id="active-filter-chips"></div>
 
-    <!-- toolbar vieja eliminada (dead code — sin referencias JS, ver INC-[pendiente-ID]/TKT1) -->
+    <!-- toolbar vieja eliminada (dead code — sin referencias JS, ver INC-histórico — sin CHECKPOINT confirmado/TKT1) -->
     <div id="backlog-two-col-wrap">
       <div id="backlog-list"></div>
       <div id="item-detail-panel" class="item-detail-panel"></div>
@@ -818,7 +818,7 @@
 
 <!-- ═══ TAB SPRINT ═══ -->
 <div class="tab-panel" id="tab-sprint">
-  <!-- R-202605-043: Subtab nav Sprint — Ítems / Planificar. B-[pendiente-ID]: movido antes de #sprint-panel-header — nav siempre primero en todos los sub-tabs -->
+  <!-- R-202605-043: Subtab nav Sprint — Ítems / Planificar. B-histórico — sin CHECKPOINT confirmado: movido antes de #sprint-panel-header — nav siempre primero en todos los sub-tabs -->
   <div class="spt-nav is-hidden" id="spt-nav" role="tablist" aria-label="Vistas del sprint">
     <button class="spt-tab is-active"
             role="tab"
@@ -1045,7 +1045,7 @@
       <span>Sin sprint activo</span>
     </div>
 
-    <!-- TKT2 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): shell estático —
+    <!-- TKT2 (REQ-histórico — sin CHECKPOINT confirmado · migración Step 0 DIFF → panel Sprint subtab): shell estático —
          botón siempre presente (E-01), panel vacío hasta que JS lo puebla al abrir.
          design_intent: sprint-nuevo-panel-v1 -->
     <div class="spnp-trigger-row">
@@ -1261,7 +1261,7 @@
   </div>
 </div>
 
-<!-- R-[pendiente-ID]: Quick Capture — modal unificado con stepper de 2 pasos -->
+<!-- R-histórico — sin CHECKPOINT confirmado: Quick Capture — modal unificado con stepper de 2 pasos -->
 <div class="quick-modal-overlay qc-overlay" id="qc-modal-overlay" role="dialog" aria-modal="true" aria-label="Quick Capture">
   <div class="quick-modal qc-modal">
 
@@ -1346,7 +1346,7 @@
 
   </div>
 </div>
-<!-- END R-[pendiente-ID] Quick Capture modal unificado -->
+<!-- END R-histórico — sin CHECKPOINT confirmado Quick Capture modal unificado -->
 
 
 <!-- T-077: Panel lateral proyectos -->
@@ -2112,7 +2112,7 @@
   <span id="gf-sync" class="gf-sync is-hidden"></span>
 </footer>
 
-<!-- ═══ MODAL LIMPIAR PROYECTO ═══ R-[pendiente-ID] -->
+<!-- ═══ MODAL LIMPIAR PROYECTO ═══ R-histórico — sin CHECKPOINT confirmado -->
 <div class="modal-overlay clean-project-overlay" id="clean-project-overlay"
      role="dialog" aria-modal="true" aria-labelledby="clean-project-dialog-title"
      >

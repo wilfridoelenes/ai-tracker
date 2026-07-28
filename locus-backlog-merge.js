@@ -1,4 +1,12 @@
-// [PP] mod:71 · autor:Rune · 2026-07-28 UTC-6
+// [PP] mod:72 · autor:Rune · 2026-07-28 UTC-6
+// TKT-202607-170 (REQ-202607-058, AC corregido en Fase 5 v2 por Cael tras hallazgo de Finn en
+// Momento 1): taxonomía de 7 categorías renombrada para coincidir exactamente con los sufijos
+// reales de locus-backlog-item.css mod:79 (Nova, TKT-202607-171) — 'liberacion'→'liberado',
+// 'sinclasificar'→'lite' (mismo valor para bloque vacío de ítems Scrum/ITIL y para el estado
+// sin resolver, sin octava categoría por no_incluye del AC). Sin cambio de precedencia ni de
+// las 5 ramas restantes (incidente/avalado/cierre/entrega/borrador). contract_update: sí —
+// mismo export showMergeDiffPanel, sin cambio de firma; contrato actualizado solo en el string
+// enum de valores internos de categoría, no observable desde fuera del módulo.
 // Fix de esta sesión (auditoría E2E del modal de ingesta, hallazgo #1 · triggered_by TKT
 // TKT-202607-145): _mdiffKeyHandler y el listener window 'storage:item-excluded' vivían
 // atados a un const local (_itemExcludedAC) y un removeEventListener manual repetido en 3
@@ -1136,17 +1144,25 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // borrador > sin-clasificar. INC/PRB/CHG llegan a tgItems vía _buildItilItem con
   // type/idx intactos (mismo spread {...it, idx:b.idx} que REQ/TKT/DISC en
   // _resolveCheckpointBatch) — sin necesidad de parámetro adicional.
+  // TKT-202607-170 (AC corregido en Fase 5 v2, sobre patch de Cael tras hallazgo de Finn en
+  // Momento 1): claves renombradas para coincidir exactamente con los 7 sufijos ya
+  // implementados en locus-backlog-item.css mod:79 (Nova, TKT-202607-171) —
+  // .mdiff-ckpt-category--{borrador|avalado|entrega|cierre|liberado|incidente|lite}.
+  // 'liberacion' → 'liberado'. 'sinclasificar' → 'lite' — mismo valor para el caso vacío
+  // (bloque sin ningún ítem REQ/TKT/INC/PRB/CHG) y el estado sin resolver (ítem presente que
+  // no matchea ninguna de las 6 ramas restantes); AC corregido exige un solo valor de retorno
+  // para ambos, sin octava categoría (no_incluye).
   const _CKPT_CATEGORY_LABELS = {
-    liberacion:    'Liberación',
-    incidente:     'Incidente',
-    avalado:       'Avalado',
-    cierre:        'Cierre',
-    entrega:       'Entrega',
-    borrador:      'Borrador',
-    sinclasificar: 'Sin clasificar'
+    liberado:  'Liberación',
+    incidente: 'Incidente',
+    avalado:   'Avalado',
+    cierre:    'Cierre',
+    entrega:   'Entrega',
+    borrador:  'Borrador',
+    lite:      'Lite'
   };
   const _ckptCategoryFor = meta => {
-    if (meta && meta.finnRelease) return 'liberacion';
+    if (meta && meta.finnRelease) return 'liberado';
     const _blockTg    = tgItems.filter(i => i && i.idx === meta.idx);
     const _blockPatch = _patchItems.filter(i => i && i.idx === meta.idx);
     if (_blockTg.some(i => i.type === 'INC' || i.type === 'PRB' || i.type === 'CHG')) return 'incidente';
@@ -1154,7 +1170,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     if (_blockTg.some(i => i.status === 'done') || _blockPatch.some(p => p.status === 'done')) return 'cierre';
     if (_blockTg.some(i => i.status === 'en-revision')) return 'entrega';
     if (_blockTg.some(i => i.draft === true)) return 'borrador';
-    return 'sinclasificar';
+    return 'lite';
   };
 
   const _buildAttributedCardsBlock = () => {
@@ -1171,12 +1187,9 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       const _itemCards     = _itemsForBlockIdx(meta.idx);
       const _badge         = _blockBadge(meta.idx, _itemCards);
       // TKT-202607-170: categoría calculada una vez por bloque, reusada en el badge y en el
-      // modificador de sección (liberación). Nota de implementación (assumption declarada en
-      // CHECKPOINT — Nova no entregó bloque explícito de CSS dependencies con el sufijo exacto
-      // de cada uno de los 7 modificadores): se asume `mdiff-ckpt-category--[key]` con [key]
-      // idéntico a las 7 claves de _CKPT_CATEGORY_LABELS. Finn verifica contra el CSS real de
-      // Nova en QA — mismatch de sufijo no rompe el render (clase ausente = sin estilo, no
-      // error), pero sí pierde la identidad visual que es el propósito del TKT.
+      // modificador de sección (liberado). Sufijos verificados contra locus-backlog-item.css
+      // mod:79 (Nova, TKT-202607-171) en Fase 5 v2 — ya no es assumption: las 7 claves de
+      // _CKPT_CATEGORY_LABELS coinciden exactamente con .mdiff-ckpt-category--[key] entregado.
       const _category      = _ckptCategoryFor(meta);
 
       // Bloque sin ningún campo narrativo, sin finn_release y sin ítems filtrados → no genera
@@ -1205,7 +1218,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       // expandida por default (sin is-collapsed), igual que _section() sin el parámetro
       // collapsed. Independiente por construcción: cada botón solo controla su propio
       // nextElementSibling, sin estado compartido entre tarjetas del mismo batch.
-      const _sectionCls = _category === 'liberacion'
+      const _sectionCls = _category === 'liberado'
         ? 'mdiff-narrative-section mdiff-narrative-section--liberado'
         : 'mdiff-narrative-section';
 

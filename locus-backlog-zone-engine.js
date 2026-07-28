@@ -1,4 +1,4 @@
-// [PP] mod:10 · autor:Rune · 2026-07-23 22:15 UTC-6
+// [PP] mod:11 · autor:Rune · 2026-07-27 20:15 UTC-6
 // TKT-202607-072 (REQ-202607-019): grupo de drafts (draft:true) agregado a _renderZonePanel —
 // gateado por opts.showDraftGroup + opts.isZoneBroad (opcionales, sin default). Sin ambos, cero
 // cambio de comportamiento — qdisc no los declara. getItems() confirmado sin filtrar draft (
@@ -7,7 +7,7 @@
 // !i.draft) que qbacklog.js pasa como isZoneBroad. contract_update: sí — _renderZonePanel gana
 // dos opts nuevos, opcionales, sin cambio de firma para callers existentes.
 // [PP] mod:9 · autor:Rune · 2026-07-23 21:40 UTC-6
-// TKT1 (REQ-[pendiente-ID] Empty state bloque Terminados): _renderDoneGroup no tenía rama
+// TKT1 (REQ-histórico — sin CHECKPOINT confirmado Empty state bloque Terminados): _renderDoneGroup no tenía rama
 // visual para doneItems.length === 0 — bodyEl.innerHTML quedaba en '' (bloque en blanco al
 // expandir "Terminados" con 0 ítems done). Agregado mismo patrón .empty-state/.empty-state-icon/
 // .empty-state-title/.empty-state-hint ya usado 3 veces en este mismo archivo (_renderZonePanel,
@@ -235,7 +235,7 @@ export function _renderZonePanel(opts) {
   const body = document.getElementById(bodyId);
   if (!body) return;
 
-  // INC-[pendiente-ID]: sin esta línea, el header de la card (data-action="item-expand") y el
+  // INC-histórico — sin CHECKPOINT confirmado: sin esta línea, el header de la card (data-action="item-expand") y el
   // resto de acciones delegadas (copiar código/ítem, doble-click editar título, quick-assign
   // effort, cambiar status/rol/sprint/parent, abrir bloqueante, promover) no tienen listener en
   // qbacklog-panel-body/qdisc-panel-body — buildBacklogItem() genera el mismo markup que Vista
