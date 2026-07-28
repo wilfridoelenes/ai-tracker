@@ -1,4 +1,4 @@
-// [PP] mod:70 · autor:Rune · 2026-07-27 UTC-6
+// [PP] mod:71 · autor:Rune · 2026-07-28 UTC-6
 // Fix de esta sesión (auditoría E2E del modal de ingesta, hallazgo #1 · triggered_by TKT
 // TKT-202607-145): _mdiffKeyHandler y el listener window 'storage:item-excluded' vivían
 // atados a un const local (_itemExcludedAC) y un removeEventListener manual repetido en 3
@@ -1125,6 +1125,38 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     return { cls: 'flag', label: `${_flagCount} flag${_flagCount === 1 ? '' : 's'}` };
   };
 
+  // TKT-202607-170 (REQ-202607-058 · AC corregido en Fase 5 v2, grounding contra
+  // locus-session-parse.js L2731-2738 y L3027): categoría semántica del bloque —
+  // distinta de _blockBadge (arriba), que mide resultado del diff (ok/flag/skipped), no
+  // qué tipo de acción de ecosistema es el CHECKPOINT. Clasifica sobre tgItems/_patchItems
+  // ya combinados y filtrados por meta.idx — no recibe el objeto CHECKPOINT crudo, esa
+  // forma de entrada no existe en este archivo (confirmado: _ckptMetas solo trae el
+  // resumen narrativo vía _extractCkptMeta, nunca items/draft/status por bloque).
+  // Precedencia fija (AC7): liberación > incidente > avalado > cierre > entrega >
+  // borrador > sin-clasificar. INC/PRB/CHG llegan a tgItems vía _buildItilItem con
+  // type/idx intactos (mismo spread {...it, idx:b.idx} que REQ/TKT/DISC en
+  // _resolveCheckpointBatch) — sin necesidad de parámetro adicional.
+  const _CKPT_CATEGORY_LABELS = {
+    liberacion:    'Liberación',
+    incidente:     'Incidente',
+    avalado:       'Avalado',
+    cierre:        'Cierre',
+    entrega:       'Entrega',
+    borrador:      'Borrador',
+    sinclasificar: 'Sin clasificar'
+  };
+  const _ckptCategoryFor = meta => {
+    if (meta && meta.finnRelease) return 'liberacion';
+    const _blockTg    = tgItems.filter(i => i && i.idx === meta.idx);
+    const _blockPatch = _patchItems.filter(i => i && i.idx === meta.idx);
+    if (_blockTg.some(i => i.type === 'INC' || i.type === 'PRB' || i.type === 'CHG')) return 'incidente';
+    if (_blockPatch.some(p => p.draft === false && p.verified_by)) return 'avalado';
+    if (_blockTg.some(i => i.status === 'done') || _blockPatch.some(p => p.status === 'done')) return 'cierre';
+    if (_blockTg.some(i => i.status === 'en-revision')) return 'entrega';
+    if (_blockTg.some(i => i.draft === true)) return 'borrador';
+    return 'sinclasificar';
+  };
+
   const _buildAttributedCardsBlock = () => {
     if (!_ckptMetas || _ckptMetas.length < 2) return '';
 
@@ -1138,6 +1170,14 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       const _releaseInfo   = _buildAttributedFinnReleaseHtml(meta);
       const _itemCards     = _itemsForBlockIdx(meta.idx);
       const _badge         = _blockBadge(meta.idx, _itemCards);
+      // TKT-202607-170: categoría calculada una vez por bloque, reusada en el badge y en el
+      // modificador de sección (liberación). Nota de implementación (assumption declarada en
+      // CHECKPOINT — Nova no entregó bloque explícito de CSS dependencies con el sufijo exacto
+      // de cada uno de los 7 modificadores): se asume `mdiff-ckpt-category--[key]` con [key]
+      // idéntico a las 7 claves de _CKPT_CATEGORY_LABELS. Finn verifica contra el CSS real de
+      // Nova en QA — mismatch de sufijo no rompe el render (clase ausente = sin estilo, no
+      // error), pero sí pierde la identidad visual que es el propósito del TKT.
+      const _category      = _ckptCategoryFor(meta);
 
       // Bloque sin ningún campo narrativo, sin finn_release y sin ítems filtrados → no genera
       // tarjeta (mismo criterio que hoy: ausencia total, sin hueco visual).
@@ -1146,6 +1186,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       const _attrRow = `<div class="mdiff-narrative-row">
         <span class="mdiff-narrative-label">${esc(meta.rol || '')}</span>
         <span class="mdiff-narrative-value">${esc(meta.titulo || '')}</span>
+        <span class="mdiff-ckpt-category mdiff-ckpt-category--${_category}">${esc(_CKPT_CATEGORY_LABELS[_category])}</span>
         <span class="mdiff-block-badge mdiff-block-badge--${_badge.cls}">${esc(_badge.label)}</span>
       </div>`;
 
@@ -1164,7 +1205,11 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       // expandida por default (sin is-collapsed), igual que _section() sin el parámetro
       // collapsed. Independiente por construcción: cada botón solo controla su propio
       // nextElementSibling, sin estado compartido entre tarjetas del mismo batch.
-      return `<div class="mdiff-narrative-section">
+      const _sectionCls = _category === 'liberacion'
+        ? 'mdiff-narrative-section mdiff-narrative-section--liberado'
+        : 'mdiff-narrative-section';
+
+      return `<div class="${_sectionCls}">
         <button class="mdiff-section-header" data-action="mdiff-toggle-section" type="button">${_attrRow}</button>
         <div class="mdiff-section-body">
           ${_releaseInfo.html}
