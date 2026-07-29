@@ -1,4 +1,4 @@
-/* [PP] mod:129 · autor:Rune · 2026-07-27 20:35 UTC-6 */
+/* [PP] mod:131 · autor:Nova · 2026-07-28 04:25 UTC-6 */
 /* Ad-hoc (sin REQ/TKT vía Cael, ítem directo de founder): extracción de la rama Reactiva
    (Q-INC) a locus-incidents.css (alta, mod:1) — mismo criterio arquitectónico ya aplicado al
    split de locus-modals.css en 5 archivos. 504 líneas movidas, extracción mecánica sin cambio
@@ -5585,6 +5585,19 @@
 
 .stat-compact-n--revision {
   color: var(--amber-text, #f59e0b);
+}
+
+/* TKT1 REQ-058-fix (DISC-202607-058): .stat-compact-item--primary / .stat-compact-n--primary
+   sin selector propio — heredaban estilo default pese al modificador --primary. Reutiliza
+   var(--accent-text), token ya vigente en este archivo (ver L885/889/994/1151) — sin color nuevo. */
+.stat-compact-item--primary .stat-compact-l {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.stat-compact-n--primary {
+  color: var(--accent-text);
+  font-weight: 700;
 }
 
 .stat-compact-l {

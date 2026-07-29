@@ -1,3 +1,19 @@
+// [PP] mod:75 · autor:Rune · 2026-07-28 UTC-6
+// INC-[pendiente-ID] (fix complementario a locus-session-parse.js mod:163 — duplicación de
+// ítem tras CHECKPOINT batch + Quick Capture): showMergeDiffPanel() abortaba
+// _mdiffPanelAC solo al cerrar el panel (_mdiffDoApply/teardownMergeDiffPanel), nunca al
+// ABRIRLO — si el panel se reabría sobre el shell estático #merge-diff-overlay sin haber
+// cerrado la apertura anterior (causa raíz real: doble invocación de _processIngestBatch por
+// paste+input, corregida en su origen en locus-session-parse.js), el AbortController viejo
+// quedaba huérfano. Además, los listeners de click de #mdiff-cancel-btn/#mdiff-backlog-btn/
+// #mdiff-apply-btn nunca estuvieron scoped a _mdiffPanelAC.signal — a diferencia de keydown y
+// storage:item-excluded, que sí. Resultado: dos aperturas del panel apilaban dos listeners en
+// el mismo botón físico; un solo click disparaba ambos. Fix: (1) abort()+recreación de
+// _mdiffPanelAC al inicio de showMergeDiffPanel(), antes de wirear nada; (2) los tres
+// listeners de botón ahora declaran { signal: _mdiffPanelAC.signal }. No cambia el
+// comportamiento de una reapertura legítima del panel (nuevo CHECKPOINT tras cerrar el
+// anterior) — solo previene el stacking de listeners. contract_update: no — sin cambio de
+// firma pública de showMergeDiffPanel/teardownMergeDiffPanel.
 // [PP] mod:74 · autor:Rune · 2026-07-28 UTC-6
 // TKT-202607-172 (REQ-202607-058, AC-9a): chip de docs pendientes por tarjeta atribuida —
 // _buildAttributedDocsChip(meta), scoped a meta.docUpdates del bloque, distinto de
@@ -1861,6 +1877,13 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // Fix de esta sesión: _mdiffPanelAC (módulo) reemplaza el const local _itemExcludedAC —
   // mismo controller ahora también cubre el listener de keydown (más abajo), un solo abort()
   // retira ambos.
+  // TKT-[pendiente-ID] (INC — duplicación de ítem, fix complementario a locus-session-parse.js):
+  // abortar cualquier _mdiffPanelAC previo antes de crear uno nuevo. showMergeDiffPanel() opera
+  // sobre el shell compartido y estático #merge-diff-overlay — si el panel se reabre mientras el
+  // anterior seguía "activo" (ej. doble invocación por paste+input, ya corregida en su origen),
+  // el AbortController viejo quedaba huérfano sin abortar y sus listeners (keydown,
+  // storage:item-excluded) sobrevivían junto a los nuevos.
+  if (_mdiffPanelAC) { _mdiffPanelAC.abort(); _mdiffPanelAC = null; }
   _mdiffPanelAC = new AbortController();
   window.addEventListener('storage:item-excluded', (e) => {
     if (!_mdiffStepZeroActive) return;
@@ -2096,12 +2119,18 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     }
   });
 
+  // TKT-[pendiente-ID] (INC — duplicación de ítem): los tres listeners de botón de este panel
+  // (cancel/backlog/apply) no estaban scoped a _mdiffPanelAC.signal — a diferencia de keydown y
+  // storage:item-excluded, que sí lo estaban. Sobre el shell estático #merge-diff-overlay, una
+  // reapertura del panel sin haber cerrado la anterior apilaba un listener nuevo encima del
+  // viejo en el mismo botón físico — un solo click disparaba ambos. teardownMergeDiffPanel() no
+  // los cubría porque solo aborta _mdiffPanelAC, que hasta este fix no los incluía.
   overlay.querySelector('#mdiff-cancel-btn').addEventListener('click', () => {
     // Fix de esta sesión: cleanup consolidado en teardownMergeDiffPanel() — mismo camino que
     // usa closeModal() (locus-modals.js) al cerrar con ×. Sin toast — el usuario canceló
     // deliberadamente.
     teardownMergeDiffPanel();
-  });
+  }, { signal: _mdiffPanelAC.signal });
 
   // AC-7: parseo de hora de desbloqueo — feedback visual inline con interpretHora
   const _durationInputEl = overlay.querySelector('#mdiff-duration-input');
@@ -2144,12 +2173,12 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   overlay.querySelector('#mdiff-backlog-btn').addEventListener('click', () => {
     if (overlay.querySelector('#mdiff-backlog-btn').disabled) return;
     _mdiffDoApply(true);
-  });
+  }, { signal: _mdiffPanelAC.signal });
 
   overlay.querySelector('#mdiff-apply-btn').addEventListener('click', () => {
     if (overlay.querySelector('#mdiff-apply-btn').disabled) return;
     _mdiffDoApply(false);
-  });
+  }, { signal: _mdiffPanelAC.signal });
 
   // Enter → Aplicar (solo si no bloqueado)
   let _mdiffReady = false;

@@ -1,4 +1,4 @@
-// [PP] mod:138 · autor:Rune · 2026-07-27 21:10 UTC-6
+// [PP] mod:139 · autor:Rune · 2026-07-28 04:35 UTC-6
 // TKT-202607-142 (REQ-202607-045): segunda referencia a 'CAEL-0726-04' detectada en la
 // tabla de shell:* events (línea ~317, comentario de shell:render-sprint-tab) — el fix de
 // mod:136 solo cubrió el comentario de origen del bloque mod:135. Misma corrección de
@@ -1989,6 +1989,8 @@ function _applyExitAnimOrRender(code, rCode) {
 //   todos los hijos activos (no descartados) en 'done' → 'en-revision' (salvo que ya lo esté → null)
 //   reqStatus 'en-revision' y no todos los activos done → 'en-proceso' (retroceso)
 //   reqStatus 'pendiente' y algún hijo activo != 'pendiente' → 'en-proceso'
+//   reqStatus 'en-proceso' y todos los hijos activos en 'pendiente' → 'pendiente' (reversión,
+//   TKT1 REQ-054-fix/DISC-202607-054, infra_version 70 — simétrica a pendiente→en-proceso)
 //   cualquier otro caso → null (sin cambio)
 // Refinamiento declarado sobre el comportamiento anterior de _syncParentRStatus (TKT1,
 // ver CHECKPOINT de la sesión): la transición pendiente→en-proceso pasaba por `newTStatus
@@ -2016,6 +2018,11 @@ export function _computeRStatusFromChildren(reqStatus, childrenStatuses) {
   if (reqStatus === 'en-revision') return 'en-proceso';
 
   if (reqStatus === 'pendiente' && activeChildren.some(s => s !== 'pendiente')) return 'en-proceso';
+
+  // TKT1 (REQ-054-fix/DISC-202607-054): reversión simétrica a pendiente→en-proceso — cierra
+  // el gap donde un REQ en-proceso quedaba huérfano indefinidamente si todos sus hijos activos
+  // regresaban a pendiente (ej. reapertura de un 'done' erróneo). __BR-Core §4, infra_version 70.
+  if (reqStatus === 'en-proceso' && activeChildren.every(s => s === 'pendiente')) return 'pendiente';
 
   return null;
 }

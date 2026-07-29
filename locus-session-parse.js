@@ -1,3 +1,19 @@
+// [PP] mod:163 · autor:Rune · 2026-07-28 UTC-6
+// INC-[pendiente-ID] (triggered_by: sesión de duplicación de ítem tras CHECKPOINT batch +
+// Quick Capture): guard de reentrancia agregado en _routeParse() — el navegador dispara 'paste'
+// e 'input' para la misma acción de pegado sobre #ingest-ta, y handleInput (inmediato) +
+// handlePaste (diferido 150ms) ambos llamaban _routeParse(), que para 2+ bloques delegaba a
+// _processIngestBatch() sin guard propio. Sin el guard, un mismo pegado abría
+// showMergeDiffPanel() dos veces y un solo click en "Aplicar" ejecutaba
+// _applyCheckpointBatch() dos veces con el mismo batch — dos códigos reales distintos
+// asignados al mismo ítem. Fix scoped a `ta.value === _lastBatchRouteText` dentro de
+// _BATCH_ROUTE_DEBOUNCE_MS (1000ms) — cubre la ventana de ~150ms entre ambos eventos sin
+// bloquear reprocesar el mismo texto minutos después. Fix complementario (defensa en
+// profundidad): locus-backlog-merge.js — showMergeDiffPanel() ahora aborta su _mdiffPanelAC
+// previo y scopea los listeners de los tres botones del panel al mismo AbortController.
+// Módulo crítico (locus-session-parse.js, `_pp-context §6`) — verificación de regresiones
+// obligatoria en Finn. contract_update: no — sin cambio de firma en ninguna función exportada,
+// solo lógica interna de _routeParse (función no exportada).
 // [PP] mod:162 · autor:Rune · 2026-07-29 UTC-6
 // INC-202607-070 (triggered_by: INC-202607-069 · corrección de header, sin cambio de código):
 // El bloque de mod:161 (TKT-202607-172, abajo) declaraba "no_incluye: no se corrige esa
@@ -2512,8 +2528,32 @@ function _updateIngestBlockCount() {
 //   quedaba con el conteo pre-batch). Fix: _updateIngestBlockCount() se invoca aquí mismo, en la
 //   rama batch, con el mismo criterio síncrono que ya usa la rama single (llamada justo después
 //   de la decisión de ruteo, sin esperar la resolución async de _processIngestBatch).
+// TKT-[pendiente-ID] (INC — duplicación de ítem tras batch + Quick Capture, causa raíz
+// confirmada): guard de reentrancia. El navegador dispara 'paste' e 'input' para la misma
+// acción de pegado sobre #ingest-ta — handleInput (inmediato) y handlePaste (diferido 150ms,
+// ver más abajo) ambos llaman _routeParse(), que para 2+ bloques delegaba a
+// _processIngestBatch() sin guard propio (riesgo ya documentado antes de este fix — comentario
+// retirado, absorbido por este bloque). Sin este guard, el mismo contenido de #ingest-ta
+// disparaba showMergeDiffPanel() dos veces sobre el shell compartido (#merge-diff-overlay) —
+// un solo click en "Aplicar" ejecutaba _applyCheckpointBatch() dos veces con el mismo batch,
+// asignando dos códigos reales distintos al mismo ítem. Fix complementario (defensa en
+// profundidad, no sustituto): locus-backlog-merge.js — showMergeDiffPanel() ahora aborta su
+// _mdiffPanelAC previo y scopea los listeners de los tres botones al mismo AbortController, así
+// que aunque el panel se reabra por cualquier otro motivo, los listeners de la apertura anterior
+// ya no sobreviven. _BATCH_ROUTE_DEBOUNCE_MS cubre ampliamente la ventana de ~150ms entre ambos
+// eventos del navegador sin bloquear una reprocesión legítima del mismo texto minutos después.
+let _lastBatchRouteText = null;
+let _lastBatchRouteTs = 0;
+const _BATCH_ROUTE_DEBOUNCE_MS = 1000;
+
 function _routeParse(id, ta) {
   if (ta && _splitCheckpointBlocks(ta.value).length > 1) {
+    const _now = Date.now();
+    if (ta.value === _lastBatchRouteText && (_now - _lastBatchRouteTs) < _BATCH_ROUTE_DEBOUNCE_MS) {
+      return true; // ya se ruteó a batch para este mismo contenido — evita doble _processIngestBatch()
+    }
+    _lastBatchRouteText = ta.value;
+    _lastBatchRouteTs = _now;
     _processIngestBatch();
     _updateIngestBlockCount(); // TKT-202607-041 AC1
     return true;
