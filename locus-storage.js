@@ -1,3 +1,19 @@
+// [PP] mod:153 · autor:Rune · 2026-07-29 UTC-6
+// TKT-202607-189 (TKT1, REQ-202607-071): saveContextDocs() — el upsert a tracker_docs ahora
+// corre dentro de syncState.withSaveLock() — mismo lock global sin scope ya usado por
+// tracker_items/tracker_incidents en saveBacklog() (locus-sync-state.js no expone locks por
+// tabla, ver _Locus-module-contracts §2). _applyDocIfNewer() (dentro de _loadFromSupabase())
+// gana guard syncState.isSaveInFlight() al inicio — si hay un upsert en vuelo, esta pasada de
+// merge remoto se omite (no espera bloqueando, se reintenta en el siguiente
+// _loadFromSupabase()), mismo patrón guard-and-skip que _mergeItemsFromRemote()/
+// _mergeIncidentsFromRemote(). Sin cambio de firma en saveContextDocs() ni en el schema de
+// tracker_docs — alcance exacto de TKT1 tras corrección de especificación (ver CHECKPOINT de
+// Cael de esta misma sesión: AC de "4 sitios adicionales" removida de este TKT por
+// contradecir su propio no_incluye y duplicar el scope de TKT-202607-192; los otros 5 sitios
+// de escritura a tracker_docs — _saveTmpIdMap, _offlineQueueFlush ×3, _saveUserPrefs — quedan
+// fuera de este TKT, ver TKT-202607-192). Módulo crítico: locus-storage.js — activar
+// verificación de regresiones en Finn.
+
 // [PP] mod:152 · autor:Rune · 2026-07-27 21:10 UTC-6
 // Fix inline (triggered_by: verificación de Finn sobre PRB-202607-001): las 3 citas al PRB
 // en mod:150 (header + comentarios internos de _mergeItemsFromRemote()/_mergeIncidentsFromRemote())
@@ -2630,6 +2646,15 @@ export async function saveContextDocs() {
     logger.warn('[AI Tracker] saveContextDocs: fallo al escribir respaldo local pre-upsert', lsErr);
   }
 
+  // TKT-202607-189 (REQ-202607-071): envuelto en syncState.withSaveLock() — mismo lock
+  // global sin scope ya usado por tracker_items/tracker_incidents en saveBacklog() (L2037/
+  // L2106), no un lock exclusivo de 'docs' (locus-sync-state.js no expone scoping por
+  // tabla — ver _Locus-module-contracts §2, `withSaveLock(fn) → Promise<T>`). Cierra la
+  // ventana donde syncState.isSaveInFlight() devolvía false mientras este upsert seguía en
+  // vuelo, permitiendo que _applyDocIfNewer() (guard agregado en el mismo TKT, ver
+  // _loadFromSupabase()) sobrescribiera el write local en curso con una fila remota stale
+  // — mismo patrón de fix que INC-202607-055 aplicó a tracker_items/tracker_incidents.
+  await syncState.withSaveLock(async () => {
   try {
     // TKT (DISC-202607-017): timestamp único compartido entre ambas filas del upsert —
     // dos toISOString() separadas podían generar valores distintos y desincronizar
@@ -2651,6 +2676,7 @@ export async function saveContextDocs() {
     showToast('warning', '⚠️ Context/HTML-MAP no sincronizado con Supabase — guardado localmente');
     _offlineQueuePush({ type: 'docs' });
   }
+  });
 }
 
 // ── GRUPO 3 — SYNC Y REALTIME ─────────────────────────────────────────────────
@@ -3319,7 +3345,18 @@ export async function _loadFromSupabase() {
         if (docRows && docRows.length) {
           const docMap = Object.fromEntries(docRows.map(r => [r.key, r]));
 
+          // TKT-202607-189 (REQ-202607-071): guard syncState.isSaveInFlight() — mismo lock
+          // global sin scope que protege tracker_items/tracker_incidents (no exclusivo de
+          // 'docs'). Si un upsert local está en vuelo (saveContextDocs() u otro escritor que
+          // comparte el mismo lock), esta pasada de merge remoto se omite — no bloquea
+          // esperando a que el lock libere, se reintenta en el siguiente _loadFromSupabase()
+          // — mismo patrón guard-and-skip que _mergeItemsFromRemote()/_mergeIncidentsFromRemote(),
+          // evita que una fila remota stale sobrescriba el write local en curso.
           const _applyDocIfNewer = (remoteRow, localRawKey, applyFn) => {
+            if (syncState.isSaveInFlight()) {
+              logger.debug('[AI Tracker] _loadFromSupabase: upsert en vuelo (' + syncState.getSaveInFlightCount() + ') — merge de tracker_docs (' + localRawKey + ') omitido en esta pasada.');
+              return;
+            }
             if (!remoteRow || !remoteRow.value) return;
             const localVal   = localStorage.getItem(_tplKey(localRawKey));
             const remoteTs   = remoteRow.updated_at ? new Date(remoteRow.updated_at).getTime() : 0;
