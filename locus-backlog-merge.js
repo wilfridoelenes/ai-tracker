@@ -1,4 +1,4 @@
-// [PP] mod:75 · autor:Rune · 2026-07-28 UTC-6
+// [PP] mod:76 · autor:Rune · 2026-07-29 03:35 UTC-6
 // INC-[pendiente-ID] (fix complementario a locus-session-parse.js mod:163 — duplicación de
 // ítem tras CHECKPOINT batch + Quick Capture): showMergeDiffPanel() abortaba
 // _mdiffPanelAC solo al cerrar el panel (_mdiffDoApply/teardownMergeDiffPanel), nunca al
@@ -843,6 +843,18 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     )).join('');
     summaryChipsHtml += `<span class="mdiff-summary-chip mdiff-summary-chip--neutral">Actualizados <span class="mdiff-sec-count">${diff.updated.length}</span></span>`;
     quickRowsHtml += `<div class="mdiff-section-body">${rows}</div>`;
+  }
+
+  // TKT-202607-185 (REQ-202607-069 · origen DISC-202607-060): chip de archivos tocados —
+  //   _singleMeta.archivosNombres viene de _extractCkptMeta() (locus-session-parse.js,
+  //   ver TKT-202607-172/185) — array ya parseado desde ckpt.archivos (string de sesión), no del
+  //   campo `archivos` por-ítem de TKT/REQ. Reutiliza .mdiff-summary-chip--neutral (Nova,
+  //   Conflicto CSS resuelto en el CHECKPOINT de Nova) — sin clase nueva, mismo tono informativo
+  //   que "Actualizados". 1-2 archivos: nombres inline. 3+: conteo. 0/ausente: chip no se renderiza.
+  if (Array.isArray(_singleMeta.archivosNombres) && _singleMeta.archivosNombres.length) {
+    const _files = _singleMeta.archivosNombres;
+    const _filesLabel = _files.length <= 2 ? _files.map(esc).join(', ') : `${_files.length} archivos`;
+    summaryChipsHtml += `<span class="mdiff-summary-chip mdiff-summary-chip--neutral">${_filesLabel}</span>`;
   }
 
   // B-202604-198: ítems que nacen y cierran en el mismo CHECKPOINT — grupo diferenciado

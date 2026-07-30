@@ -1,4 +1,7 @@
-// [PP] mod:11 · autor:Rune · 2026-07-27 20:35 UTC-6
+// [PP] mod:12 · autor:Rune · 2026-07-30 01:10 UTC-6
+// TKT-202607-186 (REQ-202607-064): chip Total en _renderZonePanel — número agrega
+// .stat-compact-n--primary (Backlog list, Q-Backlog). Contenedor ya tenía --primary desde
+// antes; solo el número quedaba sin homologar. Sin cambio de firma ni de lógica.
 // TKT-202607-072 (REQ-202607-019): grupo de drafts (draft:true) agregado a _renderZonePanel —
 // gateado por opts.showDraftGroup + opts.isZoneBroad (opcionales, sin default). Sin ambos, cero
 // cambio de comportamiento — qdisc no los declara. getItems() confirmado sin filtrar draft (
@@ -422,7 +425,7 @@ export function _renderZonePanel(opts) {
     <div class="stats-row stats-row--compact">
       <div class="stat-compact-counts">
         <div class="stat-compact-item stat-compact-item--primary">
-          <span class="stat-compact-n">${activeZoneItems.length}</span>
+          <span class="stat-compact-n stat-compact-n--primary">${activeZoneItems.length}</span>
           <span class="stat-compact-l">total</span>
         </div>
       </div>

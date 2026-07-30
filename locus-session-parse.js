@@ -1,4 +1,4 @@
-// [PP] mod:163 · autor:Rune · 2026-07-28 UTC-6
+// [PP] mod:165 · autor:Rune · 2026-07-29 03:20 UTC-6
 // INC-[pendiente-ID] (triggered_by: sesión de duplicación de ítem tras CHECKPOINT batch +
 // Quick Capture): guard de reentrancia agregado en _routeParse() — el navegador dispara 'paste'
 // e 'input' para la misma acción de pegado sobre #ingest-ta, y handleInput (inmediato) +
@@ -1356,11 +1356,36 @@ function _extractCkptMeta(ckpt) {
     finnObservations: _c._isJsonFormat ? (_c._rawFinnObservations || null) : null,
     finnRelease:      _c._isJsonFormat ? (_c._rawFinnRelease || null)      : null,
     inlineFixes:      _c._isJsonFormat ? (_c._inlineFixes || [])          : [], // TKT1 (REQ CAEL-0727-01 · ref_id CAEL-0727-02)
+    // TKT-202607-185 (REQ-202607-069 · origen DISC-202607-060): campo `archivosNombres` agregado —
+    //   deriva de ckpt.archivos (string de nivel-sesión, campo Archivos: del CHECKPOINT, formato
+    //   "nombre · mod:N · autor:X | nombre2 · mod:N · autor:Y") — NO del campo `archivos`
+    //   por-ítem de TKT/REQ individual (array, BR-Ecosystem §8), que vive en items[] y no en el
+    //   ckpt de nivel raíz. Sin precedente de parseo de este string en el archivo antes de este
+    //   TKT — ckpt.archivos se guardaba crudo (ver L2100) y nunca se descomponía en partes.
+    //   Nombre `archivosNombres` (no `archivos`) — decisión de Cael tras detectar que el flujo
+    //   batch (_resolveCheckpointBatch, spread directo de esta función) y el flujo single
+    //   (ai._parsed, ya con un `archivos` crudo preexistente de T-202606-070) quedaban con dos
+    //   nombres distintos para el mismo dato. Se unifica aquí, en la fuente compartida, en vez de
+    //   en cada call site — evita que un tercer flujo futuro reintroduzca la inconsistencia.
+    archivosNombres:  _ckptArchivosToNames(_c.archivos),
     draft:            _c.draft === true,
     draftRaw:         _c.draftRaw,
     rol:              _c.rol    || '',
     titulo:           _c.titulo || ''
   };
+}
+
+// TKT-202607-185 (REQ-202607-069): parsea el string ckpt.archivos ("x.js · mod:3 · autor:Rune |
+//   y.css · mod:2 · autor:Nova") a un array de solo nombres de archivo, para el chip
+//   .diff-chip--files de #mdiff-summary-chips. Separador de segmentos '|', separador de
+//   metadata dentro de cada segmento '·' — se conserva solo lo previo al primer '·'.
+//   Función pura, sin estado compartido — mismo criterio que _extractCkptMeta (AC1).
+function _ckptArchivosToNames(rawArchivos) {
+  if (!rawArchivos || typeof rawArchivos !== 'string') return [];
+  return rawArchivos
+    .split('|')
+    .map(seg => seg.split('·')[0].trim())
+    .filter(name => name.length > 0);
 }
 
 // T-202604-200: actualiza la mini barra de progreso 3 fases del card
@@ -2097,7 +2122,15 @@ export function parsePaste(id) {
     finnRelease: _ckptMetaShared.finnRelease,
     // T-202606-070: persistir rol y archivos del CHECKPOINT — ambos paths JSON y legacy
     rol:      _ckptMetaShared.rol,
-    archivos: ckpt ? (ckpt.archivos || '') : '',
+    archivos: ckpt ? (ckpt.archivos || '') : '', // string crudo — consumidor no confirmado, se conserva sin cambio
+    // TKT-202607-185 (REQ-202607-069): archivosNombres — array ya parseado (_ckptMetaShared.archivosNombres,
+    //   ver _ckptArchivosToNames arriba), mismo nombre que expone _extractCkptMeta directamente
+    //   al flujo batch vía spread (_resolveCheckpointBatch) — sin alias local, naming unificado
+    //   por decisión de Cael. Campo nuevo, no reemplaza `archivos` (crudo, T-202606-070) — evita
+    //   romper el consumidor existente de esa key mientras no se confirme si tiene otro uso (no
+    //   auditado en este TKT, fuera de scope). Nota: consumidor final del chip pendiente de
+    //   definición de Nova — ver Conflicto CSS declarado en el CHECKPOINT de TKT-202607-185.
+    archivosNombres: _ckptMetaShared.archivosNombres,
     // T-202606-013: propagar draft a ai._parsed. El guard "secundario" en _doApplyMergeAndFinish
     //   que motivó esta propagación fue eliminado por huérfano (INC-202607-001, locus-session-save.js).
     //   La propagación sigue siendo necesaria por otros consumidores: draftPending (locus-session-save.js:551)

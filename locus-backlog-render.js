@@ -1,4 +1,8 @@
-// [PP] mod:107 · autor:Rune · 2026-07-25 UTC-6
+// [PP] mod:108 · autor:Rune · 2026-07-30 01:10 UTC-6
+// TKT-202607-186 (REQ-202607-064): stats-bar de Histórico — chip Total agrega
+// .stat-compact-item--primary (contenedor) y .stat-compact-n--primary (número), homologando
+// con el tratamiento ya vigente en Backlog list/Q-Backlog (zone-engine.js) y Q-DISC
+// (index.html estático). Solo clases CSS ya existentes — sin cambio de lógica ni de datos.
 // Fix directo (autorizado por founder — hallazgo de sesión Nova/Rune vía captura de pantalla,
 // sin TKT/REQ de origen): renderSprintGroup() — un REQ con status 'done' en un sprint NO
 // cerrado (isClosed:false) quedaba excluido de _rootPool (línea ~500 original), por lo tanto
@@ -1248,8 +1252,8 @@ export async function renderHistoricoPanel() {
       <div class="stats-bar" id="historico-stats-bar">
         <div class="stats-row stats-row--compact">
           <div class="stat-compact-counts">
-            <div class="stat-compact-item">
-              <span class="stat-compact-n">${_stats.total}</span>
+            <div class="stat-compact-item stat-compact-item--primary">
+              <span class="stat-compact-n stat-compact-n--primary">${_stats.total}</span>
               <span class="stat-compact-l">total</span>
             </div>
           </div>
