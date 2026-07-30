@@ -1,3 +1,12 @@
+/* [PP] mod:84 · autor:Nova · 2026-07-30 UTC-6 */
+/* TKT-202607-194 (REQ-202607-072, DISC-202607-068): .idp-tl-label--success usaba
+   color: var(--green) crudo — falla 4.5:1 como texto en light theme (2.6-2.8:1,
+   ver locus-base.css junto a la definición de --green-text en _Locus-css-ref §mod:95).
+   Reemplazado por color: var(--green-text) — mismo token ya verificado WCAG AA y ya
+   aplicado a las otras 33 instancias de color:var(--green) en este mismo archivo
+   (auditoría mod:95 de _Locus-css-ref). Sin token nuevo, sin cambio de fondo/borde —
+   .idp-tl-dot--success (línea ~1308, elemento gráfico, umbral 3:1) no se toca. Comentario
+   de gap adyacente (ex-línea 1359-1362) retirado — quedaba obsoleto tras este fix. */
 /* [PP] mod:83 · autor:Nova · 2026-07-30 UTC-6 */
 /* Hallazgo fuera de scope resuelto en sesión (Excepción de resolución directa — dueño
    presente, nivel Patch, sin bifurcación de founder): 3 comentarios usaban terminología
@@ -1350,16 +1359,12 @@
   min-width: 0;
 }
 
-.idp-tl-label--success { color: var(--green); }
+.idp-tl-label--success { color: var(--green-text); }
 .idp-tl-label--info     { color: var(--blue); }
 .idp-tl-label--muted    { color: var(--text2); }
 .idp-tl-label--hint     { color: var(--text3); }
 .idp-tl-label--accent   { color: var(--accent); }
 .idp-tl-label--purple   { color: var(--purple); }
-/* [data-theme="light"] .idp-tl-label--success: NO se aplica el override de #16914c aquí —
-   ese valor fue calibrado para el umbral de 3:1 de elemento gráfico (línea ~3242), no para
-   el 4.5:1 de texto. var(--green) queda para texto light-theme hasta verificar el hex real
-   de --surface1/2 y calcular un tono que cumpla 4.5:1. Gap registrado — ver Hallazgo fuera de scope. */
 
 .idp-tl-ts {
   font-size: var(--text-2xs-plus);

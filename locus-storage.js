@@ -1,3 +1,15 @@
+// [PP] mod:156 · autor:Rune · 2026-07-30 UTC-6
+// TKT1 (REQ-0730, origen DISC-202607-069): retirado el subsistema tmp-id-map completo —
+// código huérfano desde la deprecación de EXECUTION-PLAN (único consumidor conceptual,
+// vía _tryIngestPlan, ya removido de locus-session-parse.js). Retirados: LOCUS_KEYS.TMP_ID_MAP,
+// _loadTmpIdMap(), _saveTmpIdMap() (incl. export), branch 'tmp-id-map' de _offlineQueueFlush(),
+// entrada 'tmp-id-map' en docsKeysToFetch de _loadFromSupabase(), bloque de merge remoto→local
+// (antes "6b. tmp-id-map") de _loadFromSupabase(). Sin impacto en el resto de branches/keys
+// (context/htmlmap/plan/notes/user-prefs) — verificado sin caller externo antes del retiro
+// (locus-session-parse.js sin consumidor, _loadTmpIdMap sin export). Módulo crítico:
+// locus-storage.js — activar verificación de regresiones en Finn. TKT2 (mismo REQ) declara
+// DDL para retirar filas huérfanas de tracker_docs (key='tmp-id-map') tras este deploy.
+//
 // [PP] mod:155 · autor:Rune · 2026-07-30 UTC-6
 // TKT-202607-192 (TKT4, REQ-202607-071): últimos 5 sitios de escritura a tracker_docs
 // blindados. _saveTmpIdMap() convertida a async + exportada, upsert envuelto en
@@ -396,7 +408,6 @@ export const LOCUS_KEYS = {
   LOG_FILTERS:      'log-filter-state',
   DRAFT_PREFIX:     'locus-draft-',
   THEME:            'theme',
-  TMP_ID_MAP:       'tmp-id-map',
   SHORTCUTS:        'user-shortcuts',
   USER_PREFS_TS:    'user-prefs-ts',
   TPL_TRIGGER:      'locus-tpl-trigger',
@@ -729,24 +740,6 @@ export function _shortcutsSave(map) {
   _saveUserPrefs(); // R-4: persistir en Supabase
 }
 
-// ── TMP ID MAP ────────────────────────────────────────────────────────────────
-// Migrado desde ai-tracker-checkpoint.js — operación Supabase pura
-function _loadTmpIdMap() {
-  try {
-    const raw = localStorage.getItem(LOCUS_KEYS.TMP_ID_MAP);
-    if (!raw) return {};
-    const map = JSON.parse(raw);
-    // TTL: limpiar entradas con más de 24h
-    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-    let dirty = false;
-    Object.keys(map).forEach(k => {
-      if (!map[k].createdAt || map[k].createdAt < cutoff) { delete map[k]; dirty = true; }
-    });
-    if (dirty) localStorage.setItem(LOCUS_KEYS.TMP_ID_MAP, JSON.stringify(map));
-    return map;
-  } catch(e) { return {}; }
-}
-
 // ── SPRINT PROPOSAL PENDIENTE (TKT1 · REQ-[pendiente-ID]) ──────────────────────
 // Contrato: única vía de lectura/escritura de LOCUS_KEYS.SPRINT_PROPOSAL_PENDING_PREFIX.
 // Ningún otro módulo debe llamar localStorage.getItem/setItem/removeItem sobre esta clave
@@ -773,28 +766,6 @@ export function setPendingSprintProposal(projId, proposalObj) {
 export function clearPendingSprintProposal(projId) {
   if (!projId) return;
   try { localStorage.removeItem(LOCUS_KEYS.SPRINT_PROPOSAL_PENDING_PREFIX + projId); } catch (e) {}
-}
-
-// TKT-202607-192 (REQ-202607-071): convertida a async y exportada — el upsert a
-// tracker_docs corre dentro de syncState.withSaveLock(), mismo lock global sin scope.
-// Hallazgo: sin call site interno en este archivo (verificado por grep) — export agregado
-// para que un eventual caller externo pueda await-earla; ver DISC registrado en el
-// CHECKPOINT de entrega si el caller no existe en ningún módulo del ecosistema.
-export async function _saveTmpIdMap(map) {
-  try { localStorage.setItem(LOCUS_KEYS.TMP_ID_MAP, JSON.stringify(map)); } catch(e) {}
-  // R-1: persistir tmp-id-map en Supabase para sobrevivir cambio de dispositivo
-  if (_supabase && _supabaseUser) {
-    await syncState.withSaveLock(async () => {
-      const { error } = await _supabase.from('tracker_docs').upsert(
-        [{ user_id: _supabaseUser.id, key: 'tmp-id-map', value: { map, savedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
-        { onConflict: 'user_id,key' }
-      );
-      if (error) {
-        logger.warn('[AI Tracker] _saveTmpIdMap Supabase error:', error);
-        _offlineQueuePush({ type: 'tmp-id-map' });
-      }
-    });
-  }
 }
 
 // ── GRUPO 5 — OFFLINE QUEUE ───────────────────────────────────────────────────
@@ -869,20 +840,6 @@ async function _offlineQueueFlush() {
         if (histRaw) {
           const histPayload = (() => { try { return JSON.parse(histRaw); } catch { return null; } })();
           if (histPayload) await saveHistoricoItems(histPayload);
-        }
-      } else if (entry.type === 'tmp-id-map') {
-        // R-1: flush tmp-id-map desde localStorage a Supabase al reconectar
-        const raw = localStorage.getItem(LOCUS_KEYS.TMP_ID_MAP);
-        if (raw && _supabase && _supabaseUser) {
-          const map = (() => { try { return JSON.parse(raw); } catch { return null; } })();
-          if (map) {
-            // TKT-202607-192 (REQ-202607-071): upsert envuelto en syncState.withSaveLock().
-            const { error: mapErr } = await syncState.withSaveLock(() => _supabase.from('tracker_docs').upsert(
-              [{ user_id: _supabaseUser.id, key: 'tmp-id-map', value: { map, savedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
-              { onConflict: 'user_id,key' }
-            ));
-            if (mapErr) throw mapErr;
-          }
         }
       } else if (entry.type === 'notes' && entry.projId !== undefined) {
         // R-2: flush notas desde localStorage a Supabase al reconectar
@@ -3329,7 +3286,6 @@ export async function _loadFromSupabase() {
       'context' + suffix,
       'htmlmap' + suffix,
       'plan' + suffix,
-      'tmp-id-map',
       notesKey,
       'user-prefs'
     ];
@@ -3399,7 +3355,7 @@ export async function _loadFromSupabase() {
     // lock que este mismo _loadFromSupabase() acaba de armar un instante antes.
     _mergeIncidentsFromRemote(incidentsResult, _incidentsRef);
 
-    // ── 6. Procesar docs vivos (context, htmlmap, plan, tmp-id-map, notes, user-prefs) ──
+    // ── 6. Procesar docs vivos (context, htmlmap, plan, notes, user-prefs) ──
     try {
       if (docsResult.status === 'fulfilled' && !docsResult.value.error) {
         const docRows = docsResult.value.data;
@@ -3450,21 +3406,6 @@ export async function _loadFromSupabase() {
             if (!localPlanRaw || localTs === 0 || remoteTs > localTs) {
               const planKey = projId ? 'ai-tracker-plan-' + projId : null;
               if (planKey) try { localStorage.setItem(planKey, JSON.stringify(planRow.value.data)); } catch {}
-            }
-          }
-
-          // 6b. tmp-id-map
-          const mapRow = docMap['tmp-id-map'];
-          if (mapRow) {
-            const remoteTs  = mapRow.updated_at ? new Date(mapRow.updated_at).getTime() : 0;
-            const localRaw  = localStorage.getItem(LOCUS_KEYS.TMP_ID_MAP);
-            if (!localRaw || remoteTs > 0) {
-              const localMap   = (() => { try { return JSON.parse(localRaw || '{}'); } catch { return {}; } })();
-              const localMaxTs = Object.values(localMap).reduce((m, v) => Math.max(m, v.createdAt || 0), 0);
-              if (!localRaw || remoteTs > localMaxTs) {
-                const merged = { ...localMap, ...(mapRow.value && mapRow.value.map ? mapRow.value.map : {}) };
-                try { localStorage.setItem(LOCUS_KEYS.TMP_ID_MAP, JSON.stringify(merged)); } catch {}
-              }
             }
           }
 
