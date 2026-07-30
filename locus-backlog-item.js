@@ -1,4 +1,4 @@
-// [PP] mod:153 · autor:Rune · 2026-07-27 UTC-6
+// [PP] mod:154 · autor:Rune · 2026-07-29 UTC-6
 // INC (__BR-Ecosystem §5): applyPatchesFromTG() no propagaba descartado a los TKT hijos
 // de un REQ patcheado a descartado — agregada cascada REQ→hijos en la rama genérica de
 // status (TKT-202607-139/140 huérfanos, ver bloque en el cuerpo del archivo).
@@ -2363,6 +2363,7 @@ export function _buildCommonItemFields(item, ctx) {
     promovida_a: item.promovida_a || null,
     ..._zonaDeclaradaLogFields(item, _incomingType),
     ..._discardReasonFields(item, initialStatus),
+    ..._origenRegistroFields(item, _incomingType),
     blockedBy: item.blockedBy || [],
     blocking: item.blocking || false,
     sessionId: sessionId || null,
@@ -2421,6 +2422,22 @@ function _discardReasonFields(item, initialStatus) {
     _blogLog('discard-reason-no-canonico', item.code, 'discard_reason con valor no canónico: ' + item.discard_reason, 'backlog');
   }
   return { discard_reason: item.discard_reason };
+}
+
+// TKT1 (REQ-202607-062): origen_registro — opcional, exclusivo de DISC (__BR-Ecosystem §5/§8).
+// Metadata pasiva: marca un DISC nacido como espejo de trazabilidad de un `Propuesta de mejora`/
+// `Hallazgo fuera de scope` (__BR-Core NO DEJAR DEUDA EN SILENCIO), en vez de una idea de
+// producto ordinaria. No altera zona (Q-DISC) ni status inicial (discovery) — mismo criterio
+// de factorización que _discardReasonFields: función propia, ausencia no bloquea, valor no
+// canónico se ignora con log en vez de rechazar el ítem completo.
+function _origenRegistroFields(item, _incomingType) {
+  if (_incomingType !== 'DISC' || item.origen_registro === undefined) return {};
+  const _VALID_ORIGEN_REGISTRO = new Set(['propuesta_mejora', 'hallazgo_fuera_scope']);
+  if (!_VALID_ORIGEN_REGISTRO.has(item.origen_registro)) {
+    _blogLog('origen-registro-no-valido', item.code, 'origen_registro con valor no válido — ignorado: ' + item.origen_registro, 'backlog');
+    return {};
+  }
+  return { origen_registro: item.origen_registro };
 }
 
 // TKT1 (REQ-refactor-item-shape-itil-scrum · AC1): constructor exclusivo de Scrum (REQ/TKT/DISC).

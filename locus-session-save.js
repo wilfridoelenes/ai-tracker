@@ -1,4 +1,4 @@
-// [PP] mod:80 · autor:Rune · 2026-07-28 00:12 UTC-6
+// [PP] mod:81 · autor:Rune · 2026-07-29 04:35 UTC-6
 // TKT3 (REQ-202607-046, depends_on TKT-202607-145): _doSaveSession() — retirado el bloque que
 // coordinaba #merge-diff-overlay contra #ingest-modal-overlay antes de invocar
 // showMergeDiffPanel. Esa coordinación era necesaria bajo la arquitectura de dos overlays
@@ -802,6 +802,12 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   });
 
   const raw = (document.getElementById('ingest-ta') || {}).value || ''; // CAEL-22
+  // Fix (INC-202607-072, Opción A — cierre): el import de _markCheckpointProcessed se agregó
+  // en el fix anterior pero la llamada nunca se insertó, dejando la detección de duplicado
+  // completamente inoperante (peor que el falso positivo original). El registro del hash va
+  // aquí — la sesión ya fue empujada atómicamente a activeProj.sessions arriba en esta misma
+  // función, independientemente de si el merge de backlog más abajo tiene éxito o falla.
+  _markCheckpointProcessed(raw);
   // INC-202607-001 fix: guard de bloqueo total sobre draft:true eliminado — ver header del
   // archivo (mod:63). draft:true ya no impide la persistencia; solo mantiene el ítem invisible
   // en vistas activas (Q-Backlog, sprint, Kanban) hasta que Finn emita type:patch con
