@@ -1,4 +1,4 @@
-// [PP] mod:76 · autor:Rune · 2026-07-29 03:35 UTC-6
+// [PP] mod:77 · autor:Rune · 2026-07-30 02:12 UTC-6
 // INC-[pendiente-ID] (fix complementario a locus-session-parse.js mod:163 — duplicación de
 // ítem tras CHECKPOINT batch + Quick Capture): showMergeDiffPanel() abortaba
 // _mdiffPanelAC solo al cerrar el panel (_mdiffDoApply/teardownMergeDiffPanel), nunca al
@@ -827,12 +827,12 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // sin header de sección propio, ya que son estados rutinarios sin acción pendiente.
   if (diff.created.length) {
     const rows = _sortByType(diff.created).map(i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'), _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))).join('');
-    summaryChipsHtml += `<span class="mdiff-summary-chip mdiff-summary-chip--success">Creados <span class="mdiff-sec-count">${diff.created.length}</span></span>`;
+    summaryChipsHtml += `<span class="mdiff-info-chip mdiff-info-chip--success">Creados <span class="mdiff-sec-count">${diff.created.length}</span></span>`;
     quickRowsHtml += `<div class="mdiff-section-body">${rows}</div>`;
   }
   if (diff.advanced.length) {
     const rows = _sortByType(diff.advanced).map(i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), _depsHtml(i.dependsOn), undefined, i.sprint, i.type || _itemKindFn({ code: i.code }))).join('');
-    summaryChipsHtml += `<span class="mdiff-summary-chip mdiff-summary-chip--neutral">Avances <span class="mdiff-sec-count">${diff.advanced.length}</span></span>`;
+    summaryChipsHtml += `<span class="mdiff-info-chip mdiff-info-chip--neutral">Avances <span class="mdiff-sec-count">${diff.advanced.length}</span></span>`;
     quickRowsHtml += `<div class="mdiff-section-body">${rows}</div>`;
   }
   if (diff.updated.length) {
@@ -841,20 +841,21 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       _fieldChips(i.changes) + _depsHtml(i.dependsOn),
       i.parent, i.sprint, i.type || _itemKindFn({ code: i.code })
     )).join('');
-    summaryChipsHtml += `<span class="mdiff-summary-chip mdiff-summary-chip--neutral">Actualizados <span class="mdiff-sec-count">${diff.updated.length}</span></span>`;
+    summaryChipsHtml += `<span class="mdiff-info-chip mdiff-info-chip--neutral">Actualizados <span class="mdiff-sec-count">${diff.updated.length}</span></span>`;
     quickRowsHtml += `<div class="mdiff-section-body">${rows}</div>`;
   }
 
   // TKT-202607-185 (REQ-202607-069 · origen DISC-202607-060): chip de archivos tocados —
   //   _singleMeta.archivosNombres viene de _extractCkptMeta() (locus-session-parse.js,
   //   ver TKT-202607-172/185) — array ya parseado desde ckpt.archivos (string de sesión), no del
-  //   campo `archivos` por-ítem de TKT/REQ. Reutiliza .mdiff-summary-chip--neutral (Nova,
-  //   Conflicto CSS resuelto en el CHECKPOINT de Nova) — sin clase nueva, mismo tono informativo
-  //   que "Actualizados". 1-2 archivos: nombres inline. 3+: conteo. 0/ausente: chip no se renderiza.
+  //   campo `archivos` por-ítem de TKT/REQ. Reutiliza .mdiff-info-chip--neutral (renombrado en
+  //   TKT-202607-188, REQ-202607-070 — mismo estilo ya usado por "Actualizados") — sin clase nueva,
+  //   mismo tono informativo que "Actualizados". 1-2 archivos: nombres inline. 3+: conteo.
+  //   0/ausente: chip no se renderiza.
   if (Array.isArray(_singleMeta.archivosNombres) && _singleMeta.archivosNombres.length) {
     const _files = _singleMeta.archivosNombres;
     const _filesLabel = _files.length <= 2 ? _files.map(esc).join(', ') : `${_files.length} archivos`;
-    summaryChipsHtml += `<span class="mdiff-summary-chip mdiff-summary-chip--neutral">${_filesLabel}</span>`;
+    summaryChipsHtml += `<span class="mdiff-info-chip mdiff-info-chip--neutral">${_filesLabel}</span>`;
   }
 
   // B-202604-198: ítems que nacen y cierran en el mismo CHECKPOINT — grupo diferenciado
@@ -1373,7 +1374,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // Las cards individuales (quickRowsHtml) se listan directo debajo de los chips.
   const _buildSummaryChipsBlock = () => {
     if (!summaryChipsHtml) return '';
-    return `<div class="mdiff-summary-chips">${summaryChipsHtml}</div>${quickRowsHtml}`;
+    return `<div class="mdiff-info-chips">${summaryChipsHtml}</div>${quickRowsHtml}`;
   };
 
 
