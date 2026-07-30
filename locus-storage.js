@@ -1,3 +1,16 @@
+// [PP] mod:155 · autor:Rune · 2026-07-30 UTC-6
+// TKT-202607-192 (TKT4, REQ-202607-071): últimos 5 sitios de escritura a tracker_docs
+// blindados. _saveTmpIdMap() convertida a async + exportada, upsert envuelto en
+// syncState.withSaveLock() — sin cambio de comportamiento observable, salvo que ahora
+// awaitable por un caller externo. Los 3 branches directos de _offlineQueueFlush() ('plan',
+// 'tmp-id-map', 'notes') envueltos individualmente. _saveUserPrefs() envuelta. Mismo lock
+// global reentrante ya usado por tracker_state/tracker_items/tracker_incidents/
+// tracker_docs (TKT-189/190/191) — sin scope por tabla (contrato: _Locus-module-contracts
+// §2). Hallazgo: _saveTmpIdMap() no tiene call site interno en este archivo — DISC
+// registrada en CHECKPOINT de entrega, no confirmado si es código muerto o si el caller
+// vive en un módulo no adjunto. Módulo crítico: locus-storage.js — activar verificación de
+// regresiones en Finn. Cierra REQ-202607-071 — los 5 tablas Supabase quedan blindadas.
+//
 // [PP] mod:154 · autor:Rune · 2026-07-30 UTC-6
 // TKT-202607-190 (TKT2, REQ-202607-071): upsert a tracker_state en _saveFlush() envuelto en
 // syncState.withSaveLock() — mismo lock global sin scope. _applyStateRow() gana guard
@@ -762,14 +775,20 @@ export function clearPendingSprintProposal(projId) {
   try { localStorage.removeItem(LOCUS_KEYS.SPRINT_PROPOSAL_PENDING_PREFIX + projId); } catch (e) {}
 }
 
-function _saveTmpIdMap(map) {
+// TKT-202607-192 (REQ-202607-071): convertida a async y exportada — el upsert a
+// tracker_docs corre dentro de syncState.withSaveLock(), mismo lock global sin scope.
+// Hallazgo: sin call site interno en este archivo (verificado por grep) — export agregado
+// para que un eventual caller externo pueda await-earla; ver DISC registrado en el
+// CHECKPOINT de entrega si el caller no existe en ningún módulo del ecosistema.
+export async function _saveTmpIdMap(map) {
   try { localStorage.setItem(LOCUS_KEYS.TMP_ID_MAP, JSON.stringify(map)); } catch(e) {}
   // R-1: persistir tmp-id-map en Supabase para sobrevivir cambio de dispositivo
   if (_supabase && _supabaseUser) {
-    _supabase.from('tracker_docs').upsert(
-      [{ user_id: _supabaseUser.id, key: 'tmp-id-map', value: { map, savedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
-      { onConflict: 'user_id,key' }
-    ).then(({ error }) => {
+    await syncState.withSaveLock(async () => {
+      const { error } = await _supabase.from('tracker_docs').upsert(
+        [{ user_id: _supabaseUser.id, key: 'tmp-id-map', value: { map, savedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
+        { onConflict: 'user_id,key' }
+      );
       if (error) {
         logger.warn('[AI Tracker] _saveTmpIdMap Supabase error:', error);
         _offlineQueuePush({ type: 'tmp-id-map' });
@@ -830,10 +849,11 @@ async function _offlineQueueFlush() {
           const suffix = '-' + entry.projId;
           const payload = (() => { try { return JSON.parse(planRaw); } catch { return null; } })();
           if (payload) {
-            const { error: planErr } = await _supabase.from('tracker_docs').upsert(
+            // TKT-202607-192 (REQ-202607-071): upsert envuelto en syncState.withSaveLock().
+            const { error: planErr } = await syncState.withSaveLock(() => _supabase.from('tracker_docs').upsert(
               [{ user_id: _supabaseUser.id, key: 'plan' + suffix, value: payload, updated_at: new Date().toISOString() }],
               { onConflict: 'user_id,key' }
-            );
+            ));
             if (planErr) throw planErr;
           }
         }
@@ -856,10 +876,11 @@ async function _offlineQueueFlush() {
         if (raw && _supabase && _supabaseUser) {
           const map = (() => { try { return JSON.parse(raw); } catch { return null; } })();
           if (map) {
-            const { error: mapErr } = await _supabase.from('tracker_docs').upsert(
+            // TKT-202607-192 (REQ-202607-071): upsert envuelto en syncState.withSaveLock().
+            const { error: mapErr } = await syncState.withSaveLock(() => _supabase.from('tracker_docs').upsert(
               [{ user_id: _supabaseUser.id, key: 'tmp-id-map', value: { map, savedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
               { onConflict: 'user_id,key' }
-            );
+            ));
             if (mapErr) throw mapErr;
           }
         }
@@ -871,10 +892,11 @@ async function _offlineQueueFlush() {
           const notes = (() => { try { return JSON.parse(notesRaw); } catch { return null; } })();
           if (notes) {
             const sbKey = entry.projId ? 'notes-' + entry.projId : 'notes-global';
-            const { error: notesErr } = await _supabase.from('tracker_docs').upsert(
+            // TKT-202607-192 (REQ-202607-071): upsert envuelto en syncState.withSaveLock().
+            const { error: notesErr } = await syncState.withSaveLock(() => _supabase.from('tracker_docs').upsert(
               [{ user_id: _supabaseUser.id, key: sbKey, value: { notes, updatedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
               { onConflict: 'user_id,key' }
-            );
+            ));
             if (notesErr) throw notesErr;
           }
         }
@@ -4137,10 +4159,13 @@ export async function _saveUserPrefs() {
   const updatedAt       = new Date().toISOString();
   if (_supabase && _supabaseUser) {
     try {
-      const { error } = await _supabase.from('tracker_docs').upsert(
+      // TKT-202607-192 (REQ-202607-071): upsert envuelto en syncState.withSaveLock() —
+      // mismo lock global reentrante que saveContextDocs()/TKT-189, serializa sin deadlock
+      // si ambas escrituras a tracker_docs se disparan casi simultáneamente (AC4).
+      const { error } = await syncState.withSaveLock(() => _supabase.from('tracker_docs').upsert(
         [{ user_id: _supabaseUser.id, key: 'user-prefs', value: { shortcuts, templateTrigger, onboardingSeen, updatedAt }, updated_at: updatedAt }],
         { onConflict: 'user_id,key' }
-      );
+      ));
       if (error) throw error;
       try { localStorage.setItem(_USER_PREFS_TS_KEY, updatedAt); } catch(_) {}
     } catch(err) {

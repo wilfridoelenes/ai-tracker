@@ -1,3 +1,14 @@
+/* [PP] mod:82 · autor:Nova · 2026-07-30 UTC-6 */
+/* TKT-[pendiente-ID] (REQ-[pendiente-ID], DISC-202607-067): retirados 3 selectores huérfanos
+   de la familia `KE` (Known Error) — `.bitem-type-KE` (L218-222 antes de este mod) y
+   `.idp-type-chip.idp-type-KE`/`.idp-ac-dot.idp-type-KE` (regla combinada, ~L1005 antes de
+   este mod). `KE` fue fusionado a `PRB.root_cause_confirmed` desde `infra_version 51`
+   (`__BR-Core §6`) — ningún generador JS emite `type: "KE"` desde `REQ CAEL-0724-01`
+   (`locus-session-parse.js` mod:136, `locus-incidents-item.js` mod:3, ver `_pp-context §7`).
+   Grep de todo el archivo confirma cero instancias adicionales de `-KE` tras este mod.
+   Token `--yellow`/`--yellow-text` no se retira — sigue en uso por otros componentes
+   (mismo criterio ya aplicado a `.ct-pill-ke`, `TKT-202607-168`). Sin cambio de comportamiento
+   visual — las 3 reglas no tenían consumidor real en producción. */
 /* [PP] mod:81 · autor:Nova · 2026-07-30 02:05 UTC-6 */
 /* TKT-202607-171 (REQ-202607-058, ref_id CAEL-0727-03): familia .mdiff-ckpt-category — 7
    badges de identidad visual por categoría de CHECKPOINT (borrador/avalado/entrega/cierre/
@@ -213,12 +224,6 @@
   background: color-mix(in srgb, var(--orange) 15%, transparent);
   color: var(--orange);
   border: 1px solid color-mix(in srgb, var(--orange) 30%, transparent);
-}
-
-.bitem-type-KE {
-  background: color-mix(in srgb, var(--yellow) 15%, transparent);
-  color: var(--yellow);
-  border: 1px solid color-mix(in srgb, var(--yellow) 30%, transparent);
 }
 
 .bitem-type-CHG {
@@ -1002,7 +1007,6 @@
 .idp-type-chip.idp-type-REQ,  .idp-ac-dot.idp-type-REQ  { --_type-color: var(--purple); }
 .idp-type-chip.idp-type-DISC, .idp-ac-dot.idp-type-DISC { --_type-color: var(--blue); }
 .idp-type-chip.idp-type-PRB,  .idp-ac-dot.idp-type-PRB  { --_type-color: var(--orange); }
-.idp-type-chip.idp-type-KE,   .idp-ac-dot.idp-type-KE   { --_type-color: var(--yellow); }
 .idp-type-chip.idp-type-CHG,  .idp-ac-dot.idp-type-CHG  { --_type-color: var(--slate); }
 
 .idp-header-meta {
