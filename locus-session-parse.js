@@ -799,6 +799,23 @@ import { esc } from './locus-ui-shell.js';
 // Scope: por carga de página (sesión activa del navegador). Se resetea con recarga.
 const _processedCheckpointHashes = new Set();
 
+// Fix inline (Opción A — sesión de análisis del falso positivo de duplicado, triggered_by:
+// hallazgo sobre T-202606-210): antes, parsePaste() registraba el hash del CHECKPOINT en
+// _processedCheckpointHashes ANTES de invocar saveSession(id) — es decir, en el momento de
+// intentar guardar, no en el momento de guardar de verdad. Si saveSession/_doSaveSession
+// abortaban (sin proyecto seleccionado, mismatch de proyecto cancelado, o el founder cerraba
+// el panel de Merge Diff sin confirmar — los tres casos dejan la sesión sin persistir en
+// activeProj.sessions[]), el hash ya quedaba marcado como "procesado". Si el founder resolvía
+// el bloqueo y volvía a pegar el mismo texto, el guard de duplicado disparaba un falso
+// positivo — "ya fue procesado" — pese a que nunca se había guardado nada.
+// _markCheckpointProcessed() se expone para que locus-session-save.js registre el hash desde
+// _doApplyMergeAndFinish(), en el único punto donde la persistencia real ya ocurrió (justo
+// después del push a activeProj.sessions vía _mutateSessions) — sin depender de si el merge
+// de backlog posterior tiene éxito, porque la sesión en sí ya existe en ese momento.
+export function _markCheckpointProcessed(text) {
+  if (text) _processedCheckpointHashes.add(text.trim());
+}
+
 // T-202604-215: Labels de status en español — fuente de verdad para UI
 // Movido desde locus-checkpoint-hoy.js
 export const STATUS_LABELS = {
@@ -2499,9 +2516,13 @@ export function parsePaste(id) {
   if (isCheckpoint && title && !window[_saveGuardKey]) {
     window[_saveGuardKey] = true;
     queueMicrotask(() => { delete window[_saveGuardKey]; });
-    _processedCheckpointHashes.add(text.trim()); // T-202606-210: registrar hash al procesar
+    // Fix inline (Opción A): _processedCheckpointHashes.add() removido de aquí — el registro
+    // del hash se movió a _markCheckpointProcessed(), invocado desde _doApplyMergeAndFinish()
+    // (locus-session-save.js) en el momento real de persistencia. Ver comentario junto a
+    // _markCheckpointProcessed() para el detalle completo del falso positivo que esto corrige.
     saveSession(id);
   }
+
 
   // T-409: atenuar textarea cuando hay ítems detectados en fase CONFIRMAR
   const _ta409 = document.getElementById('ingest-ta') /* CAEL-22 */;
