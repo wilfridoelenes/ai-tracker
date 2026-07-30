@@ -1,4 +1,4 @@
-/* [PP] mod:80 · autor:Rune · 2026-07-27 20:35 UTC-6 */
+/* [PP] mod:81 · autor:Nova · 2026-07-30 02:05 UTC-6 */
 /* TKT-202607-171 (REQ-202607-058, ref_id CAEL-0727-03): familia .mdiff-ckpt-category — 7
    badges de identidad visual por categoría de CHECKPOINT (borrador/avalado/entrega/cierre/
    liberado/incidente/lite), consumidos por TKT3 (locus-backlog-merge.js) sobre el resultado de
@@ -2474,14 +2474,14 @@
 }
 
 /* ── TKT2-diff-visual: chips de resumen para created/advanced/updated ── */
-.mdiff-summary-chips {
+.mdiff-info-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   padding: 12px 14px;
 }
 
-.mdiff-summary-chip {
+.mdiff-info-chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -2491,17 +2491,17 @@
   border-radius: var(--radius-lg, 14px);
 }
 
-.mdiff-summary-chip--success {
+.mdiff-info-chip--success {
   background: color-mix(in srgb, var(--green) 14%, transparent);
   color: var(--green-text);
 }
 
-.mdiff-summary-chip--neutral {
+.mdiff-info-chip--neutral {
   background: var(--surface2);
   color: var(--text2);
 }
 
-.mdiff-summary-chip .mdiff-sec-count {
+.mdiff-info-chip .mdiff-sec-count {
   background: rgb(0 0 0 / 10%);
   color: inherit;
 }

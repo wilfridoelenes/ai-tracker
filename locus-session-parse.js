@@ -1,4 +1,4 @@
-// [PP] mod:166 · autor:Rune · 2026-07-29 04:05 UTC-6
+// [PP] mod:168 · autor:Rune · 2026-07-29 UTC-6
 // Fix inline: delete window[_dupCheckpointWarnSeen_${id}] agregado a la lista de limpieza del
 // reset de textarea vacío (~L2233) — gap detectado en Hallazgo fuera de scope de esta sesión.
 // Ver comentario junto al delete para el detalle completo.
@@ -1863,6 +1863,28 @@ export function parsePaste(id) {
           }
           continue;
         }
+        // TKT1 (REQ-202607-061): patch-intencion — instrucción de operación separada de
+        // type:'patch' ordinario. Único vehículo para modificar intencion/kill_criteria/ac
+        // de coherencia de un REQ ya existente, exclusivamente tras confirmación explícita
+        // del founder (founder_confirmado). Gate de rechazo solamente en este TKT — la
+        // aplicación real de los campos (TKT2/TKT-202607-177) consume _patchIntencionItems_
+        // por separado de _patchItems_, para que applyPatchesFromTG() (que aún no conoce
+        // este type) no la trate como patch genérico a medias antes de que TKT2 esté listo.
+        if (_it.type === 'patch-intencion') {
+          if (!_it.code || _isPlaceholderCode(_it.code)) {
+            _blogLog('patch-ignorado', _it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (_it.code || '(vacío)'), 'backlog');
+            showToast('warn', `Patch descartado: código placeholder no patcheable — ${_it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
+          } else if (!_it.founder_confirmado || typeof _it.founder_confirmado !== 'string' || _it.founder_confirmado.trim() === '') {
+            // AC-2: sin founder_confirmado (ausente/vacío) → rechazo completo, sin aplicar ningún campo parcial
+            _blogLog('patch-intencion-sin-confirmacion', _it.code, 'patch-intencion sin founder_confirmado — no aplicado. Declarar confirmación explícita del founder.', 'backlog');
+            showToast('warn', `patch-intencion descartado: falta founder_confirmado — ${_it.code}.`);
+          } else {
+            // AC-1: instrucción válida — pasa a TKT2 vía canal propio, no mezclado con _patchItems_
+            window[`_patchIntencionItems_${id}`] = window[`_patchIntencionItems_${id}`] || [];
+            window[`_patchIntencionItems_${id}`].push(_it);
+          }
+          continue;
+        }
         if (!_it.type || !_it.code) {
           _itemError = `Ítem [${_i}]: faltan campos obligatorios (type, code). Recibido: ${JSON.stringify(_it)}`;
           break;
@@ -2108,6 +2130,16 @@ export function parsePaste(id) {
 
   const _pendingPatches = window[`_patchItems_${id}`] || [];
   delete window[`_patchItems_${id}`];
+  // TKT2 (REQ-202607-061 · depends_on: TKT-202607-176 done): mismo patrón que _pendingPatches
+  // arriba — leer y limpiar el canal propio de patch-intencion acumulado por TKT-176, exponerlo
+  // en ai._parsed simétrico a patchItems. Impacto lateral declarado: el consumidor real de
+  // ai._parsed.patchItems para el path single es _applyCheckpointBatch/saveSession
+  // (locus-session-save.js) — ese archivo no está adjunto en esta sesión, por lo que la llamada
+  // a applyPatchesFromTG con opts.patchIntencionItems para el path single queda sin wiring final.
+  // El dato ya queda disponible aquí para cuando ese archivo se adjunte — no se infiere ni se
+  // escribe contenido de locus-session-save.js. Ver CHECKPOINT de esta sesión.
+  const _pendingPatchIntencionItems = window[`_patchIntencionItems_${id}`] || [];
+  delete window[`_patchIntencionItems_${id}`];
   // TKT1 (REQ CAEL-0718-01 · no_incluye): docUpdates/finnObservations/finnRelease/draft/draftRaw/
   //   rol se leían antes vía ternarios inline repetidos aquí — ahora vienen de _extractCkptMeta,
   //   misma función que alimenta `metas` en el flujo batch (_resolveCheckpointBatch, más abajo).
@@ -2115,7 +2147,7 @@ export function parsePaste(id) {
   //   entrega. sprintProposal queda fuera del contrato de _extractCkptMeta (AC3) — sigue
   //   construyéndose inline aquí sin cambio, retiro completo pendiente de TKT4.
   const _ckptMetaShared = _extractCkptMeta(ckpt);
-  ai._parsed = { title, summary, files, tgItems, patchItems: _pendingPatches, isCheckpoint, nextStep, ckptProyecto: ckpt ? (ckpt.proyecto || '') : '', inlineFixes: _inlineFixes,
+  ai._parsed = { title, summary, files, tgItems, patchItems: _pendingPatches, patchIntencionItems: _pendingPatchIntencionItems, isCheckpoint, nextStep, ckptProyecto: ckpt ? (ckpt.proyecto || '') : '', inlineFixes: _inlineFixes,
     // TKT-202607-172 (REQ-202607-058 · gap AC4-6 cerrado en esta sesión, hallazgo de Finn):
     //   _ckptMetaShared.nextStep/.nextRole se calculaban en esta misma función pero nunca se
     //   propagaban a ai._parsed — quedaban muertos. nextStepMeta/nextRoleMeta son el único canal
@@ -2704,7 +2736,12 @@ export async function _processIngestBatch() {
   //   sabe resolver.
 
   const syntheticSessId = 'ingest-batch-' + Date.now();
-  const { tgItems, patchItems, skipped, metas } = _resolveCheckpointBatch(rawBlocks, syntheticSessId);
+  // TKT2 (REQ-202607-061 · depends_on: TKT-202607-176 done): patchIntencionItems agregado a la
+  // destructuración — _resolveCheckpointBatch ya lo retorna desde TKT1 (mismo criterio de
+  // propagación que patchItems, ver comentario en _result más abajo en este archivo), pero no
+  // se leía en este call site — mismo patrón de gap ya corregido para patchItems en TKT2
+  // (REQ-[pendiente-ID] · CAEL-05, ver comentario en la línea de _result).
+  const { tgItems, patchItems, patchIntencionItems, skipped, metas } = _resolveCheckpointBatch(rawBlocks, syntheticSessId);
 
   // TKT4 (REQ CAEL-0718-01 · AC1): aviso distinto de error — no bloquea el resto del batch,
   // solo informa que ese bloque puntual se ignoró aquí porque su único destino es Tab Sprint.
@@ -2759,7 +2796,11 @@ export async function _processIngestBatch() {
       showToast('error', '✗ No se pudo aplicar el batch');
       return;
     }
-    if (patchItems && patchItems.length && _batchMergeResult) {
+    // TKT2 (REQ-202607-061): guard extendido — un batch puede traer solo instrucciones
+    // patch-intencion sin ningún patch ordinario (ej. Cael corrigiendo intencion de un REQ tras
+    // Pausa de Ciclo, sin otro trabajo en el mismo bloque). Sin este OR, ese batch nunca
+    // invocaba applyPatchesFromTG y patchIntencionItems quedaba sin aplicar en silencio.
+    if (((patchItems && patchItems.length) || (patchIntencionItems && patchIntencionItems.length)) && _batchMergeResult) {
       // INC-202607-031 (triggered_by REQ-202607-033): ckptHeaderRole:'' hardcodeado
       // reemplazado por roleByIdx (Map<idx, role>) — causa raíz confirmada: este call site
       // pasaba un único role vacío para todos los patches del batch, sin importar cuántos
@@ -2771,7 +2812,7 @@ export async function _processIngestBatch() {
       // sin re-parsear nada. Sin cambio de firma pública de applyPatchesFromTG.
       const _roleByIdx = new Map();
       (metas || []).forEach(m => { if (m && m.idx !== undefined) _roleByIdx.set(m.idx, m.rol || ''); });
-      applyPatchesFromTG(patchItems, syntheticSessId, { slugMap: _batchMergeResult.slugMap, refIdTitleMap: _batchMergeResult.refIdTitleMap, roleByIdx: _roleByIdx });
+      applyPatchesFromTG(patchItems, syntheticSessId, { slugMap: _batchMergeResult.slugMap, refIdTitleMap: _batchMergeResult.refIdTitleMap, roleByIdx: _roleByIdx, patchIntencionItems: patchIntencionItems || [] });
     }
 
     // TKT1 (REQ CAEL-0727-01, ref_id CAEL-0727-02 · origen DISC-202607-055): registrar
@@ -2944,6 +2985,7 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
   const _validStatuses = _VALID_STATUSES_GATE;
   const tgItems = [];
   const patchItems = [];
+  const patchIntencionItems = []; // TKT1 (REQ-202607-061): canal propio, separado de patchItems
   let itemError = null;
 
   for (let i = 0; i < parsedJSON.length; i++) {
@@ -2954,6 +2996,20 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
         showToast('warn', `Patch descartado: código placeholder no patcheable — ${it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
       } else {
         patchItems.push(it);
+      }
+      continue;
+    }
+    // TKT1 (REQ-202607-061): patch-intencion — mismo criterio que el path single (parseCheckpoint,
+    // ver comentario ahí). Canal propio (patchIntencionItems), separado de patchItems.
+    if (it.type === 'patch-intencion') {
+      if (!it.code || _isPlaceholderCode(it.code)) {
+        _blogLog('patch-ignorado', it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (it.code || '(vacío)'), 'backlog');
+        showToast('warn', `Patch descartado: código placeholder no patcheable — ${it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
+      } else if (!it.founder_confirmado || typeof it.founder_confirmado !== 'string' || it.founder_confirmado.trim() === '') {
+        _blogLog('patch-intencion-sin-confirmacion', it.code, 'patch-intencion sin founder_confirmado — no aplicado. Declarar confirmación explícita del founder.', 'backlog');
+        showToast('warn', `patch-intencion descartado: falta founder_confirmado — ${it.code}.`);
+      } else {
+        patchIntencionItems.push(it);
       }
       continue;
     }
@@ -3121,7 +3177,7 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
     _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
   }
 
-  return { tgItems, patchItems, itemError };
+  return { tgItems, patchItems, patchIntencionItems, itemError };
 }
 
 // [PP] TKT3: valida y construye preview de UN bloque del batch — usado solo cuando
@@ -3164,11 +3220,11 @@ function _parseBatchBlock(blockText) {
   if (_hasDraftGatedItem && ckpt.draftRaw === undefined) {
     return { ok: false, error: 'Campo "draft" ausente — CHECKPOINT no aplicado. Declarar draft: true o false.' };
   }
-  const { tgItems, patchItems, itemError } = _buildTgItemsFromParsed(ckpt, parsedJSON);
+  const { tgItems, patchItems, patchIntencionItems, itemError } = _buildTgItemsFromParsed(ckpt, parsedJSON);
   if (itemError) {
     return { ok: false, error: itemError };
   }
-  return { ok: true, ckpt, tgItems, patchItems };
+  return { ok: true, ckpt, tgItems, patchItems, patchIntencionItems };
 }
 
 // [PP] TKT4: resuelve un batch de bloques de texto ya separados por _splitCheckpointBlocks
@@ -3196,7 +3252,7 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
   //   _extractCkptMeta por bloque válido, ver Paso 3 abajo. Antes de este TKT no existía en el
   //   shape de retorno — el flujo batch (_processIngestBatch) no tenía forma de mostrar narrativa
   //   por bloque, deuda declarada en mod:126/mod:127 (ckptMeta:{} hardcodeado).
-  const _result = { tgItems: [], patchItems: [], skipped: [], metas: [] }; // TKT2 (REQ-[pendiente-ID] · CAEL-05): patchItems agregado — antes se descartaba por completo, ningún patch se aplicaba jamás en el flujo batch
+  const _result = { tgItems: [], patchItems: [], patchIntencionItems: [], skipped: [], metas: [] }; // TKT2 (REQ-[pendiente-ID] · CAEL-05): patchItems agregado — antes se descartaba por completo, ningún patch se aplicaba jamás en el flujo batch // TKT1 (REQ-202607-061): patchIntencionItems agregado — mismo criterio de propagación que patchItems
   if (!blocks || !blocks.length) return _result;
 
   // Paso 1 (AC2 heredado de TKT3): parsear cada bloque — inválido se marca, no aborta el resto.
@@ -3217,7 +3273,7 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
     }
     // TKT1: r.ckpt capturado — fuente de _extractCkptMeta en Paso 3. _parseBatchBlock ya lo
     //   retornaba (línea del `return { ok: true, ckpt, ... }`), solo no se propagaba hasta aquí.
-    return { idx, valid: true, tgItems: r.tgItems, patchItems: r.patchItems || [], ckpt: r.ckpt }; // TKT2: patchItems capturado de _parseBatchBlock — ya lo retornaba (línea 1946), solo se descartaba aquí
+    return { idx, valid: true, tgItems: r.tgItems, patchItems: r.patchItems || [], patchIntencionItems: r.patchIntencionItems || [], ckpt: r.ckpt }; // TKT2: patchItems capturado de _parseBatchBlock — ya lo retornaba (línea 1946), solo se descartaba aquí // TKT1 (REQ-202607-061): patchIntencionItems capturado, mismo criterio
   });
 
   // Paso 2: gate de duplicados — [tmp:slug] como code de más de un ítem nuevo en el batch
@@ -3242,6 +3298,7 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
     const _reason = `${_dupSlug} declarado como código de más de un ítem nuevo en el mismo batch — batch rechazado.`;
     _result.tgItems = [];
     _result.patchItems = []; // TKT2: rechazo atómico — ningún patch del batch se aplica cuando el batch completo se rechaza (AC del REQ)
+    _result.patchIntencionItems = []; // TKT1 (REQ-202607-061): mismo criterio de rechazo atómico
     _result.skipped.push({ type: 'rejected', reason: _reason });
     _blogLog('checkpoint-batch-rechazado', '', _reason, 'backlog');
     return _result;
@@ -3260,6 +3317,7 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
     if (b.valid) {
       _result.tgItems.push(...b.tgItems.map(it => ({ ...it, idx: b.idx })));
       _result.patchItems.push(...b.patchItems.map(it => ({ ...it, idx: b.idx }))); // TKT2: mismo criterio de orden que tgItems
+      _result.patchIntencionItems.push(...(b.patchIntencionItems || []).map(it => ({ ...it, idx: b.idx }))); // TKT1 (REQ-202607-061): mismo criterio de orden
       // TKT1 (REQ CAEL-0718-01 · AC1): un _extractCkptMeta por bloque válido — b.ckpt es el
       //   CHECKPOINT completo de ese bloque, no el tgItems combinado.
       // TKT-078 (REQ-202607-022, ref_id CAEL-0724-05): idx: b.idx agregado explícitamente.

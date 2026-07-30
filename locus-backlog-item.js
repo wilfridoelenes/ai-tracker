@@ -1,4 +1,4 @@
-// [PP] mod:154 · autor:Rune · 2026-07-29 UTC-6
+// [PP] mod:155 · autor:Rune · 2026-07-29 UTC-6
 // INC (__BR-Ecosystem §5): applyPatchesFromTG() no propagaba descartado a los TKT hijos
 // de un REQ patcheado a descartado — agregada cascada REQ→hijos en la rama genérica de
 // status (TKT-202607-139/140 huérfanos, ver bloque en el cuerpo del archivo).
@@ -3270,7 +3270,21 @@ export function _checkAndOrphanParentR(childCode, nowTs) {
 const _PATCH_NON_PATCHEABLE = new Set(['code', 'type', 'schema_version', 'ref_id', 'intencion', 'kill_criteria']); // TKT-202607-008: ref_id/intencion/kill_criteria agregados — modelo lista negra, __BR-Ecosystem §8 infra_version 33. code/type/schema_version son identidad del ítem — no cambian sin re-emisión. ref_id es exclusivo del CHECKPOINT de creación — sin función posterior. intencion/kill_criteria requieren Pausa de Ciclo o sesión explícita con el founder, nunca patch silencioso.
 
 export function applyPatchesFromTG(patches, sessionId, opts) {
-  if (!patches || !patches.length) return { patched: [], ignored: [] };
+  patches = patches || [];
+
+  // TKT2 (REQ-202607-061 · depends_on: TKT-202607-176 done): patch-intencion — canal separado
+  // de los patches ordinarios, ver __BR-Ecosystem §8 "Instrucción type: patch-intencion".
+  // TKT-176 (locus-session-parse.js) ya validó founder_confirmado + code no-placeholder antes
+  // de acumular en este canal (window[`_patchIntencionItems_${id}`] / patchIntencionItems del
+  // path batch) — aquí queda: (a) verificar que el ítem existe y es REQ (intencion/kill_criteria
+  // son campos exclusivos de REQ, __BR-Ecosystem §5 — un TKT no los declara), (b) reemplazar
+  // intencion/kill_criteria completos, (c) reemplazar ac SOLO si el mismo patch trae intencion
+  // en el mismo movimiento — ac sin intencion en el mismo patch no es "consecuencia directa de
+  // la corrección de intencion" (__BR-Ecosystem §8) y debe seguir type:patch ordinario tras su
+  // propia Pausa de Ciclo Auto-orquestado.
+  const _patchIntencionItems = (opts && Array.isArray(opts.patchIntencionItems)) ? opts.patchIntencionItems : [];
+
+  if (!patches.length && !_patchIntencionItems.length) return { patched: [], ignored: [] };
 
   // B-202606-022: slugMap pasado desde mergeBacklogFromTG via llamador — resuelve [tmp:slug] en parentId
   const _slugMap = (opts && opts.slugMap instanceof Map) ? opts.slugMap : null;
@@ -3979,6 +3993,74 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
       });
       if (sessionId && existing.sessionId !== sessionId) existing.sessionId = sessionId;
 
+      patched.push({
+        code,
+        desc: existing.title,
+        changes,
+        change: changes.map(c => c.field).join(' · ')
+      });
+    } else {
+      ignoredPatches.push({ code, reason: 'sin-cambios' });
+    }
+  });
+
+  // TKT2 (REQ-202607-061 · depends_on: TKT-202607-176): consumo de patchIntencionItems —
+  // pase separado del forEach de patches ordinarios de arriba (line ~3428), mismo criterio de
+  // batch-then-save que ya rige ahí (INC-[pendiente-ID] comentado abajo) — una sola
+  // saveBacklog() al final cubre ambos pases, no una por instrucción.
+  const _piNowTs = Date.now();
+  _patchIntencionItems.forEach(pi => {
+    const code = pi.code;
+    const existing = getAnyItem(code);
+    if (!existing) {
+      ignoredPatches.push({ code, reason: 'no-existe' });
+      _blogLog('patch-intencion-codigo-no-existe', code, 'patch-intencion sobre código inexistente en el backlog.', 'backlog');
+      return;
+    }
+    // intencion/kill_criteria son campos exclusivos de REQ (__BR-Ecosystem §5) — un TKT nunca
+    // los declara. Rechazo explícito en vez de aplicar silenciosamente sobre un tipo que no
+    // tiene el campo en su schema.
+    if (itemKind(existing) !== 'REQ') {
+      ignoredPatches.push({ code, reason: 'patch-intencion-solo-req' });
+      _blogLog('patch-intencion-tipo-invalido', code, `patch-intencion solo aplica sobre REQ — código es ${itemKind(existing) || 'tipo desconocido'}.`, 'backlog');
+      return;
+    }
+
+    const _hasIntencion = pi.intencion && typeof pi.intencion === 'object' && !Array.isArray(pi.intencion);
+    const _hasKillCriteria = typeof pi.kill_criteria === 'string' && pi.kill_criteria.length > 0;
+    const _hasAc = Array.isArray(pi.ac);
+    const changes = [];
+
+    if (_hasIntencion) {
+      changes.push({ field: 'intencion', from: existing.intencion || null, to: pi.intencion });
+      existing.intencion = pi.intencion;
+    }
+    if (_hasKillCriteria) {
+      changes.push({ field: 'kill_criteria', from: existing.kill_criteria || null, to: pi.kill_criteria });
+      existing.kill_criteria = pi.kill_criteria;
+    }
+    // __BR-Ecosystem §8: "ac ... solo cuando la corrección de ac es consecuencia directa de la
+    // corrección de intencion en el mismo patch". Sin intencion en el mismo objeto, ac no se
+    // aplica aquí — el rol debe corregirlo vía type:patch ordinario tras su propia Pausa.
+    if (_hasAc && _hasIntencion) {
+      changes.push({ field: 'ac', from: existing.ac || [], to: pi.ac });
+      existing.ac = pi.ac.slice();
+    } else if (_hasAc && !_hasIntencion) {
+      _blogLog('patch-intencion-ac-sin-intencion', code, 'ac ignorado en patch-intencion — solo aplicable como consecuencia directa de una corrección de intencion en el mismo patch. Usar type:patch ordinario para corregir ac sin cambiar intencion.', 'backlog');
+    }
+
+    if (changes.length) {
+      if (!existing.history) existing.history = [];
+      changes.forEach(ch => {
+        existing.history.push({
+          type: 'field',
+          ts: _piNowTs,
+          origin: 'patch-intencion',
+          sessionId: sessionId || null,
+          data: { field: ch.field, from: ch.from !== null ? ch.from : null, to: ch.to !== undefined ? ch.to : null }
+        });
+      });
+      if (sessionId && existing.sessionId !== sessionId) existing.sessionId = sessionId;
       patched.push({
         code,
         desc: existing.title,
