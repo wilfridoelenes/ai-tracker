@@ -1,4 +1,7 @@
-// [PP] mod:165 · autor:Rune · 2026-07-29 03:20 UTC-6
+// [PP] mod:166 · autor:Rune · 2026-07-29 04:05 UTC-6
+// Fix inline: delete window[_dupCheckpointWarnSeen_${id}] agregado a la lista de limpieza del
+// reset de textarea vacío (~L2233) — gap detectado en Hallazgo fuera de scope de esta sesión.
+// Ver comentario junto al delete para el detalle completo.
 // INC-[pendiente-ID] (triggered_by: sesión de duplicación de ítem tras CHECKPOINT batch +
 // Quick Capture): guard de reentrancia agregado en _routeParse() — el navegador dispara 'paste'
 // e 'input' para la misma acción de pegado sobre #ingest-ta, y handleInput (inmediato) +
@@ -2231,6 +2234,14 @@ export function parsePaste(id) {
     delete window[`_discrepancyWarnSeen_${id}`];
     delete window[`_draftGateToastSeen_${id}`];
     delete window[`_depPlaceholderWarnSeen_${id}`]; // TKT-202607-131
+    delete window[`_dupCheckpointWarnSeen_${id}`]; // Fix inline (triggered_by: sesión de análisis
+    // del guard de CHECKPOINT duplicado, T-202606-210) — este flag quedó fuera de la lista de
+    // limpieza junto con los otros 6 warn-keys de la misma familia. Sin este delete, tras un solo
+    // "Continuar de todas formas" el warning de duplicado nunca volvía a dispararse para este
+    // worker en lo que durara la sesión de navegador, aunque se vaciara el textarea y se pegara
+    // el mismo CHECKPOINT una tercera vez. _processedCheckpointHashes (Set global, línea ~797) no
+    // se toca aquí — es compartido entre workers, no por id; evaluar por separado si necesita su
+    // propio mecanismo de expiración.
     // Resetear preview y ta-has-items al estado inicial
     // CAEL-25: prev-${id} no existe en el DOM desde CAEL-22 (migración a #ingest-ta global) —
     // target real es #ingest-validation-panel.
