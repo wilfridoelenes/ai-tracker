@@ -1,3 +1,17 @@
+// [PP] mod:154 · autor:Rune · 2026-07-30 UTC-6
+// TKT-202607-190 (TKT2, REQ-202607-071): upsert a tracker_state en _saveFlush() envuelto en
+// syncState.withSaveLock() — mismo lock global sin scope. _applyStateRow() gana guard
+// syncState.isSaveInFlight() al inicio, mismo patrón guard-and-skip. AC corregido por Cael
+// en sesión previa a la implementación — la firma original (withSaveLock('state', ...),
+// isSaveInFlight('state')) no existe en locus-sync-state.js (contrato: sin scoping por
+// tabla, ver _Locus-module-contracts §2).
+// TKT-202607-191 (TKT3, REQ-202607-071): bloque completo de escritura de _saveSessions()
+// (DELETE de removals + N lotes de upsert) envuelto en un único syncState.withSaveLock() —
+// no uno por lote. Anidado de forma segura dentro del lock que ya sostiene _saveFlush()
+// cuando _saveSessions se invoca desde ahí (contador reentrante, no mutex de exclusión).
+// _mergeSessionsFromRemote() gana el mismo guard isSaveInFlight(). Mismo AC corregido sin
+// scope. Módulo crítico: locus-storage.js — activar verificación de regresiones en Finn.
+//
 // [PP] mod:153 · autor:Rune · 2026-07-29 UTC-6
 // TKT-202607-189 (TKT1, REQ-202607-071): saveContextDocs() — el upsert a tracker_docs ahora
 // corre dentro de syncState.withSaveLock() — mismo lock global sin scope ya usado por
@@ -1241,12 +1255,15 @@ async function _saveFlush() {
       // donde Supabase notificaba via Realtime antes de que _realtimeLastTs tuviera valor,
       // causando que _loadFromSupabase() recargara el state y pisara cambios locales (ej: tema).
       syncState.markEchoPending(_nowTs);
-      const { error } = await _supabase.from('tracker_state').upsert({
+      // TKT-202607-190 (REQ-202607-071): upsert a tracker_state envuelto en
+      // syncState.withSaveLock() — mismo lock global sin scope ya usado por
+      // tracker_items/tracker_incidents (saveBacklog) y tracker_docs (TKT-189).
+      const { error } = await syncState.withSaveLock(() => _supabase.from('tracker_state').upsert({
         user_id: _supabaseUser.id,
         key: 'main',
         value: stateWithoutSessions,
         updated_at: _nowTs
-      }, { onConflict: 'user_id,key' });
+      }, { onConflict: 'user_id,key' }));
       if (error) throw error;
 
       // Sesiones — upsert en paralelo por proyecto
@@ -1407,7 +1424,13 @@ async function _saveSessions(proj) {
 
   // Supabase — upsert por lotes de 400, solo de sesiones dirty (TKT1) + DELETE real de
   // removals pendientes (TKT2 · REQ-sessions-mutator)
+  // TKT-202607-191 (REQ-202607-071): todo el bloque de escritura (DELETE + N lotes de
+  // upsert) corre dentro de un único syncState.withSaveLock() — no uno por lote. El lock es
+  // el mismo global sin scope ya usado por tracker_state/tracker_items/tracker_incidents/
+  // tracker_docs; anidarlo dentro del que ya sostiene _saveFlush() (cuando _saveSessions se
+  // invoca desde ahí) es seguro porque es un contador reentrante, no un mutex de exclusión.
   if (_supabase && _supabaseUser) {
+    await syncState.withSaveLock(async () => {
     // AC-2/AC-4 (TKT2): DELETE de removals corre siempre que haya pendientes, independiente
     // de si hay algo para subir o si el proyecto ya tuvo su baseline — un remove no depende
     // del estado de sync de los adds.
@@ -1469,7 +1492,7 @@ async function _saveSessions(proj) {
     // AC-3: éxito — limpiar solo los ids recién subidos.
     if (_dirtySessionIds[proj.id]) idsBeingUploaded.forEach(id => _dirtySessionIds[proj.id].delete(id));
     _dirtySyncBaseline.add(proj.id);
-    return;
+    });
   }
 }
 
@@ -2925,6 +2948,14 @@ let _loadRetryCount = 0;
 // paralelo siguiente (comentario original preservado abajo).
 async function _applyStateRow(stateRows) {
   if (!(stateRows && stateRows.value)) return;
+  // TKT-202607-190 (REQ-202607-071): guard syncState.isSaveInFlight() — mismo patrón
+  // guard-and-skip que _mergeItemsFromRemote()/_mergeIncidentsFromRemote()/_applyDocIfNewer().
+  // Si hay un upsert en vuelo, esta pasada de merge remoto de tracker_state se omite —
+  // se reintenta en el siguiente _loadFromSupabase(), no bloquea esperando.
+  if (syncState.isSaveInFlight()) {
+    logger.warn('[AI Tracker] _applyStateRow: guardado en vuelo — merge remoto de state omitido, edad del lock:', syncState.getSaveLockAgeMs(), 'ms');
+    return;
+  }
   const remote = stateRows.value;
   _applyStateData(remote);
   // TKT1 · REQ-sprints-migration: carga cross-proyecto en una sola query — ya no depende
@@ -2947,6 +2978,14 @@ async function _applyStateRow(stateRows) {
 // batch en sí queda en _loadFromSupabase(), junto con items/incidents/docs/drafts, porque
 // separarlo en fetches independientes perdería el paralelismo de red (AC-4/AC-5 originales).
 function _mergeSessionsFromRemote(sessResult) {
+  // TKT-202607-191 (REQ-202607-071): guard syncState.isSaveInFlight() — mismo patrón
+  // guard-and-skip que _mergeItemsFromRemote()/_mergeIncidentsFromRemote()/_applyStateRow()/
+  // _applyDocIfNewer(). Si hay un upsert en vuelo, esta pasada de merge remoto de sesiones
+  // se omite — se reintenta en el siguiente _loadFromSupabase().
+  if (syncState.isSaveInFlight()) {
+    logger.warn('[AI Tracker] _mergeSessionsFromRemote: guardado en vuelo — merge remoto omitido, edad del lock:', syncState.getSaveLockAgeMs(), 'ms');
+    return;
+  }
   try {
     if (sessResult.status === 'fulfilled' && !sessResult.value.error) {
       const sessRows = sessResult.value.data;
