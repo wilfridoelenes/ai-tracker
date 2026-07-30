@@ -1,3 +1,11 @@
+/* [PP] mod:83 · autor:Nova · 2026-07-30 UTC-6 */
+/* Hallazgo fuera de scope resuelto en sesión (Excepción de resolución directa — dueño
+   presente, nivel Patch, sin bifurcación de founder): 3 comentarios usaban terminología
+   obsoleta "INC/PRB/KE/CHG" (~L3433, ~L3454, ~L4245 antes de este mod) — KE fue fusionado
+   a PRB.root_cause_confirmed desde infra_version 51. Reemplazados por "INC/PRB/CHG". Las
+   clases que documentan (.mdiff-queue-badge, .staleness-pill.staleness--itil-incompleto)
+   son genéricas para toda la rama ITIL — no diferenciaban por tipo, sin cambio de
+   comportamiento. Sin otros selectores CSS muertos detectados en el resto del archivo. */
 /* [PP] mod:82 · autor:Nova · 2026-07-30 UTC-6 */
 /* TKT-[pendiente-ID] (REQ-[pendiente-ID], DISC-202607-067): retirados 3 selectores huérfanos
    de la familia `KE` (Known Error) — `.bitem-type-KE` (L218-222 antes de este mod) y
@@ -3430,7 +3438,7 @@ body {
   border-color: var(--accent);
 }
 
-/* INC histórico — sin CHECKPOINT confirmado: badge de cola fija para INC/PRB/KE/CHG en modal DIFF —
+/* INC histórico — sin CHECKPOINT confirmado: badge de cola fija para INC/PRB/CHG en modal DIFF —
    reemplaza .mdiff-sprint-select cuando el ítem no acepta sprint/Q-Backlog (vive en Q-INC).
    No interactivo — mismo tratamiento neutro que .sps-card--pausado (surface2/hint). */
 .mdiff-queue-badge {
@@ -3451,7 +3459,7 @@ body {
 /* TKT-202607-001 (triggered_by hallazgo de sesión): badge de cola fija para DISC en modal DIFF —
    mismo tratamiento estructural que .mdiff-queue-badge (línea base), pero con color propio
    en vez del neutro var(--hint)/var(--surface2). DISC vive exclusivamente en Q-DISC
-   (__BR-Ecosystem §5) y nunca acepta sprint — igual que INC/PRB/KE/CHG con Q-INC, pero
+   (__BR-Ecosystem §5) y nunca acepta sprint — igual que INC/PRB/CHG con Q-INC, pero
    la variante --qinc nunca definió color propio (queda en el neutro base). Para --qdisc se
    usa var(--blue) porque es el color canónico ya establecido para DISC en todo el resto
    del sistema — ver .bitem-type-DISC (línea 82, este archivo) y .item-type-pill.DISC
@@ -4242,7 +4250,7 @@ body {
   border-color: color-mix(in srgb, var(--amber) 28%, transparent);
 }
 
-/* TKT-202607-063 (REQ-202607-016): INC/PRB/KE/CHG con campos ITIL obligatorios ausentes
+/* TKT-202607-063 (REQ-202607-016): INC/PRB/CHG con campos ITIL obligatorios ausentes
    (item.itil_incomplete — ver _normalizeIncidents(), TKT-202607-062). Mismo tono semántico
    que staleness--orphaned: gap de completitud de especificación, no alerta de tiempo
    transcurrido — reservamos --red/--stale exclusivamente para antigüedad. */
