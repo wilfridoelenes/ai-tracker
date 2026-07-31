@@ -1,4 +1,4 @@
-// [PP] mod:14 · autor:Rune · 2026-07-15 UTC-6
+// [PP] mod:15 · autor:Rune · 2026-07-31 UTC-6
 // TKT1 REQ-cleanup-toolbar-legacy: eliminado bloque no-op ftypes/fstatus — #filter-bar-types
 //   no existe en HTML, #filter-bar-status nunca tuvo is-hidden. Guard `if (typeof getItems()...)`
 //   y las tres llamadas (renderStats/updateBacklogBanner/updateStatusFilterUI) se preservan.
@@ -16,7 +16,7 @@
 // T-202606-016: funciones de export de backlog migradas a locus-backlog-generator.js
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { _syncCleanProjectBtn } from './locus-reports.js';
-import { _blogLog, _effectiveVersion, _offlineQueuePush, _PREFIX_MAP, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getProjectSessions, getState, getSupabaseUserId, save } from './locus-storage.js';
+import { _blogLog, _effectiveVersion, _offlineQueuePush, _PREFIX_MAP, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getProjectSessions, getState, getSupabaseReadyPromise, getSupabaseUserId, save } from './locus-storage.js';
 import { esc, switchSubTab, switchTab, getCurrentSubTab, getCurrentTab } from './locus-ui-shell.js';
 // Símbolos movidos a locus-proj-core.js en T-202606-197 (opción d — ESM puro)
 import { _getActiveProjectFilter, _setActiveProjectFilter, _updateProjBreadcrumb, _updateProjFilterBtn, _countProjSessions, closeProjPanel, selectProjectFilter, getProjectById, getProjContext, setProjContext, _setClearProjFilter } from './locus-proj-core.js';
@@ -85,7 +85,20 @@ document.addEventListener('keydown', e => {
 });
 
 // Init — diferido post-DOMContentLoaded con gate de auth
-document.addEventListener('DOMContentLoaded', function _sprintProjectInit() {
+// TKT-202607-201 (REQ-202607-076): el gate síncrono `if (!getSupabaseUserId()) return;`
+// asumía que la sesión de Supabase ya estaba resuelta al momento de DOMContentLoaded. Cuando
+// la sesión resuelve después vía onAuthStateChange (asíncrono — sin sesión cacheada), este
+// init corría antes de tiempo, el guard evaluaba falso, y _ensureProjectFilter() nunca se
+// ejecutaba — el filtro de proyecto activo quedaba sin aplicar en Tab Proyectos hasta un
+// refresh manual. _initApp() no tenía este bug porque su flujo interno ya espera la
+// resolución de auth antes de decidir la rama de storage. Fix: await sobre
+// getSupabaseReadyPromise() (accessor nuevo en locus-storage.js, mismo patrón que
+// getSupabaseContext()/isSupabaseAuthed()) antes de leer getSupabaseUserId(). La promesa
+// siempre resuelve — nunca rechaza, incluso sin sesión (Promise.resolve(null)) — por lo que
+// el caso de usuario deslogueado no requiere try/catch: getSupabaseUserId() simplemente
+// evalúa falso después del await y la función retorna sin lanzar excepción ni quedar en loop.
+document.addEventListener('DOMContentLoaded', async function _sprintProjectInit() {
+  await getSupabaseReadyPromise();
   if (!getSupabaseUserId()) return;
 
   const state = getState();

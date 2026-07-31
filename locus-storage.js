@@ -1,4 +1,4 @@
-// [PP] mod:156 · autor:Rune · 2026-07-30 UTC-6
+// [PP] mod:157 · autor:Rune · 2026-07-31 UTC-6
 // TKT1 (REQ-0730, origen DISC-202607-069): retirado el subsistema tmp-id-map completo —
 // código huérfano desde la deprecación de EXECUTION-PLAN (único consumidor conceptual,
 // vía _tryIngestPlan, ya removido de locus-session-parse.js). Retirados: LOCUS_KEYS.TMP_ID_MAP,
@@ -1005,6 +1005,22 @@ export function isSupabaseAuthed() {
 export function getSupabaseContext() {
   if (!_supabase || !_supabaseUser) return null;
   return { client: _supabase, userId: _supabaseUser.id };
+}
+
+// getSupabaseReadyPromise — REQ-202607-076/TKT-202607-201: expone _supabaseReady (privada de
+// este módulo) para callers que necesitan esperar la resolución de auth antes de leer
+// getSupabaseUserId() de forma síncrona. Mismo patrón que getSupabaseUserId()/isSupabaseAuthed()/
+// getSupabaseContext() arriba — accessor de solo lectura sobre estado interno, sin exponer
+// _supabase ni _supabaseUser directamente. Caso de origen: _sprintProjectInit()
+// (locus-sprint-project.js) chequeaba getSupabaseUserId() de forma síncrona en
+// DOMContentLoaded — si la sesión resolvía después vía onAuthStateChange (asíncrono),
+// _ensureProjectFilter() nunca se ejecutaba. _initApp() ya evitaba este bug porque su propio
+// flujo interno espera _supabaseReady antes de decidir la rama de storage; _sprintProjectInit()
+// no tenía forma de esperar lo mismo porque _supabaseReady no era accesible fuera del módulo.
+// _supabaseReady siempre es una promesa no-null en este punto (se asigna Promise.resolve(null)
+// en el fallback sin auth — ver líneas 607/651/654) — no requiere guard adicional en el caller.
+export function getSupabaseReadyPromise() {
+  return _supabaseReady;
 }
 
 // TKT1b · verifyConstraintsSync — herramienta de consola, sin uso en flujo de la app.
