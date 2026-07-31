@@ -1,3 +1,18 @@
+// [PP] mod:13 · autor:Rune · 2026-07-30 20:15 UTC-6
+// TKT1 (REQ-202607-alineacion-qbacklog-qdisc, design_intent: alineacion-render-qbacklog-qdisc):
+// _attachDoneGroupToggle migrado de dos clases sueltas (.collapsed en .bl-done-arrow y en
+// .bl-done-body por separado, sin cascada CSS) a .is-collapsed en el wrapper .bl-done-group —
+// mismo mecanismo que .qdisc-status-group y .qbacklog-draft-group (chevron + body cascadean
+// desde una sola clase en el ancestro). Blast radius confirmado acotado a Q-Backlog: grep en
+// todo el repo confirma un solo caller vivo de _attachDoneGroupToggle (locus-backlog-qbacklog.js
+// _attachDoneGroupToggle('qbacklog')) — el bloque Terminados de Histórico ya no usa este
+// mecanismo desde REQ refactor-zonas TKT5 (ver comentario en locus-backlog-render.js L155-168),
+// por lo tanto no hay blast radius compartido que confirmar con Rune antes de tocar (bifurcación
+// A del diagnóstico de Nova resuelta sin riesgo). Persistencia en localStorage conservada sin
+// cambio (`backlog-${prefix}-done-open`). Rotación del chevron (▾→-90°) pasa a ser 100% CSS
+// (`.bl-done-group.is-collapsed .bl-done-arrow`), sin swap de texto ▾/▸ — mismo criterio que
+// .qdisc-status-chevron. aria-expanded agregado (antes ausente) para paridad de accesibilidad
+// con .qdisc-status-header. contract_update: no — misma firma _attachDoneGroupToggle(prefix).
 // [PP] mod:12 · autor:Rune · 2026-07-30 01:10 UTC-6
 // TKT-202607-186 (REQ-202607-064): chip Total en _renderZonePanel — número agrega
 // .stat-compact-n--primary (Backlog list, Q-Backlog). Contenedor ya tenía --primary desde
@@ -200,19 +215,24 @@ function _attachDraftGroupToggle(body) {
 // que declara hasDoneState:true (hoy: qbacklog — ver locus-backlog-qbacklog.js). Sin
 // #[prefix]-done-header/body en el DOM, retorna en el guard temprano sin operar.
 export function _attachDoneGroupToggle(prefix) {
+  const group  = document.getElementById(`${prefix}-done-group`);
   const header = document.getElementById(`${prefix}-done-header`);
   const body   = document.getElementById(`${prefix}-done-body`);
-  const arrow  = header && header.querySelector('.bl-done-arrow');
-  if (!header || !body) return;
+  if (!group || !header || !body) return;
   const key = `backlog-${prefix}-done-open`;
   const isOpen = localStorage.getItem(key) !== '0';
-  body.classList.toggle('collapsed', !isOpen);
-  if (arrow) arrow.textContent = isOpen ? '▾' : '▸';
-  header.addEventListener('click', () => {
-    const wasCollapsed = body.classList.contains('collapsed');
-    body.classList.toggle('collapsed', !wasCollapsed);
-    if (arrow) arrow.textContent = wasCollapsed ? '▾' : '▸';
-    localStorage.setItem(key, wasCollapsed ? '1' : '0');
+  group.classList.toggle('is-collapsed', !isOpen);
+  header.setAttribute('aria-expanded', String(isOpen));
+  const _toggle = () => {
+    const collapsed = group.classList.toggle('is-collapsed');
+    header.setAttribute('aria-expanded', String(!collapsed));
+    localStorage.setItem(key, collapsed ? '0' : '1');
+  };
+  header.addEventListener('click', _toggle);
+  header.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    _toggle();
   });
 }
 

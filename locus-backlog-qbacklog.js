@@ -1,3 +1,12 @@
+// [PP] mod:6 · autor:Rune · 2026-07-30 20:15 UTC-6
+// TKT1 (REQ-202607-alineacion-qbacklog-qdisc, design_intent: alineacion-render-qbacklog-qdisc):
+// _initQBacklogToolbar agregado — Q-Backlog era el único panel de Backlog sin botón de colapsar
+// ni búsqueda propia (mismo criterio ya vigente en Q-DISC/Backlog list/Histórico). Colapsa/
+// expande .bl-done-group + .qbacklog-draft-group en conjunto — ambos ya comparten el mecanismo
+// .is-collapsed (ver locus-backlog-zone-engine.js mod:13), consultados en vivo por
+// querySelectorAll en el momento del click, mismo patrón que _initQDiscToolbar
+// (locus-backlog-qdisc.js). Búsqueda reusa _nsSetQuery/renderQBacklogPanel — mismo mecanismo
+// de namespace ya usado por Q-DISC.
 // [PP] mod:5 · autor:Rune · 2026-07-23 22:15 UTC-6
 // TKT-202607-072 (REQ-202607-019): showDraftGroup:true + isZoneBroad:_isQBacklog agregados a la
 // llamada de _renderZonePanel — habilita el grupo de ítems draft:true en este panel. Sin cambio
@@ -23,7 +32,7 @@
 // auditoría del REQ), pero su IIFE de listener y su llamada a _attachDoneGroupToggle deben
 // ejecutar al cargar la app.
 
-import { _isQBacklogActive, _isQBacklog } from './locus-backlog-core.js';
+import { _isQBacklogActive, _isQBacklog, _nsSetQuery } from './locus-backlog-core.js';
 import { _renderZonePanel, _attachDoneGroupToggle } from './locus-backlog-zone-engine.js';
 
 // B-202606-052 → TKT-C1: renderQBacklogPanel — sub-tab Backlog (Q-Backlog: REQ/TKT).
@@ -60,6 +69,52 @@ window.addEventListener('shell:render-qbacklog', renderQBacklogPanel);
 // Único caller vivo de _attachDoneGroupToggle: qdisc no tiene #qdisc-done-group en el DOM desde
 // REQ congruencia-qdisc (index.html mod:101) — ver locus-backlog-qdisc.js.
 _attachDoneGroupToggle('qbacklog');
+
+// TKT1 (REQ-202607-alineacion-qbacklog-qdisc): toolbar de colapsar-todo + búsqueda —
+// #qbacklog-toolbar es shell estático en index.html, dentro de #qbacklog-header-unified, nunca
+// se recrea — wiring una sola vez al cargar el módulo, mismo criterio que _initQDiscToolbar
+// (locus-backlog-qdisc.js), sin guard _wired por render. Colapsa/expande .bl-done-group +
+// .qbacklog-draft-group juntos — ambos comparten el mecanismo .is-collapsed (ver
+// locus-backlog-zone-engine.js) desde este mismo REQ; consultados en vivo por querySelectorAll
+// en el momento del click porque .qbacklog-draft-group se recrea en cada render (no es shell
+// estático como .bl-done-group).
+function _initQBacklogToolbar() {
+  const collapseBtn = document.getElementById('qbacklog-collapse-all-btn');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', () => {
+      const groups = document.querySelectorAll('#sspanel-qbacklog .bl-done-group, #sspanel-qbacklog .qbacklog-draft-group');
+      if (!groups.length) return;
+      const anyExpanded = Array.from(groups).some(g => !g.classList.contains('is-collapsed'));
+      groups.forEach(group => {
+        group.classList.toggle('is-collapsed', anyExpanded);
+        const header = group.querySelector('.bl-done-header, .qbacklog-draft-header');
+        if (header) header.setAttribute('aria-expanded', String(!anyExpanded));
+      });
+      collapseBtn.setAttribute('aria-pressed', String(anyExpanded));
+      const label = collapseBtn.querySelector('.bl-collapse-btn-label');
+      if (label) label.textContent = anyExpanded ? 'Expandir todo' : 'Colapsar todo';
+    });
+  }
+
+  const searchInput = document.getElementById('qbacklog-search-input');
+  const searchClear = document.getElementById('qbacklog-search-clear');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      _nsSetQuery('qbacklog', searchInput.value);
+      renderQBacklogPanel();
+    });
+  }
+  if (searchClear) {
+    searchClear.addEventListener('click', () => {
+      if (!searchInput) return;
+      searchInput.value = '';
+      _nsSetQuery('qbacklog', '');
+      renderQBacklogPanel();
+      searchInput.focus();
+    });
+  }
+}
+_initQBacklogToolbar();
 
 // B-202606-052 → TKT-C1: re-render del panel Q-Backlog cuando el backlog cambia y el panel
 // está activo.

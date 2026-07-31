@@ -1,4 +1,10 @@
-<!-- [PP] mod:166 · autor:Rune · 2026-07-30 UTC-6 -->
+<!-- [PP] mod:167 · autor:Rune · 2026-07-30 20:15 UTC-6 -->
+<!-- REQ-202607-alineacion-qbacklog-qdisc (design_intent: alineacion-render-qbacklog-qdisc):
+     TKT1 — #qbacklog-header-unified gana bl-header-sep + bl-toolbar (colapsar + buscar), único
+     panel de Backlog que no los tenía. TKT2 — #qbacklog-done-header gana tabindex/role/
+     aria-expanded, mecanismo de colapso migrado a is-collapsed en #qbacklog-done-group. TKT3 —
+     #qdisc-filter-bar nuevo: nodo propio para la stats-bar interactiva de prioridad+área, movida
+     fuera de #qdisc-panel-body sin pisar #qdisc-stats-bar (totales estáticos). -->
 <!-- Hallazgo fuera de scope resuelto en sesión (REQ CAEL-0730-01): .mg-export-strip
      (mg-export-backlog-btn/history/htmlmap/context-btn + mg-export-all-btn) retirado —
      huérfano, sin wiring en locus-map-generator.js. mg-ritual-hint corregido — ya no
@@ -658,14 +664,38 @@
          (locus-backlog-zone-engine.js TKT3 del mismo REQ) — sin cambio de contrato para qdisc,
          que no declara statsBarId y no pasa por este wrapper. -->
     <div class="session-subpanel" id="sspanel-qbacklog">
+      <!-- TKT1 (REQ-202607-alineacion-qbacklog-qdisc): bl-header-sep + bl-toolbar agregados —
+           Q-Backlog no tenía botón de colapsar ni búsqueda propia, único panel de Backlog sin
+           ellos. Reuso directo de .bl-toolbar/.bl-collapse-btn/.fbar-search-wrap/
+           .fbar-search-input/.fbar-search-clear (mismas clases globales que Backlog list/
+           Histórico/Q-DISC) — sin CSS nuevo. Wiring en locus-backlog-qbacklog.js
+           (_initQBacklogToolbar, análogo a _initQDiscToolbar). -->
       <div class="bl-header-unified" id="qbacklog-header-unified">
         <div class="stats-bar" id="qbacklog-stats-bar"></div>
+        <div class="bl-header-sep"></div>
+        <div class="bl-toolbar" id="qbacklog-toolbar">
+          <div class="bl-toolbar-group">
+            <button class="bl-collapse-btn" id="qbacklog-collapse-all-btn" title="Colapsar / expandir grupos" aria-pressed="false">
+              <span class="bl-collapse-btn-icon">⊟</span>
+              <span class="bl-collapse-btn-label">Colapsar</span>
+            </button>
+          </div>
+          <div class="bl-toolbar-spacer"></div>
+          <div class="fbar-search-wrap">
+            <input class="fbar-search-input" id="qbacklog-search-input" type="text" placeholder="🔍 Buscar en Backlog…" autocomplete="off">
+            <button class="fbar-search-clear" id="qbacklog-search-clear" title="Limpiar búsqueda">✕</button>
+          </div>
+        </div>
       </div>
       <div class="bl-zone-body" id="qbacklog-zone-body">
         <div id="qbacklog-panel-body"></div>
       </div>
+      <!-- TKT2 (REQ-202607-alineacion-qbacklog-qdisc): tabindex/role/aria-expanded agregados —
+           paridad de accesibilidad con .qdisc-status-header. Mecanismo de colapso migrado a
+           .is-collapsed en el wrapper .bl-done-group (ver _attachDoneGroupToggle,
+           locus-backlog-zone-engine.js) — mismo patrón que .qdisc-status-group. -->
       <div class="bl-done-group" id="qbacklog-done-group">
-        <div class="bl-done-header" id="qbacklog-done-header">
+        <div class="bl-done-header" id="qbacklog-done-header" tabindex="0" role="button" aria-expanded="true">
           <span class="bl-done-arrow">▾</span>
           <span class="bl-done-label">Terminados</span>
           <span class="bl-done-count" id="qbacklog-done-count">0</span>
@@ -718,6 +748,17 @@
             <span class="qdisc-stats-caption">Todo el proyecto — incluye promovidas y descartadas</span>
           </div>
         </div>
+        <!-- TKT3 (REQ-202607-alineacion-qbacklog-qdisc, design_intent:
+             alineacion-render-qbacklog-qdisc): nodo propio para la stats-bar INTERACTIVA
+             (prioridad+área — filtra el bloque Discovery) — antes vivía anidada dentro de
+             #qdisc-panel-body, dentro de la sección colapsable "Discovery" en vez del header
+             del panel. No reutiliza #qdisc-stats-bar (arriba): ese nodo lo rellena
+             _renderQDiscStatsBlock() por ID (totales estáticos Discovery/Promoted/Descartado,
+             universo sin filtrar) — pisar su innerHTML con opts.statsBarId habría destruido
+             ese conteo en cada render. #qdisc-filter-bar recibe el mismo statsBarId que ya usa
+             qbacklog (locus-backlog-zone-engine.js opts.statsBarId), sin tocar el nodo estático.
+             Poblado por renderQDiscPanel() vía _renderZonePanel(). -->
+        <div class="stats-bar" id="qdisc-filter-bar"></div>
         <div class="bl-header-sep"></div>
         <div class="bl-toolbar" id="qdisc-toolbar">
           <div class="bl-toolbar-group">

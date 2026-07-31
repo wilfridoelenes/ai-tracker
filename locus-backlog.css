@@ -1,4 +1,11 @@
-/* [PP] mod:131 · autor:Nova · 2026-07-28 04:25 UTC-6 */
+/* [PP] mod:132 · autor:Nova · 2026-07-30 20:15 UTC-6 */
+/* TKT2 (REQ-202607-alineacion-qbacklog-qdisc, design_intent: alineacion-render-qbacklog-qdisc):
+   .bl-done-* migrado a caja con borde completo (header+body) + mecanismo .is-collapsed en el
+   wrapper — alinea el bloque "Terminados" de Q-Backlog al mismo tratamiento visual y mecánico
+   que .qdisc-status-group/.qdisc-status-header/.qdisc-status-body y .qbacklog-draft-group.
+   Antes: border-left suelto + dos clases .collapsed independientes sin cascada (.bl-done-arrow.
+   collapsed / .bl-done-body.collapsed, togleadas por separado en JS). Ver detalle completo en
+   el bloque T-202605-103 más abajo. */
 /* Ad-hoc (sin REQ/TKT vía Cael, ítem directo de founder): extracción de la rama Reactiva
    (Q-INC) a locus-incidents.css (alta, mod:1) — mismo criterio arquitectónico ya aplicado al
    split de locus-modals.css en 5 archivos. 504 líneas movidas, extracción mecánica sin cambio
@@ -4729,6 +4736,10 @@
   margin-bottom: 2rem;
 }
 
+/* TKT2 (REQ-202607-alineacion-qbacklog-qdisc): caja con borde completo + radius — antes solo
+   border-left, convención propia sin relación con las otras 2 zonas colapsables. Alineado al
+   mismo tratamiento que .qdisc-status-header/.qdisc-status-body (ver más abajo en este archivo)
+   — paleta neutra sin cambio, "Terminados" no es un grupo de alerta/estado como Discovery. */
 .bl-done-header {
   display: flex;
   align-items: center;
@@ -4737,7 +4748,8 @@
   font-size: var(--text-sm);
   color: var(--text2);
   background: var(--surface2);
-  border-left: 2px solid var(--hint);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
   cursor: pointer;
   user-select: none;
 }
@@ -4745,6 +4757,10 @@
 .bl-done-header:hover {
   background: var(--surface3, var(--surface2));
   color: var(--text);
+}
+
+.bl-done-header:focus-visible {
+  outline: 2px solid var(--accent);
 }
 
 .bl-done-arrow {
@@ -4756,7 +4772,10 @@
   display: inline-block;
 }
 
-.bl-done-arrow.collapsed {
+/* Mecanismo de colapso unificado con .qdisc-status-group/.qbacklog-draft-group — una sola
+   clase .is-collapsed en el wrapper, cascada CSS en vez de dos clases sueltas togleadas por
+   separado en JS. Ver _attachDoneGroupToggle (locus-backlog-zone-engine.js). */
+.bl-done-group.is-collapsed .bl-done-arrow {
   transform: rotate(-90deg);
 }
 
@@ -4769,10 +4788,13 @@
 }
 
 .bl-done-body {
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
   padding: 6px 0;
 }
 
-.bl-done-body.collapsed {
+.bl-done-group.is-collapsed .bl-done-body {
   display: none;
 }
 

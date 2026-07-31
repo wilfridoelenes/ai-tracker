@@ -1,3 +1,14 @@
+// [PP] mod:13 · autor:Rune · 2026-07-30 20:15 UTC-6
+// TKT3 (REQ-202607-alineacion-qbacklog-qdisc, design_intent: alineacion-render-qbacklog-qdisc):
+// renderQDiscPanel pasa statsBarId:'qdisc-filter-bar' — la stats-bar interactiva (prioridad+
+// área) sale de #qdisc-panel-body (dentro del bloque colapsable Discovery) y pasa a un nodo
+// propio del header, mismo mecanismo que ya usa qbacklog (statsBarId, ver
+// locus-backlog-zone-engine.js). No reutiliza #qdisc-stats-bar — ese nodo lo rellena
+// _renderQDiscStatsBlock() por ID con los totales estáticos; pasar ese mismo ID como statsBarId
+// habría hecho que _renderZonePanel sobreescribiera su innerHTML en cada render de Q-DISC,
+// perdiendo los 4 conteos estáticos. #qdisc-filter-bar es un nodo hermano nuevo (index.html)
+// exclusivo para este propósito. contract_update: no — mismo shape de opts que ya acepta
+// _renderZonePanel, sin cambio de firma.
 // [PP] mod:12 · autor:Rune · 2026-07-27 20:35 UTC-6
 // Housekeeping (Excepción de resolución directa — dueño presente, nivel Patch, sin
 // bifurcación): eliminada línea muerta querySelectorAll('.tpl-nav-btn') — clase sin
@@ -167,6 +178,9 @@ export function renderQDiscPanel() {
     tabLabel: 'Discoveries',
     nsKey: 'qdisc',
     isZone: _isQDiscActive,
+    // TKT3 (REQ-202607-alineacion-qbacklog-qdisc): separa la stats-bar interactiva del cuerpo
+    // de #qdisc-panel-body — ver detalle en el header del módulo.
+    statsBarId: 'qdisc-filter-bar',
     showTypeChips: false,
     // TKT-202607-011: único caller que activa showAreaChips — qbacklog no lo declara.
     showAreaChips: true,
