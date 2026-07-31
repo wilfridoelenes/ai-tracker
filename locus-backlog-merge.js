@@ -1,4 +1,4 @@
-// [PP] mod:79 · autor:Rune · 2026-07-31 UTC-6
+// [PP] mod:80 · autor:Rune · 2026-07-31 16:10 UTC-6
 // TKT-202607-205 (REQ-202607-079, TKT2): cierre de entrega — el render de showMergeDiffPanel()
 // ya reemplazaba las ~13 secciones fragmentadas legacy por las 6 zonas cognitivas (Identidad en
 // header, Resultado→Narrativa→Cambios en el backlog→Impacto en el ecosistema en body, Antes de
@@ -2070,11 +2070,20 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     _rows.appendChild(_row);
   }, { signal: _mdiffPanelAC.signal });
 
-  // T-202606-173 AC-1: foco inicial en input de hora al abrir el modal
-  requestAnimationFrame(() => {
+  // T-202606-173 AC-1: foco inicial en input de hora al abrir el modal.
+  // INC-202607-074: el rAF-only dejaba una ventana de carrera entre la apertura del panel y el
+  // primer frame de pintado — si el founder empezaba a escribir la hora antes de ese frame, las
+  // teclas caían en el elemento con foco previo (no en #mdiff-duration-input) y se perdían sin
+  // error visible; el resto del apply (ítems de backlog) no depende de este valor, por eso solo
+  // fallaba "exhausted" — nunca los ítems. Fix: intento síncrono inmediato (cubre el caso de
+  // tecleo rápido) + rAF como fallback si el síncrono no tomó (preserva la garantía original de
+  // AC-1 para el caso en que el overlay aún no esté pintado/visible al momento del foco síncrono).
+  const _mdiffFocusDurationInput = () => {
     const _focusInput = overlay.querySelector('#mdiff-duration-input');
-    if (_focusInput) _focusInput.focus();
-  });
+    if (_focusInput && document.activeElement !== _focusInput) _focusInput.focus();
+  };
+  _mdiffFocusDurationInput();
+  requestAnimationFrame(_mdiffFocusDurationInput);
 
   // Evaluar estado inicial del botón
   _mdiffUpdateConfirmBtn();
