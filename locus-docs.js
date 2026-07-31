@@ -1,4 +1,9 @@
-// [PP] mod:23 · autor:Rune · 2026-07-20 UTC-6
+// [PP] mod:24 · autor:Rune · 2026-07-30 09:00 UTC-6
+// INC-202607-073: importHtmlMap() y _importContextMdFromText() escribían CONTEXT/HTML-MAP
+// solo a localStorage y nunca llamaban saveContextDocs() — tracker_docs quedaba vacía en
+// Supabase desde la migración a JSON CHECKPOINT. _tplKey() ya resuelve el proyecto activo
+// internamente (verificado contra locus-storage.js) — no era bug de scoping, solo la
+// llamada faltante. Fix: agregar saveContextDocs() al final de ambos flujos de import.
 // TKT1 (REQ CAEL-0720-01): _updateSubTabButtons() — btn-export-backlog/btn-export-backlog-full
 // ahora visibles en los 4 subtabs de Backlog (backlog/qbacklog/qdisc/historico) vía
 // _exportBarSubs.includes(sub), en vez de sub !== 'backlog'. Sin cambio de firma —
@@ -337,6 +342,8 @@ export function importHtmlMap(event) {
       format: 'markdown'
     };
     localStorage.setItem(_tplKey('html-map-meta'), JSON.stringify(meta));
+    // INC-202607-073: persistir a tracker_docs — antes solo quedaba en localStorage.
+    saveContextDocs();
     updateHtmlMapBanner();
     updateHtmlMapModificationBadge();
     renderHtmlMap();
@@ -534,6 +541,8 @@ export function _importContextMdFromText(text) {
   localStorage.setItem(_tplKey('context-raw'), text);
   localStorage.setItem(_tplKey('context-meta'), JSON.stringify(meta));
   localStorage.setItem(_tplKey('context-sections'), JSON.stringify(parsed.sections));
+  // INC-202607-073: persistir a tracker_docs — antes solo quedaba en localStorage.
+  saveContextDocs();
   renderContext();
   _updateSubTabButtons('context');
   _blogLog('importado', `v${parsed.version}`, `${parsed.sections.length} secciones`, 'context');

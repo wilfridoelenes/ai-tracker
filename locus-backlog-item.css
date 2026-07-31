@@ -15,8 +15,16 @@
    clases que documentan (.mdiff-queue-badge, .staleness-pill.staleness--itil-incompleto)
    son genéricas para toda la rama ITIL — no diferenciaban por tipo, sin cambio de
    comportamiento. Sin otros selectores CSS muertos detectados en el resto del archivo. */
+/* [PP] mod:85 · autor:Nova · 2026-07-30 UTC-6 */
+/* Hallazgo fuera de scope resuelto en sesión (Excepción de resolución directa — dueño
+   presente, nivel Patch, sin bifurcación de founder): el comentario de mod:82 (línea
+   siguiente) persistía el placeholder de código sin resolver en TKT/REQ desde su creación —
+   violación de BR-Execution §9 (ningún archivo real conserva ese placeholder una vez
+   asignado el código real). Los selectores retirados en ese mod coinciden exactamente con
+   el AC de TKT-202607-193 (REQ-202607-072) — códigos reales sustituidos abajo. Detectado
+   por Finn en sesión de cierre de REQ-202607-072, resuelto por Nova en la misma sesión. */
 /* [PP] mod:82 · autor:Nova · 2026-07-30 UTC-6 */
-/* TKT-[pendiente-ID] (REQ-[pendiente-ID], DISC-202607-067): retirados 3 selectores huérfanos
+/* TKT-202607-193 (REQ-202607-072, DISC-202607-067): retirados 3 selectores huérfanos
    de la familia `KE` (Known Error) — `.bitem-type-KE` (L218-222 antes de este mod) y
    `.idp-type-chip.idp-type-KE`/`.idp-ac-dot.idp-type-KE` (regla combinada, ~L1005 antes de
    este mod). `KE` fue fusionado a `PRB.root_cause_confirmed` desde `infra_version 51`
