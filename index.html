@@ -1,7 +1,8 @@
-<!-- [PP] mod:165 · autor:Rune · 2026-07-30 UTC-6 -->
-<!-- TKT2/TKT3/TKT4 (REQ CAEL-0730-01, ref_id CAEL-0730-01): retirados mg-out-context/
-     mg-out-backlog/mg-out-incidents del modal Document Generator — huérfanos desde que
-     locus-map-generator.js (mod:35) dejó de leerlos. Único checkbox restante: mg-out-map. -->
+<!-- [PP] mod:166 · autor:Rune · 2026-07-30 UTC-6 -->
+<!-- Hallazgo fuera de scope resuelto en sesión (REQ CAEL-0730-01): .mg-export-strip
+     (mg-export-backlog-btn/history/htmlmap/context-btn + mg-export-all-btn) retirado —
+     huérfano, sin wiring en locus-map-generator.js. mg-ritual-hint corregido — ya no
+     menciona CONTEXT/BACKLOG en el ritual de cierre de sprint. -->
 <!-- TKT-202607-186 (REQ-202607-064): #qdisc-stat-total agrega .stat-compact-n--primary —
      homologa el número del chip Total con el tratamiento de Backlog list/Q-Backlog/Histórico.
      Sin cambio de estructura ni de otros IDs. -->
@@ -2069,19 +2070,14 @@
 
     <div class="mg-ritual-hint" role="note">
       <span class="mg-ritual-icon" aria-hidden="true"></span>
-      <span class="mg-ritual-text"><strong>Ritual de cierre de sprint:</strong> genera MAP + CONTEXT + BACKLOG al cerrar. El paquete se descarga con versión bumpeada (semver minor) y la versión se actualiza en PP automáticamente. INC-202607-025: Sprint Review retirado — la Retro no es doc standalone, la genera Locus embebida en el Backlog al cerrar sprint.</span>
+      <span class="mg-ritual-text"><strong>Ritual de cierre de sprint:</strong> genera MAP al cerrar sprint. El archivo se descarga con versión bumpeada (semver minor) y la versión se actualiza en PP automáticamente. INC-202607-025: Sprint Review retirado — la Retro no es doc standalone, la genera Locus embebida en el Backlog al cerrar sprint. TKT2/TKT3/TKT4 (REQ CAEL-0730-01): CONTEXT/BACKLOG retirados de este ritual — CONTEXT sigue el flujo manual de __BR-Core §8, BACKLOG usa su exporter dedicado (botón propio en Backlog).</span>
     </div>
 
-    <div class="mg-export-strip">
-      <div class="mg-export-strip-label">Exportar</div>
-      <div class="mg-export-strip-btns">
-        <button class="mg-export-btn" id="mg-export-backlog-btn">Backlog activo</button>
-        <button class="mg-export-btn" id="mg-export-history-btn">Backlog archivado</button>
-        <button class="mg-export-btn" id="mg-export-htmlmap-btn">MAP</button>
-        <button class="mg-export-btn" id="mg-export-context-btn">Context</button>
-      </div>
-      <button class="mg-export-all-btn" id="mg-export-all-btn">descargar todo ↓</button>
-    </div>
+    <!-- TKT2/TKT3/TKT4 (REQ CAEL-0730-01) — Hallazgo fuera de scope, resuelto en sesión:
+         .mg-export-strip (Backlog activo/archivado/Context/MAP + "descargar todo ↓") retirado —
+         sin wiring en locus-map-generator.js, IDs huérfanos confirmados contra ambos archivos
+         adjuntos en sesión. Document Generator ya cubre "descargar" vía mg-confirm-btn (único
+         flujo activo, exclusivo a MAP). -->
 
     <!-- Footer -->
     <div class="mg-footer">
