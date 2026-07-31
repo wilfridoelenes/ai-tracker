@@ -1,3 +1,24 @@
+// [PP] mod:35 · autor:Rune · 2026-07-30 UTC-6
+// TKT2/TKT3/TKT4 (REQ-[pendiente-ID], ref_id CAEL-0730-01): Document Generator queda exclusivo a
+// MAP. Retirados de generateDocuments()/_mgShowPreview()/_doConfirmGenerate()/_mgExportAllZip():
+// generación y empaquetado de CONTEXT (competía con el flujo manual de __BR-Core §8), BACKLOG y
+// BACKLOG-FULL (exportBacklogMd()/exportFullHistoryMd() en locus-backlog-generator.js siguen
+// siendo el camino vigente, sin cambio) e Incidentes (Q-INC) (_generateIncidentsMd() en
+// locus-incidents-generator.js sigue siendo el camino vigente, sin cambio). Funciones locales
+// _generateContext()/_generateBacklog() eliminadas — sin otro consumidor tras el retiro de sus
+// call sites. Imports huérfanos retirados: buildBacklogMd, _importContextMdFromText,
+// _generateFullHistoryContent, exportBacklogMd/exportContextMd/exportFullHistoryMd,
+// _generateIncidentsMd, getProjContext. _mgCanonicalContextName()/_mgCanonicalBacklogName() se
+// conservan exportadas — sin confirmación de ausencia de otros consumidores (module-contracts no
+// adjunto, TKTs Effort 1 no lo requieren) — quedan sin call site interno, candidatas a limpieza
+// en un TKT propio si se confirma que no las usa ningún otro módulo. Fix inline (mismo audit de
+// imports, sin relación con este REQ): getAISessions y save (locus-storage.js) no tenían
+// consumidor en el archivo — retirados.
+// [PP] mod:34 · autor:Rune · 2026-07-30 UTC-6
+// TKT1 (REQ-[pendiente-ID], ref_id CAEL-0730-01): _mgLoadFiles() ya no excluye env*.js del
+// dropzone — la regex `excluded` y su rejected/toast se retiran; env.js se indexa como
+// cualquier otro .js. Cierra el gap registrado en _pp-strategy §7 ("env.js no aparece en el
+// índice del MAP actual — no confirmado contra código real, pendiente de verificar por Rune").
 // [PP] mod:33 · autor:Rune · 2026-07-25 UTC-6
 // TKT-202607-118 (REQ-202607-036 · DISC-202607-039): naming no canónico en exports de CONTEXT y
 // BACKLOG — 6 call sites usaban `${prefix}-CONTEXT_v` / `${prefix}-BACKLOG_v` (guion bajo, sin
@@ -99,8 +120,8 @@
 // la persistencia en storage dedicado debe resolver antes de exponer la descarga al usuario.
 /**
  * locus-map-generator.js
- * Versión: v1.3.4 | Última actualización: 2026-07-07 UTC-6 | TKT-202607-052: generador PLAN eliminado (feature cancelada, REQ-202607-014)
- * Módulo: Document Generator — MAP + CONTEXT + BACKLOG + Sprint Review + ZIP
+ * Versión: v1.3.5 | Última actualización: 2026-07-30 UTC-6 | REQ CAEL-0730-01 (TKT2/3/4): generación de CONTEXT/BACKLOG/Incidentes eliminada — módulo queda exclusivo a MAP
+ * Módulo: Document Generator — MAP
  * Proyecto: Locus
  * Renombrado de ai-tracker-map-generator.js
  * R-202604-053 | R-202604-086 | R-202605-101
@@ -109,13 +130,9 @@
 import { migrateClosedItemsToHistorico } from './locus-backlog-historico.js';
 import { itemKind } from './locus-backlog-core.js'; // TKT-D2: itemKind(item) — clasificación Gen2. INC-202607-025: getAnyItem retirado — único consumidor era _mgSessionInSprint(), eliminada junto con el feature Sprint Review
 import { editSprintInline } from './locus-backlog-sprints.js';
-import { _getMapContent, _importContextMdFromText, exportHtmlMapMd, importHtmlMap } from './locus-docs.js';
-import { buildBacklogMd } from './locus-session-save.js';
-import { getProjContext } from './locus-proj-core.js';
-import { _generateFullHistoryContent, exportBacklogMd, exportContextMd, exportFullHistoryMd } from './locus-backlog-generator.js';
-import { _generateIncidentsMd } from './locus-incidents-generator.js'; // TKT2 (REQ CAEL-0720-01): rama Reactiva, generador dedicado — no genera contenido aquí
-import { _docPrefix, _effectiveVersion, _tplKey, getAISessions, getActiveProject, getActiveSprints, getInfraVersionData, save } from './locus-storage.js';
-import { showToast, showToastInline, toast } from './locus-toast.js';
+import { _getMapContent, exportHtmlMapMd, importHtmlMap } from './locus-docs.js'; // TKT2 (REQ CAEL-0730-01): _importContextMdFromText retirado — único consumidor era el apply() de CONTEXT en _doConfirmGenerate()
+import { _docPrefix, _effectiveVersion, _tplKey, getActiveProject, getActiveSprints, getInfraVersionData } from './locus-storage.js'; // TKT2/3/4 (REQ CAEL-0730-01): getProjContext retirado — único consumidor era _generateContext(). Fix inline (mismo audit de imports): getAISessions/save ya no tenían consumidor en el archivo — sin relación con este REQ
+import { showToast } from './locus-toast.js'; // TKT2 (REQ CAEL-0730-01): showToastInline sin consumidor tras retirar la validación de CONTEXT. Fix inline (mismo audit): toast (bare) tampoco tenía consumidor en el archivo — sin relación con este REQ
 import { render } from './locus-sesiones.js';
 
 // ─── Utilidades de módulo ─────────────────────────────────────────────────────
@@ -287,11 +304,6 @@ function _mgInitDropzone() {
 
 function _mgLoadFiles(fileList) {
   const allowed = ['.js', '.css', '.html'];
-  const excluded = /^(env|\.env)(\.local|\.dev|\.prod|\.test)?\.js$/i;
-  const rejected = fileList.filter(f => excluded.test(f.name));
-  rejected.forEach(f => {
-    showToast('warning', `${f.name} excluido — archivos de entorno no se importan al MAP`);
-  });
 
   // T-202606-031: si se arrastra un .md con patrón vX.Y.Z en el nombre, extraer versión y popular el input
   // El .md no se agrega a _mapGen.files — solo sirve para poblar el campo versión del header interno
@@ -308,7 +320,7 @@ function _mgLoadFiles(fileList) {
     // .md sin patrón vX.Y.Z: ignorar silenciosamente — comportamiento actual conservado como fallback (AC edge case)
   });
 
-  const valid = fileList.filter(f => !excluded.test(f.name) && allowed.some(ext => f.name.toLowerCase().endsWith(ext)));
+  const valid = fileList.filter(f => allowed.some(ext => f.name.toLowerCase().endsWith(ext)));
   if (!valid.length) return;
 
   let pending = valid.length;
@@ -367,10 +379,9 @@ function _mgRemoveFile(idx) {
 function _mgUpdateBtn() {
   const btn = document.getElementById('mg-generate-btn');
   if (!btn) return;
-  // Habilitar si hay archivos O si algún output no requiere archivos (CONTEXT, BACKLOG, Review)
+  // TKT2/3/4 (REQ CAEL-0730-01): único output es MAP — siempre requiere archivos
   const mapChecked = document.getElementById('mg-out-map')?.checked;
-  const needsFiles = mapChecked;
-  btn.disabled = needsFiles && _mapGen.files.length === 0;
+  btn.disabled = mapChecked && _mapGen.files.length === 0;
 }
 
 // ─── Parser ──────────────────────────────────────────────────────────────────
@@ -529,70 +540,26 @@ function _mgGetMapVersion() {
 
 // ─── Generación principal ────────────────────────────────────────────────────
 
+// TKT2/TKT3/TKT4 (REQ CAEL-0730-01): CONTEXT/BACKLOG/Incidentes retirados — el generador
+// produce exclusivamente MAP. Retirada la validación de campos obligatorios de CONTEXT
+// (T-202605-504) — sin objeto una vez que CONTEXT no se genera desde este módulo.
 function generateDocuments() {
-  const mapChecked     = document.getElementById('mg-out-map')?.checked;
-  const contextChecked = document.getElementById('mg-out-context')?.checked;
-  const backlogChecked = document.getElementById('mg-out-backlog')?.checked;
-  const incidentsChecked = document.getElementById('mg-out-incidents')?.checked; // TKT2
+  const mapChecked = document.getElementById('mg-out-map')?.checked;
 
-  if (!mapChecked && !contextChecked && !backlogChecked && !incidentsChecked) {
-    showToast('warning', 'Selecciona al menos un documento a generar.');
+  if (!mapChecked) {
+    showToast('warning', 'Selecciona MAP para generar.');
     return;
   }
-  if (mapChecked && !_mapGen.files.length) {
+  if (!_mapGen.files.length) {
     showToast('warning', 'Adjunta archivos para generar el MAP.');
     return;
-  }
-
-  // T-202605-504: validar campos obligatorios del CONTEXT antes de generar
-  // R1 — desmarca CONTEXT + avisa con link a editar sprint si faltan name/goal
-  // B-[pendiente-ID]: validación fallida descarta solo CONTEXT — no aborta los demás documentos
-  let contextCheckedFinal = contextChecked;
-  if (contextChecked) {
-    const _valSp = _mgActiveSprintReal();
-    if (_valSp) {
-      const _missingName = !_valSp.name || !_valSp.name.trim();
-      const _missingGoal = !_valSp.goal || !String(_valSp.goal).trim();
-      if (_missingName || _missingGoal) {
-        // Desmarcar CONTEXT automáticamente
-        const _ctxChk = document.getElementById('mg-out-context');
-        if (_ctxChk) _ctxChk.checked = false;
-        contextCheckedFinal = false;
-        // Toast warning con acción de editar sprint
-        const _campo = _missingName ? 'nombre' : 'goal';
-        showToastInline('warning', `El sprint no tiene ${_campo}. CONTEXT desmarcado. <button class="mg-toast-edit-sprint" data-mg-action="edit-sprint" data-sprint-id="${_valSp.id}">Editar sprint →</button>`);
-        // B-[pendiente-ID]: no hacer return — continuar con los demás documentos seleccionados
-      }
-      // AC3: status active + backlog.pending = 0 con backlog.total > 0 — advertencia con opción continuar
-      const _valStatus = _mgInferStatus(_valSp, (() => {
-        try {
-          const raw = localStorage.getItem(_tplKey('backlog-items'));
-            return raw ? JSON.parse(raw) : [];
-        } catch(e) { return []; }
-      })());
-      if (_valStatus === 'active') {
-        const _valItems = (() => {
-          try {
-            const raw = localStorage.getItem(_tplKey('backlog-items'));
-              return raw ? JSON.parse(raw) : [];
-          } catch(e) { return []; }
-        })();
-        const _valTotal   = _valItems.length;
-        const _valPending = _valItems.filter(i => i.status === 'pendiente').length;
-        if (_valTotal > 0 && _valPending === 0) {
-          // eslint-disable-next-line no-alert
-          const ok = window.confirm('⚠ El backlog no tiene ítems pendientes pero el sprint está activo.\n¿Continuar con la exportación del CONTEXT?');
-          if (!ok) return;
-        }
-      }
-    }
   }
 
   const btn = document.getElementById('mg-generate-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Generando…'; }
 
   // B-202605-XXX: calcular versión bumpeada una sola vez antes de generar
-  // — los generadores reciben bumpedVer para que preview y archivos sean consistentes
+  // — el generador recibe bumpedVer para que preview y archivo sean consistentes
   const currentVer = _mgGetVersion();
   const input = document.getElementById('mg-version-input');
   const userDeclared = input && input.value.trim() && input.value.trim() !== 'undefined';
@@ -601,12 +568,7 @@ function generateDocuments() {
   _mapGen.generatedDocs = {};
   _mapGen.generatedDocs._bumpedVer = bumpedVer; // B-202605-496: fuente de verdad para confirmMapGenerator()
 
-  if (mapChecked)     _mapGen.generatedDocs.map     = _generateMap(bumpedVer);
-  if (contextCheckedFinal) _mapGen.generatedDocs.context  = _generateContext(bumpedVer);
-  if (backlogChecked) _mapGen.generatedDocs.backlog   = _generateBacklog(bumpedVer);
-  // TKT2 (REQ CAEL-0720-01): _generateIncidentsMd() nunca acepta versión — invariant declarado
-  // en contract_detail de TKT1. No se ve afectado por bumpedVer.
-  if (incidentsChecked) _mapGen.generatedDocs.incidents = _generateIncidentsMd();
+  _mapGen.generatedDocs.map = _generateMap(bumpedVer);
 
   // Compatibilidad: _mapGen.previewMd = MAP si se generó
   if (_mapGen.generatedDocs.map) _mapGen.previewMd = _mapGen.generatedDocs.map;
@@ -1140,171 +1102,11 @@ function _mgInferStatus(activeSp, blItems) {
   return 'idle'; // TKT-D2: era 'icebox' — sin sprint activo y backlog sin ítems pendientes sin asignar
 }
 
-function _generateContext(ver) {
-  // INC-202607-024 (fix, _ob-DocStandards §1): _generateContext() producía JSON puro —
-  // incompatible con el estándar de CONTEXT (Markdown, 6+ secciones). De esas secciones solo §1
-  // (parcial) y §2 son calculables desde el state de la app — §5 (Funcionalidades activas) y §6
-  // (Archivos/invariantes) son contenido curado por Cael, no datos derivables. Reescrito:
-  // secciones calculables se generan en Markdown real; secciones curadas se preservan si el
-  // CONTEXT almacenado ya está en este formato, o se declaran con placeholder explícito (nunca
-  // se omiten en silencio — _ob-DocStandards "Secciones vacías declaradas"). Efecto lateral
-  // corregido: _importContextMdFromText() (locus-docs.js) esperaba Markdown por nombre y recibía
-  // JSON — este fix también alinea ese consumidor.
-  const _activeSp   = _mgActiveSprintReal();
-  const _ctxVersion = (ver && ver !== 'undefined')
-    ? ver
-    : (_activeSp && _activeSp.version_target && _activeSp.version_target !== 'undefined')
-      ? _activeSp.version_target
-      : _mgGetVersion();
-  const proj = getActiveProject();
-  const prefix = _docPrefix();
-
-  const _now = new Date();
-  const _pad = n => String(n).padStart(2, '0');
-  const updatedDate = `${_now.getFullYear()}-${_pad(_now.getMonth()+1)}-${_pad(_now.getDate())}`;
-
-  // Stack — misma lógica de lectura que antes (compatible con JSON legado y Markdown legado)
-  let stack = [];
-  const storedRaw = proj ? getProjContext(proj.id) : null;
-  const storedFirstLine = storedRaw ? storedRaw.trim().split('\n')[0] || '' : '';
-  const storedIsMd = /^#\s.*\.md\s*$/.test(storedFirstLine);
-  if (storedRaw && storedRaw.trim()) {
-    let isJson = false;
-    try { const o = JSON.parse(storedRaw.trim()); isJson = typeof o === 'object' && o !== null && 'version' in o; } catch(e) {}
-    if (isJson) {
-      try { stack = JSON.parse(storedRaw.trim()).stack || []; } catch(e) { stack = []; }
-    } else {
-      const stackMatch = storedRaw.match(/## Stack[\s\S]*?\n([\s\S]*?)(?=\n## |\n---\s*$|$)/m);
-      if (stackMatch) {
-        stack = stackMatch[1].split('\n')
-          .filter(l => l.startsWith('|') && !/^\|\s*-/.test(l) && !/Capa/.test(l))
-          .map(l => {
-            const cells = l.split('|').map(c => c.trim()).filter(Boolean);
-            return cells.length >= 2 ? { layer: cells[0], tech: cells[1] } : null;
-          }).filter(Boolean);
-      }
-    }
-  }
-  stack = stack.map(s => ({
-    ...s,
-    tech: (s.tech || '')
-      .replace(/Firebase Firestore\s*\(opcional\)[^\n]*/g, 'Supabase (activo)')
-      .replace(/Firebase Firestore[^\n]*/g, 'Supabase (activo)')
-  }));
-  const stackLine = stack.length ? stack.map(s => s.tech).filter(Boolean).join(' + ') : '—';
-
-  // §2 — sprint anterior (último cerrado)
-  const allSprints = getActiveSprints();
-  const closedSprints = allSprints
-    .filter(s => s.status === 'closed')
-    .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
-  const lastClosed = closedSprints[0] || null;
-  const sprintAnteriorLine = lastClosed
-    ? `${lastClosed.id}${lastClosed.name ? ' · ' + lastClosed.name : ''}`
-    : '—';
-
-  // Campos no derivables (§1 Alias/Tipo/Estado, §5, §6) — preservar del CONTEXT almacenado si ya
-  // está en formato Markdown (_ob-DocStandards §1); si no, placeholder explícito para Cael.
-  const _extractTableField = (raw, campo) => {
-    if (!raw) return null;
-    const re = new RegExp(`\\|\\s*${campo}\\s*\\|\\s*(.+?)\\s*\\|\\s*$`, 'm');
-    const m = raw.match(re);
-    return m ? m[1].trim() : null;
-  };
-  const _extractSection = (raw, headingRe) => {
-    if (!raw) return null;
-    const m = raw.match(headingRe);
-    return m && m[1].trim() ? m[1].trim() : null;
-  };
-  const aliasVal  = storedIsMd ? _extractTableField(storedRaw, 'Alias')  : null;
-  const tipoVal   = storedIsMd ? _extractTableField(storedRaw, 'Tipo')   : null;
-  const estadoVal = storedIsMd ? _extractTableField(storedRaw, 'Estado') : null;
-  const funcionalidadesBlock = storedIsMd
-    ? _extractSection(storedRaw, /##\s*5\.\s*Funcionalidades activas\n([\s\S]*?)(?=\n---|\n##\s*6\.)/)
-    : null;
-  const archivosBlock = storedIsMd
-    ? _extractSection(storedRaw, /##\s*6\.\s*Archivos del proyecto[^\n]*\n([\s\S]*?)(?=\n---|\n##\s*(?:7|N)\.|\n##\s*Decisiones)/)
-    : null;
-  // INC-202607-024 (gap detectado en verificación de Finn, mismo INC): §7+ son "Secciones
-  // opcionales por proyecto" (_ob-DocStandards §1) — contenido curado, no derivable del state de
-  // la app, igual que §5/§6. El fix original (mod:30) regeneraba directo "## Decisiones e
-  // historial" tras §6, descartando en silencio cualquier sección real §7+ ya presente (ej.
-  // Locus: §7 Estado del refactor JS, §8 Deuda técnica, §9 Protocolo de parseo, §11 Commands —
-  // este último incluso después de "Decisiones e historial" en el doc real, pese a que el
-  // estándar la declara "siempre al final"). En vez de intentar reproducir cada sección opcional
-  // por nombre, se preserva verbatim todo lo que sigue a §6 hasta el final del doc almacenado —
-  // mismo criterio de "preservar si Markdown, placeholder si no" ya aplicado a funcionalidadesBlock
-  // y archivosBlock, sin necesidad de listar cada sección opcional individualmente.
-  const trailingSectionsBlock = storedIsMd
-    ? _extractSection(storedRaw, /##\s*6\.\s*Archivos del proyecto[^\n]*\n[\s\S]*?\n---\n\n([\s\S]*)$/)
-    : null;
-
-  // Header canónico — infra_version, mismo patrón ya vigente en _generateMap() (bloque _ivData
-  // más arriba en este archivo) — _ob-DocStandards §Encabezado canónico
-  const _ivData = getInfraVersionData();
-  let infraLine;
-  if (_ivData && _ivData.infraVersion) {
-    const _svFmt = k => (_ivData[k] ? `v${_ivData[k]}` : 'v—');
-    infraLine = `<!-- **infra_version: ${_ivData.infraVersion}** | BR-Core ${_svFmt('brCore')} · BR-Ecosystem ${_svFmt('brEcosystem')} · BR-Execution ${_svFmt('brExecution')} · OB-Strategy ${_svFmt('obStrategy')} -->`;
-  } else {
-    const _ivRaw = (proj && proj.infraVersion) ? String(proj.infraVersion).trim() : '';
-    infraLine = _ivRaw ? `<!-- **infra_version: ${_ivRaw}** -->` : `<!-- infra_version: no declarada en proyecto -->`;
-  }
-
-  const projectName = proj ? (proj.name || 'Locus') : 'Locus';
-  const filename = _mgCanonicalContextName(prefix, _ctxVersion);
-
-  let md = `# ${filename}\n`;
-  md += `<!-- Versión: ${_ctxVersion} | Última actualización: ${updatedDate} | ${projectName} — fuente de verdad del proyecto — dueño: Cael (PO+BA) -->\n`;
-  md += `${infraLine}\n\n---\n\n`;
-
-  md += `## 1. Identidad\n\n`;
-  md += `| Campo | Valor |\n|---|---|\n`;
-  md += `| Nombre | ${projectName} |\n`;
-  md += `| Alias | ${aliasVal || '<!-- Cael completa — alias coloquiales -->'} |\n`;
-  md += `| Tipo | ${tipoVal || '<!-- Cael completa — descripción de una línea -->'} |\n`;
-  md += `| Holding | Obsidian Labs |\n`;
-  md += `| Estado | ${estadoVal || '<!-- Cael completa — Prototipo \\| Beta \\| Producción + nota -->'} |\n`;
-  md += `| Archivo activo | index.html |\n`;
-  md += `| Stack | ${stackLine} — conteo de módulos → ver MAP activo |\n\n---\n\n`;
-
-  md += `## 2. Estado actual\n\n`;
-  md += `| Campo | Valor |\n|---|---|\n`;
-  md += `| Versión activa | ${_ctxVersion} |\n`;
-  md += `| Sprint activo | Ver backlog exportado — fuente de verdad del sprint activo en sesión |\n`;
-  md += `| Sprint anterior | ${sprintAnteriorLine} |\n\n---\n\n`;
-
-  md += `## 3. Roles\n\n→ ver \`__OB-Strategy §6\`\n\n---\n\n`;
-
-  md += `## 4. Modelo de persistencia\n\n→ ver \`_${prefix}-strategy §4\` — decisiones de arquitectura y estado operativo del storage.\n\n---\n\n`;
-
-  md += `## 5. Funcionalidades activas\n\n`;
-  md += funcionalidadesBlock
-    ? `${funcionalidadesBlock}\n\n`
-    : `<!-- Cael completa esta sección — features en producción/prototipo funcional, curado manualmente. No derivable del state de la app (_ob-DocStandards §1). -->\n\n`;
-  md += `---\n\n`;
-
-  md += `## 6. Archivos del proyecto\n\n`;
-  md += archivosBlock
-    ? `${archivosBlock}\n\n`
-    : `<!-- Cael completa esta sección — invariantes de arquitectura. No derivable del state de la app (_ob-DocStandards §1). -->\n\n`;
-  md += `---\n\n`;
-
-  md += trailingSectionsBlock
-    ? `${trailingSectionsBlock}\n`
-    : `## Decisiones e historial\n\n→ ver \`_${prefix}-history-log.md\`\n\nSe carga solo por instrucción explícita del founder o Vera.\n`;
-
-  return md;
-}
-
-// ─── Generador BACKLOG ───────────────────────────────────────────────────────
-
-// B-202605-224: pasar _mgGetVersion() como argumento — sin esto version es undefined en el MD exportado
-// T-202605-489: acepta version como parámetro; fallback a _mgGetVersion() si no se pasa
-function _generateBacklog(version) {
-  const ver = (version && version !== 'undefined') ? version : _mgGetVersion();
-  return buildBacklogMd(ver);
-}
+// TKT2/TKT3/TKT4 (REQ CAEL-0730-01): _generateContext()/_generateBacklog() eliminadas —
+// sin consumidor tras el retiro de sus call sites en generateDocuments()/_mgShowPreview()/
+// _doConfirmGenerate()/_mgExportAllZip(). CONTEXT sigue el flujo manual de __BR-Core §8;
+// BACKLOG usa buildBacklogMd() (locus-session-save.js) vía exportBacklogMd() del backlog
+// list, sin relación con este módulo.
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -1331,12 +1133,10 @@ function _mgShowPreview(docs) {
   const version = _mgGetVersion();
   const prefix = _docPrefix();
 
+  // TKT2/TKT3/TKT4 (REQ CAEL-0730-01): entradas context/backlog/incidents retiradas — el
+  // generador solo produce MAP.
   const items = [
-    { key: 'map',     label: 'MAP',          filename: _mgCanonicalMapName(prefix, version) },
-    { key: 'context', label: 'CONTEXT',       filename: _mgCanonicalContextName(prefix, version) },
-    { key: 'backlog', label: 'BACKLOG',        filename: _mgCanonicalBacklogName(prefix, version) },
-    // TKT2 (REQ CAEL-0720-01): sin versión en el filename — _[PREFIJO]-incidents.md no versiona
-    { key: 'incidents', label: 'Incidentes (Q-INC)', filename: `_${prefix}-incidents.md` },
+    { key: 'map', label: 'MAP', filename: _mgCanonicalMapName(prefix, version) },
   ].filter(i => docs[i.key]);
 
   let html = `<div class="mg-preview-header"><span class="mg-preview-badge">✓ ${items.length} documento${items.length !== 1 ? 's' : ''} generado${items.length !== 1 ? 's' : ''}</span><span class="mg-preview-version">Versión: ${version}</span></div>`;
@@ -1451,18 +1251,8 @@ async function _doConfirmGenerate() {
     ? docs._bumpedVer
     : _mgBumpMinor(_mgGetVersion());
 
-  // T-202605-504 AC4: versión en nombre de archivo debe coincidir con version interno del CONTEXT
-  // INC-202607-024 (fix): _generateContext() ahora produce Markdown (_ob-DocStandards §1), no
-  // JSON — la verificación lee el header canónico (<!-- Versión: X | ... -->) en vez de JSON.parse.
-  if (docs.context) {
-    const verMatch = docs.context.match(/^<!--\s*Versión:\s*(\S+)/m);
-    const ctxVer = verMatch ? verMatch[1] : '';
-    // Normalizar: quitar 'v' inicial para comparación insensible al prefijo — normalize() definida a nivel de módulo
-    if (ctxVer && normalize(ctxVer) !== normalize(bumpedVer)) {
-      showToast('error', `Versión interna del CONTEXT (${ctxVer}) no coincide con el nombre del archivo (${bumpedVer}) — regenera los documentos antes de confirmar.`);
-      return;
-    }
-  }
+  // TKT2/TKT3/TKT4 (REQ CAEL-0730-01): validación de versión de CONTEXT (T-202605-504 AC4) y
+  // fileDefs de context/backlog/incidents retirados — el generador solo produce MAP.
 
   // Construir tabla de archivos: { filename, content, applyFn? }
   const activeSprint = _mgActiveSprintReal();
@@ -1481,27 +1271,7 @@ async function _doConfirmGenerate() {
       },
     });
   }
-  if (docs.context) {
-    const name = _mgCanonicalContextName(prefix, bumpedVer);
-    fileDefs.push({
-      filename: name,
-      content:  docs.context,
-      apply: () => {
-        _importContextMdFromText(docs.context);
-      },
-    });
-  }
-  if (docs.backlog) {
-    // BACKLOG: solo ZIP — no re-importar (round-trip MD→parse puede corromper merge)
-    fileDefs.push({ filename: _mgCanonicalBacklogName(prefix, bumpedVer), content: docs.backlog });
-  }
-  if (docs.incidents) {
-    // TKT2 (REQ CAEL-0720-01) AC-3: nunca incluye version/bumpedVer — queda excluido del
-    // renombrado que este mismo bloque aplica a map/context/backlog. Sin apply — no
-    // se re-importa, mismo patrón que backlog (round-trip MD→parse fuera de scope).
-    fileDefs.push({ filename: `_${prefix}-incidents.md`, content: docs.incidents });
-  }
-  // B-202605-275: efectos DOM (importContextMd, importHtmlMap) se aplican DESPUÉS de confirmar generación exitosa
+  // B-202605-275: efectos DOM (importHtmlMap) se aplican DESPUÉS de confirmar generación exitosa
   // B-202605-493: _mgApplyBumpedVersion y migrateClosedItemsToHistorico también se difieren — sin mutación de estado si ZIP falla
   const zipName = `${prefix}-SPRINT-PACKAGE_${sprintId}_${bumpedVer}.zip`;
 
@@ -1568,21 +1338,19 @@ function _mgDownload(content, filename) {
 }
 
 // R-202605-146: Descargar todos los documentos exportables en un ZIP
-// Usa JSZip si está disponible; fallback a descargas individuales
+// TKT2/TKT4 (REQ CAEL-0730-01): BACKLOG, BACKLOG-FULL y CONTEXT retirados — exportBacklogMd()/
+// exportFullHistoryMd() (locus-backlog-generator.js) siguen siendo el camino vigente para esos
+// dos, sin cambio; CONTEXT sigue el flujo manual de __BR-Core §8. Esta función queda exclusiva
+// a MAP, consistente con el resto del módulo. Nota de gap encontrado al retirar: el call site de
+// CONTEXT aquí invocaba _generateContext() sin argumento — la firma real exige `ver`, hubiera
+// producido un CONTEXT con versión resuelta por fallback interno en vez del valor de este
+// bloque; sin impacto ahora que el call site se retira junto con el resto de CONTEXT.
+// Usa JSZip si está disponible; fallback a descarga individual.
 export function _mgExportAllZip() {
   const prefix = _docPrefix();
 
   const fileDefs = [];
 
-  fileDefs.push({ filename: _mgCanonicalBacklogName(prefix, _mgGetVersion()), fn: () => buildBacklogMd(_mgGetVersion()) }); // TKT-202607-118: nombre de archivo carecía de versión — fix; B-202605-513: pasar versión para que el export no quede con header undefined
-  // B-202605-515: historial completo via _generateFullHistoryContent (función pura, sin blob/toast)
-  const ver = _mgGetVersion();
-  fileDefs.push({ filename: `${prefix}-BACKLOG-FULL_${ver}.md`, fn: () => _generateFullHistoryContent(ver) });
-  {
-    const version = _mgGetVersion();
-    const prefix2 = _docPrefix();
-    fileDefs.push({ filename: _mgCanonicalContextName(prefix2, version), fn: () => _generateContext() }); // B-202605-276
-  }
   // B-202605-514: MAP via _getMapContent() — función pura, sin overlay ni blob
   {
     const ver = _mgGetVersion();
@@ -1606,15 +1374,12 @@ export function _mgExportAllZip() {
       a.download = `${prefix}-DOCUMENTOS.zip`;
       a.click();
       URL.revokeObjectURL(url);
-      showToast('success', 'ZIP descargado — todos los documentos');
+      showToast('success', 'ZIP descargado — MAP');
     });
   } else {
-    // Fallback: descargas individuales usando las funciones de exportación existentes
-    exportBacklogMd();
-    exportFullHistoryMd();
+    // Fallback: descarga individual usando la función de exportación existente
     exportHtmlMapMd();
-    exportContextMd();
-    showToast('info', 'Documentos descargados individualmente');
+    showToast('info', 'MAP descargado individualmente');
   }
 }
 

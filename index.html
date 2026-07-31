@@ -1,4 +1,7 @@
-<!-- [PP] mod:164 · autor:Rune · 2026-07-30 01:10 UTC-6 -->
+<!-- [PP] mod:165 · autor:Rune · 2026-07-30 UTC-6 -->
+<!-- TKT2/TKT3/TKT4 (REQ CAEL-0730-01, ref_id CAEL-0730-01): retirados mg-out-context/
+     mg-out-backlog/mg-out-incidents del modal Document Generator — huérfanos desde que
+     locus-map-generator.js (mod:35) dejó de leerlos. Único checkbox restante: mg-out-map. -->
 <!-- TKT-202607-186 (REQ-202607-064): #qdisc-stat-total agrega .stat-compact-n--primary —
      homologa el número del chip Total con el tratamiento de Backlog list/Q-Backlog/Histórico.
      Sin cambio de estructura ni de otros IDs. -->
@@ -2041,13 +2044,10 @@
         <div class="mg-outputs-col">
           <div class="mg-outputs-label">Documentos a generar</div>
           <div class="mg-outputs-checks">
+            <!-- TKT2/TKT3/TKT4 (REQ CAEL-0730-01): mg-out-context/mg-out-backlog/mg-out-incidents
+                 retirados — locus-map-generator.js (mod:35) ya no los lee. Document Generator
+                 queda exclusivo a MAP. Único checkbox restante, sin selector de grupo. -->
             <label class="mg-output-check"><input type="checkbox" id="mg-out-map" checked> <span>MAP</span></label>
-            <label class="mg-output-check"><input type="checkbox" id="mg-out-context"> <span>CONTEXT</span></label>
-            <label class="mg-output-check"><input type="checkbox" id="mg-out-backlog"> <span>BACKLOG</span></label>
-            <!-- TKT2 (REQ CAEL-0720-01): AC1 + AC6 satisfechos. AC6 desbloqueado con el
-                 entregable de Nova — .mg-output-check--incidents (pasivo: surface3/text3),
-                 aplicado como modifier junto a .mg-output-check base. -->
-            <label class="mg-output-check mg-output-check--incidents"><input type="checkbox" id="mg-out-incidents"> <span>Incidentes (Q-INC)</span></label>
           </div>
         </div>
         <div class="mg-generate-col">
