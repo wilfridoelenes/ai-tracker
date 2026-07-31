@@ -1,3 +1,22 @@
+/* [PP] mod:85 · autor:Nova · 2026-07-31 UTC-6 */
+/* TKT-202607-204 (REQ-202607-079): sistema visual CSS de la zona Identidad del
+   panel de revisión de CHECKPOINT — 5 familias nuevas, sin tokens de color nuevos.
+   .mdiff-status-chip(--borrador|--avalado): estado draft vs avalado — borrador usa
+   --surface2/--text2 (neutro), avalado usa --accent-dim/--accent-text (mismo par ya
+   validado para badges de acento), icono ti-shield-check solo en avalado. .mdiff-transition
+   (pill-flecha-pill, tono neutro de .diff-chip--actualizado) vs .mdiff-field-patch
+   (icono ti-pencil + texto plano --text2) — distingue transición real de status de un
+   patch de campo suelto (AC2 TKT-202607-204). .mdiff-zone-card--retroceso reusa
+   --c-high-text/--c-high-bg/--c-high-border — mismo family ya declarado en
+   .diff-chip--retroceso (locus-base.css) y .spi-item-status--blocked, NO --c-severity-high-*
+   (severidad, familia distinta) — token verificado contra _Locus-css-ref antes de
+   implementar, sin token nuevo. Distinto de .mdiff-retroceso-check (ya existente, ámbar,
+   checkbox de confirmación de retroceso al aplicar) — este es el borde de card en el panel
+   de revisión, propósito y ubicación distintos, sin colisión de nombre. .mdiff-zone-chevron
+   — 20px (Fitts's Law, mismo criterio que .bitem-collapse-arrow), :focus-visible con
+   outline:2px solid var(--accent) (token global de foco, mismo patrón que
+   .qdisc-status-header/.qbacklog-draft-header) — único disparador del drawer;
+   .mdiff-zone-card queda cursor:default, la fila completa no abre nada. */
 /* [PP] mod:84 · autor:Nova · 2026-07-30 UTC-6 */
 /* TKT-202607-194 (REQ-202607-072, DISC-202607-068): .idp-tl-label--success usaba
    color: var(--green) crudo — falla 4.5:1 como texto en light theme (2.6-2.8:1,
@@ -4664,3 +4683,137 @@ body {
   border: 2px solid var(--green);
 }
 /* ══ END mdiff-ckpt-category ══ */
+
+/* ══ TKT-202607-204 (REQ-202607-079) — Zona Identidad del panel de revisión de CHECKPOINT ══ */
+
+/* --- Estado de aval (draft → avalado) — AC1 ---------------------------- */
+
+.mdiff-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* Draft: única señal visible mientras draft:true — sin chip de aval */
+.mdiff-status-chip--borrador {
+  color: var(--text2);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+/* Avalado: aparece solo tras el type:patch de Finn con draft:false */
+.mdiff-status-chip--avalado {
+  color: var(--accent-text);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+}
+
+.mdiff-status-chip--avalado .ti-shield-check {
+  font-size: var(--text-sm);
+}
+
+/* --- Transición real de status vs patch de campo suelto — AC2 ---------- */
+
+/* Transición status→status real: pill-flecha-pill */
+.mdiff-transition {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mdiff-transition-pill {
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  background: var(--surface2);
+  color: var(--text2);
+  border: 1px solid var(--border);
+}
+
+.mdiff-transition-arrow {
+  color: var(--text3);
+  font-size: var(--text-sm);
+  line-height: 1;
+}
+
+/* Patch de campo suelto (ej. sprint): icono lápiz + texto plano, nunca pill */
+.mdiff-field-patch {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text2);
+  font-size: var(--text-sm);
+}
+
+.mdiff-field-patch .ti-pencil {
+  font-size: var(--text-sm);
+  color: var(--text3);
+}
+
+/* --- Retroceso: alerta de card completa — AC3 --------------------------- */
+/* Distinto de .mdiff-retroceso-check (arriba en este archivo) — ese es el
+   checkbox ambar de confirmación al aplicar un retroceso; esto es el borde
+   de card en el panel de revisión. Sin colisión de nombre ni de propósito. */
+
+.mdiff-zone-card--retroceso {
+  border: 1px solid var(--c-high-border);
+  background: var(--c-high-bg);
+}
+
+.mdiff-zone-card--retroceso .mdiff-retroceso-flag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--c-high-text);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.mdiff-zone-card--retroceso .mdiff-retroceso-flag .ti-corner-up-left {
+  font-size: var(--text-base);
+}
+
+.mdiff-zone-card--retroceso .mdiff-retroceso-context {
+  color: var(--c-high-text);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  opacity: 0.9;
+}
+
+/* --- Chevron — único disparador del drawer, foco visible — AC4 --------- */
+
+.mdiff-zone-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.mdiff-zone-chevron:hover {
+  color: var(--text);
+}
+
+.mdiff-zone-chevron:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* La fila de la card no es clickeable — sin cursor:pointer, sin hover de
+   fondo. Solo .mdiff-zone-chevron dispara el drawer (AC4). */
+.mdiff-zone-card {
+  cursor: default;
+}
+/* ══ END TKT-202607-204 ══ */

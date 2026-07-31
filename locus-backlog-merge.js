@@ -1,3 +1,15 @@
+// [PP] mod:79 · autor:Rune · 2026-07-31 UTC-6
+// TKT-202607-205 (REQ-202607-079, TKT2): cierre de entrega — el render de showMergeDiffPanel()
+// ya reemplazaba las ~13 secciones fragmentadas legacy por las 6 zonas cognitivas (Identidad en
+// header, Resultado→Narrativa→Cambios en el backlog→Impacto en el ecosistema en body, Antes de
+// guardar en pendingList) desde una sesión previa de esta misma tanda — este mod solo cierra la
+// entrega: header de identidad actualizado (faltaba), verificados los 4 AC contra código real
+// (ninguna de las 9 secciones legacy vive fuera de .mdiff-zone--cambios-backlog; las 3 cubetas
+// por consecuencia — auto/revisar/info — mapean correctamente; estado vacío sin hueco visual;
+// firma pública de showMergeDiffPanel/teardownMergeDiffPanel sin cambio). contract_update: no —
+// sin cambio de firma, consumidores (locus-backlog-core.js, locus-backlog-generator.js,
+// locus-backlog-item.js, locus-modals.js, locus-notifications.js, locus-sesiones.js,
+// locus-session-parse.js, locus-session-save.js, locus-storage.js) no requieren cambio.
 // [PP] mod:77 · autor:Rune · 2026-07-30 02:12 UTC-6
 // INC-[pendiente-ID] (fix complementario a locus-session-parse.js mod:163 — duplicación de
 // ítem tras CHECKPOINT batch + Quick Capture): showMergeDiffPanel() abortaba
@@ -303,6 +315,13 @@ let _mdiffToggleSection = null;
 let _mdiffJumpTo = null;
 let _mdiffSetItemSprint = null;
 let _mdiffUpdateConfirmBtn = null;
+// TKT-202607-206 (REQ-202607-079, AC4): historial de ref_id→title resuelto a través de batches
+// aplicados en esta misma sesión de página — a diferencia de diff.refIdTitleMap (por-batch,
+// producido por el dry-run de mergeBacklogFromTG), este Map acumula entre llamadas sucesivas de
+// showMergeDiffPanel sin resetearse en _mdiffDoApply/teardownMergeDiffPanel. No persiste entre
+// recargas de página — "misma conversación" se interpreta como mismo ciclo de vida del módulo,
+// consistente con el resto del estado de sesión de Locus (sin historial versionado, §4 strategy).
+const _seenRefIdHistory = new Map();
 // TKT2 (REQ CAEL-0720-02): resolver de búsqueda para diff.unresolvedRefs — mismo patrón
 // de closure asignado/limpiado que el resto de _mdiff*.
 let _mdiffUnresolvedFilter = null;
@@ -819,7 +838,15 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       <div class="mdiff-section-body${collapsed ? ' is-hidden' : ''}">${rows}</div>
     </div>`;
 
-  let sectionsHtml = '';
+  // TKT-202607-205 (REQ-202607-079, AC3): sectionsHtml se reparte en 3 cubetas por
+  // consecuencia — mismo mapeo de tono que chipTonesFromDiff (creado/avance/actualizado →
+  // se aplican solos; retroceso/descarte → revisar antes de guardar) extendido a las
+  // categorías sin chip propio: patches (instrucción directa ya decidida → auto),
+  // tmp-suggestions/invalid-transition/attention/unresolved (requieren acción o atención →
+  // revisar), unchanged (sin acción posible → info).
+  let sectionsAutoHtml = '';
+  let sectionsRevisarHtml = '';
+  let sectionsInfoHtml = '';
   let summaryChipsHtml = '';
   let quickRowsHtml = '';
 
@@ -866,7 +893,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       `<div class="mdiff-change-hint">Creado y cerrado en esta sesión</div>` + _depsHtml(i.dependsOn),
       i.parent, i.sprint, i.type || _itemKindFn({ code: i.code })
     )).join('');
-    sectionsHtml += _section('created-and-closed', 'green', `Creados y cerrados <span class="mdiff-sec-count">${diff.createdAndClosed.length}</span>`, rows);
+    sectionsAutoHtml += _section('created-and-closed', 'green', `Creados y cerrados <span class="mdiff-sec-count">${diff.createdAndClosed.length}</span>`, rows);
   }
   // B-202604-198: sugerencias de match [tmp:slug] → ID real existente
   // REQ-MERGE-GEN2 TKT1 AC-2: tmpSuggestions usa tmpCode sin .type — fallback a _itemKindFn({code: i.tmpCode}) || 'UNKNOWN'
@@ -878,7 +905,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
        <div class="mdiff-change-hint mdiff-change-hint--secondary">Confirma manualmente en el backlog si corresponde al mismo ítem.</div>`,
       undefined, undefined, _itemKindFn({ code: i.tmpCode }) || 'UNKNOWN'
     )).join('');
-    sectionsHtml += _section('tmp-suggestions', 'warn', `⚠ TMP sin match confirmado <span class="mdiff-sec-count">${diff.tmpSuggestions.length}</span>`, rows);
+    sectionsRevisarHtml += _section('tmp-suggestions', 'warn', `⚠ TMP sin match confirmado <span class="mdiff-sec-count">${diff.tmpSuggestions.length}</span>`, rows);
   }
   // T-202606-020 · AC-3: sección Transiciones inválidas — advertencia, no bloquea aplicación (AC-4)
   if ((diff.invalidTransition || []).length) {
@@ -888,18 +915,18 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         undefined, undefined, undefined, i.type || _itemKindFn({ code: i.code })
       )
     ).join('');
-    sectionsHtml += _section('invalid-transition', 'warn',
+    sectionsRevisarHtml += _section('invalid-transition', 'warn',
       `⚠ Transiciones inválidas <span class="mdiff-pill mdiff-pill--warn mdiff-sec-count">${diff.invalidTransition.length}</span>`,
       rows
     );
   }
   if (diff.retroceso.length) {
     const rows = _sortByType(diff.retroceso).map((i, idx) => _retrocedoRow(i, idx)).join('');
-    sectionsHtml += _section('retroceso', 'warn', `⚠ Retrocesos <span class="mdiff-sec-count">${diff.retroceso.length}</span>`, rows);
+    sectionsRevisarHtml += _section('retroceso', 'warn', `⚠ Retrocesos <span class="mdiff-sec-count">${diff.retroceso.length}</span>`, rows);
   }
   if (diff.discarded.length) {
     const rows = _sortByType(diff.discarded).map((i, idx) => _discardRow(i, idx)).join('');
-    sectionsHtml += _section('discarded', 'red', `🗑 Descartes <span class="mdiff-sec-count">${diff.discarded.length}</span>`, rows);
+    sectionsRevisarHtml += _section('discarded', 'red', `🗑 Descartes <span class="mdiff-sec-count">${diff.discarded.length}</span>`, rows);
   }
   if (diff.ignored.length) {
     const ignoredCritical = diff.ignored.filter(i => _criticalReasons.includes(i.reason));
@@ -912,12 +939,12 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         else if (i.reason === 'tipo-invalido') { pill = _pill('warn', '⚠ tipo inválido'); }
         return _card(i.code, i.desc, 'warn', pill, hint, undefined, undefined, i.type || _itemKindFn({ code: i.code }));
       }).join('');
-      sectionsHtml += _section('attention', 'warn', `⚠ Requieren atención <span class="mdiff-sec-count">${ignoredCritical.length}</span>`, rows);
+      sectionsRevisarHtml += _section('attention', 'warn', `⚠ Requieren atención <span class="mdiff-sec-count">${ignoredCritical.length}</span>`, rows);
     }
     if (ignoredOk.length) {
       const rows = _sortByType(ignoredOk).map(i => _card(i.code, i.desc, 'muted', _pill('ignored', 'sin cambios'), undefined, undefined, undefined, i.type || _itemKindFn({ code: i.code }))).join('');
       // Sin cambios colapsado por defecto
-      sectionsHtml += _section('unchanged', 'muted', `Sin cambios <span class="mdiff-sec-count">${ignoredOk.length}</span>`, rows, true);
+      sectionsInfoHtml += _section('unchanged', 'muted', `Sin cambios <span class="mdiff-sec-count">${ignoredOk.length}</span>`, rows, true);
     }
   }
 
@@ -929,7 +956,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // sin cambio aquí (AC4).
   if (_patchItems.length) {
     const rows = _patchItems.map(p => _buildPatchCard(p, getAnyItem(p.code))).join('');
-    sectionsHtml += _section('patches', 'accent', `✎ Cambios directos (patch) <span class="mdiff-sec-count">${_patchItems.length}</span>`, rows);
+    sectionsAutoHtml += _section('patches', 'accent', `✎ Cambios directos (patch) <span class="mdiff-sec-count">${_patchItems.length}</span>`, rows);
   }
 
   // TKT2 (REQ CAEL-0720-02, AC de coherencia): resolver de búsqueda para diff.unresolvedRefs —
@@ -941,10 +968,32 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // en runtime (ver _mdiffUnresolvedFilter/_mdiffUnresolvedSelect más abajo) — este bloque solo
   // construye el shell inicial por entrada.
   if (Array.isArray(diff.unresolvedRefs) && diff.unresolvedRefs.length) {
-    const rows = diff.unresolvedRefs.map((u, uIdx) => {
+    // TKT-202607-206 (REQ-202607-079, AC4): un ref_id ya resuelto en un batch anterior de esta
+    // misma sesión (_seenRefIdHistory, poblado en _mdiffDoApply de una entrega previa) no es un
+    // hueco de especificación nuevo — el mismo criterio de "ausencia total, sin hueco visual" ya
+    // vigente para el resto de zonas condicionales de este archivo aplica: la fila no entra al
+    // bucket 'revisar' ni a su conteo, va a 'solo información' con la línea de continuación, y
+    // no genera search/dropdown (no hay nada que resolver — ya se resolvió).
+    // data-unresolved-idx se conserva con el índice original del array en ambos grupos: los
+    // handlers _mdiffUnresolvedFilter/_mdiffUnresolvedSelect/_mdiffUnresolvedRemove indexan
+    // contra diff.unresolvedRefs[uIdx] directamente (confirmado, ver esas funciones más abajo) —
+    // partir el array en dos listas nuevas rompería esa indexación si se usara .filter() antes
+    // de mapear; iterar una sola vez sobre el array completo preserva uIdx real en ambas ramas.
+    const _unresolvedRows = [];
+    const _continuationRows = [];
+    diff.unresolvedRefs.forEach((u, uIdx) => {
+      const _refKey = u.ref_id || u.rawValue || '';
+      const _seenTitle = _refKey ? _seenRefIdHistory.get(_refKey) : undefined;
       const _label = u.field;
+      if (_seenTitle !== undefined) {
+        _continuationRows.push(`<div class="mdiff-unresolved-row" data-unresolved-idx="${uIdx}">
+          <span class="mdiff-unresolved-label">${esc(_label)}</span>
+          <div class="mdiff-change-hint">continúa ingesta anterior — ${esc(_seenTitle)}</div>
+        </div>`);
+        return;
+      }
       const _prefill = u.title || '';
-      return `<div class="mdiff-unresolved-row" data-unresolved-idx="${uIdx}">
+      _unresolvedRows.push(`<div class="mdiff-unresolved-row" data-unresolved-idx="${uIdx}">
         <span class="mdiff-unresolved-label">${esc(_label)}</span>
         <div class="mdiff-unresolved-search-wrap">
           <input type="text" class="bl-search-input" data-action="mdiff-unresolved-search"
@@ -953,9 +1002,14 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
             placeholder="Buscar por código o título…" value="${esc(_prefill)}">
           <div class="sps-dropdown mdiff-unresolved-dropdown" role="menu" hidden></div>
         </div>
-      </div>`;
-    }).join('');
-    sectionsHtml += _section('unresolved', 'warn', `🔍 Referencias sin resolver <span class="mdiff-sec-count">${diff.unresolvedRefs.length}</span>`, rows);
+      </div>`);
+    });
+    if (_unresolvedRows.length) {
+      sectionsRevisarHtml += _section('unresolved', 'warn', `🔍 Referencias sin resolver <span class="mdiff-sec-count">${_unresolvedRows.length}</span>`, _unresolvedRows.join(''));
+    }
+    if (_continuationRows.length) {
+      sectionsInfoHtml += _section('unresolved-continuation', 'muted', `↪ Continúa ingesta anterior <span class="mdiff-sec-count">${_continuationRows.length}</span>`, _continuationRows.join(''));
+    }
   }
 
   // ── Inyectar en shell ──
@@ -1450,34 +1504,93 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     // TKT3 (REQ CAEL-0718-01 · AC3): con 2+ entradas en ckptMeta.metas, el step-label pasa de
     // "Guardar sesión" a "Revisión de batch · N CHECKPOINTs". Con 1 entrada o sin metas —
     // comportamiento idéntico al actual (AC2/AC3 edge case).
-    const _stepLabel = (_ckptMetas && _ckptMetas.length >= 2)
+    const _isBatchForHeader = !!(_ckptMetas && _ckptMetas.length >= 2);
+    const _stepLabel = _isBatchForHeader
       ? `Revisión de batch · ${_ckptMetas.length} CHECKPOINTs`
       : 'Guardar sesión';
+    // TKT-202607-206 (AC3 — estado de batch): sin finn_release en NINGÚN bloque del batch →
+    // 'ciclo en curso — sin liberación'. Si algún bloque sí trae finn_release, esta línea se omite
+    // — la tarjeta atribuida de ese bloque ya lo comunica con su propia categoría 'Liberación'
+    // (_ckptCategoryFor/mdiff-narrative-section--liberado, TKT-170/TKT3), sin duplicar la señal.
+    const _hasAnyRelease = _isBatchForHeader && _ckptMetas.some(m => m && m.finnRelease);
+    const _identityStatusHtml = (_isBatchForHeader && !_hasAnyRelease)
+      ? `<div class="mdiff-change-hint">ciclo en curso — sin liberación</div>`
+      : '';
     header.innerHTML = `
       <div class="mdiff-header-inner">
         <div class="mdiff-header-left">
           <div class="mdiff-step-label">${esc(_stepLabel)}</div>
           <div class="mdiff-header-title">Revisión de cambios${projName ? ` · <span class="mdiff-proj-name">${esc(projName)}</span>` : ''}</div>
           ${_headerChipsHtml}
+          ${_identityStatusHtml}
         </div>
         <div class="mdiff-header-total">${totalLabel}</div>
       </div>`;
   }
 
-  // Body: sección narrativa + secciones de backlog
+  // Body: 6 zonas cognitivas — TKT-202607-205 (REQ-202607-079)
   // T-202606-155: si hay Step 0, body.innerHTML ya fue asignado arriba — no sobreescribir
   // TKT3 (REQ-[pendiente-ID]): antes de este TKT, Step 0 asignaba body.innerHTML directamente y
-  // este bloque se saltaba (`!_sprintProposal`). Sin Step 0, body siempre renderiza narrativa +
-  // secciones — condición reducida a solo `body`.
+  // este bloque se saltaba (`!_sprintProposal`). Sin Step 0, body siempre renderiza — condición
+  // reducida a solo `body`.
+  //
+  // Orden de zonas (Identidad vive en `header`, fuera de `body`): Resultado → Narrativa →
+  // Cambios en el backlog → Impacto en el ecosistema → Antes de guardar (Antes de guardar vive
+  // en `pendingList`, columna derecha — ver _mdiffUpdateConfirmBtn más abajo, zona ya separada
+  // estructuralmente desde antes de este TKT).
+  //
+  // AC1: ninguna de las 7 secciones legacy (createdAndClosed/tmpSuggestions/invalidTransition/
+  // retroceso/discarded/unchanged/patches) vive fuera de 'Cambios en el backlog' — todas quedan
+  // anidadas dentro de .mdiff-zone--cambios-backlog, repartidas en 3 cubetas (AC3).
+  // AC2: cada zona se omite por completo (no placeholder vacío) si no tiene contenido — con
+  // items vacío (CHECKPOINT lite), solo Resultado (si hay finn_release) y Narrativa quedan.
   if (body) {
     // TKT2 (REQ CAEL-0717-01): finn_release precede a la narrativa de sesión — es el resultado
-    // liberado, no el contexto de cómo se produjo. Orden: finnRelease → narrative → chips → secciones.
-    // TKT3 (REQ CAEL-0718-01 · AC1/AC2): 2+ bloques → tarjetas atribuidas por bloque. 1 bloque
-    // o sin metas → mismo orden de siempre (finnRelease → narrative), cero regresión sobre A.
-    const _narrativeBlockHtml = (_ckptMetas && _ckptMetas.length >= 2)
-      ? _buildAttributedCardsBlock()
-      : _buildFinnReleaseSection() + _buildNarrativeSection();
-    body.innerHTML = _narrativeBlockHtml + _buildDocUpdatesBlock() + _buildFinnObservationsBlock() + _buildSummaryChipsBlock() + sectionsHtml;
+    // liberado, no el contexto de cómo se produjo.
+    // TKT3 (REQ CAEL-0718-01 · AC1/AC2): 2+ bloques → tarjetas atribuidas por bloque, wrapeadas
+    // como zona Narrativa única (Resultado queda implícito en cada tarjeta atribuida — mismo
+    // criterio ya vigente en _buildAttributedCardsBlock, sin cambio de esa función en este TKT).
+    // TKT-202607-206 extiende la atribución por bloque a la zona Antes de guardar — no toca esto.
+    const _isBatch = !!(_ckptMetas && _ckptMetas.length >= 2);
+    let _resultadoNarrativaHtml;
+    if (_isBatch) {
+      const _attributed = _buildAttributedCardsBlock();
+      _resultadoNarrativaHtml = _attributed
+        ? `<div class="mdiff-zone mdiff-zone--narrativa" data-mdiff-zone="narrativa">${_attributed}</div>`
+        : '';
+    } else {
+      const _resultadoHtml = _buildFinnReleaseSection();
+      const _narrativaHtml = _buildNarrativeSection();
+      _resultadoNarrativaHtml =
+        (_resultadoHtml ? `<div class="mdiff-zone mdiff-zone--resultado" data-mdiff-zone="resultado">${_resultadoHtml}</div>` : '')
+        + (_narrativaHtml ? `<div class="mdiff-zone mdiff-zone--narrativa" data-mdiff-zone="narrativa">${_narrativaHtml}</div>` : '');
+    }
+
+    // Zona Impacto en el ecosistema — doc_updates pendientes + finn_observations. Ninguno de
+    // los dos era una zona nombrada antes de este TKT — ambos vivían sueltos al final del body.
+    const _docUpdatesHtml = _buildDocUpdatesBlock();
+    const _finnObsHtml = _buildFinnObservationsBlock();
+    const _impactoHtml = (_docUpdatesHtml || _finnObsHtml)
+      ? `<div class="mdiff-zone mdiff-zone--impacto-ecosistema" data-mdiff-zone="impacto-ecosistema">
+           <div class="mdiff-zone-label">Impacto en el ecosistema</div>
+           ${_docUpdatesHtml}${_finnObsHtml}
+         </div>`
+      : '';
+
+    // Zona Cambios en el backlog — 3 cubetas por consecuencia (AC3). Cada cubeta se omite si
+    // no tiene contenido — nunca placeholder vacío.
+    const _summaryChipsHtml = _buildSummaryChipsBlock(); // created/advanced/updated — chips + quick rows
+    const _autoContent = _summaryChipsHtml + sectionsAutoHtml;
+    const _cambiosBacklogHtml = (_autoContent || sectionsRevisarHtml || sectionsInfoHtml)
+      ? `<div class="mdiff-zone mdiff-zone--cambios-backlog" data-mdiff-zone="cambios-backlog">
+           <div class="mdiff-zone-label">Cambios en el backlog</div>
+           ${_autoContent ? `<div class="mdiff-bucket mdiff-bucket--auto"><div class="mdiff-bucket-label">Se aplican solos</div>${_autoContent}</div>` : ''}
+           ${sectionsRevisarHtml ? `<div class="mdiff-bucket mdiff-bucket--revisar"><div class="mdiff-bucket-label">Revisar antes de guardar</div>${sectionsRevisarHtml}</div>` : ''}
+           ${sectionsInfoHtml ? `<div class="mdiff-bucket mdiff-bucket--info"><div class="mdiff-bucket-label">Solo información</div>${sectionsInfoHtml}</div>` : ''}
+         </div>`
+      : '';
+
+    body.innerHTML = _resultadoNarrativaHtml + _cambiosBacklogHtml + _impactoHtml;
     _renderTriggeredBySuggestion();
     _renderDraftPendingBanner();
   }
@@ -1790,6 +1903,14 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
           const cbId = `mdiff-right-retro-cb-${idx}`;
           const existingCb = document.getElementById(cbId);
           const isChecked  = existingCb ? existingCb.checked : false;
+          // TKT-202607-206 (AC1/AC2): atribución solo con 2+ CHECKPOINTs en el batch — con 1 o
+          // sin metas, _ckptMetas es null/length 1 y _originHtml queda '', sin regresión visual.
+          const _originMeta = (_ckptMetas && _ckptMetas.length >= 2)
+            ? _ckptMetas.find(m => m && m.idx === item.idx)
+            : null;
+          const _originHtml = _originMeta
+            ? `<div class="mdiff-change-hint">de: ${esc(_CKPT_CATEGORY_LABELS[_ckptCategoryFor(_originMeta)])} · ${esc(_originMeta.rol || '')}</div>`
+            : '';
           html += `
             <label class="mdiff-right-retro-row ${isChecked ? 'is-confirmed' : ''}">
               <input type="checkbox" id="${cbId}" class="mdiff-right-retro-cb"
@@ -1798,10 +1919,22 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
               <span class="mdiff-right-retro-info">
                 <span class="mdiff-code mdiff-code--sm">${esc(item.code)}</span>
                 <span class="mdiff-retro-status">${esc(item.from)} → ${esc(item.to)}</span>
+                ${_originHtml}
               </span>
             </label>`;
         });
       }
+
+      // TKT-202607-206 (AC1/AC2): mismo criterio de atribución que retrocesos — helper local para
+      // no duplicar la condición de gate (2+ metas) tres veces en esta función.
+      const _originHintFor = (item) => {
+        const _meta = (_ckptMetas && _ckptMetas.length >= 2)
+          ? _ckptMetas.find(m => m && m.idx === item.idx)
+          : null;
+        return _meta
+          ? `<div class="mdiff-change-hint">de: ${esc(_CKPT_CATEGORY_LABELS[_ckptCategoryFor(_meta)])} · ${esc(_meta.rol || '')}</div>`
+          : '';
+      };
 
       // Sección descartes que necesitan razón
       if (hasDescartes) {
@@ -1815,6 +1948,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
             <div class="mdiff-right-discard-row">
               <span class="mdiff-code mdiff-code--sm">${esc(item.code)}</span>
               <span class="mdiff-right-discard-desc">${esc(item.title || '')}</span>
+              ${_originHintFor(item)}
               <select id="${selId}" class="mdiff-right-discard-select"
                       data-discard-idx="${idx}">
                 <option value="">— razón —</option>
@@ -1832,6 +1966,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
             <div class="mdiff-right-discard-row mdiff-right-discard-row--preset">
               <span class="mdiff-code mdiff-code--sm">${esc(item.code)}</span>
               <span class="mdiff-discard-reason-pill">${esc(item.reason)}</span>
+              ${_originHintFor(item)}
             </div>`;
         });
       }
@@ -1946,6 +2081,20 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
 
   // ── Handler de aplicar: aplica retrocesos y descartes ──
   function _mdiffDoApply(andThenGoBacklog) {
+    // TKT-202607-206 (REQ-202607-079, AC4): registrar en el historial de sesión cada ref_id que
+    // este batch trajo resuelto (diff.refIdTitleMap, por-batch, ya calculado en el dry-run de
+    // apertura) — aquí, en el apply real, no en el dry-run, porque solo en este punto el ref_id
+    // queda efectivamente resuelto a código real en el backlog. Si un batch posterior de esta
+    // misma sesión de página vuelve a citar el mismo ref_id (ya no declarado por ningún bloque
+    // del batch nuevo), la lectura en _seenRefIdHistory lo distingue de una referencia rota.
+    if (diff.refIdTitleMap) {
+      if (diff.refIdTitleMap instanceof Map) {
+        diff.refIdTitleMap.forEach((title, refId) => { _seenRefIdHistory.set(refId, title); });
+      } else if (typeof diff.refIdTitleMap === 'object') {
+        Object.entries(diff.refIdTitleMap).forEach(([refId, title]) => { _seenRefIdHistory.set(refId, title); });
+      }
+    }
+
     // Retrocesos confirmados — leer checkboxes de columna derecha
     if (diff.retroceso.length) {
       diff.retroceso.forEach((retroItem, idx) => {
