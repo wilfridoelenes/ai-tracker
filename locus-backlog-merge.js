@@ -1,4 +1,4 @@
-// [PP] mod:80 · autor:Rune · 2026-07-31 16:10 UTC-6
+// [PP] mod:81 · autor:Rune · 2026-07-31 16:10 UTC-6
 // TKT-202607-205 (REQ-202607-079, TKT2): cierre de entrega — el render de showMergeDiffPanel()
 // ya reemplazaba las ~13 secciones fragmentadas legacy por las 6 zonas cognitivas (Identidad en
 // header, Resultado→Narrativa→Cambios en el backlog→Impacto en el ecosistema en body, Antes de
@@ -11,7 +11,7 @@
 // locus-backlog-item.js, locus-modals.js, locus-notifications.js, locus-sesiones.js,
 // locus-session-parse.js, locus-session-save.js, locus-storage.js) no requieren cambio.
 // [PP] mod:77 · autor:Rune · 2026-07-30 02:12 UTC-6
-// INC-[pendiente-ID] (fix complementario a locus-session-parse.js mod:163 — duplicación de
+// [código no confirmado — TKT-202607-212] (fix complementario a locus-session-parse.js mod:163 — duplicación de
 // ítem tras CHECKPOINT batch + Quick Capture): showMergeDiffPanel() abortaba
 // _mdiffPanelAC solo al cerrar el panel (_mdiffDoApply/teardownMergeDiffPanel), nunca al
 // ABRIRLO — si el panel se reabría sobre el shell estático #merge-diff-overlay sin haber
@@ -34,7 +34,7 @@
 // ausencia total de _buildAttributedCardsBlock extendido con !_docsChip — un bloque cuyo único
 // contenido es un doc_update ya no queda huérfano sin tarjeta. AC-9 original (fusionaba docs +
 // archivos, asumía meta.archivos inexistente en _extractCkptMeta) devuelto por Rune y dividido
-// por Cael — la mitad de archivos queda fuera de scope, ver DISC-[pendiente-ID] (triggered_by
+// por Cael — la mitad de archivos queda fuera de scope, ver [código no confirmado — TKT-202607-212] (triggered_by
 // este TKT). contract_update: no — _buildAttributedCardsBlock no es export, sin cambio de firma.
 // [PP] mod:73 · autor:Rune · 2026-07-27 23:54 UTC-6
 // TKT-202607-170 (REQ-202607-058, AC corregido en Fase 5 v2 por Cael tras hallazgo de Finn en
@@ -70,7 +70,7 @@
 // de éxito de appliedCount (L1781-1783), sin sección nueva en el panel DIFF (ya cerrado en este
 // punto del flujo, _card/_pill/_section fuera de scope). contract_update: sí.
 // [PP] mod:67 · autor:Rune · 2026-07-24 UTC-6
-// INC-[pendiente-ID] (fix gate req-sin-tkt vs reparenting — ver locus-backlog-item.js mod:142
+// [código no confirmado — TKT-202607-212] (fix gate req-sin-tkt vs reparenting — ver locus-backlog-item.js mod:142
 // para el detalle completo): _patchItems (ya filtrado, línea ~307) propagado como opts.patchItems
 // al dry-run de mergeBacklogFromTG — antes se descartaba sin llegar nunca al gate.
 // TKT-202607-086: _buildAttributedCardsBlock — cada tarjeta atribuida gana expand/collapse
@@ -209,7 +209,7 @@
 //   no_incluye: no toca _buildNarrativeSection() ni el mapeo de _ckptMeta.finnRelease en el
 //   parser — eso vive en locus-session-parse.js, fuera de este archivo (ver CHECKPOINT de TKT2).
 // [PP] mod:52 · autor:Rune · 2026-07-13 08:30 UTC-6
-// TKT3 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): retirado el bloque
+// TKT3 ([código no confirmado — TKT-202607-212] · migración Step 0 DIFF → panel Sprint subtab): retirado el bloque
 // `if (_sprintProposal && body) {...}` completo — Step 0 HTML, listeners #mdiff-step0-approve/
 // #mdiff-step0-reject, y el gate de ítems sin sprint (ex T-202606-164, relocalizado en TKT4 al
 // panel del subtab Sprints). El gate de exclusividad §12 (antes del early-return, arriba en esta
@@ -223,7 +223,7 @@
 //   copy corregida (fix inline, mismo archivo): describía "Guardar deshabilitado", ya no es cierto
 //   tras este TKT — habría quedado como placeholder incorrecto en producción.
 // [PP] mod:48 · autor:Rune · 2026-07-09 UTC-6
-// TKT-[pendiente-ID] (origen_disc, triggered_by TKT-202607-048): totalApply (botón "Guardar
+// [código no confirmado — TKT-202607-212] (origen_disc, triggered_by TKT-202607-048): totalApply (botón "Guardar
 //   sesión") tenía el mismo gap que el badge del header ya corregido en mod:46 — no sumaba
 //   _patchItems.length. Fix: totalApply += _patchItems.length. blocked/disabled no se toca —
 //   siguen gobernados por la condición `blocked` existente, sin relación con el contador.
@@ -233,7 +233,7 @@
 //   se sumaba a `total`, que solo agrega las categorías de diff.*. Un CHECKPOINT con solo
 //   patches mostraba "0 ítems" pese a tener ítems reales. Fix: total += _patchItems.length.
 // [PP] mod:45 · autor:Rune · 2026-07-09 00:15 UTC-6
-// INC-[pendiente-ID] (triggered_by INC-202607-004 — mismo módulo): _parentHtml leía item.parent
+// [código no confirmado — TKT-202607-212] (triggered_by INC-202607-004 — mismo módulo): _parentHtml leía item.parent
 //   (campo eliminado por mergeBacklogFromTG tras normalizar a parentId) — "Parent: Sin parent"
 //   para todo TKT, nuevo o existente. Fix: lee item.parentId. Detectado en la misma auditoría,
 //   segundo gap: todo _card(i.code, i.title, ...) en este archivo leía i.title, pero los objetos
@@ -263,7 +263,7 @@
 //   comportamiento en backend — _applySprintInheritanceToItems ya excluía DISC correctamente.
 //   Clase .mdiff-queue-badge--qdisc requiere CSS — ver doc_updates, bloqueado sin _Locus-css-ref.
 // [PP] mod:36 · autor:Rune · 2026-06-30 19:15 UTC-6
-// INC-[pendiente-ID] (triggered_by REQ-202606-003 / REQ-202606-001): las 4 rutas de status
+// [código no confirmado — TKT-202607-212] (triggered_by REQ-202606-003 / REQ-202606-001): las 4 rutas de status
 //   manual de este archivo (_mdiffDoApply retroceso/discard, _confirmRetroceso, _confirmDiscard,
 //   _applyDiscardBatch) seteaban item.status directo sin invocar _syncParentRStatus (ahora
 //   exportada desde locus-backlog-core.js mod:70) — el R padre quedaba desincronizado tras
@@ -271,7 +271,7 @@
 //   (mergeBacklogFromTG/applyPatchesFromTG en locus-backlog-item.js) tiene el mismo bug y
 //   sigue sin corregir — archivo no adjunto en esta sesión.
 // [PP] mod:34 · autor:Rune · 2026-06-30 UTC-6
-// INC-[pendiente-ID] (triggered_by TKT-202606-013): corregidos los 2 call sites restantes de
+// [código no confirmado — TKT-202607-212] (triggered_by TKT-202606-013): corregidos los 2 call sites restantes de
 //   showToast({title,body,type}) → showToast(type,title,body) — firma posicional real.
 // Fix inline (TKT-202606-013): corregido call de showToast en gate TKT-202606-012 — firma
 //   posicional (type,title,body), no objeto. Bug descubierto al implementar TKT-013.
@@ -292,7 +292,7 @@
 import { _calcPriority, _getActiveSessionAiId, _undoSnapshotItems, loadBacklog, renderStats, updateBacklogBanner, getItems, getAnyItem, _registerCoreCallback, itemKind as _itemKindFn, _syncParentRStatus } from './locus-backlog-core.js'; // CAEL-0720-01 TKT1: getAnyItem — lookup de existingItem en _buildPatchCard, resuelve backlog + incidents
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { _getSprintById } from './locus-backlog-sprints.js';
-import { _blogLog, getActiveProject, getActiveSprints, saveBacklog, _sprintDisplay } from './locus-storage.js'; // TKT5-[pendiente-ID]: _sprintDisplay para opción de sprint nuevo en DIFF
+import { _blogLog, getActiveProject, getActiveSprints, saveBacklog, _sprintDisplay } from './locus-storage.js'; // [código no confirmado — TKT-202607-212]: _sprintDisplay para opción de sprint nuevo en DIFF
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 import { _gconfirmOpen } from './locus-modals.js'; // CAEL-0720-01 TKT3
@@ -515,7 +515,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       const _msg = _unknownSprints.length === 1
         ? `CHECKPOINT bloqueado: sprint ${_sprintList} no registrado. Registrar el sprint antes de continuar.`
         : `CHECKPOINT bloqueado: sprints ${_sprintList} no registrados. Registrar los sprints antes de continuar.`;
-      // Fix INC-[pendiente-ID] (triggered_by TKT-202606-013): showToast firma posicional.
+      // Fix [código no confirmado — TKT-202607-212] (triggered_by TKT-202606-013): showToast firma posicional.
       showToast('error', 'CHECKPOINT bloqueado', _msg);
       console.warn('[Locus] showMergeDiffPanel:', _msg);
       return; // AC-2: ningún ítem aplicado — early-return antes de cualquier mutación
@@ -531,9 +531,9 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     localStorage.setItem('current-project-filter', projId);
     loadBacklog();
   }
-  // INC-202607-[pendiente-ID] (triggered_by: TKT-202607-078 — detectado al testear el
+  // [código no confirmado — TKT-202607-212] (triggered_by: TKT-202607-078 — detectado al testear el
   // flujo de paste-session, causa raíz ajena al TKT que lo expuso): mergeBacklogFromTG
-  // pasó a async en TKT-202607-076/077 (REQ-[pendiente-ID] · cadena de merge async).
+  // pasó a async en TKT-202607-076/077 ([código no confirmado — TKT-202607-212] · cadena de merge async).
   // Ese REQ declaró como "único caller conocido" a _mergeBacklogWithProject — este dry-run
   // es un tercer call site independiente, no cubierto por TKT-202607-077. Sin await, `diff`
   // era la Promise en sí — diff.created lanzaba TypeError sobre `undefined` en línea 213.
@@ -558,7 +558,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         loadBacklog();
       } catch (e) {
         console.error('[AI Tracker] showMergeDiffPanel: loadBacklog falló en finally — filter restaurado, backlog puede estar desactualizado.', e);
-        // Fix INC-[pendiente-ID] (triggered_by TKT-202606-013): showToast firma posicional.
+        // Fix [código no confirmado — TKT-202607-212] (triggered_by TKT-202606-013): showToast firma posicional.
         showToast('error', 'Error al restaurar backlog', 'Recarga la página.');
       }
     }
@@ -626,14 +626,14 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
 
   // R-202605-148: select de sprint inline — persiste via _mdiffSetItemSprint sin re-render del DIFF
   // B-202606-032: sprintOverride — sprint del objeto diff para ítems nuevos que aún no existen en getItems()
-  // INC-[pendiente-ID]: itemType (pos 3) — INC/PRB/KE/CHG viven exclusivamente en Q-INC (__BR-Ecosystem §5).
+  // [código no confirmado — TKT-202607-212]: itemType (pos 3) — INC/PRB/KE/CHG viven exclusivamente en Q-INC (__BR-Ecosystem §5).
   //   Estos tipos no aceptan sprint ni Q-Backlog — el selector no se renderiza, se muestra badge de cola fija.
   // TKT-202607-152: 'KE' retirado — itemKind() nunca produce ese tipo desde la fusión
   // KE→PRB.root_cause_confirmed (infra_version 51). Mismo criterio de residuo ya limpiado en
   // _isQIncTerminal() (locus-incidents-render.js mod:10) — la entrada aquí quedaba muerta desde
   // entonces, sin afectar el selector porque itemType nunca llegaba como 'KE'.
   const _QINC_TYPES = ['INC', 'PRB', 'CHG'];
-  // TKT-202607-001 (INC-[pendiente-ID], triggered_by hallazgo de sesión — DIFF mostraba
+  // TKT-202607-001 ([código no confirmado — TKT-202607-212], triggered_by hallazgo de sesión — DIFF mostraba
   //   "Sin sprint (Q-Backlog)" seleccionado para DISC): DISC vive exclusivamente en Q-DISC
   //   (__BR-Ecosystem §5) y nunca acepta sprint — mismo patrón ya aplicado a _QINC_TYPES.
   //   _applySprintInheritanceToItems (línea ~1672) ya excluía DISC en el backend; esta rama
@@ -659,7 +659,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     const _matched      = _matchById || _matchByLabel || null;
     const sprintExists  = !!_matched;
     const currentSprint = sprintExists ? _matched.id : '';
-    // TKT5-[pendiente-ID]: _sprintDisplay aplica patrón id · label — antes s.label||s.id
+    // [código no confirmado — TKT-202607-212]: _sprintDisplay aplica patrón id · label — antes s.label||s.id
     const options = openSprints.map(s =>
       `<option value="${esc(s.id)}" ${currentSprint === s.id ? 'selected' : ''}>${esc(_sprintDisplay(s.id))}</option>`
     ).join('');
@@ -675,7 +675,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // T-202605-037: para ítems tipo T, muestra el campo parent debajo del título
   // parentOverride: valor de parent del objeto diff cuando el ítem aún no existe en getItems() (recién creado)
   // REQ-MERGE-GEN2 TKT3: migrado a _itemKindFn para detectar TKT via tipo Gen2
-  // INC-[pendiente-ID] (triggered_by INC-202607-004): leía item.parent — campo eliminado por
+  // [código no confirmado — TKT-202607-212] (triggered_by INC-202607-004): leía item.parent — campo eliminado por
   // mergeBacklogFromTG tras normalizar a parentId (locus-backlog-item.js, "parentId es el único
   // campo canónico en JS desde aquí en adelante"). Para ítems ya persistidos item.parent siempre
   // era undefined; para ítems nuevos, parentOverride ahora sí llega resuelto (ver fix en
@@ -1025,7 +1025,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   const summaryChips = document.getElementById('mdiff-summary-chips');
   const pendingList  = document.getElementById('mdiff-pending-list');
 
-  // TKT3 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): _sprintProposal /
+  // TKT3 ([código no confirmado — TKT-202607-212] · migración Step 0 DIFF → panel Sprint subtab): _sprintProposal /
   // _onApproveProposal locales retiradas — Step 0 ya no existe en este archivo. El gate de
   // exclusividad §12 (arriba, antes del early-return) sigue leyendo _ckptMeta.sprintProposal
   // directo — no dependía de esta const local. onApproveProposal se retira también de
@@ -1530,7 +1530,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
 
   // Body: 6 zonas cognitivas — TKT-202607-205 (REQ-202607-079)
   // T-202606-155: si hay Step 0, body.innerHTML ya fue asignado arriba — no sobreescribir
-  // TKT3 (REQ-[pendiente-ID]): antes de este TKT, Step 0 asignaba body.innerHTML directamente y
+  // TKT3 ([código no confirmado — TKT-202607-212]): antes de este TKT, Step 0 asignaba body.innerHTML directamente y
   // este bloque se saltaba (`!_sprintProposal`). Sin Step 0, body siempre renderiza — condición
   // reducida a solo `body`.
   //
@@ -1975,7 +1975,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     }
 
     // Actualizar texto del botón apply
-    // TKT-[pendiente-ID] (origen_disc, triggered_by TKT-202607-048): mismo gap que el badge del
+    // [código no confirmado — TKT-202607-212] (origen_disc, triggered_by TKT-202607-048): mismo gap que el badge del
     // header — totalApply no sumaba _patchItems.length, botón mostraba "(0)" con CHECKPOINTs de solo patches.
     const totalApply = diff.created.length + diff.advanced.length + diff.updated.length
                      + diff.retroceso.length + diff.discarded.length + diff.createdAndClosed.length
@@ -2025,7 +2025,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // Fix de esta sesión: _mdiffPanelAC (módulo) reemplaza el const local _itemExcludedAC —
   // mismo controller ahora también cubre el listener de keydown (más abajo), un solo abort()
   // retira ambos.
-  // TKT-[pendiente-ID] (INC — duplicación de ítem, fix complementario a locus-session-parse.js):
+  // [código no confirmado — TKT-202607-212] (INC — duplicación de ítem, fix complementario a locus-session-parse.js):
   // abortar cualquier _mdiffPanelAC previo antes de crear uno nuevo. showMergeDiffPanel() opera
   // sobre el shell compartido y estático #merge-diff-overlay — si el panel se reabre mientras el
   // anterior seguía "activo" (ej. doble invocación por paste+input, ya corregida en su origen),
@@ -2116,7 +2116,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
             item.statusChangedAt = Date.now();
             // B-202606-085: limpiar doneAt al retroceder desde done — mismo patrón que _confirmRetroceso
             if (from === 'done') item.doneAt = null;
-            _syncParentRStatus(item.code, item.status); // INC-[pendiente-ID]: sync R padre tras retroceso vía CHECKPOINT
+            _syncParentRStatus(item.code, item.status); // [código no confirmado — TKT-202607-212]: sync R padre tras retroceso vía CHECKPOINT
             _blogLog('retroceso', retroItem.code, from + ' → ' + retroItem.to, 'backlog');
           }
         }
@@ -2135,8 +2135,8 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         item.discardReason = finalReason;
         item.discardRef    = finalRef;
         item.statusChangedAt = Date.now();
-        _syncParentRStatus(item.code, item.status); // INC-[pendiente-ID]: sync R padre tras descarte vía CHECKPOINT
-        _checkAndOrphanParentR(item.code, Date.now()); // INC-[pendiente-ID]: mismo patrón que _confirmDiscard/_applyDiscardBatch
+        _syncParentRStatus(item.code, item.status); // [código no confirmado — TKT-202607-212]: sync R padre tras descarte vía CHECKPOINT
+        _checkAndOrphanParentR(item.code, Date.now()); // [código no confirmado — TKT-202607-212]: mismo patrón que _confirmDiscard/_applyDiscardBatch
         _blogLog('ckpt-descarte', discItem.code, finalReason, 'backlog');
       });
     }
@@ -2202,7 +2202,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     // contra código real antes de especificar. Único mecanismo disponible: showToast, mismo patrón
     // que el toast de éxito de appliedCount (L1781-1783). 'info' — único tipo neutral ya en uso en
     // este archivo junto a 'error'/'success' (grep confirmado, sin 'warning').
-    const _patchResult = _patchItems.length ? applyPatchesFromTG(_patchItems, null, { ckptHeaderRole: _ckptMeta.rol || '', slugMap: diff.slugMap, refIdTitleMap: diff.refIdTitleMap }) : null; // TKT1 (REQ-[pendiente-ID] · CAEL-04): slugMap/refIdTitleMap propagados desde el dry-run — este call site no los pasaba antes (gap preexistente sobre parentId también, no solo code; corregido aquí como consistencia directa con los otros dos call sites, sin ampliar el TKT)
+    const _patchResult = _patchItems.length ? applyPatchesFromTG(_patchItems, null, { ckptHeaderRole: _ckptMeta.rol || '', slugMap: diff.slugMap, refIdTitleMap: diff.refIdTitleMap }) : null; // TKT1 ([código no confirmado — TKT-202607-212] · CAEL-04): slugMap/refIdTitleMap propagados desde el dry-run — este call site no los pasaba antes (gap preexistente sobre parentId también, no solo code; corregido aquí como consistencia directa con los otros dos call sites, sin ampliar el TKT)
     if (_patchResult && _patchResult.ignored && _patchResult.ignored.length) {
       const _ignoredCount = _patchResult.ignored.length;
       showToast('info', `${_ignoredCount} patch${_ignoredCount !== 1 ? 'es' : ''} no se aplicó${_ignoredCount !== 1 ? 'ron' : ''}`, 'Ver DocLog para el detalle');
@@ -2290,7 +2290,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     }
   });
 
-  // TKT-[pendiente-ID] (INC — duplicación de ítem): los tres listeners de botón de este panel
+  // [código no confirmado — TKT-202607-212] (INC — duplicación de ítem): los tres listeners de botón de este panel
   // (cancel/backlog/apply) no estaban scoped a _mdiffPanelAC.signal — a diferencia de keydown y
   // storage:item-excluded, que sí lo estaban. Sobre el shell estático #merge-diff-overlay, una
   // reapertura del panel sin haber cerrado la anterior apilaba un listener nuevo encima del
@@ -2361,7 +2361,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       const btn = document.getElementById('mdiff-apply-btn');
       if (btn && !btn.disabled) {
         e.preventDefault();
-        e.stopPropagation(); // B-[pendiente-ID]: Enter propagado a otros listeners del documento cuando el diff está activo
+        e.stopPropagation(); // [código no confirmado — TKT-202607-212]: Enter propagado a otros listeners del documento cuando el diff está activo
         _mdiffDoApply(false);
       }
     } else if (e.key === 'Escape') {
@@ -2405,7 +2405,7 @@ export function _confirmRetroceso(code, toStatus) {
       item.statusChangedAt = Date.now();
       // B-202606-007: limpiar doneAt al retroceder desde done — AC-1
       if (from === 'done') item.doneAt = null;
-      _syncParentRStatus(code, toStatus); // INC-[pendiente-ID]: sync R padre tras retroceso manual
+      _syncParentRStatus(code, toStatus); // [código no confirmado — TKT-202607-212]: sync R padre tras retroceso manual
       _blogLog('retroceso', code, from + ' → ' + toStatus, 'backlog');
       _undoSnapshotItems();
       saveBacklog();
@@ -2473,7 +2473,7 @@ export function _confirmDiscard(code, reason, ref) {
       item.status = 'descartado';
       item.discardReason = finalReason;
       item.discardRef = finalRef;
-      _syncParentRStatus(code, 'descartado'); // INC-[pendiente-ID]: sync R padre tras descarte manual
+      _syncParentRStatus(code, 'descartado'); // [código no confirmado — TKT-202607-212]: sync R padre tras descarte manual
       _blogLog('descartado', code, finalReason || '', 'backlog');
       _checkAndOrphanParentR(code, Date.now()); // T-202606-017 AC-1
       _undoSnapshotItems();
@@ -2507,7 +2507,7 @@ function _applyDiscardBatch(items) {
     item.discardReason = reason || '';
     item.discardRef = ref || '';
     item.statusChangedAt = Date.now();
-    _syncParentRStatus(code, 'descartado'); // INC-[pendiente-ID]: sync R padre tras descarte batch
+    _syncParentRStatus(code, 'descartado'); // [código no confirmado — TKT-202607-212]: sync R padre tras descarte batch
     _blogLog('ckpt-descarte', code, reason || '', 'backlog');
     _checkAndOrphanParentR(code, Date.now()); // T-202606-017 AC-1
     applied++;
