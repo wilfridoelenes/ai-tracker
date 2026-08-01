@@ -1,4 +1,8 @@
-<!-- [PP] mod:169 · autor:Rune · 2026-07-31 17:40 UTC-6 -->
+<!-- [PP] mod:170 · autor:Rune · 2026-08-01 UTC-6 -->
+<!-- TKT3 (REQ-202607-083, ref_id CAEL-0801-03, origen_disc DISC-202608-092): retirado
+     markup completo de #proj-modal-overlay (modal legacy de gestión de proyectos) — dead
+     code sin trigger desde TKT2, confirmado por INC-202607-078 (resolved). Sin huérfanos:
+     #proj-form-*/#proj-color-row/#proj-list eran exclusivos de este bloque. -->
 <!-- REQ-202607-alineacion-qbacklog-qdisc (design_intent: alineacion-render-qbacklog-qdisc):
      TKT1 — #qbacklog-header-unified gana bl-header-sep + bl-toolbar (colapsar + buscar), único
      panel de Backlog que no los tenía. TKT2 — #qbacklog-done-header gana tabindex/role/
@@ -1405,49 +1409,8 @@
 <!-- END R histórico — sin CHECKPOINT confirmado Quick Capture modal unificado -->
 
 
-<!-- T-080: Modal gestión proyectos -->
-<div class="proj-modal-overlay" id="proj-modal-overlay">
-  <div class="proj-modal">
-    <div class="proj-modal-header">
-      <div class="proj-modal-title">Gestionar proyectos</div>
-      <button type="button" class="modal-close" id="proj-modal-close-btn" aria-label="Cerrar">✕</button>
-    </div>
-    <div class="proj-modal-body">
-      <!-- Formulario crear/editar -->
-      <div class="proj-form" id="proj-form">
-        <div class="proj-form-title" id="proj-form-heading">+ Nuevo proyecto</div>
-        <div>
-          <label class="proj-form-label">Nombre</label>
-          <div class="proj-form-row">
-            <input class="proj-emoji-input" id="proj-emoji" maxlength="2" placeholder="📁" title="Emoji del proyecto">
-            <input class="proj-form-input" id="proj-name-input" placeholder="Nombre del proyecto..." maxlength="40">
-          </div>
-        </div>
-        <div>
-          <label class="proj-form-label">Prefijo <span class="proj-form-label-hint">(máx. 3 caracteres — aparece en header y documentos)</span></label>
-          <input class="proj-form-input proj-prefix-input" id="proj-prefix-input" placeholder="Ej: OL, AS, CM..." maxlength="3">
-        </div>
-        <div>
-          <label class="proj-form-label">Color</label>
-          <div class="proj-color-row" id="proj-color-row"></div>
-        </div>
-        <div>
-          <label class="proj-form-label">Notas</label>
-          <textarea class="proj-notes-input" id="proj-notes-input" placeholder="Descripción, cliente, contexto..." maxlength="300"></textarea>
-        </div>
-        <div class="proj-form-actions">
-          <button class="btn-ghost proj-form-btn-sm" id="proj-form-cancel-btn">Cancelar</button>
-          <button class="btn-primary proj-form-btn-sm" id="proj-form-confirm-btn">Guardar</button>
-        </div>
-      </div>
-      <!-- Lista proyectos existentes -->
-      <div>
-        <div class="proj-form-label proj-form-existing-label">Proyectos existentes</div>
-        <div class="proj-list" id="proj-list"></div>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- T-080: Modal gestión proyectos — eliminado TKT3 (REQ-202607-083, ref_id CAEL-0801-03).
+     Reemplazado por panel embebido K-02 en #tab-proyectos-inner (TKT2, locus-projects.js). -->
 
 <!-- T-090: Generic confirm/prompt modal -->
 <div class="gconfirm-overlay" id="gconfirm-overlay">

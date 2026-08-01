@@ -1,3 +1,12 @@
+// [PP] mod:20 · autor:Rune · 2026-08-01 UTC-6
+// TKT3 (REQ-202607-083, ref_id CAEL-0801-03, origen_disc DISC-202608-092): retirado código
+// huérfano del modal legacy — PROJ_COLORS, drag handlers/wrappers, _renderProjColorRow,
+// selectProjColor, _toggleProjArchivedSection, _renderProjList, toggleProjArchive,
+// deleteProjConfirm, projDragStart/End/Over/Leave, projDrop. Grep confirmado: cero call
+// sites fuera de comentarios históricos. Cierra la regresión reportada por Finn
+// (finn_observations type:regresion) — el CSS de Nova en locus-proyectos.css mod:20 ya
+// estaba retirado desde antes; este mod es el que hace que esa premisa deje de ser falsa.
+// getProjectsByAI y el resto del archivo sin cambio.
 // [PP] mod:19 · autor:Rune · 2026-08-01 UTC-6
 // inline_fix (triggered_by: TKT2, ref_id CAEL-0801-02): comentario en _registerSesSPCallback
 // (línea ~514) quedado desalineado desde mod:17 — declaraba openProjModal() "viva con 4 call
@@ -135,29 +144,6 @@ document.addEventListener('DOMContentLoaded', async function _sprintProjectInit(
 });
 // ── T-077: Panel selector proyectos ──
 
-const PROJ_COLORS = ['#7c6af7','#38bdf8','#2ecc78','#e8a832','#e85555','#f472b6','#a3e635','#fb923c','#8BC34A','#64748b'];
-
-function _projListDragStartHandler(e) {
-  const row = e.target.closest('[data-drag-proj-id]');
-  if (row) projDragStart(e, row.dataset.dragProjId, row);
-}
-function _projListDragEndHandler(e) {
-  const row = e.target.closest('[data-drag-proj-id]');
-  projDragEnd(e, row);
-}
-function _projListDragOverHandler(e) {
-  const row = e.target.closest('[data-drag-proj-id]');
-  if (row) projDragOver(e, row.dataset.dragProjId, row);
-}
-function _projListDragLeaveHandler(e) {
-  const row = e.target.closest('[data-drag-proj-id]');
-  projDragLeave(e, row);
-}
-function _projListDropHandler(e) {
-  const row = e.target.closest('[data-drag-proj-id]');
-  if (row) projDrop(e, row.dataset.dragProjId, row);
-}
-
 // _getActiveProjectFilter — movida a locus-proj-core.js en T-202606-197
 
 // _setActiveProjectFilter — movida a locus-proj-core.js en T-202606-197
@@ -193,183 +179,18 @@ _setClearProjFilter(clearProjectFilter);
 let _projEditId = null;
 let _projSelectedColor = 0;
 
-// openProjModal()/closeProjModal()/cancelProjForm() eliminadas — TKT2 (REQ-202607-083,
-// ref_id CAEL-0801-02). Reemplazadas por el panel embebido K-02 en locus-projects.js
-// (_openProyPanel/_closeProyPanel/_confirmProyPanel). Sin call sites verificados por grep
-// contra todo el repo adjunto en sesión antes de retirar — AC de contrato de TKT2.
-
-function _renderProjColorRow() {
-  const row = document.getElementById('proj-color-row');
-  if (!row) return;
-  row.innerHTML = PROJ_COLORS.map((c, i) =>
-    `<div class="proj-color-dot${i === _projSelectedColor ? ' sel' : ''}" style="--proj-color:${c}" data-color-idx="${i}" title="${c}"></div>`
-  ).join('');
-  row.addEventListener('click', function _colorRowDelegate(e) {
-    const dot = e.target.closest('[data-color-idx]');
-    if (dot) selectProjColor(parseInt(dot.dataset.colorIdx, 10));
-  }, { once: true });
-}
-
-function selectProjColor(i) {
-  _projSelectedColor = i;
-  _renderProjColorRow();
-}
-
-// confirmProjForm() eliminada — TKT2 (ref_id CAEL-0801-02). Reemplazada por
-// _confirmProyPanel() en locus-projects.js.
-
-function _toggleProjArchivedSection() {
-  var k = 'proj-modal-archived-open';
-  var now = localStorage.getItem(k) !== '0';
-  localStorage.setItem(k, now ? '0' : '1');
-  _renderProjList();
-}
-
-function _renderProjList() {
-  const state = getState();
-  const list = document.getElementById('proj-list');
-  if (!list) return;
-  const projects = state.projects || [];
-  if (!projects.length) {
-    list.innerHTML = `<div class="proj-empty-hint">Aún no hay proyectos — crea uno arriba</div>`;
-    return;
-  }
-
-  const activeProjs = projects.filter(p => p.status !== 'archived');
-  const archivedProjs = projects.filter(p => p.status === 'archived');
-
-  function _projRow(proj) {
-    const sessCount = _countProjSessions(proj);
-    const isArchived = proj.status === 'archived';
-    return `<div class="proj-list-row${isArchived ? ' paused' : ''}" draggable="${isArchived ? 'false' : 'true'}"
-      id="prow-${proj.id}"
-      data-drag-proj-id="${proj.id}">
-      <span class="proj-list-drag">${isArchived ? '' : '⠿'}</span>
-      ${proj.icon
-        ? `<span class="proj-list-icon">${esc(proj.icon)}</span>`
-        : proj.prefix
-          ? `<span class="proj-list-prefix" style="--proj-color:${proj.color || '#7c6af7'}">${esc(proj.prefix)}</span>`
-          : `<span class="proj-list-dot" style="--proj-color:${proj.color || '#7c6af7'}"></span>`}
-      <span class="proj-list-name">${esc(proj.name)}${proj.notes ? `<br><span class="proj-list-notes">${esc(proj.notes)}</span>` : ''}</span>
-      <span class="proj-list-meta">${sessCount} ses.</span>
-      <div class="proj-list-actions">
-        <button class="proj-list-btn" data-proj-action="edit" data-proj-id="${proj.id}" title="Editar">✎</button>
-        <button class="proj-list-btn" data-proj-action="archive" data-proj-id="${proj.id}" title="${isArchived ? 'Restaurar' : 'Archivar'}">${isArchived ? '↩' : '📦'}</button>
-        <button class="proj-list-btn danger" data-proj-action="delete" data-proj-id="${proj.id}" title="Eliminar">✕</button>
-      </div>
-    </div>`;
-  }
-
-  const archivedKey = 'proj-modal-archived-open';
-  const archivedOpen = localStorage.getItem(archivedKey) !== '0';
-
-  let html = activeProjs.map(_projRow).join('');
-  if (archivedProjs.length) {
-    html += `<div class="proj-archived-section">
-      <button class="proj-archived-toggle" data-proj-action="toggle-archived">
-        <span class="proj-archived-arrow">${archivedOpen ? '▾' : '▸'}</span>
-        <span>Archivados (${archivedProjs.length})</span>
-      </button>
-      ${archivedOpen ? archivedProjs.map(_projRow).join('') : ''}
-    </div>`;
-  }
-  list.innerHTML = html || `<div class="proj-empty-hint">Aún no hay proyectos — crea uno arriba</div>`;
-
-  function _projListClickDelegate(e) {
-    const btn = e.target.closest('[data-proj-action]');
-    if (!btn) return;
-    const action = btn.dataset.projAction;
-    const projId = btn.dataset.projId;
-    // 'edit' retirado — llamaba a editProjInline(), eliminada en TKT2 (ref_id CAEL-0801-02).
-    // Sin reemplazo aquí: este delegador pertenece a _renderProjList(), huérfana desde que
-    // openProjModal() (único caller) fue retirada en el mismo TKT — ver Hallazgo fuera de scope.
-    if (action === 'archive') { toggleProjArchive(projId); return; }
-    if (action === 'delete') { deleteProjConfirm(projId); return; }
-    if (action === 'toggle-archived') { _toggleProjArchivedSection(); return; }
-  }
-  list.removeEventListener('click', _projListClickDelegate);
-  list.addEventListener('click', _projListClickDelegate);
-
-  list.removeEventListener('dragstart', _projListDragStartHandler);
-  list.removeEventListener('dragend',   _projListDragEndHandler);
-  list.removeEventListener('dragover',  _projListDragOverHandler);
-  list.removeEventListener('dragleave', _projListDragLeaveHandler);
-  list.removeEventListener('drop',      _projListDropHandler);
-  list.addEventListener('dragstart', _projListDragStartHandler);
-  list.addEventListener('dragend',   _projListDragEndHandler);
-  list.addEventListener('dragover',  _projListDragOverHandler);
-  list.addEventListener('dragleave', _projListDragLeaveHandler);
-  list.addEventListener('drop',      _projListDropHandler);
-}
-
-// editProjInline() eliminada — TKT2 (ref_id CAEL-0801-02). Reemplazada por
-// _openProyPanel('edit', projId, triggerEl) en locus-projects.js.
-
-function toggleProjArchive(projId) {
-  const proj = getProjectById(projId);
-  if (!proj) return;
-  const wasArchived = proj.status === 'archived';
-  proj.status = wasArchived ? 'active' : 'archived';
-  if (!wasArchived && _getActiveProjectFilter() === projId) {
-    _setActiveProjectFilter('');
-  }
-  save();
-  _renderProjList();
-  window.dispatchEvent(new CustomEvent('shell:render-proyectos'));
-  showToast('info', !wasArchived ? `"${proj.name}" archivado` : `"${proj.name}" restaurado`);
-}
-
-function deleteProjConfirm(projId) {
-  const proj = getProjectById(projId);
-  if (!proj) return;
-  const sessCount = _countProjSessions(proj);
-  const msg = sessCount > 0
-    ? `Las ${sessCount} sesiones de las IAs vinculadas mantendrán sus datos.`
-    : `Esta acción no se puede deshacer.`;
-  _gconfirmOpen({ title: `¿Eliminar "${proj.name}"?`, msg, okLabel: 'Eliminar', danger: true }, () => {
-    const state = getState();
-    state.projects = (state.projects || []).filter(p => p.id !== projId);
-    if (_getActiveProjectFilter() === projId) _setActiveProjectFilter('');
-    save();
-    _renderProjList();
-    _updateProjBreadcrumb();
-    showToast('success', `Proyecto eliminado`);
-  });
-}
-
-let _projDragId = null;
-function projDragStart(e, projId, rowEl) {
-  _projDragId = projId;
-  if (rowEl) rowEl.classList.add('dragging');
-}
-function projDragEnd(e, rowEl) {
-  if (rowEl) rowEl.classList.remove('dragging');
-  document.querySelectorAll('.proj-list-row').forEach(r => r.classList.remove('drag-over'));
-  _projDragId = null;
-}
-function projDragOver(e, projId, rowEl) {
-  e.preventDefault();
-  if (_projDragId === projId) return;
-  document.querySelectorAll('.proj-list-row').forEach(r => r.classList.remove('drag-over'));
-  if (rowEl) rowEl.classList.add('drag-over');
-}
-function projDragLeave(e, rowEl) {
-  if (rowEl) rowEl.classList.remove('drag-over');
-}
-function projDrop(e, toId, rowEl) {
-  e.preventDefault();
-  if (rowEl) rowEl.classList.remove('drag-over');
-  if (!_projDragId || _projDragId === toId) return;
-  const state = getState();
-  const projs = state.projects || [];
-  const fromIdx = projs.findIndex(p => p.id === _projDragId);
-  const toIdx   = projs.findIndex(p => p.id === toId);
-  if (fromIdx < 0 || toIdx < 0) return;
-  const [moved] = projs.splice(fromIdx, 1);
-  projs.splice(toIdx, 0, moved);
-  save();
-  _renderProjList();
-}
+// openProjModal()/closeProjModal()/cancelProjForm()/editProjInline()/confirmProjForm()
+// eliminadas — TKT2 (REQ-202607-083, ref_id CAEL-0801-02). Reemplazadas por el panel
+// embebido K-02 en locus-projects.js (_openProyPanel/_closeProyPanel/_confirmProyPanel).
+// _renderProjColorRow/selectProjColor/_toggleProjArchivedSection/_renderProjList/
+// toggleProjArchive/deleteProjConfirm/projDragStart/projDragEnd/projDragOver/
+// projDragLeave/projDrop eliminadas — TKT3 (ref_id CAEL-0801-03): huérfanas desde que
+// openProjModal() (único caller de _renderProjList, que a su vez era el único caller
+// del resto) fue retirada en TKT2. Grep confirmado contra locus-sprint-project.js,
+// locus-projects.js e index.html — cero call sites fuera de este comentario y de
+// comentarios históricos ya resueltos. CSS correspondiente (.proj-archived-toggle/
+// .proj-archived-arrow) ya retirado por Nova en locus-proyectos.css mod:20 — este mod
+// cierra la regresión que ese CSS adelantado generaba (Finn, finn_observations type:regresion).
 
 // getProjectById — movida a locus-proj-core.js en T-202606-197
 function getProjectsByAI(aiId) {

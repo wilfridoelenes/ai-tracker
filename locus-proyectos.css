@@ -1,3 +1,8 @@
+/* [PP] mod:20 · autor:Nova · 2026-08-01 UTC-6 */
+/* TKT3 (REQ-202607-083, ref_id CAEL-0801-03, origen_disc DISC-202608-092): retiradas
+   .proj-archived-toggle/.proj-archived-arrow — huérfanas tras retiro de _renderProjList()
+   en locus-sprint-project.js mod:20 (Rune), único generador de ese markup vía template
+   string. Sin productor en JS/HTML activo — verificado contra Bloqueo CSS de Rune. */
 /* [PP] mod:19 · autor:Nova · 2026-08-01 UTC-6 */
 /* TKT2 (REQ-202607-083, ref_id CAEL-0801-02, design_intent: panel_embebido_proyectos_wireframe):
    entregable K-02 — contenedor 0fr→Nfr para el panel crear/editar embebido en #tab-proyectos-inner.
@@ -809,18 +814,6 @@
 .proj-all-row--separator .proj-all-row-label {
   flex: 1;
   opacity: .7;
-}
-
-/* Project archived toggle button */
-.proj-archived-toggle {
-  width: 100%; text-align: left; background: none; border: none;
-  padding: 6px 0; cursor: pointer; font-size: var(--text-xs); color: var(--text2);
-  display: flex; align-items: center; gap: 6px;
-  margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px;
-}
-
-.proj-archived-arrow {
-  font-size: var(--text-2xs-plus);
 }
 
 /* Input validation flash */
