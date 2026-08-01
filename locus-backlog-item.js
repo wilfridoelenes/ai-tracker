@@ -1,3 +1,8 @@
+// [PP] mod:157 · autor:Rune · 2026-07-31 UTC-6
+// INC-[pendiente-ID]: import muerto a openProjPanel (locus-sprint-project.js) — la función
+// fue retirada en TKT-202607-213 sin auditar este archivo como consumidor. SyntaxError de
+// módulo ESM fatal, app no cargaba. Import + branch 'es-open-proj-panel' del delegador
+// removidos — ver detalle en el bloque de imports.
 // [PP] mod:156 · autor:Rune · 2026-07-31 UTC-6
 // INC (__BR-Ecosystem §5): applyPatchesFromTG() no propagaba descartado a los TKT hijos
 // de un REQ patcheado a descartado — agregada cascada REQ→hijos en la rama genérica de
@@ -604,7 +609,17 @@ import { _buildItemMentionedIn, _buildItemMigratedBlock, openItemPanel, _openMig
 
 import { _getActiveSprint, openSprintRetroView, _inheritSprintToChildren } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · [tmp:tkt-unify-sprint-inherit]: _inheritSprintToChildren añadido · [tmp:tkt-card-readonly]: setItemSprint retirado — sin caller tras remover select de sprint del card
 import { navigateToItem } from './locus-item-navigator.js'; // TKT1 (REQ CAEL-04): reubicado — antes en locus-backlog-sprints.js
-import { openProjPanel } from './locus-sprint-project.js'; // T-202606-089 AC-1
+// INC-[pendiente-ID]: import { openProjPanel } from './locus-sprint-project.js' retirado —
+// openProjPanel()/renderProjPanel() fueron eliminadas de locus-sprint-project.js en
+// TKT-202607-213 (REQ-202607-083) bajo la premisa de "sin call sites reales verificados" —
+// premisa incorrecta: este archivo seguía importando y llamando la función (branch
+// 'es-open-proj-panel' en el delegador de _attachBacklogListDelegation, ver más abajo),
+// sin auditar contra locus-backlog-item.js. El import de un export inexistente rompe la carga
+// completa del módulo ESM (SyntaxError fatal, app no carga) — mismo patrón de deuda ya
+// registrado en este archivo (INC import muerto _VALID_KE_STATUS, TKT2 CAEL-0724-01) y en
+// _pp-context §6 (import muerto locus-backlog-item.js tras mover funciones sin limpiar
+// dependencias). Fix de causa raíz: completar el TKT-202607-213 retirando también el call
+// site huérfano — no resucitar código eliminado sin su implementación original.
 
 import { _setBacklogModified } from './locus-docs.js';
 
@@ -865,10 +880,7 @@ export function _attachBacklogListDelegation(containerId = 'backlog-list') {
       switchTab(action.dataset.tab);
       return;
     }
-    if (act === 'es-open-proj-panel') {
-      openProjPanel();
-      return;
-    }
+    // 'es-open-proj-panel' retirado — ver nota INC-[pendiente-ID] en el bloque de imports.
     if (act === 'es-clear-search') {
       clearBacklogSearch();
       return;
