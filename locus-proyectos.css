@@ -1,3 +1,12 @@
+/* [PP] mod:19 · autor:Nova · 2026-08-01 UTC-6 */
+/* TKT2 (REQ-202607-083, ref_id CAEL-0801-02, design_intent: panel_embebido_proyectos_wireframe):
+   entregable K-02 — contenedor 0fr→Nfr para el panel crear/editar embebido en #tab-proyectos-inner.
+   Reutiliza .proj-form-actions/.proj-form-btn-sm/.proj-form-existing-label (ya activas, sin cambio).
+   Clases nuevas: .proy2-panel-wrap/.proy2-panel-inner/.proy2-panel/.proy2-panel-heading/
+   .proy2-panel-grid/.proy2-panel-field(--full)/.proy2-panel-label/.proy2-panel-input/.proy2-panel-error.
+   Contraste verificado ≥4.5:1 (var(--text2) sobre var(--surface2), var(--red) sobre var(--surface2)).
+   Foco visible: outline 2px var(--accent) en :focus. Desktop-only (_pp-strategy §6) — sin
+   breakpoints móviles. */
 /* [PP] mod:18 · autor:Nova · 2026-07-31 23:15 UTC-6 */
 /* TKT-202607-213 (REQ-202607-083): retiradas .proj-panel-empty y .proj-panel-btn-sm — únicos
    selectores exclusivos del proj-panel overlay que vivían en este archivo. AC4 cerrado en sesión
@@ -2474,6 +2483,74 @@
 
 .proj-form-existing-label {
   margin-bottom: 6px;
+}
+
+/* ── K-02 · Panel embebido crear/editar — TKT2 (ref_id CAEL-0801-02) ── */
+.proy2-panel-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--trans-medium);
+}
+.proy2-panel-wrap.open {
+  grid-template-rows: 1fr;
+}
+.proy2-panel-inner {
+  overflow: hidden;
+}
+.proy2-panel {
+  margin: 0 0 20px;
+  padding: 20px;
+  border-radius: var(--radius-md-plus);
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+}
+.proy2-panel-heading {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 16px;
+}
+.proy2-panel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+}
+.proy2-panel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.proy2-panel-field--full {
+  grid-column: 1 / -1;
+}
+.proy2-panel-label {
+  font-size: var(--text-xs);
+  color: var(--text2);
+}
+.proy2-panel-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  transition: var(--trans-fast);
+}
+.proy2-panel-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.proy2-panel-input.input-border-error {
+  border-color: var(--red);
+}
+.proy2-panel-error {
+  font-size: var(--text-xs);
+  color: var(--red);
+  min-height: 16px;
+  grid-column: 1 / -1;
 }
 
 .purge-preview-danger {

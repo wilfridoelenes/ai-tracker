@@ -1,3 +1,14 @@
+// [PP] mod:18 · autor:Rune · 2026-08-01 UTC-6
+// TKT2 (REQ-202607-083, ref_id CAEL-0801-02): openProjModal()/closeProjModal()/
+// editProjInline()/confirmProjForm()/cancelProjForm() retiradas — sin call sites reales,
+// verificado por grep contra locus-projects.js/locus-sprint-project.js/index.html antes de
+// eliminar (AC de contrato de TKT2). Reemplazadas por el panel embebido K-02 en
+// locus-projects.js (_openProyPanel/_closeProyPanel/_confirmProyPanel). Wiring de
+// #proj-modal-overlay/#proj-modal-close-btn/#proj-form-cancel-btn/#proj-form-confirm-btn/
+// #proj-name-input en _sprintProjectUIInit retirado en el mismo movimiento (referenciaba las
+// funciones eliminadas). inline_fix: 'edit' en _projListClickDelegate (dentro de
+// _renderProjList, huérfana) llamaba a editProjInline() — referencia rota removida sin
+// reemplazo, ver Hallazgo fuera de scope en CHECKPOINT.
 // [PP] mod:17 · autor:Rune · 2026-07-31 UTC-6
 // TKT-202607-213 (REQ-202607-083): openProjPanel()/renderProjPanel() eliminadas — sin call
 //   sites reales. Wiring de #proj-panel-overlay y listener 'shell:open-proj-panel' retirados
@@ -177,62 +188,10 @@ _setClearProjFilter(clearProjectFilter);
 let _projEditId = null;
 let _projSelectedColor = 0;
 
-export function openProjModal(editMode, projId) {
-  _projEditId = editMode && projId ? projId : null;
-  _projSelectedColor = 0;
-  _renderProjColorRow();
-  _renderProjList();
-
-  const heading = document.getElementById('proj-form-heading');
-  const nameInput = document.getElementById('proj-name-input');
-  const emojiInput = document.getElementById('proj-emoji');
-
-  if (_projEditId) {
-    const proj = getProjectById(_projEditId);
-    if (proj) {
-      if (heading) heading.textContent = '✎ Editar proyecto';
-      if (nameInput) nameInput.value = proj.name;
-      if (emojiInput) emojiInput.value = proj.icon || '';
-      const prefixInput = document.getElementById('proj-prefix-input');
-      if (prefixInput) prefixInput.value = proj.prefix || '';
-      const notesInput = document.getElementById('proj-notes-input');
-      if (notesInput) notesInput.value = proj.notes || '';
-      _projSelectedColor = PROJ_COLORS.indexOf(proj.color);
-      if (_projSelectedColor < 0) _projSelectedColor = 0;
-      _renderProjColorRow();
-    }
-  } else {
-    if (heading) heading.textContent = '+ Nuevo proyecto';
-    if (nameInput) nameInput.value = '';
-    if (emojiInput) emojiInput.value = '';
-  }
-
-  const projModalOverlay = document.getElementById('proj-modal-overlay');
-  if (projModalOverlay) projModalOverlay.classList.add('open');
-  setTimeout(() => { if (nameInput) nameInput.focus(); }, 80);
-}
-
-export function closeProjModal() {
-  const projModalOverlay = document.getElementById('proj-modal-overlay');
-  if (projModalOverlay) projModalOverlay.classList.remove('open');
-  _projEditId = null;
-}
-
-function cancelProjForm() {
-  _projEditId = null;
-  const heading = document.getElementById('proj-form-heading');
-  const nameInput = document.getElementById('proj-name-input');
-  const emojiInput = document.getElementById('proj-emoji');
-  const prefixInput = document.getElementById('proj-prefix-input');
-  if (heading) heading.textContent = '+ Nuevo proyecto';
-  if (nameInput) nameInput.value = '';
-  if (emojiInput) emojiInput.value = '';
-  if (prefixInput) prefixInput.value = '';
-  const notesInput = document.getElementById('proj-notes-input');
-  if (notesInput) notesInput.value = '';
-  _projSelectedColor = 0;
-  _renderProjColorRow();
-}
+// openProjModal()/closeProjModal()/cancelProjForm() eliminadas — TKT2 (REQ-202607-083,
+// ref_id CAEL-0801-02). Reemplazadas por el panel embebido K-02 en locus-projects.js
+// (_openProyPanel/_closeProyPanel/_confirmProyPanel). Sin call sites verificados por grep
+// contra todo el repo adjunto en sesión antes de retirar — AC de contrato de TKT2.
 
 function _renderProjColorRow() {
   const row = document.getElementById('proj-color-row');
@@ -251,52 +210,8 @@ function selectProjColor(i) {
   _renderProjColorRow();
 }
 
-function confirmProjForm() {
-  const state = getState();
-  const name = (document.getElementById('proj-name-input') || {value:''}).value.trim();
-  if (!name) {
-    const el = document.getElementById('proj-name-input');
-    if (el) { el.classList.add('input-border-error'); setTimeout(() => el.classList.remove('input-border-error'), 1200); }
-    showToast('warning', 'El nombre es obligatorio'); return;
-  }
-  const emoji = (document.getElementById('proj-emoji') || {value:''}).value.trim();
-  const notes = (document.getElementById('proj-notes-input') || {value:''}).value.trim();
-  const color = PROJ_COLORS[_projSelectedColor] || PROJ_COLORS[0];
-
-  if (!state.projects) state.projects = [];
-
-  if (_projEditId) {
-    const proj = getProjectById(_projEditId);
-    if (proj) {
-      proj.name = name;
-      proj.color = color;
-      proj.icon = emoji;
-      proj.prefix = (document.getElementById('proj-prefix-input') || {value:''}).value.trim().toUpperCase().slice(0, 3);
-      proj.notes = notes;
-      showToast('success', `Proyecto "${name}" actualizado`);
-    }
-    save();
-    closeProjModal();
-    _renderProjList();
-    _updateProjBreadcrumb();
-    _updateProjFilterBtn();
-    _updateHeaderProjectLabel();
-    return;
-  } else {
-    const id = 'proj-' + Math.random().toString(36).slice(2, 8);
-    const prefix = (document.getElementById('proj-prefix-input') || {value:''}).value.trim().toUpperCase().slice(0, 3);
-    state.projects.push({ id, name, color, icon: emoji, prefix, notes, status: 'active', context: '', contextVersion: '', backlog: [], backlogVersion: '', infraVersion: 0 }); // T-202606-209
-    // INC-[pendiente-ID]: ensureHotfixSprint eliminada (TKT-B1, S-HOTFIX deprecado) — Q-INC es
-    // zona persistente, no requiere sprint inicial al crear proyecto. Call site removido.
-    showToast('success', `Proyecto "${name}" creado`);
-  }
-
-  save();
-  cancelProjForm();
-  _renderProjList();
-  _updateProjBreadcrumb();
-  _updateProjFilterBtn();
-}
+// confirmProjForm() eliminada — TKT2 (ref_id CAEL-0801-02). Reemplazada por
+// _confirmProyPanel() en locus-projects.js.
 
 function _toggleProjArchivedSection() {
   var k = 'proj-modal-archived-open';
@@ -360,7 +275,9 @@ function _renderProjList() {
     if (!btn) return;
     const action = btn.dataset.projAction;
     const projId = btn.dataset.projId;
-    if (action === 'edit') { editProjInline(projId); return; }
+    // 'edit' retirado — llamaba a editProjInline(), eliminada en TKT2 (ref_id CAEL-0801-02).
+    // Sin reemplazo aquí: este delegador pertenece a _renderProjList(), huérfana desde que
+    // openProjModal() (único caller) fue retirada en el mismo TKT — ver Hallazgo fuera de scope.
     if (action === 'archive') { toggleProjArchive(projId); return; }
     if (action === 'delete') { deleteProjConfirm(projId); return; }
     if (action === 'toggle-archived') { _toggleProjArchivedSection(); return; }
@@ -380,24 +297,8 @@ function _renderProjList() {
   list.addEventListener('drop',      _projListDropHandler);
 }
 
-function editProjInline(projId) {
-  _projEditId = projId;
-  const proj = getProjectById(projId);
-  if (!proj) return;
-  const heading = document.getElementById('proj-form-heading');
-  const nameInput = document.getElementById('proj-name-input');
-  const emojiInput = document.getElementById('proj-emoji');
-  if (heading) heading.textContent = '✎ Editar: ' + proj.name;
-  if (nameInput) { nameInput.value = proj.name; nameInput.focus(); }
-  if (emojiInput) emojiInput.value = proj.icon || '';
-  const notesInput = document.getElementById('proj-notes-input');
-  if (notesInput) notesInput.value = proj.notes || '';
-  _projSelectedColor = PROJ_COLORS.indexOf(proj.color);
-  if (_projSelectedColor < 0) _projSelectedColor = 0;
-  _renderProjColorRow();
-  const form = document.getElementById('proj-form');
-  if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
+// editProjInline() eliminada — TKT2 (ref_id CAEL-0801-02). Reemplazada por
+// _openProyPanel('edit', projId, triggerEl) en locus-projects.js.
 
 function toggleProjArchive(projId) {
   const proj = getProjectById(projId);
@@ -506,20 +407,10 @@ document.addEventListener('DOMContentLoaded', function _sprintProjectUIInit() {
   // #proj-panel-btn-gestionar) ya no existe en index.html — estos listeners no
   // tenían nada que enganchar.
 
-  const _projModalOverlay = document.getElementById('proj-modal-overlay');
-  if (_projModalOverlay) {
-    _projModalOverlay.addEventListener('click', function(e) {
-      if (e.target === _projModalOverlay) closeProjModal();
-    });
-  }
-  const _projModalCloseBtn = document.getElementById('proj-modal-close-btn');
-  if (_projModalCloseBtn) _projModalCloseBtn.addEventListener('click', closeProjModal);
-  const _projFormCancelBtn = document.getElementById('proj-form-cancel-btn');
-  if (_projFormCancelBtn) _projFormCancelBtn.addEventListener('click', cancelProjForm);
-  const _projFormConfirmBtn = document.getElementById('proj-form-confirm-btn');
-  if (_projFormConfirmBtn) _projFormConfirmBtn.addEventListener('click', confirmProjForm);
-  const _projNameInput = document.getElementById('proj-name-input');
-  if (_projNameInput) _projNameInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') confirmProjForm(); });
+  // Wiring de #proj-modal-overlay retirado — TKT2 (ref_id CAEL-0801-02). El markup
+  // (#proj-modal-overlay, #proj-modal-close-btn, #proj-form-cancel-btn, #proj-form-confirm-btn,
+  // #proj-name-input dentro del modal) fue removido de index.html en el mismo TKT — reemplazado
+  // por el panel embebido K-02 en #tab-proyectos-inner (locus-projects.js).
 });
 
 // T-047: inicializar botón de rango activo al cargar

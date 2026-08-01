@@ -1,3 +1,22 @@
+// [PP] mod:13 · autor:Rune · 2026-08-01 UTC-6
+// TKT2 (REQ-202607-083, ref_id CAEL-0801-02, design_intent: panel_embebido_proyectos_wireframe):
+// panel embebido crear/editar (K-02, entregable Nova mod:19 de locus-proyectos.css) reemplaza
+// openProjModal()/editProjInline()/confirmProjForm()/cancelProjForm()/closeProjModal() —
+// retiradas de locus-sprint-project.js en este mismo TKT (ver header de ese archivo). Import de
+// openProjModal eliminado de este archivo — sin más call sites. Nuevo: PROY2_PANEL_COLORS,
+// _proyPanelMarkup(), _proyPanelFields(), _openProyPanel(), _closeProyPanel(),
+// _confirmProyPanel() + cases 'proj-panel-cancel'/'proj-panel-confirm' en el delegador +
+// listener de Escape (document-level) + Enter-to-confirm (scoped a #tab-proyectos-inner).
+// no_incluye cumplido: no toca _proyDeleteInline/_proyDeleteExecute — sin cambio.
+// [PP] mod:12 · autor:Rune · 2026-08-01 UTC-6
+// inline_fix (triggered_by: TKT3 ref_id CAEL-0801-03): el header mod:11 declaraba
+// "proj-archive/proj-restore wired en el click delegator" pero el switch real nunca tuvo esos
+// cases — ni 'proj-edit' ni 'proj-delete-inline' tampoco. _projToggleArchive() (agregada en
+// mod:11) quedó sin caller — comentario desalineado con el código entregado, detectado en
+// verificación de header antes de retomar TKT2. Agregados: case 'proj-archive'/'proj-restore'
+// → _projToggleArchive(projId); case 'proj-delete-inline' → _proyDeleteInline(projId); case
+// 'proj-edit' → openProjModal(true, projId) como stopgap (panel K-02 de TKT2 aún no reemplaza
+// el modal en este mod — ver TKT2 más abajo en el mismo CHECKPOINT).
 // [PP] mod:11 · autor:Rune · 2026-08-01 UTC-6
 // TKT-202608-XXX (REQ-202607-083, ref_id CAEL-0801-03): proj-archive/proj-restore wired en el
 // click delegator — data-action existía en el markup de _buildCard() (actionsHtml) desde una
@@ -28,7 +47,6 @@ import { _getActiveSprint } from './locus-backlog-sprints.js';
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { relDate } from './locus-session-hora.js';
 import { _countProjSessions, _setActiveProjectFilter, _updateProjBreadcrumb, _updateProjFilterBtn, selectProjectFilter, setProjContext } from './locus-proj-core.js';
-import { openProjModal } from './locus-sprint-project.js';
 import { esc, switchSubTab, switchTab, getCurrentTab } from './locus-ui-shell.js';
 
 import { _animateCountUp, fmtMonth, getAnalyticsMonths, sessionDateKey, sessionYM } from './locus-analytics-core.js';
@@ -375,8 +393,9 @@ export function renderProyectos() {
     el.innerHTML = `
       <div class="proy2-top-bar">
         <div class="proy2-top-title">📁 Proyectos</div>
-        <button class="proy2-btn proy2-btn-new" data-action="open-proj-modal">+ Nuevo</button>
+        <button class="proy2-btn proy2-btn-new" id="proy2-btn-new" data-action="open-proj-modal">+ Nuevo</button>
       </div>
+      ${_proyPanelMarkup()}
       <div class="empty-state">
         <div class="empty-state-icon">📁</div>
         <div class="empty-state-title">Sin proyectos</div>
@@ -471,13 +490,14 @@ export function renderProyectos() {
   el.innerHTML = `
     <div class="proy2-top-bar">
       <div class="proy2-top-title">📁 Proyectos <span class="proy2-top-count">${activeCount} activo${activeCount !== 1 ? 's' : ''}</span></div>
-      <button class="proy2-btn proy2-btn-new" data-action="open-proj-modal">+ Nuevo</button>
+      <button class="proy2-btn proy2-btn-new" id="proy2-btn-new" data-action="open-proj-modal">+ Nuevo</button>
     </div>
     ${ecosHeaderHtml}
     <div class="proy2-list">
       ${activeCardsHtml}
       ${archivedSectionHtml}
-    </div>`;
+    </div>
+    ${_proyPanelMarkup()}`;
 
   // T-202604-380: count-up solo en primer render de página
   _animateCountUp(el);
@@ -518,6 +538,160 @@ function _projToggleArchive(projId) {
   _updateProjBreadcrumb();
   _updateProjFilterBtn();
   showToast('info', !wasArchived ? `"${proj.name}" archivado` : `"${proj.name}" restaurado`);
+}
+
+// TKT2 (REQ-202607-083, ref_id CAEL-0801-02, design_intent: panel_embebido_proyectos_wireframe):
+// panel embebido 0fr→Nfr (K-02, entregable Nova mod:19 de locus-proyectos.css) — reemplaza
+// openProjModal()/editProjInline()/confirmProjForm()/cancelProjForm()/closeProjModal() de
+// locus-sprint-project.js (retiradas en el mismo TKT, ver header de ese archivo). Único punto
+// de entrada de creación: '+ Nuevo' en el top-bar (data-action="open-proj-modal", sin renombrar
+// para no tocar el resto de call sites de ese data-action). Edición: ✎ de fila (data-action="proj-edit").
+const PROY2_PANEL_COLORS = ['#7c6af7','#38bdf8','#2ecc78','#e8a832','#e85555','#f472b6','#a3e635','#fb923c','#8BC34A','#64748b'];
+let _proyPanelEditId = null;
+let _proyPanelTriggerEl = null;
+
+// Contrato de reutilización (AC Cael): solo .proy2-panel-wrap/.proy2-panel-inner/.proy2-panel*
+// son clases nuevas (Nova mod:19) — .proj-form-actions/.proj-form-btn-sm ya existían.
+function _proyPanelMarkup() {
+  return `<div class="proy2-panel-wrap" id="proy2-panel-wrap">
+    <div class="proy2-panel-inner">
+      <div class="proy2-panel">
+        <div class="proy2-panel-heading" id="proy2-panel-heading">+ Nuevo proyecto</div>
+        <div class="proy2-panel-grid">
+          <div class="proy2-panel-field">
+            <label class="proy2-panel-label" for="proy2-panel-name">Nombre</label>
+            <input class="proy2-panel-input" id="proy2-panel-name" maxlength="40" placeholder="Nombre del proyecto...">
+          </div>
+          <div class="proy2-panel-field">
+            <label class="proy2-panel-label" for="proy2-panel-color">Color</label>
+            <input type="color" class="proy2-panel-input" id="proy2-panel-color" value="${PROY2_PANEL_COLORS[0]}">
+          </div>
+          <div class="proy2-panel-field">
+            <label class="proy2-panel-label" for="proy2-panel-prefix">Prefijo</label>
+            <input class="proy2-panel-input" id="proy2-panel-prefix" maxlength="3" placeholder="Ej: OL, AS, CM...">
+          </div>
+          <div class="proy2-panel-field">
+            <label class="proy2-panel-label" for="proy2-panel-emoji">Emoji</label>
+            <input class="proy2-panel-input" id="proy2-panel-emoji" maxlength="4" placeholder="📁">
+          </div>
+          <div class="proy2-panel-field proy2-panel-field--full">
+            <label class="proy2-panel-label" for="proy2-panel-notes">Notas</label>
+            <input class="proy2-panel-input" id="proy2-panel-notes" placeholder="Notas del proyecto...">
+          </div>
+          <div class="proy2-panel-error" id="proy2-panel-error" aria-live="polite"></div>
+        </div>
+        <div class="proj-form-actions">
+          <button class="btn-ghost proj-form-btn-sm" data-action="proj-panel-cancel">Cancelar</button>
+          <button class="btn-primary proj-form-btn-sm" data-action="proj-panel-confirm">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function _proyPanelFields() {
+  return {
+    wrap: document.getElementById('proy2-panel-wrap'),
+    heading: document.getElementById('proy2-panel-heading'),
+    name: document.getElementById('proy2-panel-name'),
+    color: document.getElementById('proy2-panel-color'),
+    prefix: document.getElementById('proy2-panel-prefix'),
+    emoji: document.getElementById('proy2-panel-emoji'),
+    notes: document.getElementById('proy2-panel-notes'),
+    error: document.getElementById('proy2-panel-error')
+  };
+}
+
+// AC happy path crear/editar + AC edge case foco (trigger recibido explícitamente — nunca inferido)
+function _openProyPanel(mode, projId, triggerEl) {
+  const f = _proyPanelFields();
+  if (!f.wrap) return;
+  _proyPanelEditId = mode === 'edit' ? projId : null;
+  _proyPanelTriggerEl = triggerEl || null;
+  f.error.textContent = '';
+  f.name.classList.remove('input-border-error');
+
+  if (_proyPanelEditId) {
+    const proj = getProjectById(_proyPanelEditId);
+    if (!proj) return;
+    f.heading.textContent = '✎ Editar proyecto';
+    f.name.value = proj.name || '';
+    f.color.value = proj.color || PROY2_PANEL_COLORS[0];
+    f.prefix.value = proj.prefix || '';
+    f.emoji.value = proj.icon || '';
+    f.notes.value = proj.notes || '';
+  } else {
+    f.heading.textContent = '+ Nuevo proyecto';
+    f.name.value = '';
+    f.color.value = PROY2_PANEL_COLORS[0];
+    f.prefix.value = '';
+    f.emoji.value = '';
+    f.notes.value = '';
+  }
+
+  f.wrap.classList.add('open');
+  // Foco al input nombre tras la transición 0fr→Nfr (AC de accesibilidad, Nova)
+  setTimeout(() => { f.name.focus(); }, 260);
+}
+
+// AC edge case foco — Escape/Cancelar devuelven foco exacto al trigger, nunca al body
+function _closeProyPanel() {
+  const f = _proyPanelFields();
+  if (!f.wrap) return;
+  f.wrap.classList.remove('open');
+  f.error.textContent = '';
+  f.name.classList.remove('input-border-error');
+  const trigger = _proyPanelTriggerEl;
+  _proyPanelEditId = null;
+  _proyPanelTriggerEl = null;
+  if (trigger && document.contains(trigger)) trigger.focus();
+}
+
+// AC estado de error — nombre vacío o duplicado, aria-live, sin persistir, panel permanece abierto
+function _confirmProyPanel() {
+  const f = _proyPanelFields();
+  if (!f.wrap) return;
+  const name = (f.name.value || '').trim();
+  const state = getState();
+  if (!state.projects) state.projects = [];
+
+  if (!name) {
+    f.error.textContent = 'El nombre es obligatorio';
+    f.name.classList.add('input-border-error');
+    f.name.focus();
+    return;
+  }
+  const dup = state.projects.some(p => p.id !== _proyPanelEditId && (p.name || '').trim().toLowerCase() === name.toLowerCase());
+  if (dup) {
+    f.error.textContent = `Ya existe un proyecto llamado "${name}"`;
+    f.name.classList.add('input-border-error');
+    f.name.focus();
+    return;
+  }
+
+  const color = f.color.value || PROY2_PANEL_COLORS[0];
+  const emoji = (f.emoji.value || '').trim();
+  const prefix = (f.prefix.value || '').trim().toUpperCase().slice(0, 3);
+  const notes = (f.notes.value || '').trim();
+
+  if (_proyPanelEditId) {
+    const proj = getProjectById(_proyPanelEditId);
+    if (proj) {
+      proj.name = name; proj.color = color; proj.icon = emoji; proj.prefix = prefix; proj.notes = notes;
+      showToast('success', `Proyecto "${name}" actualizado`);
+    }
+  } else {
+    const id = 'proj-' + Math.random().toString(36).slice(2, 8);
+    state.projects.push({ id, name, color, icon: emoji, prefix, notes, status: 'active', context: '', contextVersion: '', backlog: [], backlogVersion: '', infraVersion: 0 });
+    showToast('success', `Proyecto "${name}" creado`);
+  }
+
+  save();
+  _proyPanelEditId = null;
+  _proyPanelTriggerEl = null;
+  renderProyectos();
+  _updateProjBreadcrumb();
+  _updateProjFilterBtn();
 }
 
 // ── T-057: Vista cronológica ──
@@ -1279,6 +1453,19 @@ function toggleProjectSection(key) {
 document.addEventListener('DOMContentLoaded', () => {
   // Contenedor principal del tab proyectos
   const tabProyectos = document.getElementById('tab-proyectos-inner') || document.body;
+
+  // TKT2 (ref_id CAEL-0801-02): Escape cierra el panel K-02 sin persistir — AC edge case foco.
+  // No usa closest('#proy2-panel-wrap.open') porque el foco puede estar en cualquier campo del
+  // panel al presionar Escape, no solo dentro del wrap si algún navegador mueve el foco fuera.
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    const wrap = document.getElementById('proy2-panel-wrap');
+    if (wrap && wrap.classList.contains('open')) _closeProyPanel();
+  });
+  tabProyectos.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target && e.target.id === 'proy2-panel-name') _confirmProyPanel();
+  });
+
   tabProyectos.addEventListener('click', e => {
     const el = e.target.closest('[data-action]');
     if (!el) return;
@@ -1294,7 +1481,15 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     switch (action) {
       case 'open-proj-modal':
-        openProjModal();
+        _openProyPanel('create', null, el);
+        break;
+      case 'proj-panel-cancel':
+        e.stopPropagation();
+        _closeProyPanel();
+        break;
+      case 'proj-panel-confirm':
+        e.stopPropagation();
+        _confirmProyPanel();
         break;
       case 'toggle-archived-section': {
         const o = localStorage.getItem('proy2-archived-open') !== '0';
@@ -1358,6 +1553,19 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'proj-delete-cancel':
         e.stopPropagation();
         _proyDeleteInline(projId);
+        break;
+      case 'proj-delete-inline':
+        e.stopPropagation();
+        _proyDeleteInline(projId);
+        break;
+      case 'proj-archive':
+      case 'proj-restore':
+        e.stopPropagation();
+        _projToggleArchive(projId);
+        break;
+      case 'proj-edit':
+        e.stopPropagation();
+        _openProyPanel('edit', projId, el);
         break;
       case 'proj-open':
         selectProjectFilter(projId);
