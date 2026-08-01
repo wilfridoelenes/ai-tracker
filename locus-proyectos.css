@@ -1,3 +1,8 @@
+/* [PP] mod:16 · autor:Nova · 2026-07-31 UTC-6 */
+/* TKT-202607-208 (REQ-202607-081, origen DISC-202607-072): #tab-backlog .session-subpanel
+   y .session-subpanel.active extendidos a #tab-proyectos — paneles migrados a Tab Proyectos
+   no tenían la regla .active (display:flex/flex-direction:column), quedaban sin el layout de
+   #tab-backlog pese a compartir la misma clase .session-subpanel. */
 /* [PP] mod:15 · autor:Nova · 2026-07-20 UTC-6 */
 /* TKT4 (REQ CAEL-0720-01): .export-confirm-modal eliminada — .export-confirm-filename y su
    selector anidado code se conservan (reutilizados dentro de bodyHtml de gconfirm-overlay). */
@@ -2141,13 +2146,17 @@
 }
 
 /* session-subpanel fills tpl-detail */
-#tab-backlog .session-subpanel {
+/* TKT-202607-208: #tab-proyectos agregado — paneles migrados a Tab Proyectos comparten
+   la misma clase .session-subpanel y requieren el mismo comportamiento de toggle. */
+#tab-backlog .session-subpanel,
+#tab-proyectos .session-subpanel {
   display: none;
   flex: 1;
   min-height: 0;
 }
 
-#tab-backlog .session-subpanel.active {
+#tab-backlog .session-subpanel.active,
+#tab-proyectos .session-subpanel.active {
   display: flex;
   flex-direction: column;
 }
