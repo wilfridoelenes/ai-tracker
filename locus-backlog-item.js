@@ -1,4 +1,4 @@
-// [PP] mod:155 · autor:Rune · 2026-07-29 UTC-6
+// [PP] mod:156 · autor:Rune · 2026-07-31 UTC-6
 // INC (__BR-Ecosystem §5): applyPatchesFromTG() no propagaba descartado a los TKT hijos
 // de un REQ patcheado a descartado — agregada cascada REQ→hijos en la rama genérica de
 // status (TKT-202607-139/140 huérfanos, ver bloque en el cuerpo del archivo).
@@ -2764,7 +2764,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
 
         if (newStatus === 'descartado') {
           // Descarte: encolar para confirmación — no persistir todavía
-          discarded.push({ code: item.code, desc: existing.title, from: oldStatus, reason: item.discardReason || existing.discardReason || '', ref: item.discardRef || existing.discardRef || '', idx: item.idx });
+          discarded.push({ code: item.code, desc: existing.title, from: oldStatus, reason: item.discard_reason || existing.discard_reason || '', ref: item.discardRef || existing.discardRef || '', idx: item.idx });
           // No tocar existing todavía — se aplica en _confirmDiscard()
         } else if (newRank > oldRank) {
           // Avance: aplicar directo (no en dryRun)
