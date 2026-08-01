@@ -1,4 +1,7 @@
-/* [PP] mod:20 · autor:Nova · 2026-08-01 UTC-6 */
+/* [PP] mod:21 · autor:Nova · 2026-08-01 UTC-6 */
+/* INC-202608-081: .proy2-panel-wrap sin cobertura prefers-reduced-motion en su transición
+   grid-template-rows (0fr→1fr). Agregado bloque reduce junto a la declaración base, mismo
+   patrón que .sprint-health-bar (§Cambios mod:21, este mismo archivo). */
 /* TKT3 (REQ-202607-083, ref_id CAEL-0801-03, origen_disc DISC-202608-092): retiradas
    .proj-archived-toggle/.proj-archived-arrow — huérfanas tras retiro de _renderProjList()
    en locus-sprint-project.js mod:20 (Rune), único generador de ese markup vía template
@@ -2486,6 +2489,11 @@
 }
 .proy2-panel-wrap.open {
   grid-template-rows: 1fr;
+}
+@media (prefers-reduced-motion: reduce) {
+  .proy2-panel-wrap {
+    transition: none;
+  }
 }
 .proy2-panel-inner {
   overflow: hidden;
