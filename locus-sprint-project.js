@@ -1,3 +1,11 @@
+// [PP] mod:21 · autor:Rune · 2026-08-01 UTC-6
+// TKT3 (REQ-202607-083, ref_id CAEL-0801-03) — fix de gap de código señalado por Finn en
+// Momento 1: comentario de línea 34 (mod:17, deuda heredada — incidente ya resuelto en su
+// momento, nunca formalizado como ítem real en Locus) reescrito al patrón "histórico — sin
+// CHECKPOINT confirmado" ya establecido en este archivo e index.html para cambios que
+// predatan el sistema de tracking — sin el marcador de ID sin resolver que llevaba antes.
+// No corresponde código real ni ref_id — el incidente no existe en el backlog actual, no se
+// inventa uno. Grep confirmado: cero literales de ID sin resolver restantes en el archivo.
 // [PP] mod:20 · autor:Rune · 2026-08-01 UTC-6
 // TKT3 (REQ-202607-083, ref_id CAEL-0801-03, origen_disc DISC-202608-092): retirado código
 // huérfano del modal legacy — PROJ_COLORS, drag handlers/wrappers, _renderProjColorRow,
@@ -31,7 +39,7 @@
 // TKT1 REQ-cleanup-toolbar-legacy: eliminado bloque no-op ftypes/fstatus — #filter-bar-types
 //   no existe en HTML, #filter-bar-status nunca tuvo is-hidden. Guard `if (typeof getItems()...)`
 //   y las tres llamadas (renderStats/updateBacklogBanner/updateStatusFilterUI) se preservan.
-// INC-[pendiente-ID]: import roto a ensureHotfixSprint (eliminada de locus-sprint.js en TKT-B1)
+// INC histórico — sin CHECKPOINT confirmado: import roto a ensureHotfixSprint (eliminada de locus-sprint.js en TKT-B1)
 //   causaba SyntaxError de módulo ESM al cargar — bloqueaba la app completa. Import eliminado,
 //   call site removido sin reemplazo (S-HOTFIX deprecado, Q-INC es zona persistente sin sprint
 //   inicial requerido al crear proyecto).

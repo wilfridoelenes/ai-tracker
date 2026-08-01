@@ -1,3 +1,21 @@
+// [PP] mod:14 · autor:Rune · 2026-08-01 UTC-6
+// Fix de gap de código señalado por Finn en Momento 1 de TKT2: 3 literales de ID sin
+// resolver (líneas ~37/839/1577, deuda heredada de mods anteriores, ninguno introducido
+// en TKT2) reescritos al patrón "histórico — sin CHECKPOINT confirmado" ya usado en este
+// archivo y en locus-sprint-project.js. Grep confirmado: cero literales restantes.
+// Respuesta a la desviación de AC de impacto lateral señalada por Finn (openProjModal()
+// y las otras 4 funciones se retiraron directamente en TKT2 en vez de quedar huérfanas
+// con retiro diferido a TKT3, como el AC de impacto lateral especificaba literalmente):
+// no fue una decisión consciente en el momento — el bloque "T-080: Modal gestión
+// proyectos CRUD" se trató como una unidad al escribir el import reducido, sin volver a
+// leer el AC de secuencia antes de aplicar. No propongo revertir: grep confirma cero
+// callers en los 3 archivos reales desde entonces, y TKT3 nunca necesitó que estas 5
+// funciones existieran como huérfanas — su propio AC1 pedía exactamente su eliminación,
+// que TKT2 ya había cubierto. Reabrir el archivo para reintroducir código muerto y
+// volver a borrarlo un TKT después no reduce deuda, la agrega. Dejo la decisión a Cael:
+// ¿corrige el AC de TKT-202608-223 para reflejar lo entregado, o exige el rollback
+// literal? No la tomo por mi cuenta — Finn tiene razón en que no me corresponde decidir
+// que una desviación de AC escrito "no importa" solo porque salió bien.
 // [PP] mod:13 · autor:Rune · 2026-08-01 UTC-6
 // TKT2 (REQ-202607-083, ref_id CAEL-0801-02, design_intent: panel_embebido_proyectos_wireframe):
 // panel embebido crear/editar (K-02, entregable Nova mod:19 de locus-proyectos.css) reemplaza
@@ -34,7 +52,7 @@
 // el formulario de "Agregar decisión" renderizaba visible por defecto en vez de oculto.
 // Toggle existente (_projOpenAddDecision/_projCancelDecision) ya usaba is-hidden — sin cambio
 // de lógica, solo el estado inicial del render.
-// INC-[pendiente-ID]: getCurrentTab importado — typeof currentTab !== 'undefined' nunca era true.
+// INC histórico — sin CHECKPOINT confirmado: getCurrentTab importado — typeof currentTab !== 'undefined' nunca era true.
 // Guard "T-202605-117: skip render si tab Proyectos no es el visible" nunca ejecutaba —
 // renderProyectos() renderizaba siempre, incluso con el tab no visible.
 // locus-projects.js
@@ -836,7 +854,7 @@ function renderProject(query) {
         autocomplete="off">
     </div>`;
   trackerPanel.appendChild(headerEl);
-  // T-[pendiente-ID]: event delegation — search input listener adjunto post-render
+  // T histórico — sin CHECKPOINT confirmado: event delegation — search input listener adjunto post-render
   const searchInput = headerEl.querySelector('.proj-search-input');
   if (searchInput) searchInput.addEventListener('input', e => _projViewSearchInput(e.target.value));
 
@@ -1574,7 +1592,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// B-[pendiente-ID]: listener para shell:render-proyectos — switchTab lo despacha pero no había listener
+// B histórico — sin CHECKPOINT confirmado: listener para shell:render-proyectos — switchTab lo despacha pero no había listener
 window.addEventListener('shell:render-proyectos', () => {
   renderProyectos();
 });
