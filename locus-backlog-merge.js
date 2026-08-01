@@ -330,6 +330,10 @@ import { interpretHora, _horaUpdate } from './locus-session-hora.js';
 // R-202606-002: _mdiff* convertidas de window.* a variables let de módulo
 // El closure showMergeDiffPanel las asigna al abrir y null al cerrar — mismo ciclo de vida
 let _mdiffToggleSection = null;
+// TKT2 (REQ ref_id CAEL-0731-01, AC4 — Zona Identidad): toggle del drawer de detalle en
+// _buildPatchCard() — mismo ciclo de vida que _mdiffToggleSection (asignada al abrir,
+// null al cerrar).
+let _mdiffToggleZone = null;
 let _mdiffJumpTo = null;
 let _mdiffSetItemSprint = null;
 let _mdiffUpdateConfirmBtn = null;
@@ -389,6 +393,7 @@ export function teardownMergeDiffPanel() {
   if (typeof _mdiffOnClose === 'function') _mdiffOnClose();
   _mdiffUpdateConfirmBtn = null;
   _mdiffToggleSection = null;
+  _mdiffToggleZone = null;
   _mdiffJumpTo = null;
   _mdiffSetItemSprint = null;
   _mdiffUnresolvedFilter = null;
@@ -861,16 +866,39 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         from: existingItem ? (existingItem[field] != null ? existingItem[field] : null) : '(código no encontrado)',
         to: patchItem[field],
       }));
+    // TKT2 (REQ ref_id CAEL-0731-01), AC3: a diferencia de diff.retroceso/_retrocedoRow —
+    // que cubre ítems actualizados vía diff normal — un type:patch con `status` hacia atrás
+    // no pasa por esa clasificación (mergeBacklogFromTG dry-run no evalúa patches contra el
+    // mismo criterio de retroceso). _STATUS_ORDER cubre solo el subtramo monótono común a
+    // REQ y TKT (`__BR-Core §4`) — pendiente→en-proceso→en-revision→done. Estados fuera de
+    // ese subtramo (bloqueado, orphaned, descartado, promoted, historico) no generan flag —
+    // conservador ante ambigüedad en vez de asumir orden para transiciones que no son lineales.
+    const _STATUS_ORDER = { pendiente: 0, 'en-proceso': 1, 'en-revision': 2, done: 3 };
+    const _statusChange = changes.find(c => c.field === 'status');
+    const _isRetroceso = (() => {
+      if (!_statusChange || _statusChange.from == null || _statusChange.to == null) return false;
+      const fromOrder = _STATUS_ORDER[String(_statusChange.from).toLowerCase()];
+      const toOrder   = _STATUS_ORDER[String(_statusChange.to).toLowerCase()];
+      return fromOrder != null && toOrder != null && toOrder < fromOrder;
+    })();
+    const retrocesoFlagHtml = _isRetroceso
+      ? `<div class="mdiff-retroceso-flag"><i class="ti ti-corner-up-left"></i>Retroceso de status</div>
+         <div class="mdiff-retroceso-context">${esc(String(_statusChange.from))} → ${esc(String(_statusChange.to))}</div>`
+      : '';
+    const zoneCardCls = _isRetroceso ? 'mdiff-zone-card mdiff-zone-card--retroceso' : 'mdiff-zone-card';
     return `
-    <div class="mdiff-card mdiff-card--accent ${typeCls}">
+    <div class="mdiff-card mdiff-card--accent ${typeCls} ${zoneCardCls}">
       <div class="mdiff-card-accent"></div>
       <div class="mdiff-card-body">
         <div class="mdiff-card-top">
           <span class="mdiff-type-badge">${typeName}</span>
           <span class="mdiff-code mdiff-card-title">${esc(patchItem.code)} · patch</span>
           ${_statusChipHtml(changes)}
+          <button class="mdiff-zone-chevron" type="button" data-action="mdiff-toggle-zone"
+                  aria-expanded="false" aria-label="Ver detalle del patch de ${esc(patchItem.code)}">▾</button>
         </div>
-        ${_transitionOrFieldPatchHtml(changes)}
+        ${retrocesoFlagHtml}
+        <div class="mdiff-zone-detail is-hidden">${_transitionOrFieldPatchHtml(changes)}</div>
       </div>
     </div>`;
   };
@@ -1681,6 +1709,19 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     body.classList.toggle('is-hidden', collapsed);
   };
 
+  // Helper: toggle drawer de detalle en una zone-card (TKT2, AC4) — único disparador
+  // (.mdiff-zone-chevron), la card en sí no es clickeable (mdiff-zone-card: cursor:default).
+  // Delegación única a nivel de #merge-diff-overlay (ver listener de click más abajo) —
+  // cubre N cards sin re-registro. Enter/Space nativos del <button> — sin handler aparte.
+  _mdiffToggleZone = function(btn) {
+    const card = btn.closest('.mdiff-zone-card');
+    const detail = card ? card.querySelector('.mdiff-zone-detail') : null;
+    if (!detail) return;
+    const wasExpanded = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', String(!wasExpanded));
+    detail.classList.toggle('is-hidden', wasExpanded);
+  };
+
   // Helper: jump a sección
   _mdiffJumpTo = function(secId) {
     const el = document.getElementById('mdiff-sec-' + secId);
@@ -2232,6 +2273,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     // B-202605-050: limpiar todas las referencias _mdiff* al cerrar el panel
     _mdiffUpdateConfirmBtn = null;
     _mdiffToggleSection = null;
+    _mdiffToggleZone = null;
     _mdiffJumpTo = null;
     _mdiffSetItemSprint = null;
     _mdiffUnresolvedFilter = null;
@@ -2308,6 +2350,8 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     const action = btn.dataset.action;
     if (action === 'mdiff-toggle-section') {
       if (_mdiffToggleSection) _mdiffToggleSection(btn);
+    } else if (action === 'mdiff-toggle-zone') {
+      if (_mdiffToggleZone) _mdiffToggleZone(btn);
     } else if (action === 'mdiff-jump-to') {
       if (_mdiffJumpTo) _mdiffJumpTo(btn.dataset.secId);
     } else if (action === 'mdiff-unresolved-select') {
