@@ -1,4 +1,4 @@
-<!-- [PP] mod:167 · autor:Rune · 2026-07-30 20:15 UTC-6 -->
+<!-- [PP] mod:168 · autor:Rune · 2026-07-31 16:10 UTC-6 -->
 <!-- REQ-202607-alineacion-qbacklog-qdisc (design_intent: alineacion-render-qbacklog-qdisc):
      TKT1 — #qbacklog-header-unified gana bl-header-sep + bl-toolbar (colapsar + buscar), único
      panel de Backlog que no los tenía. TKT2 — #qbacklog-done-header gana tabindex/role/
@@ -1119,7 +1119,12 @@
   <!-- TKT1 (REQ CAEL-01): fila de subtabs horizontal — Documentos/Context, migrada desde
        #tpl-sidebar de Backlog. Reutiliza .spt-nav/.spt-tab (ver locus-sprint.css / base compartida). -->
   <div class="spt-nav" role="tablist">
-    <button class="spt-tab active" id="sstab-btn-htmlmap" role="tab" aria-selected="true">
+    <!-- TKT1 (REQ ref_id CAEL-0731-04): pill Dashboard — antes #tab-proyectos-inner se
+         renderizaba siempre, sin formar parte del toggle de sub-tabs de este tablist. -->
+    <button class="spt-tab active" id="sstab-btn-dashboard" role="tab" aria-selected="true">
+      Dashboard
+    </button>
+    <button class="spt-tab" id="sstab-btn-htmlmap" role="tab" aria-selected="false">
       Documentos<span class="spt-tab-badge" id="tpl-badge-htmlmap"></span>
     </button>
     <button class="spt-tab" id="sstab-btn-context" role="tab" aria-selected="false">
@@ -1152,7 +1157,10 @@
     </div>
   </div>
 
-  <div id="tab-proyectos-inner" class="tab-proyectos-content"></div>
+  <!-- TKT1 (REQ ref_id CAEL-0731-04): se une a .session-subpanel/.active — mismo mecanismo
+       de visibilidad ya vigente para htmlmap/context/docupdates/contratos. Conserva su id
+       y su clase original — otros módulos targetean #tab-proyectos-inner directamente. -->
+  <div id="tab-proyectos-inner" class="tab-proyectos-content session-subpanel active"></div>
 
   <!-- Sub-panel: HTML-MAP — migrado desde #tab-backlog (TKT1, REQ CAEL-01) -->
   <div class="session-subpanel" id="sspanel-htmlmap">

@@ -1,3 +1,18 @@
+// [PP] mod:44 · autor:Rune · 2026-07-31 16:10 UTC-6
+// INC-[pendiente-ID] (Fast Track — sla_priority medium, un solo archivo, sin lógica de negocio
+// nueva): _updatePlanStatsShell() determinaba isEmpty solo con unassigned.length === 0 (L490
+// anterior) — ignoraba doneUnassigned (ítems Q-Backlog en status done, ya calculado en
+// _renderPlanningView() para el bloque Terminados colapsable, TKT1/TKT2 REQ CAEL-0717-01).
+// Cuando Q-Backlog solo tenía ítems done sin sprint, unassigned quedaba vacío y el empty-state
+// (#spp-content-empty) reemplazaba a #sprint-planificar-container completo — ocultando también
+// el bloque Terminados y sus cards arrastrables, pese a haber ítems reales disponibles para
+// asignar a sprint. Fix: _updatePlanStatsShell() recibe doneUnassigned como nuevo parámetro
+// (3ro, antes de openSprints) — isEmpty ahora es unassigned.length === 0 && doneUnassigned.length
+// === 0. Las 4 celdas del Stats Shell no cambian de fuente — la celda Q-Backlog sigue mostrando
+// exclusivamente unassigned.length (AC no_incluye: doneUnassigned no se suma a esa celda, solo
+// participa del gate de empty-state — los done ya tienen su propio contador en el header del
+// bloque Terminados). Función interna sin export — sin impacto lateral fuera de este archivo.
+// contract_update: no.
 // [PP] mod:43 · autor:Rune · 2026-07-27 UTC-6
 // TKT-202607-167 (REQ-202607-056), reapertura — cierre completo. AC3 aplicado: rightColContent
 // reusa .spt-content-empty (clase genérica, locus-sprint.css L3662 — no ligada a IDs, ya
@@ -398,7 +413,7 @@ export function _renderPlanningView(listEl, closeCallback) {
   // #sprint-planificar-container, no se regeneran en cada render. _updatePlanStatsShell()
   // solo actualiza textContent + alterna is-hidden, mismo patrón ya usado por Rune en el
   // sub-tab Ítems (TKT-202607-126) para #spi-stats-block/#spi-content-empty.
-  _updatePlanStatsShell(unassigned, openSprints, velocityAvg);
+  _updatePlanStatsShell(unassigned, doneUnassigned, openSprints, velocityAvg);
 
   listEl.innerHTML = `
     <div class="bl-planning-view" id="bl-planning-view">
@@ -450,11 +465,12 @@ export function _renderPlanningView(listEl, closeCallback) {
 // Mismo criterio que #spi-stats-block/#spi-content-empty (TKT-202607-126, sub-tab Ítems):
 // shell nunca se oculta (BR-Execution §5) — solo textContent cambia. El empty-state alterna
 // con #sprint-planificar-container (nunca ambos, nunca ninguno) cuando Q-Backlog no tiene
-// ítems elegibles para asignar al sprint — mismo criterio que "unassigned" ya calculado
-// arriba, sin duplicar el filtro.
-// no_incluye: no recalcula unassigned/openSprints/velocityAvg — recibe los ya computados
-// por _renderPlanningView() para evitar dos pasadas sobre getItems().
-function _updatePlanStatsShell(unassigned, openSprints, velocityAvg) {
+// ningún ítem elegible para asignar al sprint — activos (unassigned) o terminados sin sprint
+// (doneUnassigned, INC mod:44). Ambos ya calculados en _renderPlanningView(), sin duplicar
+// el filtro.
+// no_incluye: no recalcula unassigned/doneUnassigned/openSprints/velocityAvg — recibe los ya
+// computados por _renderPlanningView() para evitar pasadas adicionales sobre getItems().
+function _updatePlanStatsShell(unassigned, doneUnassigned, openSprints, velocityAvg) {
   const statsBlock = document.getElementById('spp-stats-block');
   const emptyState  = document.getElementById('spp-content-empty');
   const container   = document.getElementById('sprint-planificar-container');
@@ -487,7 +503,7 @@ function _updatePlanStatsShell(unassigned, openSprints, velocityAvg) {
   // AC — empty-state: Q-Backlog sin ítems elegibles para el sprint. El Stats Shell (arriba)
   // permanece visible con las 4 celdas en 0 — no colapsa, no se oculta (mismo AC que
   // TKT-202607-126). Solo #sprint-planificar-container alterna con #spp-content-empty.
-  const isEmpty = unassigned.length === 0;
+  const isEmpty = unassigned.length === 0 && doneUnassigned.length === 0;
   if (emptyState) emptyState.classList.toggle('is-hidden', !isEmpty);
   if (container) container.classList.toggle('is-hidden', isEmpty);
 }

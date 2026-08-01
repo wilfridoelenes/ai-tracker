@@ -1,4 +1,4 @@
-// [PP] mod:64 · autor:Rune · 2026-07-27 21:10 UTC-6
+// [PP] mod:65 · autor:Rune · 2026-07-31 16:10 UTC-6
 // TKT-202607-150 (REQ-202607-048, TKT2): breadcrumb-proj cambia de dispatch
 // 'shell:open-proj-panel' a switchTab('proyectos') directo — tab-btn-proyectos se retiró de
 // index.html (mismo REQ, TKT2), el nombre de proyecto es ahora el único punto de entrada a la
@@ -181,9 +181,11 @@ export function switchTab(tab) {
   // tab-backlog (ambos usan switchSubTab/getCurrentSubTab) — sin este reset, navegar desde
   // Proyectos→Context a Backlog dejaba currentSubTab='context', un sub-tab inexistente en Backlog.
   const _backlogSubs = ['backlog', 'qbacklog', 'qdisc', 'historico'];
-  const _proyectosSubs = ['htmlmap', 'context', 'docupdates', 'contratos'];
+  // TKT1 (REQ ref_id CAEL-0731-04): 'dashboard' agregado — fallback pasa de 'htmlmap' a
+  // 'dashboard' porque Dashboard vuelve a ser la sub-tab inicial de Tab Proyectos.
+  const _proyectosSubs = ['dashboard', 'htmlmap', 'context', 'docupdates', 'contratos'];
   if (tab === 'backlog' && !_backlogSubs.includes(currentSubTab)) currentSubTab = 'backlog';
-  if (tab === 'proyectos' && !_proyectosSubs.includes(currentSubTab)) currentSubTab = 'htmlmap';
+  if (tab === 'proyectos' && !_proyectosSubs.includes(currentSubTab)) currentSubTab = 'dashboard';
 
   // Templates toolbar: update buttons via _updateSubTabButtons
   // (a) event dispatch — locus-docs.js escucha 'shell:update-subtab-buttons'
@@ -251,9 +253,13 @@ export function switchSubTab(sub) {
   // INC-[pendiente-ID]: 'docupdates' faltaba en este array — sub-tab migrado en TKT1
   // (REQ CAEL-01, AC-8) nunca recibía .active en botón/panel al seleccionarse, pese a
   // que _updateSubTabButtons() en locus-docs.js sí lo trata (L157/L168/L176).
-  ['backlog','qbacklog','qdisc','htmlmap','context','plan','docupdates','contratos','historico'].forEach(s => {
+  // TKT1 (REQ ref_id CAEL-0731-04): 'dashboard' agregado. Su botón (#sstab-btn-dashboard)
+  // sigue el patrón sstab-btn-{s} igual que el resto — su panel no: es #tab-proyectos-inner,
+  // id ya consumido por otros módulos, no #sspanel-dashboard. Único punto no unificable
+  // sin renombrar el id (ver entregable de Nova) — resuelto con el ternario de panel.
+  ['backlog','qbacklog','qdisc','htmlmap','context','plan','docupdates','contratos','historico','dashboard'].forEach(s => {
     const btn = document.getElementById('sstab-btn-' + s);
-    const panel = document.getElementById('sspanel-' + s);
+    const panel = document.getElementById(s === 'dashboard' ? 'tab-proyectos-inner' : 'sspanel-' + s);
     if (btn) {
       btn.classList.toggle('active', s === sub);
       if (btn.getAttribute('role') === 'tab') btn.setAttribute('aria-selected', s === sub ? 'true' : 'false');
