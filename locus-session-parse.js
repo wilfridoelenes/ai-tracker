@@ -1,3 +1,19 @@
+// [PP] mod:170 · autor:Rune · 2026-07-31 UTC-6
+// Propuesta de mejora confirmada por el founder ("Sí adelante") en sesión de análisis del
+// panel de ingesta (#ingest-validation-result). Hallazgo: el fallback `item.status || 'nuevo'`
+// en _renderIngestResultItems() (comentario original "AC1/AC2 CAEL-31 — happy path + status
+// badge ('nuevo' si el ítem no declara status)") es código muerto — ni el path ITIL
+// (_buildItilItem, status siempre mirror de incident_status) ni el Scrum (_normSt, default
+// 'pendiente') dejan .status falsy, y cualquier ítem con error de construcción nunca llega a
+// esta función: el batch completo se descarta (tgItems=[]) y el CHECKPOINT se bloquea vía
+// _showIngestValidationError() antes de renderizar la lista. Resolución directa en sesión
+// (__BR-Core NO DEJAR DEUDA EN SILENCIO — Excepción de resolución directa: dueño de este
+// archivo co-presente, nivel Patch, sin bifurcación de founder ya confirmada): comentario
+// reescrito para reflejar que el fallback es guardia defensiva, no caso vivo — sin retirar el
+// fallback en sí (CRITERIO DE RESOLUCIÓN DE RAÍZ: preservar la guardia contra un caller futuro
+// que rompa el invariante actual cuesta cero y es más robusto que confiar en que ningún caller
+// nuevo lo rompa). Sin cambio de comportamiento — solo el comentario junto a
+// _renderIngestResultItems(). contract_update: no.
 // [PP] mod:168 · autor:Rune · 2026-07-29 UTC-6
 // Fix inline: delete window[_dupCheckpointWarnSeen_${id}] agregado a la lista de limpieza del
 // reset de textarea vacío (~L2233) — gap detectado en Hallazgo fuera de scope de esta sesión.
@@ -1666,7 +1682,17 @@ function _renderIngestResultItems(containerEl, items) {
     containerEl.innerHTML = '';
     return;
   }
-  // AC1/AC2 (CAEL-31) — happy path + status badge ('nuevo' si el ítem no declara status)
+  // AC1/AC2 (CAEL-31) — happy path + status badge. Fallback 'nuevo' es defensivo, no un
+  // caso vivo: con la construcción actual de tgItems (parsePaste, único caller real de
+  // _showIngestValidationResult → este helper) todo ítem llega con .status truthy —
+  // ITIL vía _buildItilItem() (mirror de incident_status, nunca null si no hubo error) y
+  // Scrum vía _normSt, que cae a 'pendiente' por default (nunca queda vacío). Un ítem con
+  // error de construcción nunca llega hasta acá — el batch completo se descarta antes
+  // (tgItems=[]) y el CHECKPOINT se bloquea vía _showIngestValidationError(). Se conserva
+  // el fallback como guardia defensiva de bajo costo ante un caller futuro que rompa ese
+  // invariante — no se retira código funcional sin evidencia de que el path sea alcanzable.
+  // (Propuesta de mejora confirmada por el founder — resolución directa en sesión, Patch
+  // sin bifurcación, dueño de este archivo co-presente — __BR-Core NO DEJAR DEUDA EN SILENCIO)
   containerEl.innerHTML = '';
   containerEl.classList.remove('is-hidden');
   _items.forEach((item) => {
@@ -2677,11 +2703,8 @@ export function handlePaste(id) {
         if (_routeParse(id, _ta2)) return; // TKT CAEL-0720-23: 2+ bloques → batch, corta el path single
         parsePaste(id);
         _updateIngestBlockCount(); // TKT2 (REQ CAEL-01) AC1
-        const ai = getAI(id);
-        if (ai && ai._parsed && ai._parsed.title) {
-          const horaEl = document.getElementById('hora-' + id);
-          if (horaEl) horaEl.focus();
-        }
+        // TKT-202607-211: lookup a 'hora-'+id retirado — DISC-202607-080, elemento sin card real desde migración
+        // a Quick Capture (quick-hora) / blind exhaust (bexhaust-hora-{id}), ambos patrones distintos.
         // T-202606-155: _tryIngestSprintProposal removido del pre-DIFF — Step 0 en showMergeDiffPanel es el gate
       }, 150);
       return;
@@ -2689,11 +2712,8 @@ export function handlePaste(id) {
     if (_routeParse(id, ta)) return; // TKT CAEL-0720-23: 2+ bloques → batch, corta el path single
     parsePaste(id);
     _updateIngestBlockCount(); // TKT2 (REQ CAEL-01) AC1
-    const ai = getAI(id);
-    if (ai && ai._parsed && ai._parsed.title) {
-      const horaEl = document.getElementById('hora-' + id);
-      if (horaEl) horaEl.focus();
-    }
+    // TKT-202607-211: lookup a 'hora-'+id retirado — DISC-202607-080, elemento sin card real desde migración
+    // a Quick Capture (quick-hora) / blind exhaust (bexhaust-hora-{id}), ambos patrones distintos.
     // T-202606-155: _tryIngestSprintProposal removido del pre-DIFF — Step 0 en showMergeDiffPanel es el gate
   };
   setTimeout(_doParse, 150);
