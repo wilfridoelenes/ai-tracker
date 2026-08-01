@@ -1,4 +1,9 @@
-/* [PP] mod:45 · autor:Nova · 2026-07-31 23:15 UTC-6 */
+/* [PP] mod:47 · autor:Nova · 2026-08-01 09:55 UTC-6 */
+/* mod:47 — Nova revisa y re-entrega TKT-202607-218 AC2 tras hallazgo de CSS Purity en mod:46
+   (autor:Rune, viola __BR-Execution §3). Contenido verificado sin cambios: fallback
+   var(--header-h, 54px) → 53px en las 2 ocurrencias
+   de #tab-sesiones (L143, L6621) — alinea con el valor real del token (--header-h:53px,
+   locus-base.css L125). Cierra A6 de _Locus-css-ref. */
 /* TKT-202607-132 (REQ-202607-042) — worker_header_tres_estados_v2: (1) .sc-avatar--* pierde
    su box-shadow de color dentro de #worker-header (acento de estado ya vive en border-left
    + badge, evita triplicar la señal); (2) nuevo .worker-header-quick — ícono de rayo, acceso
@@ -140,7 +145,7 @@
 #tab-sesiones.active {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--header-h, 54px));
+  height: calc(100vh - var(--header-h, 53px));
   overflow: hidden;
 }
 
@@ -6620,7 +6625,7 @@ body.radar-sb-open .tracker-sidebar {
 /* #tab-tracker */
 #tab-sesiones {
   flex-direction: column;
-  height: calc(100vh - var(--header-h, 54px));
+  height: calc(100vh - var(--header-h, 53px));
   overflow: hidden;
   position: relative;
   /* display: flex movido a #tab-sesiones.active en locus-layout.css — B fix tab visibility */

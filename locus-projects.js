@@ -1,3 +1,14 @@
+// [PP] mod:11 · autor:Rune · 2026-08-01 UTC-6
+// TKT-202608-XXX (REQ-202607-083, ref_id CAEL-0801-03): proj-archive/proj-restore wired en el
+// click delegator — data-action existía en el markup de _buildCard() (actionsHtml) desde una
+// sesión anterior sin case correspondiente en el switch; clicks en 📦/↩ no hacían nada. Nueva
+// _projToggleArchive(projId) reemplaza al toggleProjArchive() de locus-sprint-project.js (modal
+// deprecado, no tocado — fuera de scope) re-renderizando la card grid (renderProyectos()) en vez
+// de la lista del modal. openProjModal()/proj-edit siguen sin wiring — bloqueados en Nova
+// (patrón K-02 de expand/collapse no disponible en esta sesión), ver CHECKPOINT.
+// inline_fix: getProjectById agregado al import de locus-storage.js — ausente pese a 10 call
+// sites reales en este archivo (renderProject() entre otros) — ReferenceError latente en
+// cualquier ruta con _getActiveProjectFilter() activo. Requerido también por _projToggleArchive.
 // [PP] mod:10 · autor:Rune · 2026-07-31 UTC-6
 // INC-202607-002: class="proj-dec-form hidden" → "proj-dec-form is-hidden" — .hidden no
 // tenía regla CSS en ninguna hoja del proyecto (verificado grep contra las 17 .css reales);
@@ -24,7 +35,7 @@ import { _animateCountUp, fmtMonth, getAnalyticsMonths, sessionDateKey, sessionY
 
 import { openDetail } from './locus-session-popup.js';
 
-import { _projKey, _getActiveProjectFilter, _sprintDisplay, getAI, getAISessions, getProjectSessions, getState, save } from './locus-storage.js'; // inline_fix T-202606-023: _getActiveProjectFilter añadido al import — faltaba en ESM | B-202606-043: getState añadido — migración state global → getState()
+import { _projKey, _getActiveProjectFilter, _sprintDisplay, getAI, getAISessions, getProjectById, getProjectSessions, getState, save } from './locus-storage.js'; // inline_fix T-202606-023: _getActiveProjectFilter añadido al import — faltaba en ESM | B-202606-043: getState añadido — migración state global → getState() | inline_fix 2026-08-01: getProjectById añadido — ausente pese a 10 call sites reales (ver header)
 
 import { showToast } from './locus-toast.js';
 
@@ -490,6 +501,23 @@ function _proyDeleteExecute(projId) {
   renderProyectos();
   _updateProjBreadcrumb();
   showToast('success', `Proyecto eliminado`);
+}
+
+// TKT-202608-XXX (REQ-202607-083, ref_id CAEL-0801-03): archivar/restaurar inline desde la card
+// grid — reemplaza toggleProjArchive() del modal deprecado (locus-sprint-project.js, no tocado).
+function _projToggleArchive(projId) {
+  const proj = getProjectById(projId);
+  if (!proj) return;
+  const wasArchived = proj.status === 'archived';
+  proj.status = wasArchived ? 'active' : 'archived';
+  if (!wasArchived && _getActiveProjectFilter() === projId) {
+    _setActiveProjectFilter('');
+  }
+  save();
+  renderProyectos();
+  _updateProjBreadcrumb();
+  _updateProjFilterBtn();
+  showToast('info', !wasArchived ? `"${proj.name}" archivado` : `"${proj.name}" restaurado`);
 }
 
 // ── T-057: Vista cronológica ──

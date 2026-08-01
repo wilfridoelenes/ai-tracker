@@ -1,4 +1,17 @@
-/* [PP] mod:26 · autor:Nova · 2026-07-31 23:15 UTC-6 */
+/* [PP] mod:28 · autor:Nova · 2026-08-01 09:55 UTC-6 */
+/* mod:28 — Nova revisa y re-entrega TKT-202607-218 (Shell & Tabs — gutters de header/tabs/subtabs
+   a --space-*) tras hallazgo de CSS Purity en mod:27 (autor:Rune, viola __BR-Execution §3).
+   Contenido verificado sin cambios de comportamiento — solo re-atribución de autoría.
+   HEADER REDESIGN (L576-731): 6 valores directos de gap/padding con match exacto en la
+   escala migran a --space-* (12px→--space-md, 8px→--space-sm ×2, 2px→--space-3xs,
+   4px→--space-2xs ×2 dentro del shorthand de #search-global). 4 valores sin match exacto
+   quedan literales — excepción documentada, no forzados al peldaño más cercano (AC3):
+   header{padding:1.1rem 1.25rem .85rem} y .header-inner{padding-inline:1.5rem} (rem sobre
+   root 13px, ver A5 css-ref — no son 14.3/16.25/19.5px canónicos), #search-global padding-left
+   26px (da espacio al ícono, no es valor de escala) y .logo{gap:10px} (entre 8 y 12, ninguno
+   exacto). padding-left:0 / margin:0 (2 casos) se dejan literales — cero no requiere token de
+   escala. TAB SCROLL PROGRESS BAR (L949): sin declaraciones directas de padding/margin/gap —
+   nada que convertir. Ver CHECKPOINT de sesión para detalle AC por AC. */
 /* mod:25 — instrucción directa del founder, aplicada inline (sin REQ/TKT/Fase 1-4 de Cael ni
    Fase 5 de Finn — founder explícito, ver jerarquía de autoridad §3 BR-Core): .breadcrumb-seg--proj
    escala de --text-md/500 (14px, coincide con Nivel 3 A-08) a --text-lg/600 (16px, Nivel 2 A-08 —
@@ -601,7 +614,7 @@ header {
   height: var(--header-h);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 /* TKT-header-zonas: agrupación por proximidad — reemplaza el flex row plano de 5 elementos sueltos.
@@ -609,11 +622,11 @@ header {
 .header-zone {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .header-zone + .header-zone {
-  padding-left: 12px;
+  padding-left: var(--space-md);
   border-left: 1px solid var(--border);
 }
 
@@ -648,7 +661,7 @@ header {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 #header-search-wrap .search-unified-results {
@@ -680,7 +693,7 @@ header {
   background: var(--surface);
   border: 0.5px solid var(--border);
   border-radius: var(--radius);
-  padding: 4px 8px 4px 26px;
+  padding: var(--space-2xs) var(--space-sm) var(--space-2xs) 26px;
   font-size: 13px;
   color: var(--text);
   width: 180px;
@@ -709,7 +722,7 @@ header {
   cursor: pointer;
   font-size: 14px;
   line-height: 1;
-  padding: 2px;
+  padding: var(--space-3xs);
 }
 
 .header-search-clear:hover {
