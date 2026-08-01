@@ -1,4 +1,4 @@
-// [PP] mod:65 · autor:Rune · 2026-07-31 16:10 UTC-6
+// [PP] mod:66 · autor:Rune · 2026-07-31 16:45 UTC-6
 // TKT-202607-150 (REQ-202607-048, TKT2): breadcrumb-proj cambia de dispatch
 // 'shell:open-proj-panel' a switchTab('proyectos') directo — tab-btn-proyectos se retiró de
 // index.html (mismo REQ, TKT2), el nombre de proyecto es ahora el único punto de entrada a la
@@ -33,7 +33,7 @@
 // _updateSubTabButtons() en locus-docs.js sí gestionaba render/visibilidad de 'docupdates'
 // correctamente — el hueco estaba solo en este array de este archivo.
 // [PP] mod:54 · autor:Rune · 2026-07-14 20:45 UTC-6
-// TKT1/CAEL-XX + INC-[pendiente-ID] (/ shadowed): ver CHECKPOINT de sesión — atajos de teclado.
+// TKT1/CAEL-XX + INC relacionado (código no confirmado en este comentario) (/ shadowed): ver CHECKPOINT de sesión — atajos de teclado.
 // REQ CAEL-búsqueda-tipos, TKT único: (1) icono de resultado por tipo ahora usa itemKind(item)
 // en vez de code.charAt(0) (anti-pattern Gen1 ya documentado en module-contracts §4) — mapa
 // _TYPE_ICONS con los 7 tipos Gen2. (2) onSearch() ahora combina getItems()+getIncidents() en
@@ -65,11 +65,11 @@
 // [PP] mod:43 · autor:Rune · 2026-07-11 22:45 UTC-6
 // TKT2 (REQ CAEL-01): switchTab agrega caso 'incidentes' (dispatch shell:render-qinc) —
 // switchSubTab pierde el bloque/entrada 'qinc', sub-tab eliminado (ver index.html mod:112).
-// INC-[pendiente-ID]: closeItemEditor agregado al import de locus-backlog-editor.js — la
+// INC relacionado (código no confirmado en este comentario): closeItemEditor agregado al import de locus-backlog-editor.js — la
 // función existe y está exportada ahí, pero el import previo no la incluía. Invocada sin
 // import en dos handlers de este archivo (~L1357, ~L1363), causando ReferenceError en runtime.
 // [PP] mod:41 · autor:Rune · 2026-07-07 UTC-6
-// INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminados import de
+// INC relacionado (código no confirmado en este comentario, deprecación Sesiones/Pulso, founder confirmó): eliminados import de
 // closeArranquePanel y sus dos listeners (#arranque-btn-ver-todo, #arranque-close-btn) —
 // Sesión de Arranque deprecada. #arranque-cta-btn no tenía listener en este archivo (vivía
 // en locus-sesiones-arranque.js, ya borrado). Segunda pasada de verificación (grep -i "pulso"
@@ -230,7 +230,7 @@ export function switchTab(tab) {
     window.dispatchEvent(new CustomEvent('shell:render-qinc'));
   }
 
-  // B-[pendiente-ID]: cada tab-panel tiene su propio overflow-y:auto —
+  // B relacionado (código no confirmado en este comentario): cada tab-panel tiene su propio overflow-y:auto —
   // resetear el scroll del panel activo al cambiar de tab
   if (tabEl) tabEl.scrollTop = 0;
 
@@ -250,7 +250,7 @@ export function switchSubTab(sub) {
     window.dispatchEvent(new CustomEvent('shell:close-item-panel'));
   }
   currentSubTab = sub;
-  // INC-[pendiente-ID]: 'docupdates' faltaba en este array — sub-tab migrado en TKT1
+  // INC relacionado (código no confirmado en este comentario): 'docupdates' faltaba en este array — sub-tab migrado en TKT1
   // (REQ CAEL-01, AC-8) nunca recibía .active en botón/panel al seleccionarse, pese a
   // que _updateSubTabButtons() en locus-docs.js sí lo trata (L157/L168/L176).
   // TKT1 (REQ ref_id CAEL-0731-04): 'dashboard' agregado. Su botón (#sstab-btn-dashboard)
@@ -284,12 +284,12 @@ export function switchSubTab(sub) {
     window.dispatchEvent(new CustomEvent('shell:update-backlog-modification-badge'));
   }
   if (sub === 'qbacklog') {
-    // INC-[pendiente-ID]: 'q-backlog' → 'qbacklog' — alineado con IDs reales de index.html
+    // INC relacionado (código no confirmado en este comentario): 'q-backlog' → 'qbacklog' — alineado con IDs reales de index.html
     // (sstab-btn-qbacklog / sspanel-qbacklog) y con locus-backlog-render.js (renderQBacklogPanel).
     window.dispatchEvent(new CustomEvent('shell:render-qbacklog'));
   }
   if (sub === 'qdisc') {
-    // INC-[pendiente-ID]: 'q-disc' → 'qdisc' — alineado con IDs reales de index.html
+    // INC relacionado (código no confirmado en este comentario): 'q-disc' → 'qdisc' — alineado con IDs reales de index.html
     // (sstab-btn-qdisc / sspanel-qdisc) y con locus-backlog-render.js (renderQDiscPanel).
     window.dispatchEvent(new CustomEvent('shell:render-qdisc'));
   }
@@ -793,7 +793,7 @@ export function onSearch() {
   searchAnchor.insertAdjacentElement('beforeend', panel);
 }
 
-// ── SCB eliminado — REQ-[pendiente-ID] TKT1. Ver TKT3 para el dock que ocupa el slot. ──
+// ── SCB eliminado — REQ relacionado (código no confirmado en este comentario) TKT1. Ver TKT3 para el dock que ocupa el slot. ──
 
 // ── ESC Cascade ────────────────────────────────────────────────────────────
 
@@ -932,7 +932,7 @@ document.addEventListener('keydown', e => {
 
   // T-202604-418: F → toggle focus mode (deprecado — focus mode eliminado)
 
-  // INC-[pendiente-ID]: los dos bloques que interceptaban '/' con foco directo a
+  // INC relacionado (código no confirmado en este comentario): los dos bloques que interceptaban '/' con foco directo a
   // #search-global (T-202604-420 y T-202604-418) quedan eliminados — shadowaban
   // permanentemente el bloque siguiente (_sk('search')), la implementación real
   // y configurable de "Búsqueda en tab activo" declarada en _SHORTCUT_DEFS. Con
@@ -1321,8 +1321,8 @@ document.addEventListener('DOMContentLoaded', function () {
 // ── END locus-ui-shell.js ──────────────────────────────────────────────────
 
 // ── B-202605-019: Listeners adicionales — event delegation data-action ──
-// (arranque-btn-ver-todo eliminado — INC-[pendiente-ID], Sesión de Arranque deprecada)
-// (scb-dismiss / scb-step-action eliminados — REQ-[pendiente-ID] TKT1, SCB removido)
+// (arranque-btn-ver-todo eliminado — INC relacionado (código no confirmado en este comentario), Sesión de Arranque deprecada)
+// (scb-dismiss / scb-step-action eliminados — REQ relacionado (código no confirmado en este comentario) TKT1, SCB removido)
 document.addEventListener('DOMContentLoaded', function () {
 
   // Event delegation — data-action en sur-row (panel búsqueda) y shortcuts-body

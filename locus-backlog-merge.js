@@ -1,3 +1,21 @@
+// [PP] mod:82 · autor:Rune · 2026-07-31 17:05 UTC-6
+// TKT1 (REQ ref_id CAEL-0731-01, AC1+AC2 — Zona Identidad, TKT-202607-204/Nova mod:85):
+// _buildPatchCard() ya no pasa changes por _fieldChips() genérico. Dos helpers nuevos:
+// _statusChipHtml(changes) extrae el cambio de campo `draft` y renderiza
+// .mdiff-status-chip--avalado (to===false) / --borrador (cualquier otro caso) —
+// AC1. _transitionOrFieldPatchHtml(changes) reemplaza el resto: field==='status' vía
+// .mdiff-transition (pill-flecha-pill), cualquier otro campo vía .mdiff-field-patch
+// (ícono lápiz + texto plano) — AC2. _fieldChips() en sí no se toca — sigue siendo la
+// función usada por diff.updated (sección 'Actualizados'), fuera de scope de este TKT.
+// AC3 (.mdiff-zone-card--retroceso en _retrocedoRow) y AC4 (chevron/drawer,
+// .mdiff-zone-chevron) NO se implementan en este mod — _retrocedoRow ya tiene su propio
+// modificador visual (.mdiff-card--retroceso, family ámbar, distinto token de
+// .mdiff-zone-card--retroceso que usa --c-high-*) y no hay claridad de si el nuevo
+// modificador reemplaza o se apila al existente; el CSS entregado tampoco define una
+// clase de contenido/drawer para el chevron (.mdiff-zone-chevron abre "algo", pero ese
+// "algo" no tiene contrato CSS propio). Señalado a Cael en vez de asumir — ver CHECKPOINT.
+// contract_update: no — sin cambio de firma en showMergeDiffPanel/teardownMergeDiffPanel/
+// getMdiffStepZeroActive/chipTonesFromDiff (únicos exports del módulo).
 // [PP] mod:81 · autor:Rune · 2026-07-31 16:10 UTC-6
 // TKT-202607-205 (REQ-202607-079, TKT2): cierre de entrega — el render de showMergeDiffPanel()
 // ya reemplazaba las ~13 secciones fragmentadas legacy por las 6 zonas cognitivas (Identidad en
@@ -624,6 +642,43 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     return `<div class="mdiff-field-chips">${chips}</div>`;
   };
 
+  // TKT-202607-204 (REQ-202607-079) — Zona Identidad, AC1: chip de aval de un patch.
+  // Extrae el cambio de campo `draft` (si existe) de changes[] y lo renderiza como
+  // .mdiff-status-chip en vez de un .mdiff-field-chip genérico — mismo criterio ya
+  // declarado en el CSS de Nova (mod:85). `to === false` → avalado (Finn ya patcheó
+  // draft:false); cualquier otro valor (true, o campo ausente en este patch) → borrador.
+  // No decide si el patch trae `draft` — solo formatea si lo trae.
+  const _statusChipHtml = (changes) => {
+    const draftChange = changes.find(c => c.field === 'draft');
+    if (!draftChange) return '';
+    const isAvalado = draftChange.to === false;
+    const icon = isAvalado ? '<i class="ti ti-shield-check"></i> ' : '';
+    const label = isAvalado ? 'Avalado' : 'Borrador';
+    return `<span class="mdiff-status-chip mdiff-status-chip--${isAvalado ? 'avalado' : 'borrador'}">${icon}${label}</span>`;
+  };
+
+  // TKT-202607-204, AC2: distingue transición real de status (.mdiff-transition,
+  // pill-flecha-pill) de un patch de campo suelto (.mdiff-field-patch, ícono lápiz +
+  // texto plano) — reemplaza el chip genérico .mdiff-field-chip para ítems type:patch.
+  // El campo `draft` no pasa por aquí — _statusChipHtml ya lo consume aparte.
+  const _transitionOrFieldPatchHtml = (changes) => {
+    const rest = changes.filter(c => c.field !== 'draft');
+    if (!rest.length) return '';
+    const parts = rest.map(({ field, from, to }) => {
+      const fromStr = from != null ? esc(String(from)) : '—';
+      const toStr   = to   != null ? esc(String(to))   : '—';
+      if (field === 'status') {
+        return `<span class="mdiff-transition">
+          <span class="mdiff-transition-pill">${fromStr}</span>
+          <span class="mdiff-transition-arrow">→</span>
+          <span class="mdiff-transition-pill">${toStr}</span>
+        </span>`;
+      }
+      return `<span class="mdiff-field-patch"><i class="ti ti-pencil"></i>${esc(field)}: ${fromStr} → ${toStr}</span>`;
+    }).join('');
+    return `<div class="mdiff-field-chips">${parts}</div>`;
+  };
+
   // R-202605-148: select de sprint inline — persiste via _mdiffSetItemSprint sin re-render del DIFF
   // B-202606-032: sprintOverride — sprint del objeto diff para ítems nuevos que aún no existen en getItems()
   // [código no confirmado — TKT-202607-212]: itemType (pos 3) — INC/PRB/KE/CHG viven exclusivamente en Q-INC (__BR-Ecosystem §5).
@@ -813,8 +868,9 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         <div class="mdiff-card-top">
           <span class="mdiff-type-badge">${typeName}</span>
           <span class="mdiff-code mdiff-card-title">${esc(patchItem.code)} · patch</span>
+          ${_statusChipHtml(changes)}
         </div>
-        ${_fieldChips(changes)}
+        ${_transitionOrFieldPatchHtml(changes)}
       </div>
     </div>`;
   };
