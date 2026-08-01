@@ -1,4 +1,4 @@
-/* [PP] mod:133 · autor:Nova · 2026-07-31 UTC-6 */
+/* [PP] mod:134 · autor:Nova · 2026-08-01 10:20 UTC-6 */
 /* TKT2 (REQ-202607-alineacion-qbacklog-qdisc, design_intent: alineacion-render-qbacklog-qdisc):
    .bl-done-* migrado a caja con borde completo (header+body) + mecanismo .is-collapsed en el
    wrapper — alinea el bloque "Terminados" de Q-Backlog al mismo tratamiento visual y mecánico
@@ -425,7 +425,7 @@
 
 .stats-row {
   display: flex;
-  gap: 6px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
   align-items: stretch;
 }

@@ -1,4 +1,4 @@
-/* [PP] mod:15 · autor:Nova · 2026-07-20 16:10 UTC-6 */
+/* [PP] mod:16 · autor:Nova · 2026-08-01 10:20 UTC-6 */
 /* locus-base.css */
 
 
@@ -53,6 +53,20 @@
   /* ── Layout — gutters horizontales (TKT1 · REQ gutter subtabs; TKT1 · REQ CAEL-0717-02 consolidación) ── */
   --subtab-gutter: 12px; /* gutter compacto — .tpl-detail, #tab-proyectos, #tab-sesiones, #sprint-panel-sprints */
   --gutter-shell: 24px; /* gutter de shell/viewport completo — #tab-analytics, #tab-backlog, Split View de Sesión (retira --split-viewport-gutter) */
+
+  /* ── Spacing — escala completa (INC fix, origen TKT-202607-218: la escala estaba
+     documentada como "Estándar propuesto" en _Locus-css-ref.md §Estándar de Spacing &
+     Layout pero nunca declarada como custom property real. Valores exactos de esa tabla,
+     sin desviación. --space-sm/--space-lg/--space-xl coexisten con --spacing-sm/--spacing-md/
+     --gutter-shell — no los reemplazan, ver "Regla de consolidación" del mismo doc. ── */
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs:  6px;
+  --space-sm:  8px;  /* mismo valor que --spacing-sm — coexisten, no se fusionan */
+  --space-md:  12px; /* mismo valor que --subtab-gutter — coexisten, no se fusionan */
+  --space-lg:  16px; /* mismo valor que --spacing-md — coexisten, no se fusionan */
+  --space-xl:  24px; /* mismo valor que --gutter-shell — coexisten, no se fusionan */
+  --space-2xl: 32px;
 
   /* ── Aliases de radio — retrocompatibilidad ── */
   --radius:           var(--radius-md);

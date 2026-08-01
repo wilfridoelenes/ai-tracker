@@ -1,3 +1,8 @@
+// [PP] mod:19 · autor:Rune · 2026-08-01 UTC-6
+// inline_fix (triggered_by: TKT2, ref_id CAEL-0801-02): comentario en _registerSesSPCallback
+// (línea ~514) quedado desalineado desde mod:17 — declaraba openProjModal() "viva con 4 call
+// sites" pese a que mod:18 (este mismo archivo) ya la había retirado. Detectado en sesión de
+// reverificación contra archivos reales, mismo patrón de deuda ya visto en mod:11→mod:12.
 // [PP] mod:18 · autor:Rune · 2026-08-01 UTC-6
 // TKT2 (REQ-202607-083, ref_id CAEL-0801-02): openProjModal()/closeProjModal()/
 // editProjInline()/confirmProjForm()/cancelProjForm() retiradas — sin call sites reales,
@@ -511,8 +516,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // _registerSesSPCallback('getActiveProjectFilter') eliminado — T-202606-197: _getActiveProjectFilter movida a locus-proj-core.js
   // _registerSesSPCallback('openProjModal') eliminado — inline_fix sesión 2026-07-31: sin consumidor
   //   en todo el repo desde TKT-202607-213 (locus-sesiones.js retiró su único call site vía
-  //   _sesSPCallbacks.openProjModal). openProjModal() sigue viva — 4 call sites reales fuera del
-  //   registry (este mismo archivo ×3, locus-projects.js ×1) — solo se retira la entrada de registro.
+  //   _sesSPCallbacks.openProjModal). Nota actualizada — inline_fix (triggered_by: TKT2, ref_id
+  //   CAEL-0801-02): comentario quedó desalineado tras mod:18 — openProjModal() en sí ya no existe
+  //   en este archivo (retirada por TKT2). Sin call sites reales en todo el repo — verificado.
   _registerSesSPCallback('selectProjectFilter',     selectProjectFilter);
 }, { once: true });
 // ── END T-202606-058 ─────────────────────────────────────────────────────────
