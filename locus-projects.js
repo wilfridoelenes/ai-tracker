@@ -1,4 +1,4 @@
-// [PP] mod:9 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:10 · autor:Rune · 2026-07-31 UTC-6
 // INC-202607-002: class="proj-dec-form hidden" → "proj-dec-form is-hidden" — .hidden no
 // tenía regla CSS en ninguna hoja del proyecto (verificado grep contra las 17 .css reales);
 // el formulario de "Agregar decisión" renderizaba visible por defecto en vez de oculto.
@@ -491,21 +491,6 @@ function _proyDeleteExecute(projId) {
   _updateProjBreadcrumb();
   showToast('success', `Proyecto eliminado`);
 }
-
-function _proyAbrir(projId) {
-  _setActiveProjectFilter(projId);
-  _updateProjBreadcrumb();
-  _updateProjFilterBtn();
-  // Recargar templates con las keys del proyecto recién activado
-  loadBacklog();
-  loadHtmlMap();
-  // Refrescar el sub-tab activo si Templates está visible
-  if (currentSubTab) switchSubTab(currentSubTab);
-  switchTab('hoy');
-  showToast('info', 'Proyecto activo: ' + (getProjectById(projId)?.name || projId));
-}
-
-
 
 // ── T-057: Vista cronológica ──
 // Colores por IA — generados dinámicamente a partir del índice

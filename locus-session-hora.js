@@ -1,4 +1,7 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-07-13 UTC-6
+// [PP] mod:4 · autor:Rune · 2026-07-31 18:20 UTC-6
+// TKT-202607-217 (origen DISC-202607-079): parseHora/horaKey/correctHora eliminadas —
+// dead code confirmado, sin export, sin exposición a window, sin caller real en el
+// proyecto. Comentario huérfano de exposición a window (fin de archivo) retirado junto.
 // INC-[pendiente-ID]: getState() importado — typeof state !== 'undefined' en
 // _showProjRequiredInPanel nunca era true (state es var privada de locus-storage.js,
 // exportada pero no importada aquí). Lista de proyectos en el banner de "selecciona
@@ -11,7 +14,7 @@ import { getAI, getState } from './locus-storage.js'; // INC-[pendiente-ID]: get
 import { esc } from './locus-ui-shell.js';
 
 
-// Responsabilidad: Componente de hora — _horaUpdate, parseHora, correctHora, interpretHora, fmt12, relDate, horaKey, confirmSave.
+// Responsabilidad: Componente de hora — _horaUpdate, interpretHora, fmt12, relDate, confirmSave.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
 
 export function _horaUpdate(inputEl, dispEl) {
@@ -38,21 +41,6 @@ export function _horaUpdate(inputEl, dispEl) {
       if (inputEl) inputEl.classList.remove('error');
     }
   }
-}
-
-// T-202605-430: wrapper para campo hora-{id} en card footer (buildCard)
-function parseHora(id) {
-  _horaUpdate(
-    document.getElementById('hora-' + id),
-    document.getElementById('hdisp-' + id)
-  );
-}
-
-function correctHora(id) {
-  _horaUpdate(
-    document.getElementById('hora-' + id),
-    document.getElementById('hdisp-' + id)
-  );
 }
 
 export function interpretHora(raw) {
@@ -135,10 +123,6 @@ export function relDate(dateStr, ts) {
   if (diff <= 27) return `Hace ${Math.floor(diff/7)} semanas`;
   if (diff <= 45) return 'Hace 1 mes';
   return `Hace ${Math.floor(diff/30)} meses`;
-}
-
-function horaKey(e, id) {
-  if (e.key === 'Enter') { e.preventDefault(); confirmSave(id); }
 }
 
 // T-202604-103: paso de confirmación inline antes de guardar
@@ -291,7 +275,3 @@ const _TMPL_TRIGGER_KEY = 'template-download-trigger';
 export function _templateTrigger() {
   return localStorage.getItem(_TMPL_TRIGGER_KEY) || 'session';
 }
-
-// Exponer funciones usadas como handlers inline en HTML generado dinámicamente.
-// Al ser módulo ES, no están en window automáticamente — se asignan explícitamente
-// para que oninput="parseHora(...)" y onkeydown="horaKey(...)" resuelvan correctamente.

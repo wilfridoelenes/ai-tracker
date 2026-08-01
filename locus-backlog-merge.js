@@ -1,19 +1,23 @@
 // [PP] mod:82 · autor:Rune · 2026-07-31 17:05 UTC-6
-// TKT1 (REQ ref_id CAEL-0731-01, AC1+AC2 — Zona Identidad, TKT-202607-204/Nova mod:85):
-// _buildPatchCard() ya no pasa changes por _fieldChips() genérico. Dos helpers nuevos:
+// TKT1+TKT2 (REQ ref_id CAEL-0731-01 — Zona Identidad, TKT-202607-204/Nova mod:85):
+// _buildPatchCard() ya no pasa changes por _fieldChips() genérico. Helpers nuevos:
 // _statusChipHtml(changes) extrae el cambio de campo `draft` y renderiza
-// .mdiff-status-chip--avalado (to===false) / --borrador (cualquier otro caso) —
-// AC1. _transitionOrFieldPatchHtml(changes) reemplaza el resto: field==='status' vía
+// .mdiff-status-chip--avalado (to===false) / --borrador (cualquier otro caso) — AC1.
+// _transitionOrFieldPatchHtml(changes) reemplaza el resto: field==='status' vía
 // .mdiff-transition (pill-flecha-pill), cualquier otro campo vía .mdiff-field-patch
 // (ícono lápiz + texto plano) — AC2. _fieldChips() en sí no se toca — sigue siendo la
 // función usada por diff.updated (sección 'Actualizados'), fuera de scope de este TKT.
-// AC3 (.mdiff-zone-card--retroceso en _retrocedoRow) y AC4 (chevron/drawer,
-// .mdiff-zone-chevron) NO se implementan en este mod — _retrocedoRow ya tiene su propio
-// modificador visual (.mdiff-card--retroceso, family ámbar, distinto token de
-// .mdiff-zone-card--retroceso que usa --c-high-*) y no hay claridad de si el nuevo
-// modificador reemplaza o se apila al existente; el CSS entregado tampoco define una
-// clase de contenido/drawer para el chevron (.mdiff-zone-chevron abre "algo", pero ese
-// "algo" no tiene contrato CSS propio). Señalado a Cael en vez de asumir — ver CHECKPOINT.
+// AC3 — retroceso en patches: _STATUS_ORDER cubre el subtramo monótono común REQ/TKT
+// (pendiente→en-proceso→en-revision→done, __BR-Core §4); status fuera de ese subtramo
+// no genera flag (conservador ante transición no lineal). _isRetroceso agrega
+// .mdiff-zone-card--retroceso + mdiff-retroceso-flag/-context — distinto del
+// .mdiff-card--retroceso ya existente en _retrocedoRow (family ámbar, diff normal) —
+// ambos coexisten sin sustitución, cubren casos de origen distinto (diff vs patch).
+// AC4 — chevron/drawer: botón .mdiff-zone-chevron con aria-expanded, delegado a
+// _mdiffToggleZone (registrado una sola vez por apertura de panel en
+// showMergeDiffPanel(), limpiado en ambos paths de teardown/cierre). El drawer
+// (.mdiff-zone-detail) reutiliza el detalle ya computado por _transitionOrFieldPatchHtml —
+// sin dato nuevo, solo oculta/revela vía classList (is-hidden).
 // contract_update: no — sin cambio de firma en showMergeDiffPanel/teardownMergeDiffPanel/
 // getMdiffStepZeroActive/chipTonesFromDiff (únicos exports del módulo).
 // [PP] mod:81 · autor:Rune · 2026-07-31 16:10 UTC-6
