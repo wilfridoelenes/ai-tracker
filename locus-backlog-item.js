@@ -1,5 +1,5 @@
 // [PP] mod:157 · autor:Rune · 2026-07-31 UTC-6
-// INC-[pendiente-ID]: import muerto a openProjPanel (locus-sprint-project.js) — la función
+// INC-202607-079: import muerto a openProjPanel (locus-sprint-project.js) — la función
 // fue retirada en TKT-202607-213 sin auditar este archivo como consumidor. SyntaxError de
 // módulo ESM fatal, app no cargaba. Import + branch 'es-open-proj-panel' del delegador
 // removidos — ver detalle en el bloque de imports.
@@ -609,7 +609,7 @@ import { _buildItemMentionedIn, _buildItemMigratedBlock, openItemPanel, _openMig
 
 import { _getActiveSprint, openSprintRetroView, _inheritSprintToChildren } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · [tmp:tkt-unify-sprint-inherit]: _inheritSprintToChildren añadido · [tmp:tkt-card-readonly]: setItemSprint retirado — sin caller tras remover select de sprint del card
 import { navigateToItem } from './locus-item-navigator.js'; // TKT1 (REQ CAEL-04): reubicado — antes en locus-backlog-sprints.js
-// INC-[pendiente-ID]: import { openProjPanel } from './locus-sprint-project.js' retirado —
+// INC-202607-079: import { openProjPanel } from './locus-sprint-project.js' retirado —
 // openProjPanel()/renderProjPanel() fueron eliminadas de locus-sprint-project.js en
 // TKT-202607-213 (REQ-202607-083) bajo la premisa de "sin call sites reales verificados" —
 // premisa incorrecta: este archivo seguía importando y llamando la función (branch
@@ -880,7 +880,7 @@ export function _attachBacklogListDelegation(containerId = 'backlog-list') {
       switchTab(action.dataset.tab);
       return;
     }
-    // 'es-open-proj-panel' retirado — ver nota INC-[pendiente-ID] en el bloque de imports.
+    // 'es-open-proj-panel' retirado — ver nota INC-202607-079 en el bloque de imports.
     if (act === 'es-clear-search') {
       clearBacklogSearch();
       return;
