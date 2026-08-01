@@ -1,4 +1,4 @@
-/* [PP] mod:132 · autor:Nova · 2026-07-30 20:15 UTC-6 */
+/* [PP] mod:133 · autor:Nova · 2026-07-31 UTC-6 */
 /* TKT2 (REQ-202607-alineacion-qbacklog-qdisc, design_intent: alineacion-render-qbacklog-qdisc):
    .bl-done-* migrado a caja con borde completo (header+body) + mecanismo .is-collapsed en el
    wrapper — alinea el bloque "Terminados" de Q-Backlog al mismo tratamiento visual y mecánico
@@ -1612,10 +1612,13 @@
   color: var(--c-critical-text);
 }
 
+/* TKT CAEL-0731-02 (REQ CAEL-0731-01) — unifica con .spi-item-status--orphaned /
+   .staleness-pill.staleness--orphaned. Reemplaza el tratamiento gris de B-202606-095
+   (dead code — sin caller en JS, statusClass() nunca lo retornaba). */
 .badge-status-orphaned {
-  background: var(--surface2);
-  border-color: var(--border2);
-  color: var(--text3);
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
+  border-color: color-mix(in srgb, var(--amber) 28%, transparent);
+  color: var(--amber-text);
 }
 
 /* T-202604-050: campos obligatorios effort/area/ac */

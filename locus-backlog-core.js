@@ -1,4 +1,4 @@
-// [PP] mod:139 · autor:Rune · 2026-07-28 04:35 UTC-6
+// [PP] mod:140 · autor:Rune · 2026-07-31 UTC-6
 // TKT-202607-142 (REQ-202607-045): segunda referencia a 'CAEL-0726-04' detectada en la
 // tabla de shell:* events (línea ~317, comentario de shell:render-sprint-tab) — el fix de
 // mod:136 solo cubrió el comentario de origen del bloque mod:135. Misma corrección de
@@ -1850,12 +1850,14 @@ export function badgeLabel(p) {
 export function statusClass(s) {
   // B-202605-229: historico agregado como status canónico
   // T-202605-040: en-revision agregado como status canónico
-  return {'pendiente':'badge-status-backlog','en-revision':'badge-status-en-revision','done':'badge-status-done','descartado':'badge-status-descartado','historico':'badge-status-historico'}[s] || 'badge-status-backlog';
+  // TKT CAEL-0731-03: orphaned agregado como status canónico
+  return {'pendiente':'badge-status-backlog','en-revision':'badge-status-en-revision','done':'badge-status-done','descartado':'badge-status-descartado','historico':'badge-status-historico','orphaned':'badge-status-orphaned'}[s] || 'badge-status-backlog';
 }
 export function statusLabel(s) {
   // B-202605-229: historico agregado como status canónico
   // T-202605-040: en-revision agregado como status canónico
-  return {'pendiente':'Pendiente','en-revision':'En revisión','done':'Hecho','descartado':'Descartado','historico':'Histórico'}[s] || s;
+  // TKT CAEL-0731-03: orphaned agregado como status canónico
+  return {'pendiente':'Pendiente','en-revision':'En revisión','done':'Hecho','descartado':'Descartado','historico':'Histórico','orphaned':'Huérfano'}[s] || s;
 }
 
 // B-245: helper para obtener el aiId de la sesión activa al momento de registrar en history[]

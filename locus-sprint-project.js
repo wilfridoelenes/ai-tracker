@@ -1,4 +1,8 @@
-// [PP] mod:16 · autor:Rune · 2026-07-31 UTC-6
+// [PP] mod:17 · autor:Rune · 2026-07-31 UTC-6
+// TKT-202607-213 (REQ-202607-083): openProjPanel()/renderProjPanel() eliminadas — sin call
+//   sites reales. Wiring de #proj-panel-overlay y listener 'shell:open-proj-panel' retirados
+//   en el mismo movimiento. openProjModal() y #proj-modal-overlay NO tocados — fuera de scope,
+//   call site real activo en locus-projects.js.
 // TKT1 REQ-cleanup-toolbar-legacy: eliminado bloque no-op ftypes/fstatus — #filter-bar-types
 //   no existe en HTML, #filter-bar-status nunca tuvo is-hidden. Guard `if (typeof getItems()...)`
 //   y las tres llamadas (renderStats/updateBacklogBanner/updateStatusFilterUI) se preservan.
@@ -156,62 +160,13 @@ export function clearProjectFilter() {
 }
 _setClearProjFilter(clearProjectFilter);
 
-export function openProjPanel() {
-  renderProjPanel();
-  document.getElementById('proj-panel-overlay').classList.add('open');
-  const btn = document.getElementById('proj-filter-btn');
-  if (btn) btn.classList.add('active');
-}
+// openProjPanel() y renderProjPanel() eliminadas — TKT-202607-213 (REQ-202607-083).
+// Sin call sites reales verificados contra locus-projects.js y locus-proj-core.js —
+// el listener 'shell:open-proj-panel' (wiring retirado más abajo en este mismo TKT)
+// no tenía ningún dispatcher real en el repo. renderProjPanel() era helper privado
+// exclusivo de openProjPanel — huérfano por la misma razón, retirado en el mismo movimiento.
 
 // closeProjPanel — movida a locus-proj-core.js en T-202606-197
-
-function renderProjPanel() {
-  const state = getState();
-  const body = document.getElementById('proj-panel-body');
-  if (!body) return;
-  const filterId = _getActiveProjectFilter();
-  const projects = (state.projects || []).filter(p => p.status !== 'archived');
-
-  let html = '';
-
-  if (!projects.length) {
-    html += `<div class="proj-panel-empty">Sin proyectos — crea uno abajo</div>`;
-  } else {
-    projects.forEach(proj => {
-      const sessCount = _countProjSessions(proj);
-      const isActive = filterId === proj.id;
-      html += `<div class="proj-row${isActive ? ' active' : ''}" data-proj-id="${proj.id}">
-        ${proj.icon ? `<span class="proj-row-icon">${esc(proj.icon)}</span>` : `<span class="proj-row-dot" style="--proj-color:${proj.color || '#7c6af7'}"></span>`}
-        <span class="proj-row-name">${esc(proj.name)}${proj.notes ? `<span class="proj-row-notes">${esc(proj.notes)}</span>` : ''}</span>
-        <span class="proj-row-count">${sessCount}</span>
-        <button class="proj-row-edit" data-proj-edit-id="${proj.id}" title="Editar">✎</button>
-      </div>`;
-    });
-  }
-
-  if (filterId) {
-    html += `<div class="proj-all-row proj-all-row--separator" data-proj-clear="1">
-      <span class="proj-all-row-icon">✕</span>
-      <span class="proj-all-row-label">Sin filtro activo</span>
-    </div>`;
-  }
-
-  body.innerHTML = html;
-
-  body.addEventListener('click', function _projPanelDelegate(e) {
-    const editBtn = e.target.closest('[data-proj-edit-id]');
-    if (editBtn) {
-      e.stopPropagation();
-      closeProjPanel();
-      openProjModal(true, editBtn.dataset.projEditId);
-      return;
-    }
-    const clearRow = e.target.closest('[data-proj-clear]');
-    if (clearRow) { selectProjectFilter(''); return; }
-    const row = e.target.closest('[data-proj-id]');
-    if (row) { selectProjectFilter(row.dataset.projId); return; }
-  }, { once: true });
-}
 
 // _countProjSessions — movida a locus-proj-core.js en T-202606-197
 
@@ -546,18 +501,10 @@ document.addEventListener('DOMContentLoaded', function _sprintProjectUIInit() {
   _updateProjFilterBtn();
   _updateHeaderProjectLabel();
 
-  const _projPanelOverlay = document.getElementById('proj-panel-overlay');
-  if (_projPanelOverlay) {
-    _projPanelOverlay.addEventListener('click', function(e) {
-      if (e.target === _projPanelOverlay) closeProjPanel();
-    });
-  }
-  const _projPanelCloseBtn = document.getElementById('proj-panel-close-btn');
-  if (_projPanelCloseBtn) _projPanelCloseBtn.addEventListener('click', closeProjPanel);
-  const _projPanelNuevoBtn = document.getElementById('proj-panel-btn-nuevo');
-  if (_projPanelNuevoBtn) _projPanelNuevoBtn.addEventListener('click', function() { closeProjPanel(); openProjModal(); });
-  const _projPanelGestionarBtn = document.getElementById('proj-panel-btn-gestionar');
-  if (_projPanelGestionarBtn) _projPanelGestionarBtn.addEventListener('click', function() { closeProjPanel(); openProjModal(); });
+  // Wiring de #proj-panel-overlay retirado — TKT-202607-213 (REQ-202607-083).
+  // El markup (#proj-panel-overlay, #proj-panel-close-btn, #proj-panel-btn-nuevo,
+  // #proj-panel-btn-gestionar) ya no existe en index.html — estos listeners no
+  // tenían nada que enganchar.
 
   const _projModalOverlay = document.getElementById('proj-modal-overlay');
   if (_projModalOverlay) {
@@ -679,8 +626,6 @@ document.addEventListener('DOMContentLoaded', () => {
 }, { once: true });
 // ── END T-202606-058 ─────────────────────────────────────────────────────────
 
-// ── T-202606-167: listener shell:open-proj-panel ─────────────────────────────
-// Desacopla locus-sesiones-capture y locus-backlog-render de import directo de openProjPanel.
-// Cualquier módulo puede despachar shell:open-proj-panel para abrir el panel de proyectos.
-window.addEventListener('shell:open-proj-panel', () => { openProjPanel(); });
-// ── END T-202606-167 ─────────────────────────────────────────────────────────
+// ── T-202606-167: listener shell:open-proj-panel — eliminado TKT-202607-213 ──
+// Apuntaba a openProjPanel(), retirada en este mismo TKT por no tener dispatcher
+// real en el repo (verificado por grep contra todo el proyecto adjunto en sesión).
