@@ -1,4 +1,14 @@
-/* [PP] mod:16 · autor:Nova · 2026-07-31 UTC-6 */
+/* [PP] mod:18 · autor:Nova · 2026-07-31 23:15 UTC-6 */
+/* TKT-202607-213 (REQ-202607-083): retiradas .proj-panel-empty y .proj-panel-btn-sm — únicos
+   selectores exclusivos del proj-panel overlay que vivían en este archivo. AC4 cerrado en sesión
+   posterior: bloque .proj-panel-overlay/.proj-panel-header/.proj-panel-body/.proj-panel-actions/
+   .proj-row* retirado de locus-analytics.css; .proj-modal-overlay retirado del comma-list de
+   locus-layout.css (fix macOS backdrop-blur); bloque .proj-modal-overlay/.proj-modal/
+   .proj-modal-header/.proj-modal-title/.proj-modal-body/.proj-modal-footer retirado de
+   locus-sesiones.css; selectores .proj-modal-* retirados de los comma-lists compartidos de
+   locus-modals-base.css (overlay closing/reduced-motion/modal-actions/botones) sin tocar el
+   resto de la lista. .proj-form* de locus-proyectos.css NO se tocó — compartido con el form
+   inline de Tab Proyectos, verificado activo fuera del modal retirado. */
 /* TKT-202607-208 (REQ-202607-081, origen DISC-202607-072): #tab-backlog .session-subpanel
    y .session-subpanel.active extendidos a #tab-proyectos — paneles migrados a Tab Proyectos
    no tenían la regla .active (display:flex/flex-direction:column), quedaban sin el layout de
@@ -773,14 +783,6 @@
   opacity: .7;
   font-size: var(--text-xs);
   cursor: pointer;
-}
-
-/* Project panel — empty state */
-.proj-panel-empty {
-  font-size: var(--text-2xs-plus);
-  color: var(--text3);
-  text-align: center;
-  padding: 1rem 0;
 }
 
 /* proj-all-row separator variant (used in panel) */
@@ -2457,10 +2459,6 @@
 
 .fb-actions-mt {
   margin-top: 1rem;
-}
-
-.proj-panel-btn-sm {
-  font-size: var(--text-2xs-plus);
 }
 
 .proj-form-actions {

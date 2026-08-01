@@ -1,4 +1,6 @@
-// [PP] mod:19 · autor:Rune · 2026-07-23 19:23 UTC-6
+// [PP] mod:20 · autor:Rune · 2026-07-31 22:21 UTC-6
+// TKT-202607-213 (REQ-202607-083): shell:open-proj-panel → switchTab('proyectos') — proj-panel
+// overlay retirado, sin cambio de comportamiento observable (mismo destino: tab Proyectos).
 // locus-sesiones-capture.js
 // Responsabilidad: Quick Capture modal (stepper de 2 pasos) + estado de WIP (interrupted, T-055).
 // Dependencias: locus-sesiones-stats.js · locus-storage.js · locus-toast.js
@@ -7,7 +9,8 @@
 // dot-menu 'Interrumpir' eliminado — ver locus-sesiones.js mod:53). interruptSession()
 // simplificada a mutador puro (sin _gconfirmOpen anidado ni save/toast propios). Imports
 // huérfanos _gconfirmOpen/closeCardMenu retirados.
-// T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
+// TKT-202607-213: proj-panel overlay retirado — switchTab('proyectos') reemplaza el dispatch
+// shell:open-proj-panel de T-202606-167 (openProjPanel/openProjModal ya no existen)
 import { showToast, toast } from './locus-toast.js';
 
 
@@ -15,7 +18,7 @@ import { _horaUpdate, interpretHora } from './locus-session-hora.js';
 
 import { getAI, getActiveProject, getState, save, saveImmediate } from './locus-storage.js';
 
-import { esc, getCurrentTab } from './locus-ui-shell.js';
+import { esc, getCurrentTab, switchTab } from './locus-ui-shell.js';
 
 import { openAddAI } from './locus-workers.js';
 
@@ -272,7 +275,7 @@ function confirmQuickCapture() {
   const activeProj = getActiveProject();
   if (!activeProj) {
     showToast('warning', '⚠ Selecciona un proyecto antes de guardar la sesión');
-    window.dispatchEvent(new CustomEvent('shell:open-proj-panel')); // T-202606-167
+    switchTab('proyectos'); // TKT-202607-213: reemplaza shell:open-proj-panel (overlay retirado)
     return;
   }
   if (!activeProj.sessions) activeProj.sessions = [];

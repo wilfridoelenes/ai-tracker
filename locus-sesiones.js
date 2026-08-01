@@ -1,4 +1,6 @@
-// [PP] mod:57 · autor:Rune · 2026-07-27 21:10 UTC-6
+// [PP] mod:58 · autor:Rune · 2026-07-31 22:21 UTC-6
+// TKT-202607-213 (REQ-202607-083): botón openProjModal → es-switch-tab data-tab="proyectos";
+// rama openProjModal retirada de _sesionesEmptyStateDelegate (proj-modal overlay eliminado).
 // Fix Finn (TKT-202607-133, AC3): .worker-header-cd-inline-value mostraba texto vacío en vez
 // de 'Sin hora de desbloqueo asignada' cuando ai.resetTime era null — el fallback solo existía
 // en cdInline.title (tooltip). Ahora la línea visible muestra el texto, no solo el hover.
@@ -40,8 +42,9 @@ import { fmt12, confirmSave, interpretHora, relDate } from './locus-session-hora
 import { openCorrectHora } from './locus-sesiones-viz.js'; // T-202606-089 AC-3 — ciclo seguro: uso solo dentro de handlers
 import { closeLogCard, closePopup, openDetail, startRename, toggleInReview, toggleShowAll } from './locus-session-popup.js'; // T-202606-089 AC-3
 // T-202606-058: import de locus-sprint-project eliminado — ciclo A↔B roto.
-// _getActiveProjectFilter · getProjectById · openProjModal · selectProjectFilter
-// consumidas via _sesSPCallbacks registry (registradas por locus-sprint-project en DOMContentLoaded).
+// getProjectById · selectProjectFilter consumidas via _sesSPCallbacks registry (registradas
+// por locus-sprint-project en DOMContentLoaded). TKT-202607-213: openProjModal retirada de este
+// archivo — el botón que la invocaba migró a data-action="es-switch-tab".
 import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, getLastAISession, _findSession, save, getState, saveImmediate, _getCurrentSession, _isInSession, _resetWorker, getActiveSprints, LOCUS_KEYS, getSupabaseContext, _relTs } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 import { esc } from './locus-ui-shell.js';
@@ -586,7 +589,7 @@ export function render() {
       <div class="empty-state-title">Sin proyecto activo</div>
       <div class="empty-state-hint">Crea un proyecto para empezar a registrar sesiones y gestionar tu backlog.</div>
       <div class="es-cta-row">
-        <button class="empty-state-btn" data-action="openProjModal">＋ Nuevo Proyecto</button>
+        <button class="empty-state-btn" data-action="es-switch-tab" data-tab="proyectos">＋ Nuevo Proyecto</button>
       </div>`; }
     updateStats(); renderStatusBar(); return;
   }
@@ -1233,7 +1236,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── END T-202605-057 ─────────────────────────────────────────────────────
 
 // ── B-202605-019: Listeners — on* migrados desde templates de locus-sesiones.js ──
-// Cubre: archived-toggle, empty-state-btn openAddAI/openProjModal.
+// Cubre: archived-toggle, empty-state-btn openAddAI.
 document.addEventListener('DOMContentLoaded', function () {
   // .archived-toggle → toggleArchivedSection(el)
   // Delegación en document — el elemento se genera dinámicamente en render().
@@ -1244,7 +1247,9 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // [data-action="openAddAI"] → openAddAI()
-  // [data-action="openProjModal"] → openProjModal(false)
+  // TKT-202607-213: rama "openProjModal" retirada — el botón migró a data-action="es-switch-tab"
+  // data-tab="proyectos" (proj-modal overlay eliminado, ese data-action lo resuelve el delegador
+  // global de es-switch-tab, no este handler).
   // Delegación en document — los botones se generan dinámicamente en render().
   document.addEventListener('click', function _sesionesEmptyStateDelegate(e) {
     const btn = e.target.closest('[data-action]');
@@ -1252,8 +1257,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const action = btn.dataset.action;
     if (action === 'openAddAI') {
       openAddAI();
-    } else if (action === 'openProjModal') {
-      (_sesSPCallbacks.openProjModal || (() => {}))(false);
     }
   });
 

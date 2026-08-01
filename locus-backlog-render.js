@@ -1,4 +1,6 @@
-// [PP] mod:108 · autor:Rune · 2026-07-30 01:10 UTC-6
+// [PP] mod:109 · autor:Rune · 2026-07-31 22:21 UTC-6
+// TKT-202607-213 (REQ-202607-083): 2 botones es-open-proj-panel → es-switch-tab data-tab="proyectos"
+// (proj-panel overlay retirado, reutiliza wiring ya existente en el mismo archivo).
 // TKT-202607-186 (REQ-202607-064): stats-bar de Histórico — chip Total agrega
 // .stat-compact-item--primary (contenedor) y .stat-compact-n--primary (número), homologando
 // con el tratamiento ya vigente en Backlog list/Q-Backlog (zone-engine.js) y Q-DISC
@@ -263,7 +265,8 @@
 // T-202606-093: _updateSubtabBadges — actualización reactiva de badges icebox/qinc/histórico
 // B-202606-052: renderIceboxPanel implementada + listener sstab-btn-icebox + re-render en shell:backlog-render-dirty
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
-// T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
+// TKT-202607-213: es-open-proj-panel retirado — botones migrados a es-switch-tab data-tab="proyectos"
+// (proj-panel overlay eliminado, ya no aplica el desacople de T-202606-167)
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
 import { renderHistoricoSection, getHistoricoCount, getHistoricoStats, _initHistoricoToolbar } from './locus-backlog-historico.js';
 // REQ refactor-zonas TKT1: _buildChildMap extraído a locus-backlog-hierarchy.js — sin cambio
@@ -957,7 +960,7 @@ export function renderBacklogList(onRendered) {
           <div class="empty-state-icon">📁</div>
           <div class="empty-state-title">Selecciona un proyecto</div>
           <div class="empty-state-hint">El backlog está vinculado a un proyecto. Selecciona uno para ver y gestionar sus ítems.</div>
-          <button class="empty-state-btn" data-action="es-open-proj-panel">📁 Seleccionar proyecto</button>
+          <button class="empty-state-btn" data-action="es-switch-tab" data-tab="proyectos">📁 Seleccionar proyecto</button>
         </div>`;
     }
     _skelHide(listEl);
@@ -976,7 +979,7 @@ export function renderBacklogList(onRendered) {
         <div class="empty-state-icon">📂</div>
         <div class="empty-state-title">Este proyecto no tiene ítems aún</div>
         <div class="empty-state-hint">Selecciona otro proyecto o empieza a registrar sesiones para ver ítems aquí.</div>
-        <button class="empty-state-btn" data-action="es-open-proj-panel">Cambiar proyecto</button>
+        <button class="empty-state-btn" data-action="es-switch-tab" data-tab="proyectos">Cambiar proyecto</button>
       </div>`;
       _skelHide(listEl);
       return;

@@ -1,4 +1,4 @@
-/* [PP] mod:21 · autor:Nova · 2026-07-26 UTC-6 */
+/* [PP] mod:22 · autor:Nova · 2026-07-31 23:15 UTC-6 */
 /* TKT-202607-144 (REQ-202607-046): familia .modal-split (REQ[CAEL-0716-01] → TKT-202607-128)
    retirada — reemplazada por .modal-split-shell/.mss-box/.mss-content/.mss-col/.mss-col--ingest.
    Retiro sin período de gracia (__BR-Execution §2): --split-total-w/-h/-gap/-header-h, la regla
@@ -133,7 +133,6 @@
 .quick-modal-overlay.closing,
 .avatar-modal.closing,
 .popup-overlay.closing,
-.proj-modal-overlay.closing,
 .item-viz-overlay.closing,
 .clean-project-overlay.closing {
   animation: overlay-out 0.2s ease forwards;
@@ -148,7 +147,6 @@
 .quick-modal-overlay.closing .quick-modal,
 .avatar-modal.closing .avatar-modal-box,
 .popup-overlay.closing .popup,
-.proj-modal-overlay.closing .proj-modal,
 .item-viz-overlay.closing .item-viz-panel,
 .clean-project-overlay.closing .clean-project-panel {
   animation: modal-out 0.18s var(--ease-standard) forwards;
@@ -164,7 +162,6 @@
 .add-modal-actions,
 .tag-modal-actions,
 .avatar-modal-actions,
-.proj-modal-footer,
 .ie-footer {
   display: flex;
   gap: 8px;
@@ -177,8 +174,7 @@
 .gconfirm-actions button,
 .add-modal-actions button,
 .tag-modal-actions button,
-.avatar-modal-actions button,
-.proj-modal-footer button {
+.avatar-modal-actions button {
   font-size: var(--text-sm);
   font-weight: 500;
   padding: 7px 14px;
@@ -195,8 +191,7 @@
 .gconfirm-actions button:active,
 .add-modal-actions button:active,
 .tag-modal-actions button:active,
-.avatar-modal-actions button:active,
-.proj-modal-footer button:active {
+.avatar-modal-actions button:active {
   transform: scale(0.97);
 }
 
@@ -205,8 +200,7 @@
 .gconfirm-actions .btn-ghost,
 .add-modal-actions .btn-cancel,
 .tag-modal-actions .btn-cancel,
-.avatar-modal-actions .btn-cancel,
-.proj-modal-footer .btn-ghost {
+.avatar-modal-actions .btn-cancel {
   background: transparent;
   border-color: transparent;
   color: var(--text3);
@@ -216,8 +210,7 @@
 .gconfirm-actions .btn-ghost:hover,
 .add-modal-actions .btn-cancel:hover,
 .tag-modal-actions .btn-cancel:hover,
-.avatar-modal-actions .btn-cancel:hover,
-.proj-modal-footer .btn-ghost:hover {
+.avatar-modal-actions .btn-cancel:hover {
   background: var(--surface2);
   border-color: var(--border);
   color: var(--text2);
@@ -228,8 +221,7 @@
 .gconfirm-actions .btn-primary,
 .add-modal-actions .btn-confirm,
 .tag-modal-actions .btn-confirm,
-.avatar-modal-actions .btn-confirm,
-.proj-modal-footer .btn-primary {
+.avatar-modal-actions .btn-confirm {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--text-on-accent);
@@ -239,15 +231,13 @@
 .gconfirm-actions .btn-primary:hover,
 .add-modal-actions .btn-confirm:hover,
 .tag-modal-actions .btn-confirm:hover,
-.avatar-modal-actions .btn-confirm:hover,
-.proj-modal-footer .btn-primary:hover {
+.avatar-modal-actions .btn-confirm:hover {
   opacity: 0.88;
 }
 
 .modal-actions .btn-primary:focus-visible,
 .gconfirm-actions .btn-primary:focus-visible,
-.add-modal-actions .btn-confirm:focus-visible,
-.proj-modal-footer .btn-primary:focus-visible {
+.add-modal-actions .btn-confirm:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   opacity: 1;
@@ -263,8 +253,7 @@
 
 /* Ghost focus */
 .modal-actions .btn-ghost:focus-visible,
-.gconfirm-actions .btn-ghost:focus-visible,
-.proj-modal-footer .btn-ghost:focus-visible {
+.gconfirm-actions .btn-ghost:focus-visible {
   outline: 2px solid var(--border2);
   outline-offset: 2px;
 }
@@ -1097,7 +1086,6 @@
   .quick-modal,
   .avatar-modal-box,
   .popup,
-  .proj-modal,
   .item-viz-panel {
     animation: none;
     opacity: 1;
@@ -1111,7 +1099,6 @@
   .quick-modal-overlay.closing,
   .avatar-modal.closing,
   .popup-overlay.closing,
-  .proj-modal-overlay.closing,
   .item-viz-overlay.closing,
   .clean-project-overlay.closing {
     animation: overlay-out 0.15s ease forwards;
@@ -1124,7 +1111,6 @@
   .quick-modal-overlay.closing .quick-modal,
   .avatar-modal.closing .avatar-modal-box,
   .popup-overlay.closing .popup,
-  .proj-modal-overlay.closing .proj-modal,
   .item-viz-overlay.closing .item-viz-panel,
   .clean-project-overlay.closing .clean-project-panel {
     animation: none;

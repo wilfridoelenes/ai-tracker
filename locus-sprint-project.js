@@ -1,4 +1,4 @@
-// [PP] mod:15 · autor:Rune · 2026-07-31 UTC-6
+// [PP] mod:16 · autor:Rune · 2026-07-31 UTC-6
 // TKT1 REQ-cleanup-toolbar-legacy: eliminado bloque no-op ftypes/fstatus — #filter-bar-types
 //   no existe en HTML, #filter-bar-status nunca tuvo is-hidden. Guard `if (typeof getItems()...)`
 //   y las tres llamadas (renderStats/updateBacklogBanner/updateStatusFilterUI) se preservan.
@@ -671,7 +671,10 @@ export function _getLocalStorageUsage() {
 document.addEventListener('DOMContentLoaded', () => {
   _registerSesSPCallback('getProjectById',          getProjectById);
   // _registerSesSPCallback('getActiveProjectFilter') eliminado — T-202606-197: _getActiveProjectFilter movida a locus-proj-core.js
-  _registerSesSPCallback('openProjModal',           openProjModal);
+  // _registerSesSPCallback('openProjModal') eliminado — inline_fix sesión 2026-07-31: sin consumidor
+  //   en todo el repo desde TKT-202607-213 (locus-sesiones.js retiró su único call site vía
+  //   _sesSPCallbacks.openProjModal). openProjModal() sigue viva — 4 call sites reales fuera del
+  //   registry (este mismo archivo ×3, locus-projects.js ×1) — solo se retira la entrada de registro.
   _registerSesSPCallback('selectProjectFilter',     selectProjectFilter);
 }, { once: true });
 // ── END T-202606-058 ─────────────────────────────────────────────────────────

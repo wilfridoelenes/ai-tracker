@@ -1,4 +1,4 @@
-/* [PP] mod:44 · autor:Nova · 2026-07-25 17:40 UTC-6 */
+/* [PP] mod:45 · autor:Nova · 2026-07-31 23:15 UTC-6 */
 /* TKT-202607-132 (REQ-202607-042) — worker_header_tres_estados_v2: (1) .sc-avatar--* pierde
    su box-shadow de color dentro de #worker-header (acento de estado ya vive en border-left
    + badge, evita triplicar la señal); (2) nuevo .worker-header-quick — ícono de rayo, acceso
@@ -3292,55 +3292,6 @@
 .analytics-proj-banner .banner-clear:hover {
   color: var(--red);
   background: var(--red-dim);
-}
-
-/* T-080: Modal gestión proyectos */
-.proj-modal-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgb(0 0 0 / 65%);
-  z-index: var(--z-layer-2);
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-}
-
-.proj-modal-overlay.open {
-  display: flex;
-}
-
-.proj-modal {
-  background: var(--surface); border: 1px solid var(--border2);
-  border-radius: var(--radius-xl); width: 100%; max-width: 480px;
-  display: flex; flex-direction: column;
-  animation: modalSpring 0.22s var(--ease-spring);
-}
-
-.proj-modal-header {
-  padding: 1.1rem 1.25rem 0.85rem; border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-}
-
-.proj-modal-title {
-  font-size: var(--text-md);
-  font-weight: 600;
-  color: var(--text);
-}
-
-.proj-modal-body {
-  padding: 1rem 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.proj-modal-footer {
-  padding: 0.75rem 1.25rem;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
 }
 
 .proj-form {
