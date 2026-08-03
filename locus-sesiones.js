@@ -1,3 +1,11 @@
+// [PP] mod:59 · autor:Rune · 2026-08-02 UTC-6
+// TKT CAEL-0803-02 (REQ ref_id CAEL-0803-01, AC6): _openIngestModal agrega
+// .mss-content--ingest-wide en el mismo movimiento donde abre #modal-split-shell —
+// cierra el gap detectado por Finn (primera apertura de sesión no tenía el toggle,
+// solo lo tenían los 3 puntos de cierre en locus-backlog-merge.js). Guard contra
+// #merge-diff-overlay ya --filled (Worker anterior) para no violar AC3 de sincronía —
+// ver comentario inline en el punto de inserción. contract_update: no — sin cambio de
+// firma de _openIngestModal(aiId) → void, solo side effect nuevo en el cuerpo.
 // [PP] mod:58 · autor:Rune · 2026-07-31 22:21 UTC-6
 // TKT-202607-213 (REQ-202607-083): botón openProjModal → es-switch-tab data-tab="proyectos";
 // rama openProjModal retirada de _sesionesEmptyStateDelegate (proj-modal overlay eliminado).
@@ -1161,6 +1169,19 @@ export function _openIngestModal(aiId) {
   // #modal-split-shell recibe 'open'.
   const shell = document.getElementById('modal-split-shell');
   if (shell) shell.classList.add('open');
+  // TKT CAEL-0803-02 (REQ ref_id CAEL-0803-01, AC6): apertura inicial del shell — mismo
+  // movimiento donde se agrega 'open'. Guard contra #merge-diff-overlay ya --filled (caso
+  // ya reconocido más abajo en este mismo cuerpo, L1205-1214: diff de Worker anterior puede
+  // seguir visible al reabrir para un Worker distinto) — sin el guard, este toggle violaría
+  // AC3 (\"la clase de estado expandido y .mdiff-overlay--filled nunca coexisten\") en ese
+  // escenario ya documentado como fuera de scope de otro fix. Inversa exacta de los 3 puntos
+  // ya instrumentados en locus-backlog-merge.js mod:83.
+  if (shell) {
+    const _mdOverlay = document.getElementById('merge-diff-overlay');
+    if (!(_mdOverlay && _mdOverlay.classList.contains('mdiff-overlay--filled'))) {
+      shell.querySelector('.mss-content')?.classList.add('mss-content--ingest-wide');
+    }
+  }
   // TKT2 (REQ CAEL-0716-01) — gap declarado por Nova en TKT1: puebla el header compartido
   // del split view con el worker entrante en cada apertura (mismo aiId o distinto).
   _populateIngestModalHeader(getAI(aiId));
