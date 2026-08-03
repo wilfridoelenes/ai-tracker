@@ -1,4 +1,4 @@
-/* [PP] mod:68 · autor:Nova · 2026-07-26 16:40 UTC-6 */
+/* [PP] mod:69 · autor:Rune · 2026-08-03 20:00 UTC-6 */
 /* TKT-202607-127 (REQ-202607-039): Stats Shell + empty-state — sub-tab Planificar.
    Reuso casi total de TKT-202607-126: .sps-stats-block/.sps-stat-cell (grid+celda base),
    .spt-identity (chip de sprint, instancia única ya compartida Ítems/Planificar) y
@@ -1974,6 +1974,18 @@
   color: var(--text);
   cursor: pointer;
   overflow-wrap: anywhere;
+}
+
+/* TKT (CAEL-0803-03): fila 'Seleccionar todos' — misma composición que .spnp-gate-item,
+   con separador inferior para distinguirla visualmente de la lista de ítems. */
+.spnp-gate-select-all-row {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 2px;
+}
+
+.spnp-gate-select-all-label {
+  font-weight: 600;
 }
 
 .spnp-gate-actions {

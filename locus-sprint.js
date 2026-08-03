@@ -1,4 +1,4 @@
-// [PP] mod:121 · autor:Rune · 2026-07-26 UTC-6
+// [PP] mod:122 · autor:Rune · 2026-08-03 20:00 UTC-6
 // TKT-202607-142 (REQ-202607-045, retroactivo — reemplaza TKT-202607-141): retirado el
 // listener 'shell:sprint-render' agregado en mod:120 — dead code, ver bloque en el cuerpo
 // del archivo. TKT-202607-134 (mod:135 de locus-backlog-core.js) ya había renombrado los 3
@@ -424,7 +424,19 @@ function _spnpHandleTriggerClick() {
   _renderSpnpPanel();
   panel.classList.remove('is-hidden');
   triggerBtn.setAttribute('aria-expanded', 'true');
-  // AC — foco se mueve al primer campo del panel al abrir (D-02, __Role-Nova §Reglas de conversación 6)
+  // AC — foco se mueve al primer campo real del panel al abrir (D-02, __Role-Nova §Reglas de conversación 6)
+  // TKT (CAEL-0803-02): antes enfocaba el contenedor #spnp-panel — nunca el campo real
+  // (textarea o botón). _spnpFocusFirstField() resuelve el primer elemento focosable
+  // real de cualquiera de los 3 estados de render (vacío/propuesta/gate), con fallback
+  // al panel si no hay ninguno (caso defensivo, no debería ocurrir en ningún estado real).
+  _spnpFocusFirstField(panel);
+}
+
+// TKT (CAEL-0803-02): enfoca el primer campo focosable real dentro de panel — textarea,
+// input o botón. Fallback a panel.focus() (tabindex=-1) si no hay ninguno.
+function _spnpFocusFirstField(panel) {
+  const first = panel.querySelector('textarea, input:not([disabled]), button:not([disabled])');
+  if (first) { first.focus(); return; }
   panel.setAttribute('tabindex', '-1');
   panel.focus();
 }
@@ -475,6 +487,23 @@ function _renderSpnpPanel() {
 }
 
 function _spnpHandlePanelClick(e) {
+  // TKT (CAEL-0803-03): checkbox maestro 'Seleccionar todos' — marca/desmarca todos los
+  // ítems del gate. Se resuelve antes que el resto de la delegación porque no tiene
+  // data-spnp-*-action propio.
+  const selectAllCb = e.target.closest('.spnp-gate-select-all');
+  if (selectAllCb) {
+    const checked = selectAllCb.checked;
+    selectAllCb.indeterminate = false;
+    document.querySelectorAll('#spnp-panel .spnp-gate-cb:not(.spnp-gate-select-all)').forEach(cb => { cb.checked = checked; });
+    return;
+  }
+  // TKT (CAEL-0803-03): checkbox individual del gate — sincroniza el estado visual del
+  // checkbox maestro (checked/indeterminate) tras cada cambio manual.
+  const itemCb = e.target.closest('.spnp-gate-cb:not(.spnp-gate-select-all)');
+  if (itemCb) {
+    _spnpSyncGateSelectAll();
+    return;
+  }
   // TKT4 (REQ-[pendiente-ID] · ref: CAEL-05): acciones del gate — mismo listener, distinto data-attribute
   const gateBtn = e.target.closest('[data-spnp-gate-action]');
   if (gateBtn) {
@@ -631,12 +660,28 @@ function _spnpRenderGate(createdSprintId, items) {
     '<div class="spnp-gate">' +
       '<div class="spnp-gate-header"><span class="spnp-badge">Ítems sin sprint</span></div>' +
       '<p class="spnp-gate-desc">' + items.length + ' ítem' + (items.length === 1 ? '' : 's') + ' en Q-Backlog — ¿mover al sprint recién creado?</p>' +
+      '<label class="spnp-gate-item spnp-gate-select-all-row">' +
+        '<input type="checkbox" class="spnp-gate-cb spnp-gate-select-all" id="spnp-gate-select-all">' +
+        '<span class="spnp-gate-item-label spnp-gate-select-all-label">Seleccionar todos</span>' +
+      '</label>' +
       '<div class="spnp-gate-list">' + rows + '</div>' +
       '<div class="spnp-gate-actions">' +
         '<button class="btn-primary" type="button" data-spnp-gate-action="mover" data-spnp-gate-sprint="' + _escHtml(createdSprintId) + '">Mover seleccionados</button>' +
         '<button class="sps-btn" type="button" data-spnp-gate-action="omitir">Omitir</button>' +
       '</div>' +
     '</div>';
+}
+
+// TKT (CAEL-0803-03): sincroniza el estado visual de 'Seleccionar todos' contra los
+// checkboxes individuales — checked si todos están marcados, indeterminate si es mixto.
+function _spnpSyncGateSelectAll() {
+  const selectAllCb = document.querySelector('#spnp-panel .spnp-gate-select-all');
+  if (!selectAllCb) return;
+  const items = Array.from(document.querySelectorAll('#spnp-panel .spnp-gate-cb:not(.spnp-gate-select-all)'));
+  if (!items.length) { selectAllCb.checked = false; selectAllCb.indeterminate = false; return; }
+  const checkedCount = items.filter(cb => cb.checked).length;
+  selectAllCb.checked = checkedCount === items.length;
+  selectAllCb.indeterminate = checkedCount > 0 && checkedCount < items.length;
 }
 
 // TKT4: acciones del gate — Mover seleccionados / Omitir
