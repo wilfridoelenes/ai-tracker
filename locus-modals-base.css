@@ -1,4 +1,4 @@
-/* [PP] mod:23 · autor:Nova · 2026-08-03 03:20 UTC-6 */
+/* [PP] mod:24 · autor:Nova · 2026-08-03 23:05 UTC-6 */
 /* TKT-202607-144 (REQ-202607-046): familia .modal-split (REQ[CAEL-0716-01] → TKT-202607-128)
    retirada — reemplazada por .modal-split-shell/.mss-box/.mss-content/.mss-col/.mss-col--ingest.
    Retiro sin período de gracia (__BR-Execution §2): --split-total-w/-h/-gap/-header-h, la regla
@@ -355,10 +355,20 @@
    .modal-split más abajo, TKT1 REQ[CAEL-0716-01]) — este selector conserva solo
    el layout interno propio (padding/flex column) del contenido de la columna
    de ingesta, ahora aplicado también vía .modal-split__dialog en el mismo nodo. */
+/* INC (Cael, 2026-08-03, code real pendiente — founder aún no pegó el CHECKPOINT
+   de creación): .modal--ingest heredaba max-width:360px de la base .modal (línea
+   ~989) sin override propio — la retirada de .modal-split__dialog (mod:23, TKT
+   CAEL-0803-02) dejó el nodo sin ningún selector que neutralizara ese cap. Textarea
+   (.paste-ta, width:100%) y card (.sc-diff-preview, sin ancho propio) heredaban
+   el ancho real del padre .modal--ingest — 360px fijo, no el 33%/55% de
+   .mss-col--ingest. max-width:none es la corrección de raíz: .modal--ingest ya
+   es hijo flex de .mss-col--ingest (align-items:stretch por default), width:100%
+   de .modal base ya resolvía el ancho correcto una vez sin el cap. */
 .modal.modal--ingest {
   padding: 0;
   display: flex;
   flex-direction: column;
+  max-width: none;
 }
 
 /* ══ .modal-split-shell — TKT-202607-144 (REQ-202607-046, Nova): shell único que
