@@ -1,4 +1,12 @@
-/* [PP] mod:47 · autor:Nova · 2026-08-01 09:55 UTC-6 */
+/* [PP] mod:48 · autor:Nova · 2026-08-02 UTC-6 */
+/* mod:48 — TKT-202608-226 (REQ-202607-086, TKT4 de Fase 3): card-header-premium a --space-*.
+   .card-header-premium{gap:12px→var(--space-md); padding:12px→var(--space-md) (14px/10px
+   quedan literales, sin peldaño exacto)}. .card-meta-row{gap:6px→var(--space-xs)}.
+   .card-status-pill{padding:2px 8px→var(--space-3xs) var(--space-sm); gap:5px queda literal}.
+   .card-right{gap:4px→var(--space-2xs), instancia L560 dentro del bloque — no toca la
+   segunda declaración de .card-right en L6909 (layout .card-strip, fuera de scope)}.
+   .card-drag-handle{padding:0 2px→0 var(--space-3xs), el 0 se mantiene literal}. Sin cambio
+   de valor computado — mismo px resultante, solo referencia de token. */
 /* mod:47 — Nova revisa y re-entrega TKT-202607-218 AC2 tras hallazgo de CSS Purity en mod:46
    (autor:Rune, viola __BR-Execution §3). Contenido verificado sin cambios: fallback
    var(--header-h, 54px) → 53px en las 2 ocurrencias
@@ -393,8 +401,8 @@
 .card-header-premium {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px 10px;
+  gap: var(--space-md);
+  padding: var(--space-md) 14px 10px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -499,7 +507,7 @@
 .card-meta-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-xs);
   flex-wrap: wrap;
 }
 
@@ -513,7 +521,7 @@
   font-size: var(--text-2xs);
   font-weight: 600;
   letter-spacing: 0.05em;
-  padding: 2px 8px;
+  padding: var(--space-3xs) var(--space-sm);
   border-radius: var(--radius-2xl);
   border: 1px solid transparent;
   transition: var(--trans-color);
@@ -561,7 +569,7 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
   margin-left: auto;
 }
 
@@ -595,7 +603,7 @@
   color: var(--text3);
   font-size: var(--text-md);
   cursor: grab;
-  padding: 0 2px;
+  padding: 0 var(--space-3xs);
   opacity: 0;
   transition: opacity var(--trans-fast);
   user-select: none;
