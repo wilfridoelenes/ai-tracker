@@ -1,4 +1,4 @@
-/* [PP] mod:134 · autor:Nova · 2026-08-01 10:20 UTC-6 */
+/* [PP] mod:135 · autor:Nova · 2026-08-03 UTC-6 */
 /* TKT2 (REQ-202607-alineacion-qbacklog-qdisc, design_intent: alineacion-render-qbacklog-qdisc):
    .bl-done-* migrado a caja con borde completo (header+body) + mecanismo .is-collapsed en el
    wrapper — alinea el bloque "Terminados" de Q-Backlog al mismo tratamiento visual y mecánico
@@ -2602,6 +2602,38 @@
   z-index: var(--z-sticky);
   background: var(--surface);
   overflow: visible;
+}
+
+/* TKT1/TKT2 (REQ CAEL-0803-01, design_intent: qbacklog_qdisc_panel_identity): tira de
+   identidad de panel — label de sección + caption de alcance. Primera fila de
+   .bl-header-unified en Q-Backlog y Q-DISC, antes de .stats-bar — un solo header sticky
+   (identidad + stats + toolbar), secciones/listas debajo (fuera del sticky), confirmado por
+   founder. No es un wrapper sticky propio — vive dentro de .bl-header-unified, que ya es
+   sticky como unidad completa; separada de .stats-bar por .bl-header-sep, mismo mecanismo
+   ya usado entre .stats-bar y .bl-toolbar (no clase nueva). Tipografía de caption reusa el
+   mismo tratamiento que .qdisc-stats-caption (--text-2xs, uppercase, --text3 sobre
+   --surface) — mismo par de tokens ya en producción sobre el mismo fondo, sin nueva
+   verificación de contraste (§Anti-pattern D: reusar patrón visual equivalente). */
+.bl-panel-identity {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-md) var(--space-2xs);
+  flex-wrap: wrap;
+}
+
+.bl-panel-identity-label {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.bl-panel-identity-caption {
+  font-size: var(--text-2xs);
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 /* Separador interno entre stats-bar y bl-toolbar — mismo peso que .bl-toolbar-sep,

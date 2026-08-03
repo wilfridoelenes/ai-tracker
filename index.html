@@ -1,4 +1,4 @@
-<!-- [PP] mod:171 · autor:Rune · 2026-08-02 UTC-6 -->
+<!-- [PP] mod:172 · autor:Rune · 2026-08-03 UTC-6 -->
 <!-- Ad-hoc (reorden nav header, sin REQ/TKT — mismo tratamiento que mod:146): botones .tab-btn
      reordenados a Backlog · Sprint · Incidentes · Sesiones · Analytics. Sin cambio de lógica —
      locus-ui-shell.js selecciona por id, no por orden DOM (bindNavClicks). Sin impacto CSS —
@@ -680,6 +680,14 @@
            Histórico/Q-DISC) — sin CSS nuevo. Wiring en locus-backlog-qbacklog.js
            (_initQBacklogToolbar, análogo a _initQDiscToolbar). -->
       <div class="bl-header-unified" id="qbacklog-header-unified">
+        <!-- TKT1 (REQ CAEL-0803-01, design_intent: qbacklog_qdisc_panel_identity): identidad de
+             panel — mismo texto que la pill de sub-tab nav (L557: "Q-Backlog"). Primera fila del
+             header unificado, antes de stats-bar. -->
+        <div class="bl-panel-identity">
+          <span class="bl-panel-identity-label">Q-Backlog</span>
+          <span class="bl-panel-identity-caption">Product Backlog · sin sprint asignado</span>
+        </div>
+        <div class="bl-header-sep"></div>
         <div class="stats-bar" id="qbacklog-stats-bar"></div>
         <div class="bl-header-sep"></div>
         <div class="bl-toolbar" id="qbacklog-toolbar">
@@ -736,6 +744,16 @@
            nuevo. Wiring en locus-backlog-qdisc.js (_initQDiscToolbar, análogo a
            _initHistoricoToolbar). -->
       <div class="bl-header-unified" id="qdisc-header-unified">
+        <!-- TKT2 (REQ CAEL-0803-01, design_intent: qbacklog_qdisc_panel_identity): identidad de
+             panel — mismo texto que la pill de sub-tab nav (L560: "Discoveries"). Reutiliza
+             .bl-panel-identity de TKT1 — sin clase nueva. Caption distinta de
+             .qdisc-stats-caption (abajo, dentro de stats-row): esta describe QUÉ ES el panel,
+             esa describe el universo de datos de las stats — no se fusionan. -->
+        <div class="bl-panel-identity">
+          <span class="bl-panel-identity-label">Discoveries</span>
+          <span class="bl-panel-identity-caption">Q-DISC · ideas en evaluación</span>
+        </div>
+        <div class="bl-header-sep"></div>
         <div class="stats-bar" id="qdisc-stats-bar">
           <div class="stats-row stats-row--compact">
             <div class="stat-compact-counts">
@@ -1669,12 +1687,12 @@
 <div class="modal-split__header" id="ingest-split-header">
   <div class="sc-header-left">
     <div class="sc-avatar" id="ingest-split-avatar"></div>
-    <span class="sc-project" id="ingest-split-project"></span>
+    <span class="msh-worker-name" id="ingest-split-project"></span>
   </div>
   <div class="sc-header-right">
     <span class="sc-badge" id="ingest-split-badge"></span>
   </div>
-  <button class="ingest-modal-close" id="ingest-modal-close-btn" type="button" aria-label="Cerrar">&times;</button>
+  <button class="sc-menu-btn" id="ingest-modal-close-btn" type="button" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button>
 </div>
 <div class="mss-content">
 

@@ -1,3 +1,12 @@
+/* [PP] mod:14 · autor:Nova · 2026-08-03 UTC-6 */
+/* TKT-202608-229 (REQ-202608-087): header conjunto del modal de ingesta — .sc-project
+   quedaba mal nombrado en ese contexto (mostraba nombre de worker, no proyecto, ver
+   TKT-202608-228) y sin tinte de disponibilidad. .msh-worker-name reemplaza .sc-project
+   ahí, a tamaño de título principal (mismo token que .worker-header .sc-project,
+   locus-sesiones.css). .is-avail/.is-insession/.is-exhausted tiñen el header
+   (#ingest-split-header / .modal-split__header) reutilizando los mismos tokens ya
+   verificados en .sc-badge--avail/--insession/--exhausted de este archivo — sin
+   variables nuevas, contraste heredado de esos pares ya aprobados. */
 /* [PP] mod:13 · autor:Nova · 2026-07-25 17:40 UTC-6 */
 /* TKT-202607-132 (REQ-202607-042): .sc-badge-dot pasa de var(--c-low-text) fijo a
    currentColor — el dot hereda el color del .sc-badge que lo contiene (verde/ámbar/morado/
@@ -130,6 +139,40 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ── msh-worker-name — header conjunto del modal de ingesta (TKT-202608-229) ── */
+/* Reemplaza .sc-project dentro de #ingest-split-header — mismo token de tamaño que
+   .worker-header .sc-project (var(--text-2xl)/600, locus-sesiones.css) para leer como
+   título principal del header compartido, no como metadato secundario. */
+
+.msh-worker-name {
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── modal-split__header — tinte de disponibilidad (TKT-202608-229) ── */
+/* Reutiliza los mismos pares bg/border ya verificados en .sc-badge--avail/--insession/
+   --exhausted de este archivo — el texto (.msh-worker-name, .sc-badge) mantiene su color
+   normal, el tinte va solo en el fondo del header. Sin dot animado ni token nuevo. */
+
+.modal-split__header.is-avail {
+  background: var(--green-dim);
+  border-color: var(--green-border);
+}
+
+.modal-split__header.is-insession {
+  background: rgb(245 158 11 / 8%);
+  border-color: rgb(245 158 11 / 35%);
+}
+
+.modal-split__header.is-exhausted {
+  background: var(--red-dim);
+  border-color: var(--red-border);
 }
 
 /* ── sc-badge — estado activo con dot animado ── */
