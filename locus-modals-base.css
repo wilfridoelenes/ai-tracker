@@ -1,4 +1,4 @@
-/* [PP] mod:22 · autor:Nova · 2026-07-31 23:15 UTC-6 */
+/* [PP] mod:23 · autor:Nova · 2026-08-03 03:20 UTC-6 */
 /* TKT-202607-144 (REQ-202607-046): familia .modal-split (REQ[CAEL-0716-01] → TKT-202607-128)
    retirada — reemplazada por .modal-split-shell/.mss-box/.mss-content/.mss-col/.mss-col--ingest.
    Retiro sin período de gracia (__BR-Execution §2): --split-total-w/-h/-gap/-header-h, la regla
@@ -430,6 +430,19 @@
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border2);
+  transition: flex-basis 0.2s var(--ease-out, ease);
+}
+
+/* TKT CAEL-0803-02 (REQ CAEL-0803-01): col 1 se expande mientras #merge-diff-overlay
+   no tiene contenido real (.mdiff-overlay--filled ausente) — evita que el Panel de
+   Ingesta quede comprimido a 1/3 cuando col 2 solo muestra el empty-state
+   (.msc-diff-empty). .mss-content--ingest-wide la aplica/retira locus-backlog-merge.js
+   en los mismos 4 puntos donde ya alterna .mdiff-overlay--filled (showMergeDiffPanel
+   y sus 3 cierres) — inversa exacta de ese toggle, sin JS nuevo de detección de
+   estado, solo un segundo classList en el mismo call site. Pendiente: wiring JS en
+   locus-backlog-merge.js — archivo no adjunto en esta sesión, Rune lo agrega. */
+.mss-content.mss-content--ingest-wide .mss-col--ingest {
+  flex-basis: 55%;
 }
 
 /* #merge-diff-overlay (fuera de .mss-col porque ya no lleva la clase — ver regla

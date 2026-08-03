@@ -1,3 +1,15 @@
+// [PP] mod:83 · autor:Rune · 2026-08-02 UTC-6
+// TKT CAEL-0803-02 (REQ ref_id CAEL-0803-01): wiring JS de .mss-content--ingest-wide —
+// inversa exacta de .mdiff-overlay--filled en los mismos 4 puntos ya existentes (apertura
+// en showMergeDiffPanel(), cierre-aplicar en _mdiffDoApply, teardownMergeDiffPanel() que
+// cubre cancelar+Escape). Entregable CSS de Nova ya recibido (locus-modals-base.css
+// mod:23) — este mod solo agrega el toggle JS que faltaba (ver comentario CSS L436-443,
+// "Pendiente: wiring JS — archivo no adjunto en esa sesión, Rune lo agrega"). Selector
+// shell.querySelector('.mss-content') — no getElementById, .mss-content no tiene id
+// propio (index.html L1679, hijo único de .mss-box dentro de #modal-split-shell).
+// contract_update: no — sin cambio de firma en showMergeDiffPanel/teardownMergeDiffPanel,
+// solo un segundo classList en los mismos call sites (mismo criterio ya declarado por
+// Nova en su comentario CSS: "sin JS nuevo de detección de estado").
 // [PP] mod:82 · autor:Rune · 2026-07-31 17:05 UTC-6
 // TKT1+TKT2 (REQ ref_id CAEL-0731-01 — Zona Identidad, TKT-202607-204/Nova mod:85):
 // _buildPatchCard() ya no pasa changes por _fieldChips() genérico. Helpers nuevos:
@@ -393,6 +405,10 @@ export function teardownMergeDiffPanel() {
     overlay.classList.remove('mdiff-overlay--filled');
     overlay.classList.add('mdiff-overlay--empty');
   }
+  // TKT CAEL-0803-02 (locus-modals-base.css L436-443, Nova): inversa exacta, mismo criterio
+  // que el punto de cierre-aplicar — cubre cancelar (2412) y Escape (2480), únicos dos
+  // callers de este teardown.
+  if (shell) shell.querySelector('.mss-content')?.classList.add('mss-content--ingest-wide');
   if (_mdiffPanelAC) { _mdiffPanelAC.abort(); _mdiffPanelAC = null; }
   if (typeof _mdiffOnClose === 'function') _mdiffOnClose();
   _mdiffUpdateConfirmBtn = null;
@@ -2114,6 +2130,11 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   if (shell) shell.classList.add('open');
   overlay.classList.remove('mdiff-overlay--empty');
   overlay.classList.add('mdiff-overlay--filled');
+  // TKT CAEL-0803-02 (REQ ref_id CAEL-0803-01, Nova mod:23 de locus-modals-base.css):
+  // .mss-content--ingest-wide es la inversa exacta de --filled — se retira aquí, en el
+  // mismo movimiento donde --filled se agrega. shell.querySelector, no getElementById:
+  // .mss-content es hijo único de .mss-box sin id propio (index.html L1679).
+  if (shell) shell.querySelector('.mss-content')?.classList.remove('mss-content--ingest-wide');
   _mdiffStepZeroActive = true; // T-202606-006
 
   // Fix de esta sesión: onClose capturado en la referencia de módulo — teardownMergeDiffPanel()
@@ -2271,6 +2292,10 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     if (shell) shell.classList.remove('open');
     overlay.classList.remove('mdiff-overlay--filled');
     overlay.classList.add('mdiff-overlay--empty');
+    // TKT CAEL-0803-02 (locus-modals-base.css L436-443, Nova): inversa exacta — al retirar
+    // --filled se re-agrega --ingest-wide, dejando el shell en el estado correcto para la
+    // próxima apertura en vacío (antes de que showMergeDiffPanel() vuelva a correr).
+    if (shell) shell.querySelector('.mss-content')?.classList.add('mss-content--ingest-wide');
     // Fix de esta sesión: keydown + storage:item-excluded comparten _mdiffPanelAC — un solo
     // abort() reemplaza el removeEventListener + _itemExcludedAC.abort() separados de antes.
     if (_mdiffPanelAC) { _mdiffPanelAC.abort(); _mdiffPanelAC = null; }
