@@ -1,3 +1,8 @@
+<!-- [PP] mod:171 · autor:Rune · 2026-08-02 UTC-6 -->
+<!-- Ad-hoc (reorden nav header, sin REQ/TKT — mismo tratamiento que mod:146): botones .tab-btn
+     reordenados a Backlog · Sprint · Incidentes · Sesiones · Analytics. Sin cambio de lógica —
+     locus-ui-shell.js selecciona por id, no por orden DOM (bindNavClicks). Sin impacto CSS —
+     .tabs usa flex, no depende de nth-child. -->
 <!-- [PP] mod:170 · autor:Rune · 2026-08-01 UTC-6 -->
 <!-- TKT3 (REQ-202607-083, ref_id CAEL-0801-03, origen_disc DISC-202608-092): retirado
      markup completo de #proj-modal-overlay (modal legacy de gestión de proyectos) — dead
@@ -262,15 +267,15 @@
     <!-- TKT-header-zonas: zona Navegación -->
     <div class="header-zone header-zone--nav">
       <div class="tabs">
-        <button class="tab-btn" id="tab-btn-sesiones" title="Ver Sesiones"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5v4.5l3 2"/><circle cx="9" cy="9" r="6.5"/><path d="M4.5 3 3 4.5"/></svg>Sesiones<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sesiones"></span></button>
-        <button class="tab-btn" id="tab-btn-sprint" title="Sprint — estado y ejecución del sprint activo"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 15 8 8l3 3 4-6"/><path d="M11 5h4v4"/></svg>Sprint<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sprint"></span></button>
         <button class="tab-btn" id="tab-btn-backlog" title="Backlog — ítems, sprints y estado del ecosistema"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h7"/><circle cx="14" cy="13" r="1.6"/></svg>Backlog<span class="tab-notif-badge is-hidden" id="tab-notif-badge-backlog"></span></button>
+        <button class="tab-btn" id="tab-btn-sprint" title="Sprint — estado y ejecución del sprint activo"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 15 8 8l3 3 4-6"/><path d="M11 5h4v4"/></svg>Sprint<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sprint"></span></button>
         <!-- TKT2 (REQ-202607-048): tab-btn-proyectos retirado de la barra — el nombre de
              proyecto en el header (#breadcrumb-proj) es ahora el único punto de entrada visible
              a la vista Documentos/Context. #tab-proyectos y switchTab('proyectos') siguen
              intactos, solo se retiró el botón redundante de la barra de tabs. -->
         <!-- TKT2 (REQ CAEL-01 · Q-INC tab top-level): nuevo tab de primer nivel, separa Rama Reactiva de Rama Planeada (Backlog) -->
         <button class="tab-btn" id="tab-btn-incidentes" title="Incidentes — INC · PRB · KE · CHG (Rama Reactiva)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3 2.5 14.5h13Z"/><path d="M9 7.5v3.2"/><circle cx="9" cy="12.6" r=".2" fill="currentColor" stroke="none"/></svg>Incidentes<span class="tab-notif-badge is-hidden" id="tab-notif-badge-incidentes"></span></button>
+        <button class="tab-btn" id="tab-btn-sesiones" title="Ver Sesiones"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5v4.5l3 2"/><circle cx="9" cy="9" r="6.5"/><path d="M4.5 3 3 4.5"/></svg>Sesiones<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sesiones"></span></button>
         <button class="tab-btn" id="tab-btn-analytics" title="Analytics — sesiones por mes"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 15V9M8 15V3M13 15v6"/></svg>Analytics<span class="tab-notif-badge is-hidden" id="tab-notif-badge-analytics"></span></button>
       </div>
     </div>
