@@ -1,4 +1,4 @@
-// [PP] mod:122 · autor:Rune · 2026-08-03 20:00 UTC-6
+// [PP] mod:123 · autor:Rune · 2026-08-03 20:30 UTC-6
 // TKT-202607-142 (REQ-202607-045, retroactivo — reemplaza TKT-202607-141): retirado el
 // listener 'shell:sprint-render' agregado en mod:120 — dead code, ver bloque en el cuerpo
 // del archivo. TKT-202607-134 (mod:135 de locus-backlog-core.js) ya había renombrado los 3
@@ -2146,6 +2146,30 @@ export function renderSprintTab() {
     }
 
     // B-202606-064: botón 'Aprobar apertura' eliminado — aprobación ocurre via Step 0 del DIFF
+
+    // TKT1 (REQ CAEL-0804-01): goal + scope — sin fallback CSS, el nodo se oculta
+    // vía is-hidden cuando el sprint no declara el campo (comentario en locus-sprint.css).
+    const goalEl  = _spEl('sph-goal');
+    if (goalEl) {
+      const hasGoal = !!(sprint.goal && String(sprint.goal).trim());
+      goalEl.textContent = hasGoal ? sprint.goal : '';
+      goalEl.classList.toggle('is-hidden', !hasGoal);
+    }
+    const scopeChipEl = _spEl('sph-scope-chip');
+    if (scopeChipEl) {
+      const hasScope = !!(sprint.scope && String(sprint.scope).trim());
+      scopeChipEl.textContent = hasScope ? sprint.scope : '';
+      scopeChipEl.classList.toggle('is-hidden', !hasScope);
+    }
+
+    // TKT1 (REQ CAEL-0804-01): resumen colapsado — hermano de .sph-inner (ver index.html),
+    // poblado siempre (visibilidad la resuelve el CSS .sph-header.is-collapsed).
+    const collapsedGoalEl    = _spEl('sph-collapsed-goal');
+    const collapsedVersionEl = _spEl('sph-collapsed-version');
+    if (collapsedGoalEl)    collapsedGoalEl.textContent    = sprint.goal || '';
+    if (collapsedVersionEl) collapsedVersionEl.textContent = sprint.version_target ? `v${sprint.version_target}` : '';
+    // #sph-collapsed-pct se puebla después de _renderSprintItems(sprint) más abajo —
+    // el burndown (#sph-bd-pct) todavía no está computado en este punto del render.
   }
 
   // T-202606-100: aplicar estado de colapso persistido al header
@@ -2157,6 +2181,14 @@ export function renderSprintTab() {
   // Ítems
   if (itemsList) itemsList.classList.remove('is-hidden');
   _renderSprintItems(sprint);
+
+  // TKT1 (REQ CAEL-0804-01): #sph-collapsed-pct — leído recién aquí, después de
+  // _renderSprintItems(sprint), que es quien computa #sph-bd-pct (ver L1637).
+  const collapsedPctEl = _spEl('sph-collapsed-pct');
+  if (collapsedPctEl) {
+    const bdPctEl = _spEl('sph-bd-pct');
+    collapsedPctEl.textContent = bdPctEl ? bdPctEl.textContent : '0%';
+  }
 
   // Workers
   _renderSprintWorkers(sprint);

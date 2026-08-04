@@ -1,4 +1,4 @@
-<!-- [PP] mod:173 · autor:Rune · 2026-08-03 18:00 UTC-6 -->
+<!-- [PP] mod:174 · autor:Rune · 2026-08-03 20:30 UTC-6 -->
 <!-- Fusión de dos entregas paralelas mod:172, ambas partiendo del mismo mod:170 (reorden nav
      header, ad-hoc): "indexa.html" solo contenía el reorden de nav sin trabajo adicional.
      "index.html" contenía el mismo reorden + TKT1/TKT2 (REQ CAEL-0803-01, design_intent:
@@ -936,6 +936,13 @@
     <!-- T-202606-100: botón colapso + sph-name fuera de sph-inner — siempre visibles -->
     <button class="sph-collapse-btn" id="sph-collapse-btn" type="button" aria-expanded="true" aria-label="Colapsar header"></button>
     <div class="sph-name" id="sph-name"></div>
+    <!-- TKT1 (REQ CAEL-0804-01): resumen colapsado — hermano de .sph-inner, no hijo,
+         para permanecer visible cuando .sph-inner recibe is-hidden en _sphApplyCollapsed(). -->
+    <div class="sph-collapsed-summary" id="sph-collapsed-summary">
+      <span class="sph-collapsed-goal" id="sph-collapsed-goal"></span>
+      <span class="sph-collapsed-version" id="sph-collapsed-version"></span>
+      <span class="sph-collapsed-pct" id="sph-collapsed-pct"></span>
+    </div>
     <div class="sph-inner">
       <!-- spt-identity — TKT-202607-126/127 (REQ-202607-039, Nova): instancia única, compartida
            entre Ítems y Planificar vía .sph-header — evita duplicación de estructura (BR-Execution
@@ -944,6 +951,10 @@
         <span class="pill-project" id="spt-identity-chip"></span>
         <span class="spt-identity-label" id="spt-identity-label"></span>
       </div>
+      <!-- TKT1 (REQ CAEL-0804-01): goal + scope del sprint — omitidos vía is-hidden si el
+           sprint no los declara (sin fallback CSS, ver locus-sprint.css). -->
+      <p class="sph-goal is-hidden" id="sph-goal"></p>
+      <span class="sph-scope-chip is-hidden" id="sph-scope-chip"></span>
       <!-- T-202606-130: badge visible solo cuando sprint.formallyOpened === false -->
       <span class="sph-pending-badge is-hidden" id="sph-pending-badge">Pendiente aprobación</span>
       <!-- B-202606-064: botón 'Aprobar apertura' eliminado — aprobación ocurre via Step 0 del DIFF -->
