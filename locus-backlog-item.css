@@ -1,6 +1,27 @@
-/* [PP] mod:89 · autor:Nova · 2026-08-04 UTC-6 */
-/* mod:89 — INC-202608-083: familia .mdiff-zone*/.mdiff-bucket* sin CSS propio desde
-   TKT-202607-205 — ver comentario inline en el bloque agregado, cerca de línea ~3880. */
+/* [PP] mod:91 · autor:Nova · 2026-08-04 UTC-6 */
+/* mod:91 — Retiro de .mdiff-type-badge (CSS muerto): sin consumidor JS confirmado tras el
+   retiro del <span> equivalente en _fieldChips() (locus-backlog-merge.js, R-202605-148 post-
+   INC-202608-084) — grep completo del JS confirma 0 template literals ni concatenaciones que
+   generen esta clase. Excepción de resolución directa aplicada: dueño presente (Nova), nivel
+   Patch (sin cambio de comportamiento — nada la consumía), sin bifurcación de founder. El
+   acento de tipo por card sigue vivo en .mdiff-type--tkt/--inc/etc. (no confundir, distinto
+   selector) y en .bitem-type-* — ninguno de los dos se toca. */
+/* mod:90 — Colores por incident_status para .mdiff-queue-badge--qinc en panel DIFF (Desglose
+   de ingesta): la variante --qinc nunca tuvo color propio (quedaba en el neutro base, ver
+   comentario histórico junto a .mdiff-queue-badge--qdisc, ~línea 3557) — cierra ese gap con
+   4 modificadores por status, mismo patrón estructural (color-mix 15%/30% sobre el token base)
+   ya usado por --qdisc. Mapeo acordado con Cael/Finn: detected→amber (mismo semántico que
+   sla-riesgo/pendiente de atención), resolved→blue (info/en tránsito, consistente con
+   --alert-docupdate), closed→green (ya decidido en fix inline de _fieldChips(),
+   locus-backlog-merge.js mod:86 — mismo verde, ver TKT triggered_by INC-202608-084),
+   escalated_to_prb/escalated_to_chg→purple (familia distinta, evita colisión con --red,
+   reservado a sla-vencido). Todas usan la variante -text en color: (WCAG AA), consistente con
+   el patrón ya migrado en este archivo (ver .mdiff-finnrelease-* / mod:99-100 de css-ref) —
+   no con el --blue crudo que --qdisc todavía usa (deuda preexistente, fuera de scope de este
+   cambio). Ninguna variante nueva se declaró para root_cause_confirmed — PRB comparte
+   incident_status con INC/CHG y hereda el mismo set de 4 clases; root_cause_confirmed no
+   tiene modificador propio porque module-contracts no lo declaró en el mapeo aprobado —
+   hallazgo a confirmar con Cael si aparece en datos reales. */
 /* mod:88 — Conflicto CSS resuelto contra locus-backlog-merge.js mod:84 (markup real, escrito
    antes de que este CSS existiera): mi mod:87 declaraba .mdiff-unresolved-invalid-remove-btn,
    el JS real usa .mdiff-unresolved-invalid-btn — sin coincidencia. .mdiff-unresolved-invalid-wrap
@@ -2666,21 +2687,7 @@
   flex-wrap: nowrap;
 }
 
-.mdiff-type-badge {
-  font-size: var(--text-2xs);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--_type-color, var(--border));
-  color: var(--_type-color, var(--text2));
-  border-color: var(--mdiff-type-color, var(--border));
-  background: color-mix(in srgb, var(--_type-color, transparent) 14%, transparent);
-  flex-shrink: 0;
-  min-width: 20px;
-  text-align: center;
-}
+/* .mdiff-type-badge retirado mod:91 — CSS muerto, sin consumidor JS. Ver header de este archivo. */
 
 .mdiff-code {
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
@@ -3565,6 +3572,35 @@ body {
   color: var(--blue);
   background: color-mix(in srgb, var(--blue) 15%, transparent);
   border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent);
+}
+
+/* mod:90 — .mdiff-queue-badge--qinc-* : color por incident_status (INC/PRB/CHG en Q-INC).
+   Mismo tratamiento estructural que .mdiff-queue-badge--qdisc (color-mix 15%/30% sobre el
+   token base), pero color: usa la variante -text — WCAG AA, no el token crudo. Mapeo:
+   detected → amber · resolved → blue · closed → green · escalated_to_prb/escalated_to_chg →
+   purple. root_cause_confirmed sin modificador propio — ver nota de header mod:90. */
+.mdiff-queue-badge--qinc-detected {
+  color: var(--amber-text);
+  background: color-mix(in srgb, var(--amber) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--amber) 30%, transparent);
+}
+
+.mdiff-queue-badge--qinc-resolved {
+  color: var(--blue-text);
+  background: color-mix(in srgb, var(--blue) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent);
+}
+
+.mdiff-queue-badge--qinc-closed {
+  color: var(--green-text);
+  background: color-mix(in srgb, var(--green) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--green) 30%, transparent);
+}
+
+.mdiff-queue-badge--qinc-escalated {
+  color: var(--purple-text);
+  background: color-mix(in srgb, var(--purple) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--purple) 30%, transparent);
 }
 
 /* ══ END R-202605-148 ══ */
