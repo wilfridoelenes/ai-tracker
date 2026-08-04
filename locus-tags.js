@@ -1,3 +1,8 @@
+// [PP] mod:2 · autor:Rune · 2026-08-04 UTC-6
+// DISC-202608-094 (auditoría del patrón render()-sin-_markTrackerDirty(), origen INC-202608-086):
+//   toggleTagOnSession() y addNewTag() invocaban render() sin _markTrackerDirty() previo — mismo
+//   pintado no-op silencioso. Import agregado + _markTrackerDirty() antes de cada render().
+//   contract_update: no.
 // [PP] v1.2.4 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-30 UTC-6
 // locus-tags.js
 // Módulo: Tags — modal, picker, colores, toggle, creación
@@ -6,7 +11,7 @@
 import { _saveModalTrigger } from './locus-modals.js';
 import { _findSession, getState, save } from './locus-storage.js';
 import { showToast } from './locus-toast.js';
-import { render } from './locus-sesiones.js';
+import { render, _markTrackerDirty } from './locus-sesiones.js';
 import { openDetail } from './locus-session-popup.js';
 import { esc } from './locus-ui-shell.js';
 
@@ -84,7 +89,7 @@ export function toggleTagOnSession(tagId) {
   else s.tags.push(tagId);
   save();
   renderTagPicker();
-  render();
+  _markTrackerDirty(); render();
   openDetail(tagModalAIId, tagModalSessId);
 }
 
@@ -103,7 +108,7 @@ export function addNewTag() {
   save();
   renderTagPicker();
   renderColorPicker();
-  render();
+  _markTrackerDirty(); render();
   document.getElementById('tag-new-input').value = '';
   showToast('success', `Etiqueta "${name}" creada`);
 }

@@ -1,3 +1,27 @@
+// [PP] mod:26 · autor:Rune · 2026-08-04 UTC-6
+// INC-202608-087 (derivado de INC-202608-085, misma auditoría end-to-end footer
+// DOC-UPDATEs): #sstab-btn-docupdates (index.html) nace is-hidden y ningún módulo lo
+// revelaba — verificado sin ocurrencias en este archivo, locus-projects.js,
+// locus-ui-shell.js ni locus-contracts.js. Fix: _updateDocUpdatesBadge() toggla is-hidden
+// del sub-tab según total de entradas pendientes (AC1/AC2). processDocUpdate() ahora llama
+// renderDocUpdatesPending() en sus dos ramas mutantes (primera entrada / conflicto) — sin
+// esto, el sub-tab recién revelado nunca se actualizaba hasta que el usuario lo activara
+// manualmente, imposible mientras seguía is-hidden (círculo cerrado). AC3 del INC (navegar
+// desde el footer #gf-ckpt) queda sin verificar — ese código vive en
+// locus-sesiones-stats.js (_getFooterAlert), no adjunto en esta sesión.
+// [PP] mod:25 · autor:Rune · 2026-08-04 UTC-6
+// INC-202608-085 (auditoría end-to-end footer DOC-UPDATEs solicitada por el founder):
+// processDocUpdate() corregido — leía { doc, seccion, contenido } (nombres del formato
+// Markdown legacy) en vez de doc/section/content (schema JSON vigente, __BR-Ecosystem §8).
+// Toda entrada real llegaba indexada como "[doc]::undefined" con contenido perdido; dos
+// DOC-UPDATEs del mismo doc en secciones distintas colisionaban en la misma key. Fix con
+// fallback a los nombres legacy — extractDocUpdates() y su único call site (path Markdown en
+// locus-session-save.js) siguen funcionando sin cambio. Se agregan accion/escalateTo al
+// índice — antes se perdían siempre, sin excepción. Ver detalle completo en el comentario de
+// la función. contract_update: sí — nuevos campos accion/escalateTo en las entradas de
+// docUpdateIndex[key][], consumidos por locus-backlog-sprints.js (Paso 2 del cierre de sprint,
+// mismo CHECKPOINT). No modifica extractDocUpdates(), renderDocUpdatesPending() ni
+// resolveDocUpdate() — el fix es exclusivo del punto de entrada.
 // [PP] mod:24 · autor:Rune · 2026-07-30 09:00 UTC-6
 // INC-202607-073: importHtmlMap() y _importContextMdFromText() escribían CONTEXT/HTML-MAP
 // solo a localStorage y nunca llamaban saveContextDocs() — tracker_docs quedaba vacía en
@@ -847,8 +871,26 @@ export function extractDocUpdates(text) {
 // Detecta conflicto (misma key, contenido distinto), actualiza flags y llama save().
 // checkpointTitle: campo Título del CHECKPOINT de origen — para el mensaje de conflicto.
 // Retorna { key, conflicto, msg } — msg es la alerta de conflicto si aplica.
+// INC-202608-085 (hallazgo de auditoría end-to-end del footer DOC-UPDATEs, 2026-08-04):
+// esta función solo leía { doc, seccion, contenido } — nombres en español, heredados del
+// formato Markdown legacy ---DOC-UPDATE--- (extractDocUpdates(), arriba en este archivo, que
+// sí produce esos nombres). El schema JSON vigente (único formato válido hoy, __BR-Ecosystem
+// §8) usa doc/section/action/escalate_to/content — nombres en inglés. Los 4 call sites reales
+// (parsePaste y batch en locus-session-parse.js, path Markdown y path JSON en
+// locus-session-save.js) pasan el objeto crudo sin remapear — confirmado que
+// locus-session-parse.js ~L2140 ya usa du.section correctamente para otro propósito, prueba de
+// que el campo real es `section`, no `seccion`. Efecto: toda entrada del schema JSON se
+// indexaba como "[doc]::undefined" con contenido perdido, y dos DOC-UPDATEs del mismo doc en
+// secciones distintas colisionaban en la misma key (conflicto falso). action/escalate_to nunca
+// se persistían. Fix: normalizar con fallback al nombre legacy — sin tocar extractDocUpdates()
+// ni ningún call site, causa raíz resuelta en el único punto de entrada. contract_update: sí
+// — ver CHECKPOINT de esta entrega, entradas de docUpdateIndex[key][] ganan accion/escalateTo.
 export function processDocUpdate(update, checkpointTitle) {
-  const { doc, seccion, contenido } = update;
+  const doc        = update.doc;
+  const seccion     = update.section      ?? update.seccion   ?? '';
+  const contenido   = update.content      ?? update.contenido ?? '';
+  const accion      = update.action       ?? update.accion    ?? '';
+  const escalateTo  = update.escalate_to  ?? update.escalateTo ?? '';
   const key = doc + '::' + seccion;
   const index = _getDocUpdateIndex();
 
@@ -856,9 +898,12 @@ export function processDocUpdate(update, checkpointTitle) {
     // Primera entrada para esta key en el sprint — sin conflicto
     // REQ-[pendiente-ID] (TKT1): createdAt registra el momento exacto de creación de la
     // entrada — base para el cómputo de vencimiento (footer alert prioridad 3 / BR-Ecosystem §3).
-    index[key] = [{ contenido, titulo: checkpointTitle, conflicto: false, createdAt: Date.now() }];
+    index[key] = [{ contenido, titulo: checkpointTitle, conflicto: false, createdAt: Date.now(), accion, escalateTo }];
     _setDocUpdateIndex(index);
     _blogLog('ckpt-creado', key, checkpointTitle, 'backlog');
+    // INC-202608-087: sin este call, el sub-tab/badge no reflejaban la entrada nueva hasta
+    // que el sub-tab (hasta ahora inalcanzable) se activara manualmente — círculo cerrado.
+    renderDocUpdatesPending();
     return { key, conflicto: false, msg: null };
   }
 
@@ -874,9 +919,12 @@ export function processDocUpdate(update, checkpointTitle) {
   // AC-2: contenido distinto → conflicto — marcar ambas entradas existentes y la nueva
   // createdAt de la entrada nueva es propio — no hereda el de las entradas previas de la key.
   existing.forEach(e => { e.conflicto = true; });
-  existing.push({ contenido, titulo: checkpointTitle, conflicto: true, createdAt: Date.now() });
+  existing.push({ contenido, titulo: checkpointTitle, conflicto: true, createdAt: Date.now(), accion, escalateTo });
   _setDocUpdateIndex(index);
   _blogLog('ckpt-creado', key, 'conflicto: ' + checkpointTitle, 'backlog');
+  // INC-202608-087: mismo criterio que la rama sin conflicto — mantener el sub-tab/badge
+  // sincronizados con el índice real en cuanto cambia, no solo al activar el sub-tab.
+  renderDocUpdatesPending();
 
   const titulos = existing.map(e => e.titulo).filter(Boolean);
   const msg = 'Conflicto DOC-UPDATE: ' + seccion + ' de ' + doc +
@@ -1017,6 +1065,14 @@ export function renderDocUpdatesPending() {
 }
 
 // _updateDocUpdatesBadge — actualiza el badge del nav btn y el contador de conflictos.
+// INC-202608-087 (auditoría end-to-end footer DOC-UPDATEs, derivada de INC-202608-085):
+// #sstab-btn-docupdates nace is-hidden en index.html y ningún módulo lo revelaba —
+// verificado sin ocurrencias en locus-docs.js, locus-projects.js, locus-ui-shell.js ni
+// locus-contracts.js. Este es el único punto de la app que ya conoce el conteo real de
+// DOC-UPDATEs pendientes (total, recibido de renderDocUpdatesPending()) en cada render —
+// se agrega el toggle del sub-tab aquí en vez de introducir un nuevo call site. sin AC de
+// contrato adicional: no cambia firma, agrega efecto lateral sobre un botón hasta ahora
+// inalcanzable.
 function _updateDocUpdatesBadge(total, conflicts) {
   const badge = document.getElementById('tpl-badge-docupdates');
   if (badge) {
@@ -1029,6 +1085,11 @@ function _updateDocUpdatesBadge(total, conflicts) {
       ? `${conflicts} conflicto${conflicts > 1 ? 's' : ''} sin resolver`
       : '';
     conflictSummary.classList.toggle('is-hidden', conflicts === 0);
+  }
+  // INC-202608-087, AC1+AC2: revelar/ocultar el sub-tab según haya o no entradas pendientes.
+  const subTabBtn = document.getElementById('sstab-btn-docupdates');
+  if (subTabBtn) {
+    subTabBtn.classList.toggle('is-hidden', total === 0);
   }
 }
 

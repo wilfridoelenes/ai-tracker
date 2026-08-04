@@ -1,3 +1,19 @@
+// [PP] mod:60 · autor:Rune · 2026-08-04 UTC-6
+// INC-202608-085 (auditoría end-to-end footer DOC-UPDATEs solicitada por el founder):
+// confirmCloseSprint() leía sp.docUpdates para poblar el Paso 2 del modal de cierre — campo
+// que ningún archivo del repo asigna jamás (grep confirmado); el Paso 2 siempre renderizaba
+// vacío, desconectado del índice real (docUpdateIndex, locus-docs.js). Fix: leer
+// _getDocUpdateIndex() directamente — mismo scoping por proyecto activo que ya usaba el
+// bloque de cómputo de `vencido` en _scmExecuteClose(). Gate duro agregado en
+// _scmExecuteClose() — antes solo el botón Siguiente se deshabilitaba (_scmUpdateDuNextBtn),
+// sin guard en el cierre en sí; con docUpdates ahora poblado, ese gate era vacuo (longitud 0)
+// y nunca bloqueaba. La resolución del Paso 2 (Aplicado/Descartado por fila) ahora se
+// persiste sobre el índice real al ejecutar el cierre — antes solo mutaba _scmState local sin
+// tocar docUpdateIndex, dejando las entradas "resueltas" en el wizard visibles otra vez en el
+// panel de Backlog. contract_update: sí — ver CHECKPOINT de esta entrega, docUpdates de
+// _scmState gana campo `key` (referencia directa a docUpdateIndex, evita reconstruir
+// doc+'::'+seccion). No modifica _scmStepDuHtml() ni el markup del Paso 2 — mismos campos
+// consumidos (doc/seccion/escalarA/resolucion), solo cambia su origen.
 // [PP] mod:59 · autor:Rune · 2026-07-26 09:40 UTC-6
 // Corrección de trazabilidad — resuelta en sesión (Patch, dueño presente, sin bifurcación
 // de founder): el header de mod:58 y las referencias inline citaban 'TKT-202607-131
@@ -825,15 +841,30 @@ export function confirmCloseSprint(id) {
   const effortNotDone      = pendingItems.reduce((s, i) => s + (parseInt(i.effort) || 0), 0);
   const hasItemsWithoutEffort = allSprintItems.some(i => !i.effort || parseInt(i.effort) === 0);
 
-  // T-202606-120 AC-6: leer DOC-UPDATEs desde sprint.docUpdates — array de { doc, seccion, escalarA }
-  const rawDu = Array.isArray(sp.docUpdates) ? sp.docUpdates : [];
-  const docUpdates = rawDu.map((du, idx) => ({
-    id:         idx,
-    doc:        du.doc        || '—',
-    seccion:    du.seccion    || '—',
-    escalarA:   du.escalarA   || du.escalar_a || '',
-    resolucion: null, // 'aplicado' | 'descartado' | null
-  }));
+  // T-202606-120 AC-6 — corregido (INC-202608-085, auditoría end-to-end footer
+  // DOC-UPDATEs): leía sp.docUpdates, campo que ningún archivo del repo asigna jamás — el
+  // Paso 2 de este wizard siempre renderizaba vacío, desconectado de docUpdateIndex (el
+  // índice real, poblado por processDocUpdate() y consumido por el panel de Backlog,
+  // locus-docs.js renderDocUpdatesPending()). Se lee ahora _getDocUpdateIndex() directamente
+  // — ya scoped al proyecto activo (mismo criterio que el bloque de cómputo de `vencido` más
+  // abajo en _scmExecuteClose(), que ya confía en ese scoping sin filtrar de nuevo). Cada key
+  // presente en el índice es, por definición, una entrada sin resolver — Aplicar/Descartar
+  // (locus-docs.js _initDocUpdatesListeners) elimina la key al resolverla. `key` se conserva
+  // en cada fila — necesario en _scmExecuteClose() para persistir la resolución del Paso 2
+  // sobre el índice real sin reconstruir doc+'::'+seccion (evita bug si alguno contuviera '::').
+  const _duIndexOpen = _getDocUpdateIndex();
+  const docUpdates = Object.keys(_duIndexOpen).map((key, idx) => {
+    const [docName, seccionName] = key.split('::');
+    const _entry = (_duIndexOpen[key] || [])[0] || {};
+    return {
+      id:         idx,
+      key,
+      doc:        docName    || '—',
+      seccion:    seccionName || '—',
+      escalarA:   _entry.escalateTo || '',
+      resolucion: null, // 'aplicado' | 'descartado' | null
+    };
+  });
 
   _scmState = {
     id,
@@ -1394,7 +1425,35 @@ function _scmStep3Html(pendingItems, doneItems, migrations, skipStep3) {
 async function _scmExecuteClose() {
   if (!_scmState) return;
   const { id, pendingItems, migrations, retroNotes,
-          effortPlanned, effortDone, effortScopeAdded, effortNotDone } = _scmState;
+          effortPlanned, effortDone, effortScopeAdded, effortNotDone, docUpdates } = _scmState;
+
+  // Gate duro de cierre — DOC-UPDATE sin resolver (__BR-Ecosystem §5: "Locus bloquea el
+  // cierre automáticamente si hay DOC-UPDATEs sin resolución"). INC-202608-085: antes de
+  // este fix, _scmState.docUpdates se construía siempre vacío (sp.docUpdates nunca poblado) —
+  // el gate de _scmUpdateDuNextBtn (arriba, disabled del botón Siguiente) se satisfacía
+  // trivialmente por longitud 0 y nunca bloqueaba nada. Con docUpdates ahora poblado desde el
+  // índice real (confirmCloseSprint()), este guard es defensa en profundidad — misma regla que
+  // ya debería impedir llegar aquí vía UI, pero la regla dura del BR es sobre el cierre en sí,
+  // no solo sobre la navegación del wizard.
+  const _duUnresolved = (docUpdates || []).some(d => d.resolucion === null);
+  if (_duUnresolved) {
+    showToast('error', 'Bloqueo: hay DOC-UPDATEs sin resolver — vuelve al Paso 2 antes de cerrar el sprint.');
+    return;
+  }
+
+  // Persistir la resolución del Paso 2 sobre el índice real — misma acción que
+  // "Aplicar"/"Descartar" en el panel de Backlog (locus-docs.js _initDocUpdatesListeners):
+  // elimina la key del índice y registra en DocLog. El gate de arriba ya garantiza que toda
+  // entrada de docUpdates tiene resolucion !== null en este punto.
+  if (docUpdates && docUpdates.length) {
+    const _duIndexClose = _getDocUpdateIndex();
+    docUpdates.forEach(du => {
+      if (!du.key || !_duIndexClose[du.key]) return;
+      _blogLog(du.resolucion, du.key, du.doc + '::' + du.seccion + ' — resuelto en cierre de sprint ' + id, 'backlog');
+      delete _duIndexClose[du.key];
+    });
+    _setDocUpdateIndex(_duIndexClose);
+  }
 
   // aplicar migraciones de pendientes
   const closeTs = Date.now();

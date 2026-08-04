@@ -1,3 +1,13 @@
+// [PP] mod:29 · autor:Rune · 2026-08-04 UTC-6
+// INC-202608-087 TKT AC3: _getFooterAlert() declaraba targetTab:'backlog' para la alerta
+// 'docupdate' — incorrecto. El sub-tab #sstab-btn-docupdates vive en Tab Proyectos desde que
+// REQ CAEL-01 migró docupdates/contratos ahí (ver locus-docs.js). switchTab('backlog') abría
+// el tab equivocado antes de que switchSubTab('docupdates') intentara revelar un sub-tab que
+// no existe en ese panel — el click del footer no llevaba a ningún lado funcional. Corregido
+// a targetTab:'proyectos', consistente con el resto de tabs referenciados por su key corta
+// (sesiones/sprint/incidentes/backlog/analytics). El handler de click (switchTab + setTimeout
+// switchSubTab) no cambia — ya soportaba targetSubTab correctamente, el dato de entrada era
+// el que estaba mal.
 // [PP] mod:28 · autor:Rune · 2026-07-24 UTC-6
 // TKT2 (REQ CAEL-0723-01, ref_id CAEL-0723-01): _getFooterAlert() — incAlert gatea con
 // isSlaClockPaused(i) (locus-backlog-core.js) antes de evaluar slaDeadline. Un INC high con
@@ -13,7 +23,8 @@
 // [PP] mod:26 · autor:Rune · 2026-07-14 UTC-6
 // TKT-[pendiente-ID] (TKT1+TKT3 · REQ-[pendiente-ID] DOC-UPDATE vencido en footer): agregado
 //   _docUpdateStaleness() (umbral 14d, mismo criterio que _zoneStaleness) + prioridad 4 en
-//   _getFooterAlert() → { type:'docupdate', targetTab:'backlog', targetSubTab:'docupdates' }.
+//   _getFooterAlert() → { type:'docupdate', targetTab:'proyectos', targetSubTab:'docupdates' }.
+//   INC-202608-087: targetTab corregido de 'backlog' a 'proyectos' — ver header mod:29.
 //   Click handler extendido: switchSubTab(alert.targetSubTab) opcional tras switchTab, sin
 //   regresión en inc/sprint/backlog (no declaran targetSubTab). TKT2 (Nova · clase CSS
 //   .gf-ckpt--alert-docupdate) bloqueado — falta _Locus-css-ref.md adjunto en la sesión.
@@ -178,7 +189,7 @@ function _docUpdateStaleness() {
 //   con _zoneStaleness() != null → { type:'backlog', text, targetTab:'backlog' }.
 // AC-4 (happy path docupdate — prioridad 4, más baja): sin alerta INC/sprint/backlog, hay al
 //   menos 1 key en docUpdateIndex con antigüedad >=14d (createdAt mínimo entre sus entries) →
-//   { type:'docupdate', text, targetTab:'backlog', targetSubTab:'docupdates' }.
+//   { type:'docupdate', text, targetTab:'proyectos', targetSubTab:'docupdates' }.
 // AC-5 (estado vacío): ninguna condición activa → null — el caller aplica su propio fallback.
 // AC-6 (error): cualquier excepción interna → null, nunca propaga al caller.
 // no_incluye: no implementa el auto-descarte a "2 sprints" de BR-Ecosystem §3 (decisión
@@ -235,7 +246,7 @@ export function _getFooterAlert() {
       const text = docUpdateStale === 1
         ? `1 DOC-UPDATE sin resolver +${DOC_UPDATE_STALE_DAYS}d`
         : `${docUpdateStale} DOC-UPDATEs sin resolver +${DOC_UPDATE_STALE_DAYS}d`;
-      return { type: 'docupdate', text, targetTab: 'backlog', targetSubTab: 'docupdates' };
+      return { type: 'docupdate', text, targetTab: 'proyectos', targetSubTab: 'docupdates' };
     }
 
     return null;

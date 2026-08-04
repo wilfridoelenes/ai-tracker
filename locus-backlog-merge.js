@@ -1,4 +1,4 @@
-// [PP] mod:87 · autor:Rune · 2026-08-04 UTC-6
+// [PP] mod:88 · autor:Rune · 2026-08-04 UTC-6
 // TKT3 (parent: [pendiente-ID] · depends_on: TKT2 · design_intent: unresolved_refs_borrador):
 // sección 'Referencias sin resolver' separa source:'formato_invalido' (no bloquea guardar) del
 // resto (ref_no_resuelta/tmp_slug_no_resoluble/ref-id-sin-declarante, sigue en 'warn') — fila
@@ -642,8 +642,9 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // Todo CHECKPOINT válido abre el DIFF — sin excepción por total=0 ni por ausencia de narrativa.
 
   // ── Helpers de renderizado ──
-  // R-202605-148: pill corto B/T/R/P — letra única con color semántico en .mdiff-type-badge
-  const _typeName  = { INC: 'INC', TKT: 'TKT', REQ: 'REQ', DISC: 'DISC' };
+  // R-202605-148: mdiff-type-badge retirado del render (founder, sesión post-INC-202608-084) —
+  // _typeName quedaba sin consumidores tras retirar los 4 spans que lo usaban. _typeClass se
+  // conserva — sigue coloreando el borde de acento de cada card por tipo.
   // R-202605-148: clase CSS por tipo — hex fijos de identidad del backlog
   const _typeClass = { INC: 'mdiff-type--inc', TKT: 'mdiff-type--tkt', REQ: 'mdiff-type--req', DISC: 'mdiff-type--disc', PRB: 'mdiff-type--prb', KE: 'mdiff-type--ke', CHG: 'mdiff-type--chg' };
   // R-202605-148: orden canónico INC → REQ → TKT → DISC para sort dentro de sección
@@ -837,16 +838,18 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   };
 
   // REQ-MERGE-GEN2 TKT1: parámetro itemType (pos 3) — callers pasan i.type || _itemKindFn({code: i.code})
+  // Hallazgo del founder (sesión post-INC-202608-084): el badge de tipo (mdiff-type-badge)
+  // duplicaba visualmente el prefijo que el código ya trae (INC-202608-083 → badge 'INC' +
+  // código repite 'INC'). Retirado en las 4 cards que lo mostraban (_card, _retrocedoRow,
+  // _discardRow, _buildPatchCard) — el color por tipo (typeCls) se conserva en el borde
+  // de acento de la card, sin pérdida de la señal visual de tipo.
   const _card = (code, desc, accentClass, pillsHtml, extraHtml = '', parentOverride = undefined, sprintOverride = undefined, itemType = undefined) => {
     const typeCls   = _typeClass[itemType] || 'mdiff-type--unknown';
-    // R-202605-148: ítem sin tipo declarado muestra '?' — no rompe el render
-    const typeName  = _typeName[itemType]  || '?';
     return `
     <div class="mdiff-card mdiff-card--${accentClass} ${typeCls}">
       <div class="mdiff-card-accent"></div>
       <div class="mdiff-card-body">
         <div class="mdiff-card-top">
-          <span class="mdiff-type-badge">${typeName}</span>
           <span class="mdiff-code mdiff-card-title">${esc(code)}</span>
           ${pillsHtml}
           ${_sprintSelect(code, sprintOverride, itemType)}
@@ -863,14 +866,11 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   const _retrocedoRow = (i, idx) => {
     const itemType  = i.type || _itemKindFn({ code: i.code });
     const typeCls  = _typeClass[itemType] || 'mdiff-type--unknown';
-    // R-202605-148: ítem sin tipo declarado muestra '?'
-    const typeName = _typeName[itemType]  || '?';
     return `
     <div class="mdiff-card mdiff-card--warn mdiff-card--retroceso ${typeCls}" data-retroceso-idx="${idx}">
       <div class="mdiff-card-accent"></div>
       <div class="mdiff-card-body">
         <div class="mdiff-card-top">
-          <span class="mdiff-type-badge">${typeName}</span>
           <span class="mdiff-code mdiff-card-title">${esc(i.code)}</span>
           ${_pill('retroceso', `${esc(i.from)} → ${esc(i.to)}`)}
           ${_sprintSelect(i.code, i.sprint, itemType)}
@@ -886,8 +886,6 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   const _discardRow = (i, idx) => {
     const itemType  = i.type || _itemKindFn({ code: i.code });
     const typeCls   = _typeClass[itemType] || 'mdiff-type--unknown';
-    // R-202605-148: ítem sin tipo declarado muestra '?'
-    const typeName  = _typeName[itemType]  || '?';
     // B-202606-053: i.reason viene del diff (CHECKPOINT); si está ausente,
     // consultar discardReason del ítem en getItems() — ítem ya descartado en el backlog.
     const _existingItem = !i.reason ? getItems().find(it => it.code === i.code) : null;
@@ -901,7 +899,6 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       <div class="mdiff-card-accent"></div>
       <div class="mdiff-card-body">
         <div class="mdiff-card-top">
-          <span class="mdiff-type-badge">${typeName}</span>
           <span class="mdiff-code mdiff-card-title">${esc(i.code)}</span>
           ${_pill('discarded', 'descartado')}
           ${reasonHtml}
@@ -924,7 +921,6 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   const _buildPatchCard = (patchItem, existingItem) => {
     const itemType  = _itemKindFn({ code: patchItem.code });
     const typeCls   = _typeClass[itemType] || 'mdiff-type--unknown';
-    const typeName  = _typeName[itemType]  || '?';
     const changes = Object.keys(patchItem)
       .filter(field => !_PATCH_BLACKLIST.includes(field))
       .map(field => ({
@@ -957,7 +953,6 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       <div class="mdiff-card-accent"></div>
       <div class="mdiff-card-body">
         <div class="mdiff-card-top">
-          <span class="mdiff-type-badge">${typeName}</span>
           <span class="mdiff-code mdiff-card-title">${esc(patchItem.code)} · patch</span>
           ${_statusChipHtml(changes)}
           <button class="mdiff-zone-chevron" type="button" data-action="mdiff-toggle-zone"

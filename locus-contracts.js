@@ -1,3 +1,7 @@
+// [PP] mod:9 · autor:Rune · 2026-08-04 UTC-6
+// DISC-202608-094 (auditoría del patrón render()-sin-_markTrackerDirty(), origen INC-202608-086):
+//   confirmResetSessions() invocaba render() sin _markTrackerDirty() previo — mismo pintado no-op
+//   silencioso. Import agregado + _markTrackerDirty() antes de render(). contract_update: no.
 // [PP] v1.0.0 · sprint:PP-S-03 · mod:8 · autor:Rune · 2026-07-22 22:18 UTC-6
 // TKT1 (REQ finn_release/contract_detail.file — CAEL-0717-01): _ctrMergeFromItem ahora lee
 //   fn.file por función (infra_version 38, __BR-Execution §2) — antes solo se indexaba por
@@ -30,7 +34,7 @@ import { LOCUS_KEYS, _offlineQueuePush, _tplKey, getSupabaseContext, save, setSy
 import { showToast } from './locus-toast.js';
 
 import { switchSubTab, switchTab } from './locus-ui-shell.js';
-import { render } from './locus-sesiones.js';
+import { render, _markTrackerDirty } from './locus-sesiones.js';
 
 // ════════════════════════════════════════════════════════════════════
 // R-202604-075 · CONTRATOS DE MÓDULO
@@ -427,7 +431,7 @@ function confirmResetSessions() {
   closeResetSessionsModal();
 
   // Re-render
-  render();
+  _markTrackerDirty(); render();
   renderStats();
 
   showToast('success', 'Sesiones y sprints reseteados — Workers y Proyectos conservados');
