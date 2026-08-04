@@ -1,4 +1,12 @@
-// [PP] mod:59 · autor:Rune · 2026-08-02 UTC-6
+// [PP] mod:61 · autor:Rune · 2026-08-03 UTC-6
+// TKT-202608-230 (REQ-202608-087): _populateIngestModalHeader() aplica is-avail/is-insession/
+// is-exhausted a #ingest-split-header según estado real del worker — ver AC1-AC4 en el bloque
+// de comentario junto a headerState, dentro de la función.
+// [PP] mod:60 · autor:Rune · 2026-08-03 UTC-6
+// TKT-202608-228 (fix): rama de restauración de shell en _populateIngestModalHeader()
+// (empty→repopulate) seguía inyectando class="sc-project" — desalineada del rename a
+// .msh-worker-name aplicado en index.html. Corregido para no revertir AC1 cuando el
+// header pasa por .modal-split__header--empty y vuelve a poblarse.
 // TKT CAEL-0803-02 (REQ ref_id CAEL-0803-01, AC6): _openIngestModal agrega
 // .mss-content--ingest-wide en el mismo movimiento donde abre #modal-split-shell —
 // cierra el gap detectado por Finn (primera apertura de sesión no tenía el toggle,
@@ -1063,7 +1071,7 @@ function _populateIngestModalHeader(ai) {
   if (!document.getElementById('ingest-split-avatar')) {
     header.innerHTML = `<div class="sc-header-left">
         <div class="sc-avatar" id="ingest-split-avatar"></div>
-        <span class="sc-project" id="ingest-split-project"></span>
+        <span class="msh-worker-name" id="ingest-split-project"></span>
       </div>
       <div class="sc-header-right">
         <span class="sc-badge" id="ingest-split-badge"></span>
@@ -1073,10 +1081,17 @@ function _populateIngestModalHeader(ai) {
   const isInterrupted = !!ai.interrupted;
   const isInSession = !isInterrupted && _isInSession(ai);
   const isAvail = ai.status === 'available';
+  const isExhausted = ai.status === 'exhausted';
   const aiInitial = esc(ai.name).charAt(0).toUpperCase();
   const state = isInterrupted ? 'interrupted' : isInSession ? 'insession' : isAvail ? 'available' : 'exhausted';
 
-  header.className = 'modal-split__header';
+  // TKT-202608-230 (REQ-202608-087, AC1-AC4): tinte de disponibilidad del header conjunto —
+  // solo 3 estados reconocidos (is-avail/is-insession/is-exhausted, nombres exactos declarados
+  // por Nova en TKT-202608-229 — no se inventan alternativos, AC4). Status no reconocido (ni
+  // available ni exhausted, y no en sesión) → sin clase de estado, AC2. className se reasigna
+  // completo en cada render — nunca se acumula sobre la clase previa (AC3).
+  const headerState = isInSession ? 'is-insession' : isAvail ? 'is-avail' : isExhausted ? 'is-exhausted' : null;
+  header.className = 'modal-split__header' + (headerState ? ' ' + headerState : '');
 
   const avatarEl = document.getElementById('ingest-split-avatar');
   if (avatarEl) {
