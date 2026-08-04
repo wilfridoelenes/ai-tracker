@@ -1,4 +1,6 @@
-/* [PP] mod:88 · autor:Nova · 2026-08-04 UTC-6 */
+/* [PP] mod:89 · autor:Nova · 2026-08-04 UTC-6 */
+/* mod:89 — INC-202608-083: familia .mdiff-zone*/.mdiff-bucket* sin CSS propio desde
+   TKT-202607-205 — ver comentario inline en el bloque agregado, cerca de línea ~3880. */
 /* mod:88 — Conflicto CSS resuelto contra locus-backlog-merge.js mod:84 (markup real, escrito
    antes de que este CSS existiera): mi mod:87 declaraba .mdiff-unresolved-invalid-remove-btn,
    el JS real usa .mdiff-unresolved-invalid-btn — sin coincidencia. .mdiff-unresolved-invalid-wrap
@@ -3876,6 +3878,60 @@ body {
   align-items: flex-start;
 }
 /* ── END T-202606-038 ── */
+
+/* ══ INC-202608-083: familia .mdiff-zone*/.mdiff-bucket* — nunca tuvo CSS propio desde
+   TKT-202607-205 (REQ-202607-079, "6 zonas cognitivas"). Founder reportó vía screenshot que
+   "Revisar antes de guardar" y "Cambios en el backlog / Se aplican solos" se veían como texto
+   plano — grep contra locus-backlog-merge.js confirmó que .mdiff-zone, .mdiff-zone-label,
+   .mdiff-bucket, .mdiff-bucket--auto/--revisar/--info y .mdiff-bucket-label no tenían ninguna
+   regla en ningún archivo CSS del proyecto ni entrada en _Locus-css-ref — afecta las 4 zonas
+   (resultado/narrativa/cambios-backlog/impacto-ecosistema), no solo la reportada. Reuso
+   funcional sin diseño nuevo: .mdiff-zone-label reusa exactamente la receta tipográfica ya
+   establecida por .mdiff-narrative-header (mismo rol — eyebrow uppercase que abre una zona del
+   panel). .mdiff-bucket-label es el mismo patrón un nivel más abajo — tamaño menor, sin
+   border-bottom, para no competir visualmente con el label de zona que lo contiene.
+   .mdiff-bucket--revisar gana --amber-text — mismo token semántico "acción pendiente" ya usado
+   en .mdiff-right-banner--warn/.mdiff-pending-item en este mismo panel, no un color nuevo. ══ */
+.mdiff-zone {
+  margin-bottom: 1rem;
+}
+
+.mdiff-zone:last-child {
+  margin-bottom: 0;
+}
+
+.mdiff-zone-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.5rem 0 0.375rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.5rem;
+}
+
+.mdiff-bucket {
+  margin-bottom: 0.75rem;
+}
+
+.mdiff-bucket:last-child {
+  margin-bottom: 0;
+}
+
+.mdiff-bucket-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.375rem;
+}
+
+.mdiff-bucket--revisar .mdiff-bucket-label {
+  color: var(--amber-text);
+}
+/* ── END INC-202608-083 ── */
 
 /* ══ TKT5 (REQ CAEL-0718-01 · AC1): tarjetas atribuidas de batch — ver TKT3 en
    locus-backlog-merge.js (_buildAttributedCardsBlock). :not(:only-of-type) alcanza exactamente
