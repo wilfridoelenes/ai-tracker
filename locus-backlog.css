@@ -1,4 +1,14 @@
-/* [PP] mod:135 · autor:Nova · 2026-08-03 UTC-6 */
+/* [PP] mod:136 · autor:Nova · 2026-08-03 UTC-6 */
+/* TKT1 (REQ CAEL-0803-03, design_intent: qbacklog_activos_group_mockup): .bl-active-* — tercer
+   grupo colapsable en Q-Backlog, junto a .qbacklog-draft-group/.bl-done-group. Envuelve la
+   lista de ítems activos que hoy vive suelta dentro de .bl-zone-body sin header propio.
+   Cromática neutra (mismos tokens que .bl-done-header: --surface2/--border/--text2/--text3) —
+   "Activos" no es un estado de alerta como Borradores (amber), tampoco un estado cerrado como
+   Terminados, pero el criterio E-17 (_Locus-ux-ref) ya establece que el header de sección no
+   codifica jerarquía por color salvo que el grupo represente un estado real. Header siempre
+   visible con contador "0" — mismo comportamiento que .qdisc-status-header, a diferencia de
+   .qbacklog-draft-group (que se omite del DOM en 0 ítems). Ver clases más abajo, sección propia
+   tras .bl-done-*. */
 /* TKT2 (REQ-202607-alineacion-qbacklog-qdisc, design_intent: alineacion-render-qbacklog-qdisc):
    .bl-done-* migrado a caja con borde completo (header+body) + mecanismo .is-collapsed en el
    wrapper — alinea el bloque "Terminados" de Q-Backlog al mismo tratamiento visual y mecánico
@@ -4841,6 +4851,82 @@
 }
 
 /* ══ END T-202605-103 ══ */
+
+/* ══ TKT1 (REQ CAEL-0803-03, design_intent: qbacklog_activos_group_mockup): Grupo colapsable
+   "Activos" — bl-active-* ══ */
+/* Mismo tratamiento visual que .bl-done-header/-body — clases independientes (no reutilizan
+   .bl-done-* directamente) porque "activos" y "terminados" son semánticas distintas aunque el
+   estilo sea idéntico; mantiene el mismo criterio de independencia ya usado entre .bl-done-*
+   y .qbacklog-draft-*. Dinámico (se recrea en cada render de _renderZonePanel, a diferencia de
+   .bl-done-group que es shell estático en index.html) — el toggle se delega sobre el body
+   contenedor, mismo patrón que .qbacklog-draft-group (ver _attachActiveGroupToggle,
+   locus-backlog-zone-engine.js). */
+.bl-active-group {
+  margin-bottom: 16px;
+}
+
+.bl-active-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: var(--text-sm);
+  color: var(--text2);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.bl-active-header:hover {
+  background: var(--surface3, var(--surface2));
+  color: var(--text);
+}
+
+.bl-active-header:focus-visible {
+  outline: 2px solid var(--accent);
+}
+
+.bl-active-arrow {
+  font-size: var(--text-xs);
+  color: var(--text3);
+  flex-shrink: 0;
+  transition: transform 0.15s var(--ease-out);
+  width: 12px;
+  display: inline-block;
+}
+
+/* Mecanismo de colapso unificado con .bl-done-group/.qdisc-status-group/.qbacklog-draft-group —
+   una sola clase .is-collapsed en el wrapper. */
+.bl-active-group.is-collapsed .bl-active-arrow {
+  transform: rotate(-90deg);
+}
+
+.bl-active-label {
+  font-weight: 500;
+}
+
+.bl-active-count {
+  font-size: var(--text-xs);
+  color: var(--text3);
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+.bl-active-body {
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  padding: 6px 0;
+}
+
+.bl-active-group.is-collapsed .bl-active-body {
+  display: none;
+}
+
+/* ══ END TKT1 — Grupo colapsable "Activos" ══ */
 
 /* ══ R-202606-002 · Vista Lista — Nova · T-202606-013 ══════════════════ */
 

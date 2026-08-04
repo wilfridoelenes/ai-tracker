@@ -1,3 +1,8 @@
+// [PP] mod:7 · autor:Rune · 2026-08-03 UTC-6
+// TKT3 (REQ CAEL-0803-03, design_intent: qbacklog_activos_group_mockup): showActiveGroup:true
+// agregado a la llamada de _renderZonePanel — habilita el grupo colapsable .bl-active-group
+// para los ítems activos de este panel (tercer contenedor junto a Borradores/Terminados).
+// Q-DISC no lo declara — sin cambio de comportamiento ahí, fuera de scope de este TKT.
 // [PP] mod:6 · autor:Rune · 2026-07-30 20:15 UTC-6
 // TKT1 (REQ-202607-alineacion-qbacklog-qdisc, design_intent: alineacion-render-qbacklog-qdisc):
 // _initQBacklogToolbar agregado — Q-Backlog era el único panel de Backlog sin botón de colapsar
@@ -53,7 +58,10 @@ export function renderQBacklogPanel() {
     // draft:true. isZoneBroad es _isQBacklog (sin la condición !i.draft de _isQBacklogActive) —
     // exclusivo de Q-Backlog, Q-DISC no declara ninguno de los dos.
     showDraftGroup: true,
-    isZoneBroad: _isQBacklog
+    isZoneBroad: _isQBacklog,
+    // TKT3 (REQ CAEL-0803-03): grupo colapsable "Activos" — tercer contenedor junto a
+    // Borradores/Terminados, mismo patrón visual (header + chevron + contador).
+    showActiveGroup: true
   });
 }
 

@@ -1,3 +1,19 @@
+// [PP] mod:14 · autor:Rune · 2026-08-03 UTC-6
+// TKT2 (REQ CAEL-0803-03, design_intent: qbacklog_activos_group_mockup): grupo colapsable
+// .bl-active-* envuelve la lista de ítems activos (items-grid + sus dos empty-states internos)
+// dentro de _renderZonePanel — gateado por opts.showActiveGroup, opcional, default false. Sin
+// declararlo (Q-DISC — renderQDiscPanel no lo pasa), comportamiento anterior exacto preservado,
+// sin wrapper. Solo locus-backlog-qbacklog.js lo declara true — fuera de scope de este TKT
+// extenderlo a Q-DISC, que ya resuelve sus 3 grupos con .qdisc-status-group.
+// Contador del header = activeZoneItems.length (universo sin filtrar, mismo criterio que el
+// badge del sub-tab) — no filteredItems.length, para que el header no oculte cuántos ítems
+// activos tiene la zona cuando hay un filtro parcial aplicado.
+// Header siempre presente, incluso con activeZoneItems.length===0 — mismo criterio que
+// .qdisc-status-header (contador "0" visible), a diferencia de .qbacklog-draft-group (se omite
+// del DOM en 0 ítems). El grupo es dinámico (recreado en cada render vía body.innerHTML, a
+// diferencia de .bl-done-group que es shell estático) — toggle delegado sobre `body`, mismo
+// patrón que _attachDraftGroupToggle. contract_update: sí — _renderZonePanel gana un opt nuevo,
+// opcional, sin cambio de firma para callers existentes (Q-DISC no impactado).
 // [PP] mod:13 · autor:Rune · 2026-07-30 20:15 UTC-6
 // TKT1 (REQ-202607-alineacion-qbacklog-qdisc, design_intent: alineacion-render-qbacklog-qdisc):
 // _attachDoneGroupToggle migrado de dos clases sueltas (.collapsed en .bl-done-arrow y en
@@ -208,6 +224,54 @@ function _attachDraftGroupToggle(body) {
     e.preventDefault();
     _toggle(header);
   });
+}
+
+// TKT2 (REQ CAEL-0803-03): toggle del grupo "Activos" — delegado sobre el body contenedor, mismo
+// mecanismo que _attachDraftGroupToggle (el nodo bl-active-group se recrea en cada render, no
+// puede adjuntarse listener fijo al header como en Terminados). Persistencia en localStorage bajo
+// backlog-${nsKey}-active-open, default abierto — mismo criterio que _attachDoneGroupToggle.
+function _attachActiveGroupToggle(body, nsKey) {
+  if (body._zpActiveDelegationAttached) return;
+  body._zpActiveDelegationAttached = true;
+  const _key = `backlog-${nsKey}-active-open`;
+  const _toggle = header => {
+    const group = header.closest('.bl-active-group');
+    if (!group) return;
+    const collapsed = group.classList.toggle('is-collapsed');
+    header.setAttribute('aria-expanded', String(!collapsed));
+    localStorage.setItem(_key, collapsed ? '0' : '1');
+  };
+  body.addEventListener('click', e => {
+    const header = e.target.closest('.bl-active-header');
+    if (header) _toggle(header);
+  });
+  body.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const header = e.target.closest('.bl-active-header');
+    if (!header) return;
+    e.preventDefault();
+    _toggle(header);
+  });
+}
+
+// TKT2 (REQ CAEL-0803-03): envuelve el HTML de la lista/empty-state de ítems activos en el grupo
+// colapsable .bl-active-group cuando opts.showActiveGroup está activo. `count` es
+// activeZoneItems.length (universo sin filtrar) — no el largo del bloque filtrado, para que el
+// header siga comunicando el total real de la zona bajo filtro parcial. Estado de colapso leído
+// de localStorage al construir el HTML (mismo momento que _attachDoneGroupToggle lo hace vía
+// clase en el DOM) — evita flash de expandido→colapsado en el primer paint tras reload.
+function _activeGroupWrap(innerHtml, count, nsKey) {
+  const _key = `backlog-${nsKey}-active-open`;
+  const _isOpen = localStorage.getItem(_key) !== '0';
+  return `
+    <div class="bl-active-group${_isOpen ? '' : ' is-collapsed'}" id="${nsKey}-active-group">
+      <div class="bl-active-header" id="${nsKey}-active-header" tabindex="0" role="button" aria-expanded="${_isOpen}">
+        <span class="bl-active-arrow">▾</span>
+        <span class="bl-active-label">Activos</span>
+        <span class="bl-active-count" id="${nsKey}-active-count">${count}</span>
+      </div>
+      <div class="bl-active-body" id="${nsKey}-active-body">${innerHtml}</div>
+    </div>`;
 }
 
 // Toggle de colapso del bloque "Terminados" — header y body son estáticos (index.html), el
@@ -496,12 +560,18 @@ export function _renderZonePanel(opts) {
     const _emptyHintHtml = opts.emptyHint
       ? `<div class="empty-state-hint">${opts.emptyHint}</div>`
       : '';
-    body.innerHTML = _bodyPrefixHtml + `
+    // TKT2 (REQ CAEL-0803-03): empty-state envuelto en .bl-active-group cuando showActiveGroup —
+    // header con contador "0" sigue visible, mismo criterio que .qdisc-status-header.
+    const _emptyStateHtml = `
       <div class="empty-state">
         <div class="empty-state-icon">${_emptyIcon}</div>
         <div class="empty-state-title">${emptyTitle}</div>
         ${_emptyHintHtml}
-      </div>` + _draftGroupHtmlStr;
+      </div>`;
+    body.innerHTML = _bodyPrefixHtml
+      + (opts.showActiveGroup ? _activeGroupWrap(_emptyStateHtml, 0, nsKey) : _emptyStateHtml)
+      + _draftGroupHtmlStr;
+    if (opts.showActiveGroup) _attachActiveGroupToggle(body, nsKey);
     return;
   }
 
@@ -556,12 +626,19 @@ export function _renderZonePanel(opts) {
   });
 
   if (!filteredItems.length) {
-    body.innerHTML = _bodyPrefixHtml + `
+    // TKT2 (REQ CAEL-0803-03): contador del header = activeZoneItems.length (universo sin
+    // filtrar) — el header comunica el total real de la zona aunque el filtro no matchee nada,
+    // mismo criterio ya aplicado en el early-return de arriba y en el bloque con ítems abajo.
+    const _emptyFilteredHtml = `
       <div class="empty-state">
         <div class="empty-state-icon">${_emptyIcon}</div>
         <div class="empty-state-title">${emptyTitle}</div>
         <div class="empty-state-hint">Ningún ítem coincide con el filtro activo.</div>
-      </div>` + _draftGroupHtmlStr;
+      </div>`;
+    body.innerHTML = _bodyPrefixHtml
+      + (opts.showActiveGroup ? _activeGroupWrap(_emptyFilteredHtml, activeZoneItems.length, nsKey) : _emptyFilteredHtml)
+      + _draftGroupHtmlStr;
+    if (opts.showActiveGroup) _attachActiveGroupToggle(body, nsKey);
     // TKT self-heal-qbacklog: un REQ self-healed (ej. pendiente → en-proceso) puede quedar fuera
     // del filtro activo (ej. filtro de status por 'pendiente') y este early-return se alcanza
     // antes del trigger de saveBacklog al final de la función — sin este disparo, la corrección
@@ -603,7 +680,13 @@ export function _renderZonePanel(opts) {
   });
   html += '</div>';
 
-  body.innerHTML = _bodyPrefixHtml + html + _draftGroupHtmlStr;
+  // TKT2 (REQ CAEL-0803-03): contador del header = activeZoneItems.length (universo sin filtrar,
+  // mismo criterio que el badge del sub-tab) — no filteredItems.length/_rootItems.length, para
+  // que el header no oculte cuántos ítems activos tiene la zona bajo un filtro parcial.
+  body.innerHTML = _bodyPrefixHtml
+    + (opts.showActiveGroup ? _activeGroupWrap(html, activeZoneItems.length, nsKey) : html)
+    + _draftGroupHtmlStr;
+  if (opts.showActiveGroup) _attachActiveGroupToggle(body, nsKey);
 
   // TKT self-heal-qbacklog: 1 sola escritura por pase de render, sin importar cuántos REQs se
   // corrigieron arriba — mismo criterio de batching que _renderVistaLista. No await — el DOM ya
