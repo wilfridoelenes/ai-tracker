@@ -1,4 +1,4 @@
-/* [PP] mod:137 · autor:Rune · 2026-08-03 UTC-6 */
+/* [PP] mod:138 · autor:Rune · 2026-08-03 UTC-6 */
 /* TKT1 (REQ CAEL-0803-03, design_intent: qbacklog_activos_group_mockup): .bl-active-* — tercer
    grupo colapsable en Q-Backlog, junto a .qbacklog-draft-group/.bl-done-group. Envuelve la
    lista de ítems activos que hoy vive suelta dentro de .bl-zone-body sin header propio.
@@ -4871,8 +4871,21 @@
    resto del archivo (ver .stat-type-chip.tc-REQ). Espaciado uniforme 20px entre grupos y
    respecto al header sticky (.bl-header-unified) — antes 16px/2rem inconsistente entre los
    tres grupos. */
+/* TKT3 (REQ CAEL-0803-05, bug reportado por founder + Finn): margin-top de .bl-active-group
+   colapsaba a través de #qbacklog-panel-body/.bl-zone-body — ninguno de los dos tiene
+   border-top ni padding-top (.bl-zone-body se diseña deliberadamente "fundido" contra
+   .bl-header-unified, ver comentario en .bl-zone-body más abajo), así que el margin-top se
+   escapaba hacia afuera del contenedor en vez de separar .bl-active-group del header sticky —
+   visualmente quedaban soldados. Fix: padding-top en el ID específico #qbacklog-panel-body
+   (nunca colapsa, a diferencia de margin) en vez de margin-top en .bl-active-group. Scope
+   acotado al ID — no afecta Q-DISC (usa #qdisc-panel-body, selector distinto) ni ningún otro
+   consumidor de .bl-active-group si llegara a haber uno futuro. */
+#qbacklog-panel-body {
+  padding-top: 20px;
+}
+
 .bl-active-group {
-  margin-top: 20px;
+  margin-top: 0;
   margin-bottom: 20px;
 }
 

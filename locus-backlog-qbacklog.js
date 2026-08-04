@@ -1,4 +1,10 @@
-// [PP] mod:7 · autor:Rune · 2026-08-03 UTC-6
+// [PP] mod:8 · autor:Rune · 2026-08-03 UTC-6
+// Hallazgo fuera de scope (detectado en la misma sesión que TKT3, resuelto en sesión —
+// Excepción de resolución directa: dueño presente, nivel Patch, sin bifurcación de founder):
+// _initQBacklogToolbar → botón "Colapsar todo" no incluía .bl-active-group en su
+// querySelectorAll ni .bl-active-header en la búsqueda de header para aria-expanded — el grupo
+// "Activos" (TKT3, este mismo mod) quedaba fuera del colapso masivo. Agregado a ambos
+// selectores, mismo patrón que .bl-done-group/.qbacklog-draft-group.
 // TKT3 (REQ CAEL-0803-03, design_intent: qbacklog_activos_group_mockup): showActiveGroup:true
 // agregado a la llamada de _renderZonePanel — habilita el grupo colapsable .bl-active-group
 // para los ítems activos de este panel (tercer contenedor junto a Borradores/Terminados).
@@ -90,12 +96,12 @@ function _initQBacklogToolbar() {
   const collapseBtn = document.getElementById('qbacklog-collapse-all-btn');
   if (collapseBtn) {
     collapseBtn.addEventListener('click', () => {
-      const groups = document.querySelectorAll('#sspanel-qbacklog .bl-done-group, #sspanel-qbacklog .qbacklog-draft-group');
+      const groups = document.querySelectorAll('#sspanel-qbacklog .bl-done-group, #sspanel-qbacklog .qbacklog-draft-group, #sspanel-qbacklog .bl-active-group');
       if (!groups.length) return;
       const anyExpanded = Array.from(groups).some(g => !g.classList.contains('is-collapsed'));
       groups.forEach(group => {
         group.classList.toggle('is-collapsed', anyExpanded);
-        const header = group.querySelector('.bl-done-header, .qbacklog-draft-header');
+        const header = group.querySelector('.bl-done-header, .qbacklog-draft-header, .bl-active-header');
         if (header) header.setAttribute('aria-expanded', String(!anyExpanded));
       });
       collapseBtn.setAttribute('aria-pressed', String(anyExpanded));
