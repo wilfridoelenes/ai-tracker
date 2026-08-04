@@ -1,4 +1,4 @@
-// [PP] mod:85 · autor:Rune · 2026-08-04 UTC-6
+// [PP] mod:87 · autor:Rune · 2026-08-04 UTC-6
 // TKT3 (parent: [pendiente-ID] · depends_on: TKT2 · design_intent: unresolved_refs_borrador):
 // sección 'Referencias sin resolver' separa source:'formato_invalido' (no bloquea guardar) del
 // resto (ref_no_resuelta/tmp_slug_no_resoluble/ref-id-sin-declarante, sigue en 'warn') — fila
@@ -666,6 +666,16 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     'bloqueado':   'bloqueado',
   };
 
+  // INC-[pendiente-ID] (hallazgo de Rune, sesión de cierre de INC-202608-084):
+  // _fieldChips() solo coloreaba el chip cuando field === 'status' (vocabulario Scrum) —
+  // un chip incidentStatus: detected → closed quedaba sin clase de color, aunque el pill
+  // principal (_terminalIncidentTransition) ya resuelve la visibilidad de la transición a
+  // terminal. Fix acotado: solo 'closed' se colorea (reusa la clase 'done' ya declarada en
+  // _STATUS_CHIP_CLS — mismo criterio de "terminal" que ya usa _terminalIncidentTransition,
+  // BR-Ecosystem §5) — el resto de valores ITIL (detected/resolved/escalated_to_prb/
+  // escalated_to_chg/root_cause_confirmed) no tiene equivalente semántico 1:1 en el
+  // vocabulario Scrum de _STATUS_CHIP_CLS y mapearlos requeriría decisión de diseño de
+  // Nova — fuera de scope de este fix puntual, quedan sin color como hasta ahora.
   const _fieldChips = (changes) => {
     if (!changes || !changes.length) return '';
     const chips = changes.map(({ field, from, to }) => {
@@ -676,6 +686,8 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         const key = to != null ? String(to).toLowerCase() : '';
         const variant = _STATUS_CHIP_CLS[key] || 'unknown';
         extraCls = ` mdiff-field-chip--status-${variant}`;
+      } else if (field === 'incidentStatus' && to === 'closed') {
+        extraCls = ` mdiff-field-chip--status-${_STATUS_CHIP_CLS.done}`;
       }
       return `<span class="mdiff-field-chip${extraCls}">${esc(field)}: ${fromStr} → ${toStr}</span>`;
     }).join('');
@@ -957,6 +969,25 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     </div>`;
   };
 
+  // Hallazgo de Rune (sesión de cierre de INC-202608-084, resuelto directo por instrucción
+  // del founder — sin DISC): la rama pill+_terminal de diff.updated vivía duplicada entre
+  // el render principal (quickRowsHtml) y _itemsForBlockIdx (re-render por bloque/batch).
+  // El fix de INC-202608-084 había añadido una tercera copia de la misma condición al
+  // corregir ambos call sites por separado. Este helper es la única fuente de verdad de
+  // esa rama — created/advanced/discarded/ignored no se tocan: su duplicación es preexistente
+  // y no fue parte del hallazgo señalado, fuera de scope de esta resolución puntual.
+  const _updatedRowHtml = (i) => {
+    const _terminal = _terminalIncidentTransition(i.changes);
+    const pillHtml = _terminal
+      ? _pill('advanced', `${esc(_terminal.from)} → ${esc(_terminal.to)}`)
+      : _pill('updated', '✎ actualizado');
+    return _card(i.code, i.desc, 'accent',
+      pillHtml,
+      _fieldChips(i.changes) + _depsHtml(i.dependsOn),
+      i.parent, i.sprint, i.type || _itemKindFn({ code: i.code })
+    );
+  };
+
   // R-202605-148: sort INC→REQ→TKT→DISC dentro de un array de ítems del DIFF
   // REQ-MERGE-GEN2 TKT1: migrado a .type || _itemKindFn para tipo Gen2
   const _sortByType = arr => [...arr].sort((a, b) => {
@@ -1001,19 +1032,9 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     quickRowsHtml += `<div class="mdiff-section-body">${rows}</div>`;
   }
   if (diff.updated.length) {
-    const rows = _sortByType(diff.updated).map(i => {
-      // INC-[pendiente-ID]: transición a estado terminal (INC/PRB closed) usa el mismo pill
-      // 'advanced' que diff.advanced — ver _terminalIncidentTransition arriba.
-      const _terminal = _terminalIncidentTransition(i.changes);
-      const pillHtml = _terminal
-        ? _pill('advanced', `${esc(_terminal.from)} → ${esc(_terminal.to)}`)
-        : _pill('updated', '✎ actualizado');
-      return _card(i.code, i.desc, 'accent',
-        pillHtml,
-        _fieldChips(i.changes) + _depsHtml(i.dependsOn),
-        i.parent, i.sprint, i.type || _itemKindFn({ code: i.code })
-      );
-    }).join('');
+    // INC-202608-084: transición a estado terminal (INC/PRB closed) usa el mismo pill
+    // 'advanced' que diff.advanced — ver _terminalIncidentTransition y _updatedRowHtml arriba.
+    const rows = _sortByType(diff.updated).map(_updatedRowHtml).join('');
     summaryChipsHtml += `<span class="mdiff-info-chip mdiff-info-chip--neutral">Actualizados <span class="mdiff-sec-count">${diff.updated.length}</span></span>`;
     quickRowsHtml += `<div class="mdiff-section-body">${rows}</div>`;
   }
@@ -1391,16 +1412,10 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     return [
       ..._pick(diff.created, i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'), _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))),
       ..._pick(diff.advanced, i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), _depsHtml(i.dependsOn), undefined, i.sprint, i.type || _itemKindFn({ code: i.code }))),
-      ..._pick(diff.updated, i => {
-        // INC-[pendiente-ID]: mismo criterio de pill que el render principal (ver
-        // _terminalIncidentTransition) — este path es el de re-render por bloque (batch de
-        // CHECKPOINTs), no puede divergir del render principal en qué pill muestra.
-        const _terminal = _terminalIncidentTransition(i.changes);
-        const pillHtml = _terminal
-          ? _pill('advanced', `${esc(_terminal.from)} → ${esc(_terminal.to)}`)
-          : _pill('updated', '✎ actualizado');
-        return _card(i.code, i.desc, 'accent', pillHtml, _fieldChips(i.changes) + _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }));
-      }),
+      // INC-202608-084: _updatedRowHtml es fuente única con el render principal — este path
+      // es el de re-render por bloque (batch de CHECKPOINTs), no puede divergir en qué pill
+      // muestra.
+      ..._pick(diff.updated, _updatedRowHtml),
       ..._pick(diff.createdAndClosed, i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado') + _pill('advanced', 'pendiente → done'), `<div class="mdiff-change-hint">Creado y cerrado en esta sesión</div>` + _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))),
       ..._pick(diff.retroceso, (i) => _retrocedoRow(i, i.idx)),
       ..._pick(diff.discarded, (i) => _discardRow(i, i.idx)),
