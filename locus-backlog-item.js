@@ -1,3 +1,15 @@
+// [PP] mod:158 · autor:Rune · 2026-08-04 UTC-6
+// TKT2 (parent: [pendiente-ID] · contract_update: sí, ver _Locus-module-contracts): 
+// _assignPendingIds() distingue ahora, en unresolvedRefs (campos escalares _refFields), entre
+// "código con formato real inexistente" (source:'ref_no_resuelta', sin cambio) y "valor sin
+// forma de código" (source:'formato_invalido', nuevo) — ej. triggeredBy:"n/a — alta manual de
+// prueba" ya no se trata igual que un typo de código genuino. No toca dependsOn (Effort 1
+// separado si aplica) ni _isPlaceholderCode.
+// Fix inline (mismo archivo, sin scope nuevo, triggered_by: TKT3 · locus-backlog-merge.js):
+// las 7 llamadas a unresolvedRefs.push() (_normalizeRefIdValue + _assignPendingIds) ahora
+// incluyen idx: item.idx — mismo campo que discarded/retroceso ya exponen para que
+// _originHintFor()/_originMeta (locus-backlog-merge.js) puedan atribuir bloque de origen en
+// batches de 2+ CHECKPOINTs. Sin este campo, TKT3 AC de atribución no era implementable.
 // [PP] mod:157 · autor:Rune · 2026-07-31 UTC-6
 // INC-202607-079: import muerto a openProjPanel (locus-sprint-project.js) — la función
 // fue retirada en TKT-202607-213 sin auditar este archivo como consumidor. SyntaxError de
@@ -2234,6 +2246,9 @@ export async function _assignPendingIds(tgItems, seedSlugMap, unresolvedRefs) {
   //   null/[] + _blogLog('ref-no-resuelta') — el código debería existir y no existe.
   const _refFields = ['parentId', 'triggeredBy', 'origenDisc', 'promovida_a'];
   const _listFields = ['dependsOn'];
+  // TKT2 (parent: [pendiente-ID]): formato de código real del ecosistema — __BR-Ecosystem §4.
+  // Usado solo en la rama escalar (_refFields) — TKT2 no toca dependsOn (no_incluye declarado).
+  const _REAL_CODE_FORMAT_RE = /^(TKT|REQ|DISC|INC|PRB|CHG)-\d{6}-\d+$/i;
 
   const resolvedItems = paso1.map(item => {
     let changed = false;
@@ -2264,12 +2279,27 @@ export async function _assignPendingIds(tgItems, seedSlugMap, unresolvedRefs) {
           // TKT1 (REQ CAEL-0720-02, AC1): registro adicional en unresolvedRefs — no reemplaza el
           // _blogLog anterior, lo complementa. Solo si el caller pasó el array (Opción A).
           if (Array.isArray(unresolvedRefs)) {
-            unresolvedRefs.push({ code: item.code || '[sin-código]', field, rawValue: val, source: 'tmp_slug_no_resoluble' });
+            unresolvedRefs.push({ code: item.code || '[sin-código]', field, rawValue: val, source: 'tmp_slug_no_resoluble', idx: item.idx });
           }
           patch[field] = null;
           changed = true;
         }
         // [pendiente-ID] sin resolucion — conservar literal para pasadas posteriores
+      } else if (!_REAL_CODE_FORMAT_RE.test(val)) {
+        // TKT2 (parent: [pendiente-ID] · contract_update: sí): val no matchea ni placeholder
+        // canónico ni formato de código real (/^(TKT|REQ|DISC|INC|PRB|CHG)-\d{6}-\d+$/i) — ej.
+        // "n/a — alta manual de prueba". Antes de este fix caía aquí igual y se trataba como
+        // "código con formato real que no existe" (ref_no_resuelta) — mismo tratamiento que un
+        // typo de código genuino, sin que el founder pudiera distinguir los dos casos en el DIFF.
+        // source propio 'formato_invalido' — no toca la rama de código real inexistente (abajo).
+        _blogLog('formato-invalido', item.code || '[sin-código]',
+          field + ': ' + val + ' no tiene formato de código — declarar código real o quitar el campo',
+          'backlog');
+        if (Array.isArray(unresolvedRefs)) {
+          unresolvedRefs.push({ code: item.code || '[sin-código]', field, rawValue: val, source: 'formato_invalido', idx: item.idx });
+        }
+        patch[field] = null;
+        changed = true;
       } else {
         // Código con formato real: si no existe en backlog → null + log
         const existsInBacklog = getItems() && getItems().find(i => i.code === val);
@@ -2277,7 +2307,7 @@ export async function _assignPendingIds(tgItems, seedSlugMap, unresolvedRefs) {
           _blogLog('ref-no-resuelta', item.code || '[sin-código]', field + ': ' + val + ' no existe en el backlog', 'backlog');
           // TKT1 (REQ CAEL-0720-02, AC2): registro adicional en unresolvedRefs — mismo criterio.
           if (Array.isArray(unresolvedRefs)) {
-            unresolvedRefs.push({ code: item.code || '[sin-código]', field, rawValue: val, source: 'ref_no_resuelta' });
+            unresolvedRefs.push({ code: item.code || '[sin-código]', field, rawValue: val, source: 'ref_no_resuelta', idx: item.idx });
           }
           patch[field] = null;
           changed = true;
@@ -2304,7 +2334,7 @@ export async function _assignPendingIds(tgItems, seedSlugMap, unresolvedRefs) {
             // TKT1 (REQ CAEL-0720-02, AC1 — mismo criterio de escalar, extendido a lista): dependsOn
             // es exactamente el caso de referencia cruzada que motiva DISC-C.
             if (Array.isArray(unresolvedRefs)) {
-              unresolvedRefs.push({ code: item.code || '[sin-código]', field, rawValue: val, source: 'tmp_slug_no_resoluble' });
+              unresolvedRefs.push({ code: item.code || '[sin-código]', field, rawValue: val, source: 'tmp_slug_no_resoluble', idx: item.idx });
             }
             listChanged = true;
             return null;
@@ -2318,7 +2348,7 @@ export async function _assignPendingIds(tgItems, seedSlugMap, unresolvedRefs) {
             _blogLog('ref-no-resuelta', item.code || '[sin-código]', field + '[]: ' + val + ' no existe en el backlog', 'backlog');
             // TKT1 (REQ CAEL-0720-02, AC2 — extendido a lista): mismo criterio.
             if (Array.isArray(unresolvedRefs)) {
-              unresolvedRefs.push({ code: item.code || '[sin-código]', field, rawValue: val, source: 'ref_no_resuelta' });
+              unresolvedRefs.push({ code: item.code || '[sin-código]', field, rawValue: val, source: 'ref_no_resuelta', idx: item.idx });
             }
             listChanged = true;
             return null;
@@ -2539,7 +2569,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
         _blogLog('placeholder-no-canonico', item.code || '[sin-código]',
           `${field}: "${val}" tiene forma de placeholder pero no es [pendiente-ID] ni [tmp:slug] — usar ref_id, no inventar placeholder.`,
           'backlog');
-        unresolvedRefs.push({ code: item.code || '[sin-código]', field, reason: 'placeholder-no-canonico', value: val });
+        unresolvedRefs.push({ code: item.code || '[sin-código]', field, reason: 'placeholder-no-canonico', value: val, idx: item.idx });
         return null;
       }
       return val; // no es {ref_id,title} ni placeholder no-canónico — dejar pasar tal cual
@@ -2549,7 +2579,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
       _blogLog('ref-id-sin-declarante', item.code || '[sin-código]',
         `ref_id ${val.ref_id} referenciado sin ítem declarante en este bloque — pegar el bloque completo.`,
         'backlog');
-      unresolvedRefs.push({ code: item.code || '[sin-código]', field, ref_id: val.ref_id, title: val.title || '' });
+      unresolvedRefs.push({ code: item.code || '[sin-código]', field, ref_id: val.ref_id, title: val.title || '', idx: item.idx });
       return null;
     }
     if (_declaredTitle !== (val.title || '')) {

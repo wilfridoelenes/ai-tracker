@@ -1,3 +1,18 @@
+// [PP] mod:84 · autor:Rune · 2026-08-04 UTC-6
+// TKT3 (parent: [pendiente-ID] · depends_on: TKT2 · design_intent: unresolved_refs_borrador):
+// sección 'Referencias sin resolver' separa source:'formato_invalido' (no bloquea guardar) del
+// resto (ref_no_resuelta/tmp_slug_no_resoluble/ref-id-sin-declarante, sigue en 'warn') — fila
+// propia con badge "no bloquea guardar" (accent 'pink') y botón "Quitar referencia" en vez de
+// campo de búsqueda. _mdiffUnresolvedRemove() extendida (no reemplazada) para revertir a null
+// en vez de al texto inválido original cuando el disparador es ese botón. Atribución de bloque
+// (2+ CHECKPOINTs) agregada a las 3 categorías de unresolvedRefs vía item.idx — requiere
+// locus-backlog-item.js mod:158 (fix inline, idx agregado a unresolvedRefs.push()).
+// CSS dependencies (Nova) — no aplicado en esta sesión, archivo real no adjunto:
+//   .mdiff-section-header--pink · .mdiff-pill--pink (var(--pink)/var(--pink-text), ya
+//   existentes como tokens en _Locus-css-ref — reuso, no creación) · .mdiff-unresolved-row--pink
+//   · .mdiff-unresolved-invalid-wrap/-value/-btn · .mdiff-unresolved-removed
+//   Archivos afectados: locus-backlog-item.css (dueño confirmado de la familia .mdiff-*,
+//   _Locus-css-ref línea 1476).
 // [PP] mod:83 · autor:Rune · 2026-08-02 UTC-6
 // TKT CAEL-0803-02 (REQ ref_id CAEL-0803-01): wiring JS de .mss-content--ingest-wide —
 // inversa exacta de .mdiff-overlay--filled en los mismos 4 puntos ya existentes (apertura
@@ -1084,15 +1099,45 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     // partir el array en dos listas nuevas rompería esa indexación si se usara .filter() antes
     // de mapear; iterar una sola vez sobre el array completo preserva uIdx real en ambas ramas.
     const _unresolvedRows = [];
+    // TKT3 (depends_on: TKT2 · design_intent: unresolved_refs_borrador): fila separada para
+    // source:'formato_invalido' — no bloquea guardar (valor sin forma de código, nunca fue una
+    // referencia real). Antes de este TKT compartía sección/estilo 'warn' con lo que sí bloquea
+    // (ref_no_resuelta/tmp_slug_no_resoluble/ref-id-sin-declarante) — hallazgo del founder.
+    const _unresolvedInvalidRows = [];
     const _continuationRows = [];
     diff.unresolvedRefs.forEach((u, uIdx) => {
       const _refKey = u.ref_id || u.rawValue || '';
       const _seenTitle = _refKey ? _seenRefIdHistory.get(_refKey) : undefined;
       const _label = u.field;
+      // TKT3 (AC3/AC4): mismo criterio de gate que _originHintFor (2+ CHECKPOINTs en el batch,
+      // ver más abajo en este archivo) — inline aquí porque _originHintFor se define después de
+      // este bloque en el mismo closure (const no se hoistea para uso anterior a declaración).
+      const _uOriginMeta = (_ckptMetas && _ckptMetas.length >= 2)
+        ? _ckptMetas.find(m => m && m.idx === u.idx)
+        : null;
+      const _uOriginHtml = _uOriginMeta
+        ? `<div class="mdiff-change-hint">de: ${esc(_CKPT_CATEGORY_LABELS[_ckptCategoryFor(_uOriginMeta)])} · ${esc(_uOriginMeta.rol || '')}</div>`
+        : '';
       if (_seenTitle !== undefined) {
         _continuationRows.push(`<div class="mdiff-unresolved-row" data-unresolved-idx="${uIdx}">
           <span class="mdiff-unresolved-label">${esc(_label)}</span>
           <div class="mdiff-change-hint">continúa ingesta anterior — ${esc(_seenTitle)}</div>
+        </div>`);
+        return;
+      }
+      // TKT3 AC1: source:'formato_invalido' → botón "Quitar referencia" en vez del campo de
+      // búsqueda — no hay código real que buscar, el valor nunca tuvo forma de referencia.
+      if (u.source === 'formato_invalido') {
+        _unresolvedInvalidRows.push(`<div class="mdiff-unresolved-row mdiff-unresolved-row--pink" data-unresolved-idx="${uIdx}">
+          <span class="mdiff-unresolved-label">${esc(_label)}</span>
+          <span class="mdiff-pill mdiff-pill--pink">no bloquea guardar</span>
+          <div class="mdiff-unresolved-invalid-wrap">
+            <span class="mdiff-unresolved-invalid-value">${esc(u.rawValue || '')}</span>
+            <button type="button" class="mdiff-unresolved-invalid-btn" data-action="mdiff-unresolved-remove"
+              data-code="${esc(u.code)}" data-field="${esc(u.field)}" data-unresolved-idx="${uIdx}"
+              aria-label="Quitar referencia de ${esc(_label)}">Quitar referencia</button>
+          </div>
+          ${_uOriginHtml}
         </div>`);
         return;
       }
@@ -1106,10 +1151,15 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
             placeholder="Buscar por código o título…" value="${esc(_prefill)}">
           <div class="sps-dropdown mdiff-unresolved-dropdown" role="menu" hidden></div>
         </div>
+        ${_uOriginHtml}
       </div>`);
     });
     if (_unresolvedRows.length) {
       sectionsRevisarHtml += _section('unresolved', 'warn', `🔍 Referencias sin resolver <span class="mdiff-sec-count">${_unresolvedRows.length}</span>`, _unresolvedRows.join(''));
+    }
+    // TKT3 AC1: sección propia, accent 'pink' — nunca mezclada con la de 'warn' de arriba.
+    if (_unresolvedInvalidRows.length) {
+      sectionsInfoHtml += _section('unresolved-invalid', 'pink', `ℹ Valores sin formato de código <span class="mdiff-sec-count">${_unresolvedInvalidRows.length}</span>`, _unresolvedInvalidRows.join(''));
     }
     if (_continuationRows.length) {
       sectionsInfoHtml += _section('unresolved-continuation', 'muted', `↪ Continúa ingesta anterior <span class="mdiff-sec-count">${_continuationRows.length}</span>`, _continuationRows.join(''));
@@ -1841,12 +1891,21 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
 
   // TKT2 (REQ CAEL-0720-02, AC7): remove — revierte tgItems al rawValue/ref_id original,
   // restaura el shell de búsqueda vacío.
+  // TKT3 (AC1, depends_on: TKT2): rama nueva para el botón "Quitar referencia" de
+  // source:'formato_invalido' (sin chip previo, sin selección — btn.closest('.mdiff-unresolved-
+  // invalid-wrap') lo distingue del flujo de chip existente) — reusa esta misma función
+  // (no crea una tercera), pero el valor de reversión es siempre null, nunca el texto inválido
+  // original: revertir a "n/a — alta manual de prueba" reintroducría el mismo valor sin forma
+  // de código que originó la fila.
   _mdiffUnresolvedRemove = function(btn) {
     const code = btn.dataset.code;
     const field = btn.dataset.field;
     const uIdx = btn.dataset.unresolvedIdx;
     const entry = Array.isArray(diff.unresolvedRefs) ? diff.unresolvedRefs[uIdx] : null;
-    const original = entry ? (entry.rawValue !== undefined ? entry.rawValue : (entry.ref_id || '')) : '';
+    const invalidWrap = btn.closest('.mdiff-unresolved-invalid-wrap');
+    const original = invalidWrap
+      ? null
+      : (entry ? (entry.rawValue !== undefined ? entry.rawValue : (entry.ref_id || '')) : '');
 
     const target = tgItems.find(i => i.code === code);
     if (target) {
@@ -1858,6 +1917,11 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       }
     }
     if (entry) entry.selectedCode = undefined;
+
+    if (invalidWrap) {
+      invalidWrap.outerHTML = `<span class="mdiff-unresolved-removed">✓ referencia quitada</span>`;
+      return;
+    }
 
     const chip = btn.closest('.mdiff-unresolved-chip');
     if (chip) {
