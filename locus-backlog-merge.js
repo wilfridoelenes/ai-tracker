@@ -1,4 +1,4 @@
-// [PP] mod:84 · autor:Rune · 2026-08-04 UTC-6
+// [PP] mod:85 · autor:Rune · 2026-08-04 UTC-6
 // TKT3 (parent: [pendiente-ID] · depends_on: TKT2 · design_intent: unresolved_refs_borrador):
 // sección 'Referencias sin resolver' separa source:'formato_invalido' (no bloquea guardar) del
 // resto (ref_no_resuelta/tmp_slug_no_resoluble/ref-id-sin-declarante, sigue en 'warn') — fila
@@ -682,6 +682,25 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     return `<div class="mdiff-field-chips">${chips}</div>`;
   };
 
+  // INC-[pendiente-ID] (triggered_by: hallazgo del founder — "al pegar el CHECKPOINT de cierre
+  // de un INC, el Desglose del preview no muestra el avance a estado terminal, solo actualiza"):
+  // diff.updated ya recibe el dato correcto — mergeBacklogFromTG (locus-backlog-item.js, rama
+  // _isItilExisting) empuja { field: 'incidentStatus', from, to } a changes[] cuando un INC/PRB
+  // existente cambia de incidentStatus — pero nunca llega a diff.advanced, porque _skipScrumGate
+  // excluye a INC/PRB del bloque de _statusRank (vocabulario Scrum, no ITIL) que es el único que
+  // alimenta advanced. El resultado: la transición vive solo como field chip genérico dentro de
+  // diff.updated, con el mismo pill '✎ actualizado' que cualquier cambio de campo suelto — sin el
+  // tratamiento visual de avance (pill azul from→to) que sí reciben REQ/TKT/DISC vía diff.advanced.
+  // Este helper detecta la transición a estado terminal (closed — único terminal de INC/PRB,
+  // __BR-Ecosystem §5) dentro de changes[] para que el pill de la card la refleje igual que
+  // diff.advanced, sin tocar la clasificación de mergeBacklogFromTG ni requerir CSS nuevo — reusa
+  // la clase mdiff-pill--advanced ya declarada.
+  const _terminalIncidentTransition = (changes) => {
+    if (!changes || !changes.length) return null;
+    const c = changes.find(ch => ch.field === 'incidentStatus' && ch.to === 'closed');
+    return c ? { from: c.from, to: c.to } : null;
+  };
+
   // TKT-202607-204 (REQ-202607-079) — Zona Identidad, AC1: chip de aval de un patch.
   // Extrae el cambio de campo `draft` (si existe) de changes[] y lo renderiza como
   // .mdiff-status-chip en vez de un .mdiff-field-chip genérico — mismo criterio ya
@@ -982,11 +1001,19 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     quickRowsHtml += `<div class="mdiff-section-body">${rows}</div>`;
   }
   if (diff.updated.length) {
-    const rows = _sortByType(diff.updated).map(i => _card(i.code, i.desc, 'accent',
-      _pill('updated', '✎ actualizado'),
-      _fieldChips(i.changes) + _depsHtml(i.dependsOn),
-      i.parent, i.sprint, i.type || _itemKindFn({ code: i.code })
-    )).join('');
+    const rows = _sortByType(diff.updated).map(i => {
+      // INC-[pendiente-ID]: transición a estado terminal (INC/PRB closed) usa el mismo pill
+      // 'advanced' que diff.advanced — ver _terminalIncidentTransition arriba.
+      const _terminal = _terminalIncidentTransition(i.changes);
+      const pillHtml = _terminal
+        ? _pill('advanced', `${esc(_terminal.from)} → ${esc(_terminal.to)}`)
+        : _pill('updated', '✎ actualizado');
+      return _card(i.code, i.desc, 'accent',
+        pillHtml,
+        _fieldChips(i.changes) + _depsHtml(i.dependsOn),
+        i.parent, i.sprint, i.type || _itemKindFn({ code: i.code })
+      );
+    }).join('');
     summaryChipsHtml += `<span class="mdiff-info-chip mdiff-info-chip--neutral">Actualizados <span class="mdiff-sec-count">${diff.updated.length}</span></span>`;
     quickRowsHtml += `<div class="mdiff-section-body">${rows}</div>`;
   }
@@ -1364,7 +1391,16 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     return [
       ..._pick(diff.created, i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'), _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))),
       ..._pick(diff.advanced, i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), _depsHtml(i.dependsOn), undefined, i.sprint, i.type || _itemKindFn({ code: i.code }))),
-      ..._pick(diff.updated, i => _card(i.code, i.desc, 'accent', _pill('updated', '✎ actualizado'), _fieldChips(i.changes) + _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))),
+      ..._pick(diff.updated, i => {
+        // INC-[pendiente-ID]: mismo criterio de pill que el render principal (ver
+        // _terminalIncidentTransition) — este path es el de re-render por bloque (batch de
+        // CHECKPOINTs), no puede divergir del render principal en qué pill muestra.
+        const _terminal = _terminalIncidentTransition(i.changes);
+        const pillHtml = _terminal
+          ? _pill('advanced', `${esc(_terminal.from)} → ${esc(_terminal.to)}`)
+          : _pill('updated', '✎ actualizado');
+        return _card(i.code, i.desc, 'accent', pillHtml, _fieldChips(i.changes) + _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }));
+      }),
       ..._pick(diff.createdAndClosed, i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado') + _pill('advanced', 'pendiente → done'), `<div class="mdiff-change-hint">Creado y cerrado en esta sesión</div>` + _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))),
       ..._pick(diff.retroceso, (i) => _retrocedoRow(i, i.idx)),
       ..._pick(diff.discarded, (i) => _discardRow(i, i.idx)),
