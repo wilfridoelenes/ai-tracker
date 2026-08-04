@@ -1,4 +1,4 @@
-/* [PP] mod:136 · autor:Nova · 2026-08-03 UTC-6 */
+/* [PP] mod:137 · autor:Rune · 2026-08-03 UTC-6 */
 /* TKT1 (REQ CAEL-0803-03, design_intent: qbacklog_activos_group_mockup): .bl-active-* — tercer
    grupo colapsable en Q-Backlog, junto a .qbacklog-draft-group/.bl-done-group. Envuelve la
    lista de ítems activos que hoy vive suelta dentro de .bl-zone-body sin header propio.
@@ -4778,30 +4778,33 @@
 /* Clases independientes — no reutilizan .version-group ni .version-header */
 
 .bl-done-group {
-  margin-bottom: 2rem;
+  margin-top: 20px;
+  margin-bottom: 20px;
 }
 
 /* TKT2 (REQ-202607-alineacion-qbacklog-qdisc): caja con borde completo + radius — antes solo
    border-left, convención propia sin relación con las otras 2 zonas colapsables. Alineado al
-   mismo tratamiento que .qdisc-status-header/.qdisc-status-body (ver más abajo en este archivo)
-   — paleta neutra sin cambio, "Terminados" no es un grupo de alerta/estado como Discovery. */
+   mismo tratamiento que .qdisc-status-header/.qdisc-status-body (ver más abajo en este archivo).
+   TKT2 (REQ CAEL-0803-04, recolor aprobado por founder): pasa de paleta neutra a tinte verde
+   (--green-dim/--green-border/--green-text) — "Terminados" ahora diferenciado por color de
+   "Activos" (azul) y "Borradores" (amber, sin cambio). Espaciado uniforme 20px, ver nota en
+   .bl-active-group más arriba. */
 .bl-done-header {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
   font-size: var(--text-sm);
-  color: var(--text2);
-  background: var(--surface2);
-  border: 1px solid var(--border);
+  color: var(--green-text);
+  background: var(--green-dim);
+  border: 1px solid var(--green-border);
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   cursor: pointer;
   user-select: none;
 }
 
 .bl-done-header:hover {
-  background: var(--surface3, var(--surface2));
-  color: var(--text);
+  background: var(--surface3, var(--green-dim));
 }
 
 .bl-done-header:focus-visible {
@@ -4810,7 +4813,7 @@
 
 .bl-done-arrow {
   font-size: var(--text-xs);
-  color: var(--text3);
+  color: var(--green-text);
   flex-shrink: 0;
   transition: transform 0.15s var(--ease-out);
   width: 12px;
@@ -4826,14 +4829,14 @@
 
 .bl-done-count {
   font-size: var(--text-xs);
-  color: var(--text3);
+  color: var(--green-text);
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
   margin-left: auto;
 }
 
 .bl-done-body {
-  border: 1px solid var(--border);
+  border: 1px solid var(--green-border);
   border-top: none;
   border-radius: 0 0 var(--radius-md) var(--radius-md);
   padding: 6px 0;
@@ -4861,8 +4864,16 @@
    .bl-done-group que es shell estático en index.html) — el toggle se delega sobre el body
    contenedor, mismo patrón que .qbacklog-draft-group (ver _attachActiveGroupToggle,
    locus-backlog-zone-engine.js). */
+/* TKT2 (REQ CAEL-0803-04, design_intent: qbacklog_activos_group_mockup — recolor aprobado por
+   founder): .bl-active-* pasa de cromática neutra a tinte azul (--blue-dim/--blue-border/
+   --blue-text) — diferenciación por color entre los tres grupos (Activos azul / Borradores
+   amber, sin cambio / Terminados verde), mismos tokens semánticos ya vetados y en uso en el
+   resto del archivo (ver .stat-type-chip.tc-REQ). Espaciado uniforme 20px entre grupos y
+   respecto al header sticky (.bl-header-unified) — antes 16px/2rem inconsistente entre los
+   tres grupos. */
 .bl-active-group {
-  margin-bottom: 16px;
+  margin-top: 20px;
+  margin-bottom: 20px;
 }
 
 .bl-active-header {
@@ -4871,17 +4882,16 @@
   gap: 8px;
   padding: 8px 14px;
   font-size: var(--text-sm);
-  color: var(--text2);
-  background: var(--surface2);
-  border: 1px solid var(--border);
+  color: var(--blue-text);
+  background: var(--blue-dim);
+  border: 1px solid var(--blue-border);
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   cursor: pointer;
   user-select: none;
 }
 
 .bl-active-header:hover {
-  background: var(--surface3, var(--surface2));
-  color: var(--text);
+  background: var(--surface3, var(--blue-dim));
 }
 
 .bl-active-header:focus-visible {
@@ -4890,7 +4900,7 @@
 
 .bl-active-arrow {
   font-size: var(--text-xs);
-  color: var(--text3);
+  color: var(--blue-text);
   flex-shrink: 0;
   transition: transform 0.15s var(--ease-out);
   width: 12px;
@@ -4909,14 +4919,14 @@
 
 .bl-active-count {
   font-size: var(--text-xs);
-  color: var(--text3);
+  color: var(--blue-text);
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
   margin-left: auto;
 }
 
 .bl-active-body {
-  border: 1px solid var(--border);
+  border: 1px solid var(--blue-border);
   border-top: none;
   border-radius: 0 0 var(--radius-md) var(--radius-md);
   padding: 6px 0;
@@ -5986,8 +5996,11 @@
    para amber en otras superficies de este archivo (ver L1164). AC-1 del TKT: el grupo completo
    se omite del DOM con 0 ítems draft — a diferencia de .qdisc-status-body, que siempre muestra
    header+contador "0", este grupo no tiene ese AC de estado vacío. */
+/* TKT2 (REQ CAEL-0803-04): margin-top/bottom alineados a 20px uniforme con .bl-active-group/
+   .bl-done-group — sin cambio de paleta amber. */
 .qbacklog-draft-group {
-  margin-top: 16px;
+  margin-top: 20px;
+  margin-bottom: 20px;
 }
 
 .qbacklog-draft-header {
