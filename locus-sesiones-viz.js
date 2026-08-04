@@ -1,4 +1,8 @@
-// [PP] v1.0.0 · sprint:PP-S-HOTFIX · mod:9 · autor:Rune · 2026-07-23 UTC-6
+// [PP] mod:10 · autor:Rune · 2026-08-04 UTC-6
+// INC-[pendiente-ID]: confirmCorrectHora()/unlockNowFromCard() no marcaban _trackerDirty antes de
+//   render() — mismo patrón roto que locus-session-save.js. render() salía sin pintar el estado
+//   real salvo que otra interacción previa ya hubiera dejado _trackerDirty en true. Fix: llamar
+//   _markTrackerDirty() antes de render() en ambos call sites (import ya existía, faltaba el uso).
 // TKT2 (CAEL-0723-03): openCorrectHora() renombrado a "Editar worker agotado" — checkbox de
 // WIP inyectado en msg.innerHTML, precargado con ai.interrupted, aplicado en confirmCorrectHora().
 // locus-sesiones-viz.js
@@ -10,7 +14,7 @@
 // Extraído de: locus-checkpoint-viz.js
 // Dependencias: locus-sesiones-stats.js · locus-storage.js · locus-toast.js
 // Carga después de: locus-sesiones-stats.js · locus-sesiones-capture.js
-import { render } from './locus-sesiones.js';
+import { render, _markTrackerDirty } from './locus-sesiones.js';
 import { getItems, getAnyItem } from './locus-backlog-core.js'; // [tmp:tkt6-sesiones-viz]: getAnyItem agregada
 import { switchSubTab, switchTab, esc } from './locus-ui-shell.js';
 
@@ -146,7 +150,7 @@ function confirmCorrectHora() {
       if (wipChecked) { ai.interrupted = true; }
       else { dismissInterrupted(id); }
     }
-    save(); render();
+    _markTrackerDirty(); save(); render();
   } else {
     inp.classList.add('error');
     setTimeout(() => inp.classList.remove('error'), 1200);
@@ -167,7 +171,7 @@ function unlockNowFromCard() {
   _correctHoraAIId = null;
   const modal = document.getElementById('gconfirm-overlay');
   if (modal) modal.classList.remove('open');
-  save(); render();
+  _markTrackerDirty(); save(); render();
 }
 
 // ─── R-202604-036: _showItemVizPanel — visualizador de ítems al parsear paste ───

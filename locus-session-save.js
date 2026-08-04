@@ -1,3 +1,11 @@
+// [PP] mod:82 · autor:Rune · 2026-08-04 UTC-6
+// INC-[pendiente-ID]: _markTrackerDirty no estaba ni importado en este archivo — los 3 render()
+//   del flujo de guardado de sesión (await saveImmediate(); render() · render() condicional por
+//   tab · segundo render() dentro del rAF) quedaban como no-op silencioso salvo que otra
+//   interacción previa ya hubiera dejado _trackerDirty en true. Mismo patrón ya corregido en
+//   locus-sesiones-viz.js (confirmCorrectHora/unlockNowFromCard). Fix: import agregado +
+//   _markTrackerDirty() antes de cada uno de los 3 render(). contract_update: no — no cambia
+//   firma de ninguna función, solo agrega una llamada previa a render() en 3 call sites.
 // [PP] mod:81 · autor:Rune · 2026-07-29 04:35 UTC-6
 // TKT3 (REQ-202607-046, depends_on TKT-202607-145): _doSaveSession() — retirado el bloque que
 // coordinaba #merge-diff-overlay contra #ingest-modal-overlay antes de invocar
@@ -146,7 +154,7 @@ import { extractContextSections, extractDocUpdates, extractHtmlMapSections, merg
 
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 
-import { render } from './locus-sesiones.js';
+import { render, _markTrackerDirty } from './locus-sesiones.js';
 
 import { _showProjRequiredInPanel, interpretHora } from './locus-session-hora.js';
 
@@ -926,13 +934,13 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // el debounce path y reescribir el draft si hay un oninput pendiente en la cola del browser.
   // El rAF post-render ya limpia el textarea y valida el estado final.
   if (_taClear) { _taClear.value = ''; _taClear.classList.remove('ta-has-items'); }
-  await saveImmediate(); render();
+  await saveImmediate(); _markTrackerDirty(); render();
   // R-202604-022: alerta de cuota tras guardar
   _checkStorageQuota();
   // B-007: actualizar stat bar y lista backlog siempre al guardar sesión
   renderStats();
   // B-202604-XXX: actualizar tab Hoy tras guardar CKPT con hora de cierre — sin esto el card no refleja estado exhausted sin refresh manual
-  if (getCurrentTab() === 'sesiones') render();
+  if (getCurrentTab() === 'sesiones') { _markTrackerDirty(); render(); }
   if (getCurrentTab() === 'backlog') { _markBacklogListDirty(); renderBacklogList(); }
   // R-202604-016: actualizar log card
   _rebuildLogBody();
@@ -942,7 +950,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // Segundo render() + renderGlobalRadarSidebar() garantizan sidebar y card actualizados.
   requestAnimationFrame(() => {
     _setPhase(id, 3);
-    render();
+    _markTrackerDirty(); render();
     _markRadarDirty(); renderGlobalRadarSidebar();
     // B-202605-XXX: re-limpiar draft después del segundo render() — restoreDrafts() corre
     // al final de render() y puede repoblar el textarea si el draft sobrevivió en localStorage
