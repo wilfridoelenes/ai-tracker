@@ -1,4 +1,4 @@
-// [PP] mod:123 · autor:Rune · 2026-08-03 20:30 UTC-6
+// [PP] mod:124 · autor:Rune · 2026-08-03 20:45 UTC-6
 // TKT-202607-142 (REQ-202607-045, retroactivo — reemplaza TKT-202607-141): retirado el
 // listener 'shell:sprint-render' agregado en mod:120 — dead code, ver bloque en el cuerpo
 // del archivo. TKT-202607-134 (mod:135 de locus-backlog-core.js) ya había renombrado los 3
@@ -359,6 +359,17 @@ function _sprintItemHtml(item) {
 
 const _SPT_PANELS   = ['items', 'planificar', 'sprints']; // T-202606-029: tercer sub-tab tras cancelación de Plan (TKT-202607-042)
 
+// TKT1 (REQ CAEL-0804-01) — fix bug mayor (Finn, auditoría TKT1): #sph-collapsed-pct
+// tiene dos call sites que recomputan el burndown (#sph-bd-pct) — renderSprintTab()
+// y _sptSwitch() al volver al sub-tab Ítems. Extraído a función compartida para que
+// ambos sincronicen el resumen colapsado, no solo el primero.
+function _sphSyncCollapsedPct() {
+  const collapsedPctEl = _spEl('sph-collapsed-pct');
+  if (!collapsedPctEl) return;
+  const bdPctEl = _spEl('sph-bd-pct');
+  collapsedPctEl.textContent = bdPctEl ? bdPctEl.textContent : '0%';
+}
+
 function _sptSwitch(subtab, triggerBtn, skipItemsRender = false) {
   _sptActiveSubtab = subtab; // B-202606-065/066: persiste entre renders y recargas de página
   localStorage.setItem(_SPT_SUBTAB_KEY, subtab);
@@ -382,6 +393,7 @@ function _sptSwitch(subtab, triggerBtn, skipItemsRender = false) {
       const itemsList = document.getElementById('sprint-items-list');
       if (itemsList) itemsList.classList.remove('is-hidden');
       _renderSprintItems(sprint);
+      _sphSyncCollapsedPct(); // TKT1 (REQ CAEL-0804-01) — fix bug mayor, ver Finn
       _renderSprintWorkers(sprint);
       _renderSprintScopeAdded(sprint);
     }
@@ -2182,13 +2194,11 @@ export function renderSprintTab() {
   if (itemsList) itemsList.classList.remove('is-hidden');
   _renderSprintItems(sprint);
 
-  // TKT1 (REQ CAEL-0804-01): #sph-collapsed-pct — leído recién aquí, después de
-  // _renderSprintItems(sprint), que es quien computa #sph-bd-pct (ver L1637).
-  const collapsedPctEl = _spEl('sph-collapsed-pct');
-  if (collapsedPctEl) {
-    const bdPctEl = _spEl('sph-bd-pct');
-    collapsedPctEl.textContent = bdPctEl ? bdPctEl.textContent : '0%';
-  }
+  // TKT1 (REQ CAEL-0804-01): #sph-collapsed-pct — resincronizado recién aquí, después de
+  // _renderSprintItems(sprint), que es quien computa #sph-bd-pct (ver L1637). Función
+  // compartida con _sptSwitch() (fix bug mayor, auditoría Finn) — ambos call sites que
+  // recomputan el burndown deben resincronizar el resumen colapsado.
+  _sphSyncCollapsedPct();
 
   // Workers
   _renderSprintWorkers(sprint);
