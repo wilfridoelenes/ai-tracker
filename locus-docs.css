@@ -1,7 +1,14 @@
-/* [PP] mod:5 · autor:Nova · 2026-07-20 19:10 UTC-6 */
+/* [PP] mod:6 · autor:Nova · 2026-08-05 UTC-6 */
 /* TKT-CAEL-0717-02 (REQ-CAEL-0717-01): .du-meta-vencido agregada — badge amber consumiendo
    entries[].vencido del docUpdateIndex (criterio 2 sprints, ya calculado por Rune en
    TKT-202607-031). Sin nuevos tokens — reutiliza --amber ya validado como texto. */
+/* TKT-202608-237 (REQ-202608-090): familia .du-resolved-* — Sub-tab "Resueltos" de
+   DOC-UPDATEs. Corrección de base — la primera versión de este entregable (mismo TKT)
+   asumía tokens (--space-*, --green-dim/-text/-border, --red-dim/-text/-border, --radius-lg)
+   inexistentes en este archivo — reescrita para usar exclusivamente tokens verificados
+   contra código real: --text-xs/-2xs, --surface2, --border/-border2, --radius-sm/-md-plus/
+   -pill, --green, --red, --accent-border/-dim/-text, --hint, --trans-color. Mismo lenguaje
+   visual que .du-entry/.du-meta/.du-meta-vencido (familia .du-* de arriba). */
 /* locus-docs.css */
 /* Versión: 1.0 | Última actualización: 2026-05-25 | Estilos HTML-MAP y Context — extraídos de locus-backlog.css (T-202605-112) */
 
@@ -923,3 +930,131 @@
 }
 
 /* ── END T-202606-033 ─────────────────────────────────────────────────────── */
+
+/* ── TKT-202608-237: DOC-UPDATEs resueltos — familia du-resolved-* ──────────── */
+
+.du-resolved-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.du-resolved-search-input {
+  flex: 1;
+  min-width: 160px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  color: var(--text);
+  font-size: var(--text-xs);
+  transition: var(--trans-color);
+}
+
+.du-resolved-search-input:hover {
+  border-color: var(--border2);
+}
+
+.du-resolved-search-input:focus-visible {
+  outline: none;
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
+}
+
+/* Lista */
+.du-resolved-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+}
+
+.du-resolved-entry {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md-plus);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.du-resolved-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.du-resolved-doc {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.du-resolved-sep {
+  color: var(--border2);
+}
+
+.du-resolved-section {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--text2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.du-resolved-date {
+  font-size: var(--text-2xs);
+  color: var(--text3);
+  flex-shrink: 0;
+}
+
+/* Badge de resultado — mismo lenguaje visual que .du-meta-vencido, dos tonos semánticos */
+.du-resolved-badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.du-resolved-badge--aplicado {
+  background: color-mix(in srgb, var(--green) 14%, transparent);
+  color: var(--green);
+}
+
+.du-resolved-badge--descartado {
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+  color: var(--red);
+}
+
+/* Empty states — vacío real vs búsqueda sin resultados (AC de TKT2, mensajes distintos) */
+.du-resolved-empty,
+.du-resolved-search-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text3);
+  font-size: var(--text-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .du-resolved-search-input {
+    transition: none;
+  }
+}
+
+/* ── END TKT-202608-237 ───────────────────────────────────────────────────── */

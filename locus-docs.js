@@ -1,3 +1,14 @@
+// [PP] mod:29 · autor:Rune · 2026-08-05 UTC-6
+// TKT-202608-237 (REQ-202608-090): renderDocUpdatesResolved() — lee docUpdateResolvedLog
+// (_getDocUpdateResolvedLog(), ya poblado por _pushDocUpdateResolved() desde TKT-202608-236,
+// mod:28) y renderiza #du-resolved-list con la familia .du-resolved-* (locus-docs.css mod:6,
+// Nova). Filtro por texto sobre doc/section vía #du-resolved-search-input — dos empty states
+// distintos (sin resoluciones vs. sin resultados de búsqueda, AC del TKT). Sub-tab
+// #sstab-btn-resueltos se revela/oculta con el mismo criterio ya vigente para
+// #sstab-btn-docupdates (INC-202608-087) — se agrega 'resueltos' al array de subs que
+// disparan el recálculo en _updateSubTabButtons(), evitando reintroducir el mismo bug
+// circular ya corregido para docupdates (sub-tab is-hidden inalcanzable por navegación
+// normal). No toca _pushDocUpdateResolved() ni el schema de docUpdateResolvedLog — solo lee.
 // [PP] mod:28 · autor:Rune · 2026-08-04 UTC-6
 // TKT-202608-236 (REQ-202608-090): _initDocUpdatesListeners() — los handlers de "Aplicar" y
 // "Descartar" (.du-btn-apply/.du-btn-discard) ahora empujan {doc, section, action, resolvedAt}
@@ -242,8 +253,9 @@ export function _updateSubTabButtons(sub) {
   // (confirmado: #doc-updates-list existe siempre en el DOM, static markup, independiente
   // de qué sub-tab esté activo — seguro llamarlo sin gate). Fix: recalcular en cualquier
   // sub de la familia Proyectos, no solo al activar el sub-tab que el fix debía revelar.
-  if (['dashboard', 'htmlmap', 'context', 'docupdates', 'contratos'].includes(sub)) {
+  if (['dashboard', 'htmlmap', 'context', 'docupdates', 'resueltos', 'contratos'].includes(sub)) {
     renderDocUpdatesPending();
+    renderDocUpdatesResolved();
   }
   // Collapse danger body when switching tabs
   const dangerBody = document.getElementById('tpl-danger-body');
@@ -256,12 +268,16 @@ export function _updateSubTabButtons(sub) {
   if (sub === 'docupdates') {
     if (dangerZone) dangerZone.classList.add('is-hidden');
   }
+  // sub-tab resueltos — sin danger zone (mismo criterio que docupdates)
+  if (sub === 'resueltos') {
+    if (dangerZone) dangerZone.classList.add('is-hidden');
+  }
   // Hide actions section label if no buttons visible
   // TKT1 (REQ CAEL-01) inline_fix: dos contenedores comparten .tpl-sidebar-actions
   // (#tpl-toolbar en Backlog, #proj-doc-actions en Proyectos) — resolver por ID según
   // el dominio de `sub`, no por querySelector genérico (tomaba siempre el primer match).
   const actionsSection = document.getElementById(
-    ['htmlmap', 'context', 'docupdates', 'contratos'].includes(sub) ? 'proj-doc-actions' : 'tpl-toolbar'
+    ['htmlmap', 'context', 'docupdates', 'resueltos', 'contratos'].includes(sub) ? 'proj-doc-actions' : 'tpl-toolbar'
   );
   if (actionsSection) {
     const allItems = actionsSection.querySelectorAll('button, .tpl-action-row');
@@ -1207,6 +1223,73 @@ function _initDocUpdatesListeners() {
   });
 }
 
+// renderDocUpdatesResolved — TKT-202608-237: renderiza el log de DOC-UPDATEs ya resueltos
+// (aplicados o descartados) en #du-resolved-list, filtrado por #du-resolved-search-input
+// (doc o sección, case-insensitive). Fuente: docUpdateResolvedLog — poblado por
+// _pushDocUpdateResolved() (TKT-202608-236) al hacer clic en Aplicar/Descartar.
+export function renderDocUpdatesResolved() {
+  const container = document.getElementById('du-resolved-list');
+  if (!container) return;
+
+  const log = _getDocUpdateResolvedLog();
+  _updateDocUpdatesResolvedBadge(log.length);
+
+  if (!log.length) {
+    container.innerHTML = '<div class="du-resolved-empty">Sin DOC-UPDATEs resueltos todavía.</div>';
+    return;
+  }
+
+  const searchInput = document.getElementById('du-resolved-search-input');
+  const query = (searchInput?.value || '').trim().toLowerCase();
+  const filtered = query
+    ? log.filter(e => (e.doc || '').toLowerCase().includes(query) || (e.section || '').toLowerCase().includes(query))
+    : log;
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="du-resolved-search-empty">Sin resultados para esta búsqueda.</div>';
+    return;
+  }
+
+  // Más recientes primero
+  const sorted = [...filtered].sort((a, b) => (b.resolvedAt || 0) - (a.resolvedAt || 0));
+
+  container.innerHTML = sorted.map(e => {
+    const isAplicado = e.action === 'aplicado';
+    const badgeClass = isAplicado ? 'du-resolved-badge--aplicado' : 'du-resolved-badge--descartado';
+    const badgeLabel = isAplicado ? 'Aplicado' : 'Descartado';
+    const dateLabel = e.resolvedAt
+      ? new Date(e.resolvedAt).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : '—';
+    return `
+      <div class="du-resolved-entry">
+        <div class="du-resolved-meta">
+          <span class="du-resolved-doc">${esc(e.doc || '—')}</span>
+          <span class="du-resolved-sep">·</span>
+          <span class="du-resolved-section">${esc(e.section || '—')}</span>
+        </div>
+        <span class="du-resolved-date">${esc(dateLabel)}</span>
+        <span class="du-resolved-badge ${badgeClass}">${badgeLabel}</span>
+      </div>`;
+  }).join('');
+}
+
+// _updateDocUpdatesResolvedBadge — revela/oculta #sstab-btn-resueltos según haya o no
+// entradas en el log — mismo criterio ya vigente en _updateDocUpdatesBadge para
+// #sstab-btn-docupdates (INC-202608-087), evita reintroducir el mismo bug circular.
+function _updateDocUpdatesResolvedBadge(total) {
+  const subTabBtn = document.getElementById('sstab-btn-resueltos');
+  if (subTabBtn) {
+    subTabBtn.classList.toggle('is-hidden', total === 0);
+  }
+}
+
+// _initDocUpdatesResolvedListeners — búsqueda por doc/sección sobre el log de resueltos.
+function _initDocUpdatesResolvedListeners() {
+  const searchInput = document.getElementById('du-resolved-search-input');
+  if (!searchInput) return;
+  searchInput.addEventListener('input', () => renderDocUpdatesResolved());
+}
+
 // ── END T-202606-033 ──────────────────────────────────────────────────────────
 
 // T-202604-108: renderContext — two states: empty / loaded
@@ -1471,6 +1554,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // T-202606-033: inicializar listeners de DOC-UPDATEs pendientes
   _initDocUpdatesListeners();
+
+  // TKT-202608-237: inicializar listener de búsqueda del sub-tab Resueltos
+  _initDocUpdatesResolvedListeners();
 
   // .conflict-banner-dismiss → remove banner — delegado en #context-conflict-area
   const conflictArea = document.getElementById('context-conflict-area');

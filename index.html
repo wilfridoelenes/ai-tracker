@@ -1,4 +1,21 @@
-<!-- [PP] mod:175 · autor:Rune · 2026-08-04 UTC-6 -->
+<!-- [PP] mod:177 · autor:Rune · 2026-08-05 UTC-6 -->
+<!-- TKT-202608-237: fix de convención — #sspanel-du-resolved renombrado a #sspanel-resueltos.
+     Único par sstab-btn-X/sspanel-X roto de 9 en este archivo (dashboard/htmlmap/context/
+     docupdates/contratos/backlog/qbacklog/qdisc/historico ya seguían sstab-btn-[sufijo] ↔
+     sspanel-[mismo sufijo]). renderDocUpdatesResolved() en locus-docs.js no referencia el id
+     del panel directamente — solo #du-resolved-list/#du-resolved-search-input/
+     #sstab-btn-resueltos, sin cambio ahí — pero switchSubTab() (locus-ui-shell.js, no adjunto
+     en esta sesión) deriva el panel por sufijo del botón activo por el mismo patrón ya
+     confirmado en los otros 9 pares; sin este fix el sub-tab habría quedado inalcanzable por
+     navegación normal, mismo síntoma que INC-202608-087. -->
+<!-- [PP] mod:176 · autor:Rune · 2026-08-05 UTC-6 -->
+<!-- TKT-202608-237 (REQ-202608-090, sprint PP-S-26): sub-tab "Resueltos" agregado junto a
+     DOC-UPDATEs en el tablist de Documentos (#sstab-btn-resueltos, is-hidden por defecto —
+     mismo patrón de #sstab-btn-docupdates/#sstab-btn-contratos, toggle de visibilidad vía JS).
+     Nuevo panel #sspanel-du-resolved después de #sspanel-docupdates, shell estático con
+     .du-resolved-toolbar/.du-resolved-list vacíos — contenido dinámico via
+     renderDocUpdatesResolved() en locus-docs.js (pendiente — locus-docs.js no adjunto en esta
+     sesión, ver CHECKPOINT). Consume entregable de Nova: locus-docs.css mod:6. -->
 <!-- TKT-202608-235 (REQ-202608-089, sprint PP-S-26): agregado #ingest-block-preview-anchor —
      punto de anclaje puro (sin clase) para _renderIngestBlockPreview() en locus-session-parse.js
      mod:172. Insertado dentro de #ingest-modal-overlay .ingest-modal-col--left, entre
@@ -1189,6 +1206,11 @@
     <button class="spt-tab is-hidden" id="sstab-btn-docupdates" role="tab" aria-selected="false">
       DOC-UPDATEs<span class="spt-tab-badge" id="tpl-badge-docupdates"></span>
     </button>
+    <!-- TKT-202608-237 (REQ-202608-090): sub-tab Resueltos — mismo patrón is-hidden que
+         docupdates/contratos, visibilidad controlada por JS (locus-docs.js, pendiente). -->
+    <button class="spt-tab is-hidden" id="sstab-btn-resueltos" role="tab" aria-selected="false">
+      Resueltos
+    </button>
     <button class="spt-tab is-hidden" id="sstab-btn-contratos" role="tab" aria-selected="false">
       Contratos<span class="spt-tab-badge" id="tpl-badge-contratos"></span>
     </button>
@@ -1297,6 +1319,17 @@
     </div>
     <div id="doc-updates-list" class="du-list"></div>
   </div><!-- /sspanel-docupdates -->
+
+  <!-- Sub-panel: DOC-UPDATEs resueltos — TKT-202608-237 (REQ-202608-090).
+       Shell estático (BR-Execution §5 — existe siempre, contenido lo inyecta JS).
+       No_incluye del TKT: filas no interactivas, sin foco propio en .du-resolved-entry. -->
+  <div class="session-subpanel" id="sspanel-resueltos">
+    <div class="du-resolved-toolbar">
+      <input type="text" id="du-resolved-search-input" class="du-resolved-search-input"
+             placeholder="Buscar por doc o sección…" autocomplete="off">
+    </div>
+    <div id="du-resolved-list" class="du-resolved-list"></div>
+  </div><!-- /sspanel-resueltos -->
 
   <!-- Sub-panel: Contratos — migrado desde #tab-backlog (TKT1, REQ CAEL-01) -->
   <div class="session-subpanel ctr-layout" id="sspanel-contratos">

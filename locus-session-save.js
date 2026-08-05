@@ -1,3 +1,12 @@
+// [PP] mod:83 · autor:Rune · 2026-08-04 UTC-6
+// TKT (ref_id CAEL-0804-02, REQ-[pendiente-ID]): VALID_TRANSITIONS.REQ no incluía 'done' — pese a
+//   ser transición terminal válida de REQ (__BR-Core §4, en-revision→done exclusiva de Finn en
+//   sesión de cierre). El backend (applyPatchesFromTG) ya aceptaba y aplicaba el patch sin
+//   objeción — el panel de preview marcaba como inválida una transición que el guardado real ya
+//   permitía. Fix: 'done' agregado al set + gate de rol en validateLifecycleTransitions() —
+//   REQ→'done' solo pasa si item.role === 'QA · Finn', mismo criterio ya usado para REQ→'bloqueado'.
+//   Sin cambio de firma en validateLifecycleTransitions() — mismo shape de retorno, mismo mensaje
+//   de error reason ya existente, sin fragmentar.
 // [PP] mod:82 · autor:Rune · 2026-08-04 UTC-6
 // INC-[pendiente-ID]: _markTrackerDirty no estaba ni importado en este archivo — los 3 render()
 //   del flujo de guardado de sesión (await saveImmediate(); render() · render() condicional por
@@ -215,7 +224,12 @@ import { esc, getCurrentTab } from './locus-ui-shell.js';
 const _ITIL_STATUS_SET = new Set(['detected', 'assigned', 'in_progress', 'resolved', 'closed', 'escalated_to_prb', 'escalated_to_chg', 'descartado']);
 const _CHG_STATUS_SET = new Set(['pendiente', 'en-revision', 'done', 'descartado']);
 export const VALID_TRANSITIONS = {
-  REQ: new Set(['pendiente', 'en-proceso', 'en-revision', 'bloqueado', 'orphaned', 'descartado']),
+  // TKT (ref_id CAEL-0804-02, REQ-[pendiente-ID]): 'done' agregado al set — antes ausente pese a
+  // ser transición terminal válida de REQ (__BR-Core §4, en-revision→done exclusiva de Finn en
+  // sesión de cierre). El backend (applyPatchesFromTG) ya aceptaba y aplicaba el patch sin
+  // objeción — el gap era exclusivo de este validador de preview. Gate de rol para 'done' vive en
+  // validateLifecycleTransitions() (ver más abajo), mismo criterio ya usado para 'bloqueado'.
+  REQ: new Set(['pendiente', 'en-proceso', 'en-revision', 'bloqueado', 'orphaned', 'descartado', 'done']),
   TKT: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
   INC: _ITIL_STATUS_SET,
   PRB: _ITIL_STATUS_SET,
@@ -237,6 +251,21 @@ export function validateLifecycleTransitions(tgItems) {
     if (!type || !VALID_TRANSITIONS[type]) return;
     // Sin status declarado → no hay transición que validar
     if (!status) return;
+    // TKT (ref_id CAEL-0804-02, REQ-[pendiente-ID]): gate de rol para REQ→'done' — 'done' ya es
+    // miembro de VALID_TRANSITIONS.REQ (ver arriba), pero la transición completa exige además que
+    // el emisor sea 'QA · Finn' (__BR-Core §4 — en-revision→done exclusiva de Finn en sesión de
+    // cierre). Mismo criterio ya aplicado a REQ→'bloqueado'. Se evalúa antes del chequeo de
+    // membership genérico porque 'done' pasa ese chequeo sin importar el rol — sin este gate,
+    // cualquier emisor podría marcar un REQ como done en el preview.
+    if (type === 'REQ' && status === 'done' && item.role !== 'QA · Finn') {
+      invalid.push({
+        code: item.code,
+        type,
+        status,
+        reason: 'REQ no puede marcarse done directamente — requiere sesión de cierre de Finn'
+      });
+      return;
+    }
     if (!VALID_TRANSITIONS[type].has(status)) {
       // Construir motivo legible para el panel DIFF (AC-3)
       let reason = '';
