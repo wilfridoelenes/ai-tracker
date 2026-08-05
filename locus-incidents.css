@@ -1,3 +1,12 @@
+/* [PP] mod:11 · autor:Nova · 2026-08-05 UTC-6 */
+/* TKT (Nova, análisis visual Q-INC): tres cambios en esta entrega — (1) .qinc-stats-bar pasa
+   de fila flex suelta a bloque con identidad de header propia, contenido movido a
+   .qinc-stats-bar-inner (requiere JS actualizado — ver locus-incidents-render.js mod:21);
+   (2) .qinc-section-header--activos/--terminados diferencian peso visual entre secciones,
+   mismo mecanismo que .qdisc-status-header; (3) .qinc-item-copy-btn pasa a icon-only
+   cuadrado — CSS listo, markup (retirar texto, agregar <i class="ti ti-copy">) pendiente de
+   Rune en locus-incidents-item.js, no adjunto en esta sesión. Ver mods 9/10/11 inline abajo
+   para el detalle de cada cambio. */
 /* [PP] mod:8 · autor:Nova · 2026-07-27 19:40 UTC-6 */
 /* Corrección de numeración (INC ref_id CAEL-0727-01): esta entrega era mod:6 en la primera
    línea del archivo, duplicando el mod:6 ya usado por la entrega de TKT-202607-158 (17:05,
@@ -393,23 +402,36 @@
    is-copy-error es nuevo — no había precedente de estado de error en botones de copia
    del proyecto; usa var(--red-text) por ser el token de texto ya auditado WCAG (ver
    _Locus-css-ref §Tokens de color utilitarios), no --red crudo. */
+/* [PP] mod:11 · autor:Nova · 2026-08-05 UTC-6 */
+/* TKT (Nova, análisis visual Q-INC): icon-only — retira el label de texto "Copiar ítem"
+   siempre visible dentro del header, mismo patrón ya adoptado en el resto del ecosistema
+   para acciones secundarias de card (ej. .sc-menu-btn: ícono solo, sin texto). Tamaño y
+   forma cuadrada calcados de .qinc-item-code-chip (mismo componente hermano de copia en la
+   misma card) — ver bloque arriba en este archivo. CSS dependencies: clase .ti/.ti-copy
+   (Tabler, ya cargado en el proyecto — ver __OB-Strategy §5 invariante CDN). Contenido
+   textual "Copiar ítem" pasa a atributo title/aria-label — sin nodo <span> de texto en el
+   botón. Cambio de markup (retirar el texto del DOM, agregar <i class="ti ti-copy">)
+   pendiente de Rune en locus-incidents-item.js (buildQIncItem) — no adjunto en esta sesión,
+   ver DISC. Esta regla queda lista para consumir esa entrega sin cambio adicional de CSS. */
 .qinc-item-copy-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: var(--text-2xs);
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  font-size: var(--text-sm);
   color: var(--text3);
   background: var(--surface3);
   border: 1px solid var(--border);
   border-radius: var(--radius-xs);
-  padding: 2px 6px;
   cursor: pointer;
-  white-space: nowrap;
 }
 
 .qinc-item-copy-btn:hover {
   border-color: var(--border2);
   color: var(--text2);
+  background: var(--surface2);
 }
 
 .qinc-item-copy-btn:focus-visible {
@@ -427,13 +449,28 @@
   border-color: var(--red-border);
 }
 
-/* ── Stats bar y search Q-INC ── */
+/* ── Stats bar y search Q-INC — header diferenciado ── */
+/* [PP] mod:9 · autor:Nova · 2026-08-05 UTC-6 */
+/* TKT (Nova, análisis visual Q-INC): .qinc-stats-bar pasa de fila flex suelta a bloque de
+   header con borde propio — mismo mecanismo que .bl-header-unified (Q-Backlog/Q-DISC,
+   locus-backlog.css mod:118), sin adoptar su position:sticky (Q-INC no tiene el mismo
+   ancestro de scroll confirmado en esta sesión — sin index.html adjunto, no se asume).
+   .qinc-stats-bar-inner conserva el layout flex original (tipos + prioridad + search) como
+   hijo directo — separa "contenedor con identidad visual" de "fila de controles", mismo
+   principio de capas que .bl-panel-identity + .bl-header-unified > .stats-bar. */
 .qinc-stats-bar {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md-plus);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.qinc-stats-bar-inner {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 4px;
-  padding: 6px 0;
+  padding: 6px 10px;
 }
 
 .qinc-search-input {
@@ -565,29 +602,51 @@
    de foco (:focus-visible) reutiliza var(--border), ya presente en este mismo archivo
    (.qinc-badge, L430), en vez de inventar un token nuevo sin poder confirmarlo contra el doc de
    sistema de diseño. Señalar si difiere del token real usado en el resto del proyecto. */
+/* [PP] mod:10 · autor:Nova · 2026-08-05 UTC-6 */
+/* TKT (Nova, análisis visual Q-INC): Activos/Terminados dejan de compartir el mismo peso
+   visual — mismo principio ya aplicado en .qdisc-status-header (locus-backlog.css mod:93):
+   la sección operativamente relevante ancla la atención primero. Reglas base sin color
+   quedan en .qinc-section-header (layout, tipografía, foco); --activos/--terminados
+   agregan el bloque de identidad — fondo + borde + texto, mismo mecanismo de 3 capas
+   (fondo/borde en el selector base, color heredado por título+contador) que
+   .qdisc-status-header--promoted/--discovery. --terminados usa tokens neutros a propósito,
+   mismo criterio que .sps-status-header--cerrados: terminar un INC/PRB/CHG no es un estado
+   de error ni de alerta, no lleva color de acento. */
 .qinc-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--text2);
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  padding: 4px 6px;
-  margin: -4px -6px;
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
+  border: 1px solid var(--border);
   transition: background 120ms ease;
 }
 
 .qinc-section-header:hover {
-  background: var(--surface3);
+  filter: brightness(0.97);
 }
 
 .qinc-section-header:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.qinc-section-header--activos {
+  background: var(--green-dim);
+  border-color: var(--green-border);
+  color: var(--green-text);
+}
+
+.qinc-section-header--terminados {
+  background: var(--surface2);
+  border-color: var(--border);
+  color: var(--text3);
+  font-weight: 600;
 }
 
 .qinc-section-header-left {
@@ -596,9 +655,14 @@
   gap: 6px;
 }
 
+.qinc-section-count {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 .qinc-section-chevron {
   font-size: var(--text-xs);
-  color: var(--text3);
   transition: transform 150ms ease;
   transform: rotate(0deg);
 }

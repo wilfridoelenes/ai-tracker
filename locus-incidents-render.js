@@ -1,3 +1,10 @@
+// [PP] mod:21 · autor:Nova · 2026-08-05 UTC-6
+// TKT (Nova, análisis visual Q-INC): renderQIncStats() envuelve su contenido en
+// .qinc-stats-bar-inner (CSS depende de esto — ver locus-incidents.css mod:9). Headers de
+// sección "Activos"/"Terminados" agregan modificador de color (--activos/--terminados) y
+// nodo .qinc-section-count con el conteo — antes el número solo vivía implícito en el
+// contenido renderizado debajo, sin badge propio en el header. Sin cambio de lógica de
+// filtrado, colapso ni delegación — solo markup de presentación.
 // [PP] mod:20 · autor:Rune · 2026-07-27 UTC-6
 // TKT-202607-164 (parent REQ-202607-053, depends_on TKT-202607-161): AC2 — el ícono
 // .qinc-item-code-chip-icon (nodo agregado en locus-incidents-item.js mod:9) cambia de
@@ -340,20 +347,25 @@ export function renderQIncStats() {
 
   // TKT2 AC (Nova, REQ CAEL-0720-05): chips muestran 0 sin ocultarse — sin early-return por
   // conteo. _countByType/_countByPri ya quedan en 0 cuando _displayable está vacío.
+  // TKT (Nova, análisis visual Q-INC): contenido envuelto en .qinc-stats-bar-inner — el
+  // shell externo (#qinc-stats-bar) pasa a tener identidad de header propia vía CSS, sin
+  // tocar el layout flex original de esta fila.
   statsEl.innerHTML = `
-    <div class="qinc-stats-types">
-      ${_qiTypes.size < 3 ? `<button class="stat-type-chip stat-type-chip--all" data-qi-action="qi-clear-types" title="Mostrar todos los tipos">✕</button>` : ''}
-      ${[['INC','INC'],['PRB','PRB'],['CHG','CHG']].map(([t, label]) =>
-        `<button class="stat-type-chip tc-${t}${_qiTypes.has(t) ? ' active' : ''}" data-qi-action="qi-type" data-qi-type="${t}" title="Filtrar por tipo ${t}">\
+    <div class="qinc-stats-bar-inner">
+      <div class="qinc-stats-types">
+        ${_qiTypes.size < 3 ? `<button class="stat-type-chip stat-type-chip--all" data-qi-action="qi-clear-types" title="Mostrar todos los tipos">✕</button>` : ''}
+        ${[['INC','INC'],['PRB','PRB'],['CHG','CHG']].map(([t, label]) =>
+          `<button class="stat-type-chip tc-${t}${_qiTypes.has(t) ? ' active' : ''}" data-qi-action="qi-type" data-qi-type="${t}" title="Filtrar por tipo ${t}">\
 <span class="tc-count">${_countByType[t]}</span><span class="tc-label">${label}</span></button>`
-      ).join('')}
+        ).join('')}
+      </div>
+      <div class="qinc-stats-priority">
+        <button class="stat-pri-chip pri-high${_qiPriority.has('high') ? ' active' : ''}" data-qi-action="qi-priority" data-qi-priority="high" title="Filtrar SLA alta"><span class="spc-n">${_countByPri.high}</span> Alto</button>
+        <button class="stat-pri-chip pri-medium${_qiPriority.has('medium') ? ' active' : ''}" data-qi-action="qi-priority" data-qi-priority="medium" title="Filtrar SLA media"><span class="spc-n">${_countByPri.medium}</span> Med</button>
+        <button class="stat-pri-chip pri-low${_qiPriority.has('low') ? ' active' : ''}" data-qi-action="qi-priority" data-qi-priority="low" title="Filtrar SLA baja"><span class="spc-n">${_countByPri.low}</span> Bajo</button>
+      </div>
+      <input class="qinc-search-input" type="search" placeholder="Buscar en Q-INC…" value="${_qiQuery.replace(/"/g,'&quot;')}" data-qi-action="qi-search" aria-label="Buscar en Q-INC">
     </div>
-    <div class="qinc-stats-priority">
-      <button class="stat-pri-chip pri-high${_qiPriority.has('high') ? ' active' : ''}" data-qi-action="qi-priority" data-qi-priority="high" title="Filtrar SLA alta"><span class="spc-n">${_countByPri.high}</span> Alto</button>
-      <button class="stat-pri-chip pri-medium${_qiPriority.has('medium') ? ' active' : ''}" data-qi-action="qi-priority" data-qi-priority="medium" title="Filtrar SLA media"><span class="spc-n">${_countByPri.medium}</span> Med</button>
-      <button class="stat-pri-chip pri-low${_qiPriority.has('low') ? ' active' : ''}" data-qi-action="qi-priority" data-qi-priority="low" title="Filtrar SLA baja"><span class="spc-n">${_countByPri.low}</span> Bajo</button>
-    </div>
-    <input class="qinc-search-input" type="search" placeholder="Buscar en Q-INC…" value="${_qiQuery.replace(/"/g,'&quot;')}" data-qi-action="qi-search" aria-label="Buscar en Q-INC">
   `;
 
   // TKT2: delegación propia sobre #qinc-stats-bar — separada de _attachQIncDelegation (body),
@@ -550,7 +562,7 @@ export function renderQIncPanel() {
         // Estado default por render (AC4): "Activos" nace expandido, "Terminados" nace colapsado
         // — sin persistencia entre renders ni recargas, mismo criterio ya declarado para
         // .sps-status-group (_Locus-css-ref, "estado en memoria, resetea a expandido en reload").
-        h += '<div class="qinc-section"><div class="qinc-section-header" role="button" tabindex="0" aria-expanded="true" aria-controls="qinc-active-body" id="qinc-active-header"><div class="qinc-section-header-left"><span class="qinc-section-chevron" aria-hidden="true">▸</span><span>Activos</span></div></div>';
+        h += `<div class="qinc-section"><div class="qinc-section-header qinc-section-header--activos" role="button" tabindex="0" aria-expanded="true" aria-controls="qinc-active-body" id="qinc-active-header"><div class="qinc-section-header-left"><span class="qinc-section-chevron" aria-hidden="true">▸</span><span>Activos</span></div><span class="qinc-section-count">${_activeItems.length}</span></div>`;
         // TKT2 (TKT-202607-156, parent REQ-202607-050, depends_on TKT-202607-155): caption fijo,
         // sin condicionar al conteo de _activeItems — AC de coherencia del REQ exige que se
         // renderice igual con las 3 columnas vacías. No se agrega a "Terminados" (más abajo).
@@ -562,7 +574,7 @@ export function renderQIncPanel() {
         // filteredQInc.length>0 está garantizado en este punto (branch de "Sin resultados" ya
         // se resolvió arriba), así que _activeItems y _terminalItems nunca están vacíos los dos
         // a la vez — pero cada uno individualmente sí, y ambas secciones ya lo cubren.
-        h += '<div class="qinc-section"><div class="qinc-section-header qinc-section-header--collapsed" role="button" tabindex="0" aria-expanded="false" aria-controls="qinc-terminal-body" id="qinc-terminal-header"><div class="qinc-section-header-left"><span class="qinc-section-chevron" aria-hidden="true">▸</span><span>Terminados</span></div></div>';
+        h += `<div class="qinc-section"><div class="qinc-section-header qinc-section-header--terminados qinc-section-header--collapsed" role="button" tabindex="0" aria-expanded="false" aria-controls="qinc-terminal-body" id="qinc-terminal-header"><div class="qinc-section-header-left"><span class="qinc-section-chevron" aria-hidden="true">▸</span><span>Terminados</span></div><span class="qinc-section-count">${_terminalItems.length}</span></div>`;
         h += '<div id="qinc-terminal-body" class="qinc-section-body--collapsed">';
         h += _terminalItems.length
           ? `<div class="items-grid">${_terminalItems.map(item => _buildQIncItemHtml(item)).join('')}</div>`

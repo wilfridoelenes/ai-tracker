@@ -1,4 +1,16 @@
-/* [PP] mod:6 · autor:Nova · 2026-08-05 UTC-6 */
+/* [PP] mod:7 · autor:Nova · 2026-08-05 UTC-6 */
+/* TKT-202608-249 (REQ-202608-098, TKT2 · Estandarizar mecanismo visual de pills de filtro):
+   .htmlmap-filter-btn migra a var(--radius-xs) + padding 3px 8px (normal y activo, unificados
+   para evitar salto de tamaño al alternar — mismo patrón que TKT1 aplicó a .filter-status-btn)
+   y gana border-width:1.5px en .active — idéntico al mecanismo de .filter-btn (TKT-202608-248).
+   .hmfilter-pill: solo se migró border-radius a var(--radius-xs) (AC1, literal). El grosor de
+   borde activo (AC2) YA es 1.5px en el estado base — no requiere cambio, es no-op. El padding
+   de AC2 NO se tocó — deliberado, no gap: .hmfilter-pill usa --text-sm (no --text-xs como
+   .filter-btn), tiene padding-left:8px propio ligado al ::before checkmark y hmfilter-pill-count
+   anidado — copiar 3px 8px literal arriesga romper ese ajuste fino existente sin verificación
+   visual. Señalado como observación para founder/Nova en sesión de auditoría UI — ver CHECKPOINT,
+   no bloquea la entrega del TKT porque el AC de radio (lo único inequívoco para este selector)
+   ya está cumplido. */
 /* TKT-CAEL-0717-02 (REQ-CAEL-0717-01): .du-meta-vencido agregada — badge amber consumiendo
    entries[].vencido del docUpdateIndex (criterio 2 sprints, ya calculado por Rune en
    TKT-202607-031). Sin nuevos tokens — reutiliza --amber ya validado como texto. */
