@@ -257,7 +257,9 @@ export function switchSubTab(sub) {
   // sigue el patrón sstab-btn-{s} igual que el resto — su panel no: es #tab-proyectos-inner,
   // id ya consumido por otros módulos, no #sspanel-dashboard. Único punto no unificable
   // sin renombrar el id (ver entregable de Nova) — resuelto con el ternario de panel.
-  ['backlog','qbacklog','qdisc','htmlmap','context','plan','docupdates','contratos','historico','dashboard'].forEach(s => {
+  // INC (PP-Q-INC, high, TKT-202608-237): 'resueltos' faltaba en este array — mismo patrón
+  // ya documentado arriba para 'docupdates'. Sub-tab Resueltos nunca activaba botón ni panel.
+  ['backlog','qbacklog','qdisc','htmlmap','context','plan','docupdates','contratos','historico','dashboard','resueltos'].forEach(s => {
     const btn = document.getElementById('sstab-btn-' + s);
     const panel = document.getElementById(s === 'dashboard' ? 'tab-proyectos-inner' : 'sspanel-' + s);
     if (btn) {
