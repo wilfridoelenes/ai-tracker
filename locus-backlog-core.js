@@ -1,3 +1,13 @@
+// [PP] mod:141 · autor:Rune · 2026-08-05 14:20 UTC-6
+// TKT-202608-247 (REQ-202608-097): renderStats() — envuelto en .bl-header-unified > .stats-bar,
+// mismo patrón que Q-Backlog/Discoveries/Histórico. De los 2 early-returns que blanqueaban
+// #stats-bar, solo queda 'sin proyecto activo' (_rsProjId ausente — fuera de scope del TKT,
+// AC5). 'ITEMS.length===0' se retira — el resto de la función ya calcula ceros de forma
+// natural sobre countableItems/visible vacíos, sin rama especial. Rama 'sin sprint activo'
+// también envuelta en el wrapper nuevo — mensaje <span class="stats-bar-no-sprint"> sin
+// cambio de contenido (Opción A). .stats-bar-body (clase previa) queda sin consumidor en esta
+// función — retiro del CSS fuera de scope declarado en no_incluye del TKT. Sin cambio de
+// cálculo de backlogCount/enRevisionCount/done/byType/byPriority/byEffort — contract_update: n/a.
 // [PP] mod:140 · autor:Rune · 2026-07-31 UTC-6
 // TKT-202607-142 (REQ-202607-045): segunda referencia a 'CAEL-0726-04' detectada en la
 // tabla de shell:* events (línea ~317, comentario de shell:render-sprint-tab) — el fix de
@@ -2429,7 +2439,11 @@ export function renderStats() {
 
   const _rsProjId = _coreCallbacks.getActiveProjectFilter?.() || localStorage.getItem('current-project-filter') || '';
   if (!_rsProjId) { document.getElementById('stats-bar').innerHTML = ''; return; }
-  if (!ITEMS.length) { document.getElementById('stats-bar').innerHTML = ''; return; }
+  // TKT-202608-247 (REQ-202608-097): early-return por ITEMS.length===0 retirado — antes
+  // blanqueaba #stats-bar cuando el proyecto no tenía ítems, violando el patrón "siempre
+  // visible, ceros si vacío" ya vigente en Q-Backlog/Discoveries/Histórico. El resto de la
+  // función ya calcula ceros de forma natural sobre countableItems/visible vacíos — sin
+  // rama especial necesaria.
 
   // Delegation para stats-bar — se registra una sola vez
   const statsBarEl = document.getElementById('stats-bar');
@@ -2527,8 +2541,10 @@ export function renderStats() {
 
   // T-202606-048 AC 7: Backlog sin sprint activo — render simplificado
   if (!_activeSprint) {
+    // TKT-202608-247 (REQ-202608-097): wrapper .bl-header-unified > .stats-bar agregado —
+    // mismo patrón que el happy path de abajo (Opción A: contenido del mensaje sin cambio).
     document.getElementById('stats-bar').innerHTML = `
-      <div class="stats-bar-body"><span class="stats-bar-no-sprint">Sin sprint activo</span></div>
+      <div class="bl-header-unified"><div class="stats-bar"><span class="stats-bar-no-sprint">Sin sprint activo</span></div></div>
     `;
     updateTypeFilterUI();
     return;
@@ -2566,7 +2582,8 @@ export function renderStats() {
 
   // T-202606-048 AC 6 · TKT1-sprint-display-2: label metadata de sprint activo vía _sprintDisplay()
   document.getElementById('stats-bar').innerHTML = `
-    <div class="stats-bar-body">
+    <div class="bl-header-unified">
+    <div class="stats-bar">
     <div class="stats-row stats-row--compact">
       <!-- Bloque de conteos: pendientes primero -->
       <div class="stat-compact-counts">
@@ -2623,6 +2640,7 @@ export function renderStats() {
         <span class="stat-effort-card${activeEfforts.has(2) ? ' active' : ''}" id="feff-2" data-action="stats-effort-filter" data-effort="2" title="Filtrar effort 2"><span class="sec-count">${byEffort[2]}</span><span class="eff-label">●● medio</span></span>
         <span class="stat-effort-card${activeEfforts.has(3) ? ' active' : ''}" id="feff-3" data-action="stats-effort-filter" data-effort="3" title="Filtrar effort 3"><span class="sec-count">${byEffort[3]}</span><span class="eff-label">●●● complejo</span></span>
       </div>
+    </div>
     </div>
     </div>
   `;

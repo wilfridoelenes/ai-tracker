@@ -1,4 +1,4 @@
-// [PP] mod:36 · autor:Rune · 2026-08-04 UTC-6
+// [PP] mod:37 · autor:Rune · 2026-08-05 UTC-6
 // TKT1 (REQ ref_id CAEL-0804-01): _mgUpdateStepper() nueva — sincroniza .mg-stepper-step--active/
 // --done y #mg-step-badge con el estado real (_mapGen.files.length + estado de #mg-confirm-btn).
 // Invocada desde _mgRenderFileList() (cambia al agregar/quitar archivo), _mgResetPreview() (cubre
@@ -138,7 +138,7 @@
 import { migrateClosedItemsToHistorico } from './locus-backlog-historico.js';
 import { itemKind } from './locus-backlog-core.js'; // TKT-D2: itemKind(item) — clasificación Gen2. INC-202607-025: getAnyItem retirado — único consumidor era _mgSessionInSprint(), eliminada junto con el feature Sprint Review
 import { editSprintInline } from './locus-backlog-sprints.js';
-import { _getMapContent, exportHtmlMapMd, importHtmlMap } from './locus-docs.js'; // TKT2 (REQ CAEL-0730-01): _importContextMdFromText retirado — único consumidor era el apply() de CONTEXT en _doConfirmGenerate()
+import { exportHtmlMapMd, importHtmlMap } from './locus-docs.js'; // TKT2 (REQ CAEL-0730-01): _importContextMdFromText retirado — único consumidor era el apply() de CONTEXT en _doConfirmGenerate(). TKT1 (REQ ref_id CAEL-0805-01): _getMapContent retirado — único consumidor era la rama ZIP de _mgExportAllZip()
 import { _docPrefix, _effectiveVersion, _tplKey, getActiveProject, getActiveSprints, getInfraVersionData } from './locus-storage.js'; // TKT2/3/4 (REQ CAEL-0730-01): getProjContext retirado — único consumidor era _generateContext(). Fix inline (mismo audit de imports): getAISessions/save ya no tenían consumidor en el archivo — sin relación con este REQ
 import { showToast } from './locus-toast.js'; // TKT2 (REQ CAEL-0730-01): showToastInline sin consumidor tras retirar la validación de CONTEXT. Fix inline (mismo audit): toast (bare) tampoco tenía consumidor en el archivo — sin relación con este REQ
 import { render } from './locus-sesiones.js';
@@ -1297,9 +1297,6 @@ async function _doConfirmGenerate() {
   // fileDefs de context/backlog/incidents retirados — el generador solo produce MAP.
 
   // Construir tabla de archivos: { filename, content, applyFn? }
-  const activeSprint = _mgActiveSprintReal();
-  const sprintId     = activeSprint ? activeSprint.id : 'sin-sprint';
-
   const fileDefs = [];
   if (docs.map) {
     const mapVer = _mgGetMapVersion(); // T-202606-148: nombre del archivo MAP coincide con header interno
@@ -1314,42 +1311,18 @@ async function _doConfirmGenerate() {
     });
   }
   // B-202605-275: efectos DOM (importHtmlMap) se aplican DESPUÉS de confirmar generación exitosa
-  // B-202605-493: _mgApplyBumpedVersion y migrateClosedItemsToHistorico también se difieren — sin mutación de estado si ZIP falla
-  const zipName = `${prefix}-SPRINT-PACKAGE_${sprintId}_${bumpedVer}.zip`;
+  // B-202605-493: _mgApplyBumpedVersion y migrateClosedItemsToHistorico también se difieren — sin mutación de estado si la descarga falla
+  // TKT1 (REQ ref_id CAEL-0805-01): rama JSZip retirada — fileDefs solo contiene MAP desde
+  // TKT2/TKT3/TKT4 de REQ CAEL-0730-01, comprimir un único archivo no aporta valor y JSZip
+  // fallaba de forma consistente en el entorno del founder. Descarga directa incondicional,
+  // mismo orden de efectos que la rama fallback previa (descarga → apply → versión → persistencia).
+  fileDefs.forEach(d => _mgDownload(d.content, d.filename));
+  fileDefs.forEach(d => { if (d.apply) d.apply(); });
+  _mgApplyBumpedVersion(bumpedVer); // B-202605-493: diferido post-descarga
+  await migrateClosedItemsToHistorico(); // INC-[pendiente-ID]: awaited — persistencia debe completarse antes del toast de éxito
 
-  if (typeof JSZip !== 'undefined') {
-    const zip = new JSZip();
-    fileDefs.forEach(d => zip.file(d.filename, d.content));
-    zip.generateAsync({ type: 'blob' }).then(async blob => {
-      // ZIP generado exitosamente — aplicar efectos en orden: DOM → versión → archivo
-      fileDefs.forEach(d => { if (d.apply) d.apply(); });
-      _mgApplyBumpedVersion(bumpedVer); // B-202605-493: diferido post-confirmación
-      await migrateClosedItemsToHistorico(); // INC-[pendiente-ID]: awaited — persistencia debe completarse antes de exponer la descarga
-
-      const url = URL.createObjectURL(blob);
-      const a   = document.createElement('a');
-      a.href     = url;
-      a.download = zipName;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      closeMapGenerator();
-      showToast('success', `Paquete generado — ${fileDefs.length} documento${fileDefs.length !== 1 ? 's' : ''} · v${bumpedVer}`);
-    }).catch(() => {
-      // ZIP falló — no aplicar ningún efecto de estado
-      showToast('error', 'Error al generar el ZIP — no se aplicaron cambios');
-    });
-  } else {
-    // Fallback: descargas individuales — aplicar efectos después de iniciar descargas
-    fileDefs.forEach(d => _mgDownload(d.content, d.filename));
-    fileDefs.forEach(d => { if (d.apply) d.apply(); });
-    _mgApplyBumpedVersion(bumpedVer); // B-202605-493: diferido post-descarga
-    await migrateClosedItemsToHistorico(); // INC-[pendiente-ID]: awaited — persistencia debe completarse antes del toast de éxito
-    showToast('warning', 'JSZip no disponible — descargando archivos por separado');
-
-    closeMapGenerator();
-    showToast('success', `Paquete generado — ${fileDefs.length} documento${fileDefs.length !== 1 ? 's' : ''} · v${bumpedVer}`);
-  }
+  closeMapGenerator();
+  showToast('success', `Paquete generado — ${fileDefs.length} documento${fileDefs.length !== 1 ? 's' : ''} · v${bumpedVer}`);
 }
 // R-202605-002: _mgApplyBumpedVersion — solo actualiza DOM, no persiste en localStorage
 function _mgApplyBumpedVersion(ver) {
@@ -1387,42 +1360,14 @@ function _mgDownload(content, filename) {
 // CONTEXT aquí invocaba _generateContext() sin argumento — la firma real exige `ver`, hubiera
 // producido un CONTEXT con versión resuelta por fallback interno en vez del valor de este
 // bloque; sin impacto ahora que el call site se retira junto con el resto de CONTEXT.
-// Usa JSZip si está disponible; fallback a descarga individual.
+// TKT1 (REQ ref_id CAEL-0805-01): rama JSZip retirada — el generador solo produce MAP desde
+// TKT2/TKT3/TKT4 de REQ CAEL-0730-01, comprimir un único archivo no aporta valor y JSZip
+// fallaba de forma consistente en el entorno del founder. fileDefs/_getMapContent() solo
+// alimentaban la rama ZIP — exportHtmlMapMd() ya es la fuente de exportación individual y
+// maneja su propio caso de contenido ausente, mismo comportamiento que la rama fallback previa.
 export function _mgExportAllZip() {
-  const prefix = _docPrefix();
-
-  const fileDefs = [];
-
-  // B-202605-514: MAP via _getMapContent() — función pura, sin overlay ni blob
-  {
-    const ver = _mgGetVersion();
-    const mapContent = _getMapContent(ver);
-    if (mapContent !== null) {
-      // R-202605-137 (rev): output siempre .md — bloque JSON eliminado
-      fileDefs.push({ filename: _mgCanonicalMapName(prefix, ver), fn: () => mapContent });
-    }
-  }
-
-  // Si podemos construir contenido — intentar ZIP
-  if (fileDefs.length > 0 && typeof JSZip !== 'undefined') {
-    const zip = new JSZip();
-    fileDefs.forEach(d => {
-      try { zip.file(d.filename, d.fn()); } catch(e) { /* silenciar error de contenido individual */ }
-    });
-    zip.generateAsync({ type: 'blob' }).then(blob => {
-      const url = URL.createObjectURL(blob);
-      const a   = document.createElement('a');
-      a.href     = url;
-      a.download = `${prefix}-DOCUMENTOS.zip`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('success', 'ZIP descargado — MAP');
-    });
-  } else {
-    // Fallback: descarga individual usando la función de exportación existente
-    exportHtmlMapMd();
-    showToast('info', 'MAP descargado individualmente');
-  }
+  exportHtmlMapMd();
+  showToast('info', 'MAP descargado');
 }
 
 // T-202605-032: addEventListener — migración desde onclick inline en index.html
