@@ -1,3 +1,15 @@
+// [PP] mod:27 · autor:Rune · 2026-08-04 UTC-6
+// INC-[pendiente-ID] (founder reporta con capturas: sub-tab DOC-UPDATEs invisible parado en
+// Documentos, pese a footer mostrando "4 DOC-UPDATEs sin resolver"). Causa raíz: el fix de
+// mod:26 (INC-202608-087 AC1/AC2) gateaba renderDocUpdatesPending() — única función que
+// quita is-hidden de #sstab-btn-docupdates — a `sub === 'docupdates'` dentro de
+// _updateSubTabButtons(). Circular: un sub-tab is-hidden no es alcanzable por navegación
+// normal, solo via switchSubTab programático (ej. footer). Visitar Dashboard/Documentos/
+// Context nunca disparaba el recálculo. Confirmado que #doc-updates-list (target del
+// render) es static markup, presente en el DOM independientemente de qué sub-tab de
+// Proyectos esté activo — seguro invocar sin ese gate. Fix: recalcular en cualquier sub de
+// la familia Proyectos (dashboard/htmlmap/context/docupdates/contratos), no solo al
+// activar 'docupdates'. Sin cambio de firma — contract_update: no.
 // [PP] mod:26 · autor:Rune · 2026-08-04 UTC-6
 // INC-202608-087 (derivado de INC-202608-085, misma auditoría end-to-end footer
 // DOC-UPDATEs): #sstab-btn-docupdates (index.html) nace is-hidden y ningún módulo lo
@@ -209,8 +221,17 @@ export function _updateSubTabButtons(sub) {
     }
   }
 
-  // AC-3 (T-202606-033): sub docupdates — renderizar al activar
-  if (sub === 'docupdates') {
+  // AC-3 (T-202606-033): sub docupdates — renderizar al activar.
+  // INC-[pendiente-ID] (derivado de INC-202608-087): gatear esta llamada a
+  // sub === 'docupdates' era circular — #sstab-btn-docupdates nace is-hidden y ese
+  // gate es la única vía que lo revela, pero un sub-tab is-hidden no es alcanzable por
+  // navegación normal del usuario (solo via switchSubTab programático, ej. el link del
+  // footer). Resultado: visitar Dashboard/Documentos/Context nunca disparaba el recálculo,
+  // el sub-tab quedaba invisible indefinidamente pese a haber DOC-UPDATEs pendientes
+  // (confirmado: #doc-updates-list existe siempre en el DOM, static markup, independiente
+  // de qué sub-tab esté activo — seguro llamarlo sin gate). Fix: recalcular en cualquier
+  // sub de la familia Proyectos, no solo al activar el sub-tab que el fix debía revelar.
+  if (['dashboard', 'htmlmap', 'context', 'docupdates', 'contratos'].includes(sub)) {
     renderDocUpdatesPending();
   }
   // Collapse danger body when switching tabs
