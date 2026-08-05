@@ -1,3 +1,16 @@
+/* [PP] mod:92 · autor:Nova · 2026-08-04 UTC-6 */
+/* mod:92 — TKT-202608-240 (REQ Merge Diff Panel — distinguir bloque vacío de referencia sin
+   resolver, ref_id CAEL-0804-01, origen DISC-202608-098): dos variantes nuevas en la familia
+   .mdiff-ckpt-category — reemplazan la categoría 'lite' fusionada (dos causas distintas bajo
+   el mismo badge: bloque genuinamente vacío vs. bloque con referencia que no resolvió contra
+   el diff). Cero tokens nuevos.
+   .mdiff-ckpt-category--vacio — reusa la misma base neutra que .mdiff-ckpt-category--borrador
+   (var(--surface2)/var(--text2)/var(--border)) sin acento de alerta — es un estado esperado,
+   no un problema. .mdiff-ckpt-category--sin-resolver — reusa 1:1 la variable de acento ámbar
+   ya verificada WCAG AA en .mdiff-block-badge--flag (color-mix var(--amber) 10%/28%,
+   var(--amber-text)) — misma severidad semántica: algo requiere atención del founder.
+   .mdiff-ckpt-category--lite se conserva sin cambio (no_incluye del TKT) — la retira TKT2
+   (Rune) del lado JS cuando deje de tener consumidor. */
 /* [PP] mod:91 · autor:Nova · 2026-08-04 UTC-6 */
 /* mod:91 — Retiro de .mdiff-type-badge (CSS muerto): sin consumidor JS confirmado tras el
    retiro del <span> equivalente en _fieldChips() (locus-backlog-merge.js, R-202605-148 post-
@@ -4886,6 +4899,21 @@ body {
   background: color-mix(in srgb, var(--purple) 10%, transparent);
   color: var(--purple-text);
   border-color: color-mix(in srgb, var(--purple) 28%, transparent);
+}
+
+/* TKT-202608-240 (ref_id CAEL-0804-01) — reemplazan 'lite': separa bloque vacío por diseño
+   de bloque con referencia sin resolver contra el diff. Ver comentario de mod:92 arriba. */
+.mdiff-ckpt-category--vacio {
+  background: var(--surface2);
+  color: var(--text2);
+  border-style: dashed;
+  border-color: var(--border);
+}
+
+.mdiff-ckpt-category--sin-resolver {
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
+  color: var(--amber-text);
+  border-color: color-mix(in srgb, var(--amber) 28%, transparent);
 }
 
 /* Borde de card reforzado — única diferenciación visual de 'liberado' frente a 'cierre' (mismo

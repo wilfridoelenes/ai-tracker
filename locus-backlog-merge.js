@@ -1,3 +1,21 @@
+// [PP] mod:89 · autor:Rune · 2026-08-04 UTC-6
+// TKT-202608-241 (REQ ref_id CAEL-0804-01, TKT2 — origen_disc DISC-202608-098): _ckptCategoryFor
+// separa el bucket fusionado 'lite' en dos categorías con causa raíz distinta — 'vacio' cuando
+// meta.idx no tiene ningún ítem declarado (_blockTg.length===0 && _blockPatch.length===0, AC1) y
+// 'sin-resolver' cuando sí hay ítem(s) declarado(s) para el bloque pero _itemsForBlockIdx(meta.idx)
+// no produce ninguna tarjeta — ninguna de las 7 categorías del diff, incluyendo ignored, matcheó
+// (AC2). _CKPT_CATEGORY_LABELS ya no declara 'lite' — declara vacio:'Sin ítems' y
+// 'sin-resolver':'Referencia sin resolver' (AC3). _blockBadge() ya no retorna
+// {cls:'skipped',label:'no leído'} para itemsHtmlArr vacío — retorna null; _buildAttributedCardsBlock
+// omite el span de badge por completo cuando no hay badge que mostrar, el diagnóstico vive solo en
+// la categoría, sin badge duplicado (AC4). no_incluye del TKT: caso residual (blockTg/blockPatch no
+// vacíos pero _itemsForBlockIdx no vacío, sin matchear ninguna de las 5 categorías de estado) no
+// observado en la práctica según el diseño original de 'lite' (comentario TKT-202607-170, más abajo:
+// "mismo valor para bloque vacío... y para el estado sin resolver" — exactamente 2 casos) — de
+// ocurrir, cae en 'sin-resolver' por ser el fallback más seguro (nunca 'vacio' con ítems reales
+// presentes). contract_update: sí — mismo export showMergeDiffPanel sin cambio de firma; contrato
+// actualizado en el string enum interno de categoría ('lite' retirado, 'vacio'/'sin-resolver'
+// agregados) — mismo criterio que TKT-202607-170 (mod:73, ver abajo).
 // [PP] mod:88 · autor:Rune · 2026-08-04 UTC-6
 // TKT3 (parent: [pendiente-ID] · depends_on: TKT2 · design_intent: unresolved_refs_borrador):
 // sección 'Referencias sin resolver' separa source:'formato_invalido' (no bloquea guardar) del
@@ -1424,14 +1442,14 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     ];
   };
 
-  // Clasificación del badge (Nova, TKT-077 — .mdiff-block-badge--ok/--flag/--skipped):
-  // 'flag' si el bloque aportó algún retroceso/descarte (requiere atención), 'skipped' si el
-  // filtro por meta.idx no produjo ningún ítem en NINGUNA de las 7 categorías (incluyendo
-  // ignored) — ese es el único caso real de "bloque sin detalle" dentro de metas, dado que los
-  // bloques inválidos (skipped en _resolveCheckpointBatch) nunca llegan a tener entrada de
-  // meta. 'ok' en cualquier otro caso con ítems.
+  // Clasificación del badge (Nova, TKT-077 — .mdiff-block-badge--ok/--flag; 'skipped' retirado en
+  // TKT-202608-241 AC4): el caso de "bloque sin detalle" (filtro por meta.idx sin ningún ítem en
+  // ninguna de las 7 categorías del diff, incluyendo ignored) ya no lleva badge propio — el
+  // diagnóstico vive únicamente en _ckptCategoryFor ('vacio'/'sin-resolver', ver más abajo), sin
+  // duplicar la señal en dos elementos visuales distintos para el mismo caso. 'flag' si el bloque
+  // aportó algún retroceso/descarte (requiere atención). 'ok' en cualquier otro caso con ítems.
   const _blockBadge = (metaIdx, itemsHtmlArr) => {
-    if (!itemsHtmlArr.length) return { cls: 'skipped', label: 'no leído' };
+    if (!itemsHtmlArr.length) return null;
     // AC3 de TKT-202607-077 (verificado por Finn contra AC literal, no solo contra la
     // interpretación previa): el badge 'con flags' muestra el conteo real, ej. "2 flags" — no
     // un texto fijo. flagCount = retroceso + discarded de este bloque específico.
@@ -1460,14 +1478,19 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // (bloque sin ningún ítem REQ/TKT/INC/PRB/CHG) y el estado sin resolver (ítem presente que
   // no matchea ninguna de las 6 ramas restantes); AC corregido exige un solo valor de retorno
   // para ambos, sin octava categoría (no_incluye).
+  // TKT-202608-241 (REQ ref_id CAEL-0804-01, mod:89): 'lite' se separa en 'vacio'/'sin-resolver'
+  // (Nova, locus-backlog-item.css mod:92) — precedencia actualizada: liberación > incidente >
+  // avalado > cierre > entrega > borrador > sin-resolver > vacio. 'sinclasificar'/'lite' ya no
+  // existen como valores de retorno — ver _ckptCategoryFor más abajo para la lógica del split.
   const _CKPT_CATEGORY_LABELS = {
-    liberado:  'Liberación',
-    incidente: 'Incidente',
-    avalado:   'Avalado',
-    cierre:    'Cierre',
-    entrega:   'Entrega',
-    borrador:  'Borrador',
-    lite:      'Lite'
+    liberado:       'Liberación',
+    incidente:      'Incidente',
+    avalado:        'Avalado',
+    cierre:         'Cierre',
+    entrega:        'Entrega',
+    borrador:       'Borrador',
+    vacio:          'Sin ítems',
+    'sin-resolver': 'Referencia sin resolver'
   };
   const _ckptCategoryFor = meta => {
     if (meta && meta.finnRelease) return 'liberado';
@@ -1478,7 +1501,16 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     if (_blockTg.some(i => i.status === 'done') || _blockPatch.some(p => p.status === 'done')) return 'cierre';
     if (_blockTg.some(i => i.status === 'en-revision')) return 'entrega';
     if (_blockTg.some(i => i.draft === true)) return 'borrador';
-    return 'lite';
+    // TKT-202608-241 AC1/AC2: 'lite' fusionaba dos causas raíz distintas — bloque sin ningún
+    // ítem declarado (AC1) vs. ítem(s) declarado(s) que no resolvieron contra ninguna de las 7
+    // categorías del diff (AC2, incluye ignored — ver _itemsForBlockIdx más arriba). Caso
+    // residual (ítem declarado Y resuelto en el diff, pero sin matchear ninguna rama de estado
+    // de arriba) no observado en el diseño original de 'lite' — el comentario de TKT-202607-170
+    // arriba declara exactamente 2 casos, no 3. De ocurrir, cae en 'sin-resolver' por ser el
+    // fallback semánticamente más seguro (nunca 'vacio' habiendo ítems reales presentes).
+    if (!_blockTg.length && !_blockPatch.length) return 'vacio';
+    if (!_itemsForBlockIdx(meta.idx).length) return 'sin-resolver';
+    return 'sin-resolver';
   };
 
   // TKT-202607-172 (AC-9a, REQ-202607-058 — redactado por Cael tras gap de Rune sobre el AC-9
@@ -1536,16 +1568,24 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       // es un doc_update).
       if (!_narrativeHtml && !_releaseInfo.hasRelease && !_itemCards.length && !_docsChip) return '';
 
+      // TKT-202608-241 AC4: badge omitido por completo cuando _blockBadge retorna null (antes
+      // 'skipped'/'no leído') — el diagnóstico de bloque-sin-ítems-resueltos ya vive en
+      // _category ('vacio'/'sin-resolver'), sin badge duplicado para el mismo caso.
+      const _badgeHtml = _badge
+        ? `<span class="mdiff-block-badge mdiff-block-badge--${_badge.cls}">${esc(_badge.label)}</span>`
+        : '';
+
       const _attrRow = `<div class="mdiff-narrative-row">
         <span class="mdiff-narrative-label">${esc(meta.rol || '')}</span>
         <span class="mdiff-narrative-value">${esc(meta.titulo || '')}</span>
         <span class="mdiff-ckpt-category mdiff-ckpt-category--${_category}">${esc(_CKPT_CATEGORY_LABELS[_category])}</span>
-        <span class="mdiff-block-badge mdiff-block-badge--${_badge.cls}">${esc(_badge.label)}</span>
+        ${_badgeHtml}
       </div>`;
 
-      // Estado de error (AC corregido): bloque válido cuyo filtro por meta.idx no produce
-      // ningún ítem en ninguna de las 7 categorías (incluyendo ignored) → solo el badge
-      // 'no leído', sin sección de detalle vacía.
+      // Estado de error (AC corregido, TKT-202608-241): bloque válido cuyo filtro por meta.idx
+      // no produce ningún ítem en ninguna de las 7 categorías (incluyendo ignored) → categoría
+      // 'vacio' o 'sin-resolver' según AC1/AC2, sin badge de bloque (antes 'no leído') ni
+      // sección de detalle vacía.
       const _itemsBlockHtml = _itemCards.length
         ? `<div class="mdiff-section-body">${_itemCards.join('')}</div>`
         : '';
