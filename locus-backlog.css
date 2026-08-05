@@ -1,4 +1,22 @@
-/* [PP] mod:139 · autor:Nova · 2026-08-04 UTC-6 */
+/* [PP] mod:140 · autor:Nova · 2026-08-05 UTC-6 */
+/* TKT-202608-248 (REQ-202608-098, TKT1 · Estandarizar mecanismo visual de pills de filtro):
+   .filter-type-btn/.filter-status-btn/.filter-done-chip migran de var(--radius-2xl) a
+   var(--radius-xs) y de su padding propio a 3px 8px — mismo mecanismo ya vigente en
+   .stat-pri-chip/.stat-effort-card (T-202604-357/TKT1 CAEL-0720-02). .filter-type-btn.active-*,
+   .filter-status-btn.active, .bl-strip-btn.active(.s-*) ganan border-width:1.5px sin tocar el
+   token de color de cada variante. Fix de color crudo: .filter-type-btn.active-REQ
+   var(--blue)→var(--blue-text), .active-INC var(--red)→var(--red-text), .bl-strip-btn.active
+   .s-bloqueado var(--red)→var(--red-text) (border-color/background ya correctos:
+   --red-border/--red-dim). .bl-strip-btn base: padding 3px 10px→3px 8px + border-radius
+   var(--radius-2xl)→var(--radius-xs) — este último no estaba en ningún AC explícito del TKT
+   (el AC de padding decía erróneamente "radius ya cubierto en AC previo", sin que ningún AC
+   previo lo cubriera realmente); aplicado igual por ser inferible del done_cuando del REQ
+   ("todo pill de filtro... usa el mismo mecanismo"), declarado como supuesto — ver CHECKPOINT.
+   .filter-btn (AC1-3 del TKT) NO se tocó — ya estaba en el mecanismo target desde T-202604-357/
+   TKT1 CAEL-0720-02 (ver comentario ~L837 de este archivo), el TKT diagnosticó contra baseline
+   desactualizada. .filter-done-chip.active NO se tocó — AC10 excluye explícitamente cambio de
+   borde/color para esta familia; deja una inconsistencia de grosor de borde activo frente a las
+   otras tres familias — señalado a Cael, ver CHECKPOINT. */
 /* Ad-hoc (propuesta visual aprobada por founder en sesión — sin REQ/TKT, mismo tratamiento que
    mod:146/172 de index.html): .qdisc-limit-indicator se integra a .bl-panel-identity (Q-DISC),
    deja de vivir en línea propia. design_intent: qdisc_limit_integrado_header — dos opciones
@@ -1925,13 +1943,20 @@
 
 .filter-type-btn {
   font-family: var(--mono); font-size: var(--text-xs); font-weight: 700;
-  padding: 3px 10px; border-radius: var(--radius-2xl); border: 1px solid var(--border2);
+  padding: 3px 8px; border-radius: var(--radius-xs); border: 1px solid var(--border2);
   background: transparent; cursor: pointer; transition: var(--trans-fast); color: var(--text3);
 }
 
 .filter-type-btn:hover {
   background: var(--surface2);
   color: var(--text2);
+}
+
+.filter-type-btn.active-DISC,
+.filter-type-btn.active-TKT,
+.filter-type-btn.active-REQ,
+.filter-type-btn.active-INC {
+  border-width: 1.5px;
 }
 
 .filter-type-btn.active-DISC {
@@ -1948,19 +1973,19 @@
 
 .filter-type-btn.active-REQ {
   background: rgb(56 189 248 / 15%);
-  color: var(--blue);
+  color: var(--blue-text);
   border-color: var(--blue);
 }
 
 .filter-type-btn.active-INC {
   background: rgb(232 85 85 / 15%);
-  color: var(--red);
+  color: var(--red-text);
   border-color: var(--red);
 }
 
 .filter-status-btn {
   font-family: var(--font-sans); font-size: var(--text-xs); font-weight: 500;
-  padding: 3px 11px; border-radius: var(--radius-2xl); border: 1px solid var(--border2);
+  padding: 3px 8px; border-radius: var(--radius-xs); border: 1px solid var(--border2);
   background: transparent; color: var(--text3); cursor: pointer; transition: var(--trans-fast);
 }
 
@@ -1973,10 +1998,11 @@
   background: var(--surface2);
   color: var(--text);
   border-color: var(--accent);
+  border-width: 1.5px;
 }
 
 .filter-done-chip {
-  font-size: var(--text-xs); font-weight: 500; padding: 3px 10px; border-radius: var(--radius-2xl);
+  font-size: var(--text-xs); font-weight: 500; padding: 3px 8px; border-radius: var(--radius-xs);
   border: 1px solid var(--c-done-border); background: var(--c-done-bg);
   color: var(--c-done-text); cursor: pointer; transition: var(--trans-fast);
 }
@@ -3202,8 +3228,8 @@
   font-family: var(--font-sans);
   font-size: var(--text-xs);
   font-weight: 500;
-  padding: 3px 10px;
-  border-radius: var(--radius-2xl);
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
   border: 1px solid transparent;
   background: transparent;
   color: var(--text2);
@@ -3219,8 +3245,18 @@
 
 .bl-strip-btn.active {
   border-color: var(--accent);
+  border-width: 1.5px;
   background: var(--accent-dim);
   color: var(--text);
+}
+
+.bl-strip-btn.active.s-done,
+.bl-strip-btn.active.s-en-curso,
+.bl-strip-btn.active.s-en-revision,
+.bl-strip-btn.active.s-pendiente,
+.bl-strip-btn.active.s-descartado,
+.bl-strip-btn.active.s-bloqueado {
+  border-width: 1.5px;
 }
 
 .bl-strip-btn.active.s-done {
@@ -3264,7 +3300,7 @@
 .bl-strip-btn.active.s-bloqueado {
   border-color: var(--red-border);
   background: var(--red-dim);
-  color: var(--red);
+  color: var(--red-text);
 }
 
 /* Sort dropdown inline */
