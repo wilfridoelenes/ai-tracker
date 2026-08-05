@@ -1,3 +1,11 @@
+// [PP] mod:85 · autor:Rune · 2026-08-04 UTC-6
+// TKT-202608-239 (parent: REQ-202608-091): resuelta la referencia — mod:83 implementó este mismo
+//   fix bajo ref_id CAEL-0804-02/REQ-[pendiente-ID], ambos ya confirmados con código real por
+//   Cael/Finn. Sin cambio de comportamiento — solo actualización de comentario a los códigos
+//   reales, mismo criterio de __BR-Execution §9 (una referencia embebida en código se resuelve al
+//   código real una vez asignado, nunca queda en placeholder). Los tres AC del TKT ya estaban
+//   cubiertos por el código de mod:83, verificados línea por línea en esta sesión — ver detalle
+//   abajo.
 // [PP] mod:83 · autor:Rune · 2026-08-04 UTC-6
 // TKT (ref_id CAEL-0804-02, REQ-[pendiente-ID]): VALID_TRANSITIONS.REQ no incluía 'done' — pese a
 //   ser transición terminal válida de REQ (__BR-Core §4, en-revision→done exclusiva de Finn en
@@ -221,10 +229,13 @@ import { esc, getCurrentTab } from './locus-ui-shell.js';
 // itemKind() ya no resuelve 'KE' desde _GEN2_TYPES, locus-backlog-core.js mod:131). Mismo
 // patrón de limpieza ya aplicado en locus-backlog-item.js (mod:139-140). Sin cambio de
 // comportamiento para INC/PRB/CHG reales.
-const _ITIL_STATUS_SET = new Set(['detected', 'assigned', 'in_progress', 'resolved', 'closed', 'escalated_to_prb', 'escalated_to_chg', 'descartado']);
+// TKT-CAEL-0804-01 (origen: DISC-202608-097): 'assigned' retirado del set — residuo del ciclo
+// ITIL pre-fusión detected+assigned (infra_version 52, __BR-Core §6). Sin call site que
+// comparara contra este valor (verificado por grep) — retiro sin efecto de comportamiento.
+const _ITIL_STATUS_SET = new Set(['detected', 'in_progress', 'resolved', 'closed', 'escalated_to_prb', 'escalated_to_chg', 'descartado']);
 const _CHG_STATUS_SET = new Set(['pendiente', 'en-revision', 'done', 'descartado']);
 export const VALID_TRANSITIONS = {
-  // TKT (ref_id CAEL-0804-02, REQ-[pendiente-ID]): 'done' agregado al set — antes ausente pese a
+  // TKT-202608-239 (parent: REQ-202608-091): 'done' agregado al set — antes ausente pese a
   // ser transición terminal válida de REQ (__BR-Core §4, en-revision→done exclusiva de Finn en
   // sesión de cierre). El backend (applyPatchesFromTG) ya aceptaba y aplicaba el patch sin
   // objeción — el gap era exclusivo de este validador de preview. Gate de rol para 'done' vive en
@@ -251,7 +262,7 @@ export function validateLifecycleTransitions(tgItems) {
     if (!type || !VALID_TRANSITIONS[type]) return;
     // Sin status declarado → no hay transición que validar
     if (!status) return;
-    // TKT (ref_id CAEL-0804-02, REQ-[pendiente-ID]): gate de rol para REQ→'done' — 'done' ya es
+    // TKT-202608-239 (parent: REQ-202608-091): gate de rol para REQ→'done' — 'done' ya es
     // miembro de VALID_TRANSITIONS.REQ (ver arriba), pero la transición completa exige además que
     // el emisor sea 'QA · Finn' (__BR-Core §4 — en-revision→done exclusiva de Finn en sesión de
     // cierre). Mismo criterio ya aplicado a REQ→'bloqueado'. Se evalúa antes del chequeo de
