@@ -1,3 +1,11 @@
+<!-- [PP] mod:175 · autor:Rune · 2026-08-04 UTC-6 -->
+<!-- TKT-202608-235 (REQ-202608-089, sprint PP-S-26): agregado #ingest-block-preview-anchor —
+     punto de anclaje puro (sin clase) para _renderIngestBlockPreview() en locus-session-parse.js
+     mod:172. Insertado dentro de #ingest-modal-overlay .ingest-modal-col--left, entre
+     .ingest-modal-meta (#ingest-block-count) y #ingest-validation-panel — antes de
+     #ingest-process-batch-btn, cumpliendo el AC "antes de 'Procesar batch'". Sin cambio de
+     estructura existente, sin nueva clase CSS — el markup interno (.ingest-block-preview*) lo
+     genera JS por completo, entregable de Nova ya vivo en locus-modals-base.css mod:25. -->
 <!-- [PP] mod:174 · autor:Rune · 2026-08-03 20:30 UTC-6 -->
 <!-- Fusión de dos entregas paralelas mod:172, ambas partiendo del mismo mod:170 (reorden nav
      header, ad-hoc): "indexa.html" solo contenía el reorden de nav sin trabajo adicional.
@@ -1751,6 +1759,15 @@
           <span class="char-counter" id="ingest-char-counter">0 caracteres</span>
           <span class="char-counter" id="ingest-block-count">0 bloques detectados</span>
         </div>
+
+        <!-- ingest-block-preview-anchor — TKT-202608-235 (REQ-202608-089, sprint PP-S-26). Punto
+             de anclaje puro, sin clase propia — el contenido (.ingest-block-preview*, entregable
+             de Nova, locus-modals-base.css mod:25) es 100% dinámico: se genera/destruye entero vía
+             innerHTML en _renderIngestBlockPreview(), nunca se togglea con is-hidden (BR-Execution
+             §5, decisión explícita de Nova declarada en su entregable). Vive antes del panel de
+             validación y antes de #ingest-process-batch-btn — mismo orden de lectura que el AC
+             "antes de 'Procesar batch'". -->
+        <div id="ingest-block-preview-anchor"></div>
 
         <!-- ingest-validation-panel — CAEL-19 (error/warnings) + CAEL-23 (result). Tres sub-estados
              mutuamente excluyentes vía is-hidden — shell estático, contenido de texto/lista lo puebla JS (Rune). -->

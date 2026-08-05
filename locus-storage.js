@@ -1,3 +1,11 @@
+// [PP] mod:158 · autor:Rune · 2026-08-04 UTC-6
+// TKT-202608-236 (REQ-202608-090): nuevo par getter/setter proj.docUpdateResolvedLog —
+// mismo patrón que _getDocUpdateIndex()/_setDocUpdateIndex() (T-202606-032), array
+// independiente, sin tocar docUpdateIndex. Opción C sobre B en Fase 2 de Cael (CRITERIO DE
+// RESOLUCIÓN DE RAÍZ) — evita tocar la lógica de docUpdateIndex/_getFooterAlert() que tuvo
+// 2 INCs consecutivos esta semana (mod:26/mod:27 de locus-docs.js). Módulo crítico:
+// locus-storage.js — activar verificación de regresiones en Finn.
+//
 // [PP] mod:157 · autor:Rune · 2026-07-31 UTC-6
 // TKT1 (REQ-0730, origen DISC-202607-069): retirado el subsistema tmp-id-map completo —
 // código huérfano desde la deprecación de EXECUTION-PLAN (único consumidor conceptual,
@@ -4258,6 +4266,25 @@ export function _setDocUpdateIndex(index) {
   save();
 }
 // ── END T-202606-032 ──────────────────────────────────────────────────────────
+
+// ── TKT-202608-236 (REQ-202608-090): Log de DOC-UPDATEs resueltos por proyecto ──
+// El log vive en proj.docUpdateResolvedLog — array independiente de docUpdateIndex,
+// mismo mecanismo de persistencia (save()). No tiene límite ni expiración en esta iteración
+// (ver no_incluye del TKT). Estructura por entrada: { doc, section, action, resolvedAt }.
+
+export function _getDocUpdateResolvedLog() {
+  const proj = getActiveProject();
+  if (!proj) return [];
+  return proj.docUpdateResolvedLog || [];
+}
+
+export function _setDocUpdateResolvedLog(entries) {
+  const proj = getActiveProject();
+  if (!proj) return;
+  proj.docUpdateResolvedLog = entries;
+  save();
+}
+// ── END TKT-202608-236 ────────────────────────────────────────────────────────
 
 // ── T-202606-009: checkStorageWarn() — conecta _localStorageUsageRatio al panel #storage-warn ──
 // Ownership: locus-storage.js — consume _localStorageUsageRatio (inyectada via _initApp).

@@ -1,3 +1,14 @@
+// [PP] mod:62 · autor:Rune · 2026-08-04 UTC-6
+// TKT (ref_id CAEL-0804-01, REQ-202608-089): _openIngestModal() resetea ta.value = '' de forma
+// directa (sin evento) cuando el Worker entrante es distinto del que dejó el overlay abierto —
+// _maybeRestoreDraft ya resincroniza el preview vía handleInput() cuando restaura un draft, pero
+// si no hay draft guardado, ta.value queda '' y #ingest-block-preview-anchor nunca se limpiaba:
+// _renderIngestBlockPreview() solo corría en paste/input, nunca en el ciclo de apertura del
+// modal. Fix: llamada explícita a _renderIngestBlockPreview() (ahora exportada, ver
+// locus-session-parse.js mod:173) cuando ta.value sigue vacío tras el intento de restauración de
+// draft — mismo criterio de "estado vacío" que ya maneja la función internamente, sin duplicar
+// lógica de limpieza. No toca el camino con mismo aiId (ta.value preservado, sin gap) ni el
+// camino con draft restaurado (ya resincronizado por handleInput dentro de _maybeRestoreDraft).
 // [PP] mod:61 · autor:Rune · 2026-08-03 UTC-6
 // TKT-202608-230 (REQ-202608-087): _populateIngestModalHeader() aplica is-avail/is-insession/
 // is-exhausted a #ingest-split-header según estado real del worker — ver AC1-AC4 en el bloque
@@ -70,7 +81,7 @@ import { downloadReport } from './locus-reports.js';
 
 import { openQuickCapture } from './locus-sesiones-capture.js'; // T-202606-089 AC-3
 
-import { STATUS_LABELS, handlePaste, handleInput, _processIngestBatch } from './locus-session-parse.js';
+import { STATUS_LABELS, handlePaste, handleInput, _processIngestBatch, _renderIngestBlockPreview } from './locus-session-parse.js';
 // T-202606-058: registry extraído a locus-sesiones-registry.js (módulo sin dependencias).
 // locus-sprint-project importa _registerSesSPCallback desde registry — no desde aquí.
 import { _sesSPCallbacks } from './locus-sesiones-registry.js';
@@ -1217,6 +1228,13 @@ export function _openIngestModal(aiId) {
     // guardado, se restaura automáticamente — ver invariant nuevo en contract_detail del TKT.
     if (!ta.value) {
       _maybeRestoreDraft(aiId, ta);
+    }
+    // TKT (ref_id CAEL-0804-01, REQ-202608-089): si tras el intento de restauración de draft
+    // ta.value sigue vacío, no hubo draft — el preview puede seguir mostrando el batch del
+    // Worker/sesión anterior porque _renderIngestBlockPreview() nunca corrió en este ciclo de
+    // apertura. Limpieza explícita, sin pasar por parsePaste()/handleInput() completo.
+    if (!ta.value) {
+      _renderIngestBlockPreview();
     }
     ta.focus();
     if (!ta._ingestWired) {

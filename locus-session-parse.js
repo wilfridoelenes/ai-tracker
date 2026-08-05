@@ -1,3 +1,44 @@
+// [PP] mod:173 · autor:Rune · 2026-08-04 UTC-6
+// TKT (ref_id CAEL-0804-01, REQ-202608-089): _renderIngestBlockPreview() pasa de función privada
+// a exportada — locus-sesiones.js (_openIngestModal) la necesita para limpiar
+// #ingest-block-preview-anchor cuando el modal se reabre para un Worker distinto sin draft que
+// restaurar (ta.value queda '' vía reset directo, sin evento paste/input que dispare el wiring
+// existente). Sin cambio de firma ni de comportamiento interno — la función ya toleraba
+// ta.value === '' (rama "estado vacío" de TKT-202608-235, _metas.length === 0 → anchor.innerHTML
+// = ''). contract_update: sí — nuevo consumidor cross-módulo, invariant: no acepta argumentos,
+// lee #ingest-ta del DOM en cada llamada.
+// [PP] mod:172 · autor:Rune · 2026-08-04 UTC-6
+// TKT-202608-235 (REQ-202608-089, sprint PP-S-26): _renderIngestBlockPreview()/_ingestPreviewMeta()
+//   agregadas — fila de preview por bloque detectado (icono + title truncado a 60 + subtítulo
+//   "archivo · mod:N" cuando el bloque declara `files`) antes de que el founder confirme
+//   'Procesar batch'. Wireada en los tres puntos que ya recalculan _updateIngestBlockCount()
+//   (_routeParse rama batch, handlePaste x2, handleInput) — misma fuente de bloques
+//   (_splitCheckpointBlocks(ta.value)), sin duplicar detección. Entregable visual de Nova
+//   (locus-modals-base.css mod:25, design_intent: ingest_block_preview_mockup) — contenedor
+//   100% dinámico, sin shell estático, montado sobre #ingest-block-preview-anchor. Bloqueo
+//   declarado en el CHECKPOINT de entrega: index.html no estuvo adjunto en esta sesión — el
+//   anclaje #ingest-block-preview-anchor no fue verificado contra el DOM real, requiere
+//   confirmación de Cael/founder de que existe (o TKT de Rune para agregarlo) antes de done.
+//   contract_update: no — funciones nuevas sin export, sin consumidores externos.
+// TKT-202608-234 (REQ-202608-089, sprint PP-S-26): _processIngestBatch() — el mensaje final del
+// batch distingue ahora "válido sin cambios de backlog" de "sin ítems para procesar" (error).
+// Antes de este TKT, un batch de N CHECKPOINTs 100% válidos con items:[] en todos los bloques
+// (solo trazabilidad de archivo, sin doc_updates ni sprint_proposal) mostraba el mismo warning
+// genérico "Sin ítems para procesar en este batch." que un batch donde todos los bloques eran
+// JSON malformado o sin title — indistinguibles para el founder pese a ser casos opuestos (uno
+// es éxito silencioso, el otro es error real). Fix en dos puntos: (1) guard temprano
+// (tgItems.length===0 && patchItems.length===0) — bifurca en metas.length>0 && skipped.length===0
+// (todos los bloques válidos, ninguno rechazado/inválido) → toast success "[N] bloques válidos —
+// sin cambios de backlog, solo trazabilidad de archivo"; cualquier otra combinación (algún bloque
+// rechazado o inválido) cae al warning existente sin alteración — AC estado de error del TKT. (2)
+// mensaje de éxito tras _applyCheckpointBatch — cuando el batch mezcla bloques con ítems y bloques
+// válidos sin ítems propios, el toast resume ambos ("N aplicado(s) · M sin cambios de backlog") en
+// vez de solo contar lo aplicado — AC edge case. `metas` (una entrada por bloque válido, con
+// `idx`) es la fuente para ambos cálculos — sin agregar campo nuevo a _resolveCheckpointBatch ni
+// a ningún schema de CHECKPOINT. No toca el motor de parseo, el criterio de validez de bloque, ni
+// el panel de revisión posterior (`showMergeDiffPanel`) — solo el texto/tipo del toast en los dos
+// puntos señalados. contract_update: no — _processIngestBatch conserva firma (sin params) y tipo
+// de retorno (Promise<void>); ningún consumidor externo lee el texto del toast.
 // [PP] mod:170 · autor:Rune · 2026-07-31 UTC-6
 // Propuesta de mejora confirmada por el founder ("Sí adelante") en sesión de análisis del
 // panel de ingesta (#ingest-validation-result). Hallazgo: el fallback `item.status || 'nuevo'`
@@ -2638,6 +2679,85 @@ function _updateIngestBlockCount() {
   el.textContent = n === 1 ? '1 bloque detectado' : `${n} bloques detectados`;
 }
 
+// TKT-202608-235 (REQ-202608-089, sprint PP-S-26): extrae `title` (truncable en el render) y un
+//   resumen de `files` ("archivo · mod:N", solo el primer segmento) de un bloque de texto crudo
+//   ya separado por _splitCheckpointBlocks — sin invocar parseCheckpoint/_parseBatchBlock. Esta
+//   función es deliberadamente más liviana que la validación real (sin gate de draft, sin
+//   _jsonParseError, sin _extractCkptMeta) porque corre en cada keystroke/paste vía
+//   _renderIngestBlockPreview() (AC "happy path") — el único propósito es un title truncado y un
+//   subtítulo de archivo para el preview visual, no persistencia ni aval de founder.
+//   Bloque que no parsea como JSON (fence sin cerrar, prosa suelta capturada por
+//   _extractBareJsonBlocks, etc.) devuelve null — no es "bloque válido" a efectos de este AC y no
+//   genera fila de preview (AC "estado vacío" se cumple por composición: 0 bloques válidos → []).
+//   Función pura, sin efectos laterales — mismo criterio de pureza que _extractCkptMeta/
+//   _ckptArchivosToNames. contract_update: no — función nueva, sin consumidores externos.
+function _ingestPreviewMeta(blockText) {
+  let parsed;
+  try {
+    // Fence-strip: bloques fenced de _splitCheckpointBlocks conservan ``` / ```json — JSON.parse
+    // no tolera el fence. Mismo strip que ya aplica el path de parseCheckpoint sobre bloques
+    // fenced antes de intentar el parse.
+    const _stripped = blockText.replace(/^```(?:json)?\s*/, '').replace(/```\s*$/, '');
+    parsed = JSON.parse(_stripped);
+  } catch (e) {
+    return null;
+  }
+  if (!parsed || typeof parsed !== 'object' || typeof parsed.title !== 'string' || !parsed.title.trim()) {
+    return null; // sin title no hay nada verificable como CHECKPOINT — mismo gate de BR-Ecosystem §8
+  }
+  // `files` es el campo de nivel-sesión del CHECKPOINT (BR-Ecosystem §8 — "nombre · mod:N ·
+  // autor:Rol | ..."), no el `archivos` por-ítem de TKT/REQ individual dentro de items[]. Mismo
+  // campo fuente que _ckptArchivosToNames ya consume (ahí vía ckpt.archivos post-parseCheckpoint,
+  // acá directo del JSON crudo porque este helper no pasa por parseCheckpoint).
+  let meta = '';
+  if (typeof parsed.files === 'string' && parsed.files.trim()) {
+    const _parts = parsed.files.split('|')[0].split('·').map(s => s.trim());
+    if (_parts[0]) meta = _parts[1] ? `${_parts[0]} · ${_parts[1]}` : _parts[0];
+  }
+  return { title: parsed.title.trim(), meta };
+}
+
+// TKT-202608-235 (REQ-202608-089, sprint PP-S-26 · design_intent: ingest_block_preview_mockup,
+//   aprobado por founder): renderiza .ingest-block-preview* — entregable visual de Nova
+//   (locus-modals-base.css mod:25). Contenido 100% dinámico, sin shell estático (BR-Execution §5
+//   — el contenedor entero se genera/destruye, no se togglea con classList.add/remove is-hidden,
+//   por decisión explícita de Nova declarada en su entregable). Monta sobre
+//   #ingest-block-preview-anchor — punto de anclaje estático que debe existir en el modal de
+//   ingesta junto a #ingest-block-count (index.html no está adjunto en esta sesión — ver bloqueo
+//   declarado en el CHECKPOINT de este TKT). Deriva los bloques de la misma fuente que
+//   _updateIngestBlockCount() (_splitCheckpointBlocks(ta.value)) — no duplica la detección.
+export function _renderIngestBlockPreview() {
+  const _anchor = document.getElementById('ingest-block-preview-anchor');
+  if (!_anchor) return; // anclaje no presente en este modal/vista — no-op, mismo criterio que _updateIngestBlockCount
+  const ta = document.getElementById('ingest-ta') /* CAEL-22 */;
+  const _blocks = ta ? _splitCheckpointBlocks(ta.value) : [];
+  const _metas = _blocks.map(_ingestPreviewMeta).filter(Boolean);
+
+  if (!_metas.length) {
+    // AC "estado vacío" — 0 bloques válidos → ninguna fila, ningún contenedor fantasma.
+    _anchor.innerHTML = '';
+    return;
+  }
+
+  _anchor.innerHTML = `
+    <div class="ingest-block-preview">
+      <div class="ingest-block-preview-label">preview de bloques detectados</div>
+      <div class="ingest-block-preview-list">
+        ${_metas.map(m => {
+          const _short = m.title.length > 60 ? m.title.slice(0, 60) + '…' : m.title;
+          return `
+            <div class="ingest-block-preview-item">
+              <i class="ti ti-file-text ingest-block-preview-icon"></i>
+              <div class="ingest-block-preview-text">
+                <div class="ingest-block-preview-title" title="${esc(m.title)}">${esc(_short)}</div>
+                ${m.meta ? `<div class="ingest-block-preview-meta">${esc(m.meta)}</div>` : ''}
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
 // TKT (REQ CAEL-0720-22 · ref_id CAEL-0720-23): _routeParse(id, ta) — punto único de decisión
 //   single vs batch, compartido por handlePaste y handleInput. Si _splitCheckpointBlocks(ta.value)
 //   detecta 2+ bloques ``` completos, delega a _processIngestBatch() — mismo camino que ya
@@ -2679,6 +2799,7 @@ function _routeParse(id, ta) {
     _lastBatchRouteTs = _now;
     _processIngestBatch();
     _updateIngestBlockCount(); // TKT-202607-041 AC1
+    _renderIngestBlockPreview(); // TKT-202608-235
     return true;
   }
   return false;
@@ -2703,6 +2824,7 @@ export function handlePaste(id) {
         if (_routeParse(id, _ta2)) return; // TKT CAEL-0720-23: 2+ bloques → batch, corta el path single
         parsePaste(id);
         _updateIngestBlockCount(); // TKT2 (REQ CAEL-01) AC1
+        _renderIngestBlockPreview(); // TKT-202608-235
         // TKT-202607-211: lookup a 'hora-'+id retirado — DISC-202607-080, elemento sin card real desde migración
         // a Quick Capture (quick-hora) / blind exhaust (bexhaust-hora-{id}), ambos patrones distintos.
         // T-202606-155: _tryIngestSprintProposal removido del pre-DIFF — Step 0 en showMergeDiffPanel es el gate
@@ -2712,6 +2834,7 @@ export function handlePaste(id) {
     if (_routeParse(id, ta)) return; // TKT CAEL-0720-23: 2+ bloques → batch, corta el path single
     parsePaste(id);
     _updateIngestBlockCount(); // TKT2 (REQ CAEL-01) AC1
+    _renderIngestBlockPreview(); // TKT-202608-235
     // TKT-202607-211: lookup a 'hora-'+id retirado — DISC-202607-080, elemento sin card real desde migración
     // a Quick Capture (quick-hora) / blind exhaust (bexhaust-hora-{id}), ambos patrones distintos.
     // T-202606-155: _tryIngestSprintProposal removido del pre-DIFF — Step 0 en showMergeDiffPanel es el gate
@@ -2727,6 +2850,7 @@ export function handleInput(id) {
   if (_routeParse(id, ta)) return; // TKT CAEL-0720-23: 2+ bloques → batch, corta el path single
   parsePaste(id);
   _updateIngestBlockCount(); // TKT2 (REQ CAEL-01) AC2 — contador en vivo
+  _renderIngestBlockPreview(); // TKT-202608-235
 }
 
 // TKT3 (REQ CAEL-0716-01): unifica el flujo batch sobre el mismo panel DIFF con Aplicar que
@@ -2782,6 +2906,19 @@ export async function _processIngestBatch() {
     return;
   }
   if (!tgItems.length && !(patchItems && patchItems.length)) {
+    // TKT-202608-234 (REQ-202608-089): distingue un batch de CHECKPOINTs válidos sin ítems
+    // (items:[] en todos los bloques — solo trazabilidad de archivo, sin doc_updates ni
+    // sprint_proposal que hayan sobrevivido hasta aquí) de un batch donde ningún bloque llegó
+    // a ser válido. `metas` lleva exactamente una entrada por bloque válido (ver
+    // _resolveCheckpointBatch, Paso 3) — metas.length>0 con skipped.length===0 es la única
+    // combinación posible para llegar a esta rama sin que haya bloques rechazados/inválidos.
+    // No cambia el mensaje de bloqueo existente (JSON malformado/sin title, o rechazo por
+    // [tmp:slug] duplicado) — esos casos siguen cayendo al warning genérico de abajo, sin
+    // alteración.
+    if (metas.length && !skipped.length) {
+      showToast('success', `${metas.length} bloque${metas.length !== 1 ? 's' : ''} válido${metas.length !== 1 ? 's' : ''} — sin cambios de backlog, solo trazabilidad de archivo`);
+      return;
+    }
     showToast('warning', 'Sin ítems para procesar en este batch.');
     return;
   }
@@ -2881,7 +3018,17 @@ export async function _processIngestBatch() {
     renderStats();
     window.dispatchEvent(new CustomEvent('shell:render-tracker'));
     const _totalApplied = tgItems.length + (patchItems ? patchItems.length : 0);
-    showToast('success', `✓ ${_totalApplied} ítem${_totalApplied !== 1 ? 's' : ''} aplicado${_totalApplied !== 1 ? 's' : ''} al backlog`);
+    // TKT-202608-234 (REQ-202608-089, AC edge case): cuando el batch mezcla bloques que
+    // aportaron ítems con bloques válidos sin ítems propios (items:[] — trazabilidad de
+    // archivo), el mensaje distingue ambos en vez de solo contar lo aplicado. `metas` lleva
+    // idx por bloque válido (ver _resolveCheckpointBatch); un bloque "sin cambios" es aquel
+    // cuyo idx no aparece en ningún ítem combinado de tgItems/patchItems.
+    const _appliedIdxSet = new Set([...tgItems, ...(patchItems || [])].map(it => it.idx));
+    const _blocksWithoutChanges = (metas || []).filter(m => m && !_appliedIdxSet.has(m.idx)).length;
+    const _successMsg = _blocksWithoutChanges
+      ? `${_totalApplied} aplicado${_totalApplied !== 1 ? 's' : ''} · ${_blocksWithoutChanges} sin cambios de backlog`
+      : `✓ ${_totalApplied} ítem${_totalApplied !== 1 ? 's' : ''} aplicado${_totalApplied !== 1 ? 's' : ''} al backlog`;
+    showToast('success', _successMsg);
     ta.value = ''; // batch consumido — mismo criterio que closeStandaloneCheckpoint() limpiaba su propio textarea
   };
 

@@ -1,3 +1,14 @@
+// [PP] mod:28 · autor:Rune · 2026-08-04 UTC-6
+// TKT-202608-236 (REQ-202608-090): _initDocUpdatesListeners() — los handlers de "Aplicar" y
+// "Descartar" (.du-btn-apply/.du-btn-discard) ahora empujan {doc, section, action, resolvedAt}
+// a proj.docUpdateResolvedLog (nuevo getter/setter en locus-storage.js mod:158) antes de
+// eliminar la entrada de docUpdateIndex — aditivo, docUpdateIndex sin cambio de estructura.
+// AC1 corregido por Cael (gap devuelto por Rune, sesión 2026-08-04): resolvedBy retirado del
+// schema de la entrada — Locus es single-user (_pp-strategy §4), sin identidad de rol por
+// sesión que popular ese campo con sentido, y ningún AC de TKT-202608-237 lo consume en la
+// vista renderizada. doc/section se derivan de key.split('::') — mismo patrón ya usado en
+// renderDocUpdatesPending(). Módulo crítico: locus-storage.js — activar verificación de
+// regresiones en Finn.
 // [PP] mod:27 · autor:Rune · 2026-08-04 UTC-6
 // INC-[pendiente-ID] (founder reporta con capturas: sub-tab DOC-UPDATEs invisible parado en
 // Documentos, pese a footer mostrando "4 DOC-UPDATEs sin resolver"). Causa raíz: el fix de
@@ -98,7 +109,7 @@ import { _updateUndoUI } from './locus-backlog-core.js';
 import { closeDocLog, openDocLog, _updateDocLogCount } from './locus-doc-log.js';
 import { _mgGetVersion } from './locus-map-generator.js';
 import { parseHtmlMapMd, renderHtmlMap, updateHtmlMapBanner } from './locus-map-viewer.js';
-import { _blogLog, _docPrefix, _effectiveVersion, _getDocUpdateIndex, _projKey, _setDocUpdateIndex, _tplKey, getActiveProject, saveContextDocs } from './locus-storage.js';
+import { _blogLog, _docPrefix, _effectiveVersion, _getDocUpdateIndex, _getDocUpdateResolvedLog, _projKey, _setDocUpdateIndex, _setDocUpdateResolvedLog, _tplKey, getActiveProject, saveContextDocs } from './locus-storage.js';
 import { APP_VERSION } from './locus-workers.js'; // INC-[pendiente-ID]: import real — antes typeof-guard muerto sobre variable privada
 
 // T-202606-166: _docPrefix movida a locus-storage.js
@@ -1114,6 +1125,19 @@ function _updateDocUpdatesBadge(total, conflicts) {
   }
 }
 
+// _pushDocUpdateResolved — TKT-202608-236: agrega una entrada a docUpdateResolvedLog al
+// resolver un doc_update (aplicado o descartado) desde .du-btn-apply/.du-btn-discard.
+// doc/section derivados de key.split('::') — mismo patrón que renderDocUpdatesPending().
+// resolvedBy retirado del schema por decisión de Cael (gap devuelto por Rune) — Locus es
+// single-user, sin identidad de rol por sesión que popular ese campo con sentido, y ningún
+// AC de TKT-202608-237 lo consume en la vista renderizada.
+function _pushDocUpdateResolved(key, action) {
+  const [doc, section] = key.split('::');
+  const log = _getDocUpdateResolvedLog();
+  log.push({ doc, section, action, resolvedAt: Date.now() });
+  _setDocUpdateResolvedLog(log);
+}
+
 // _initDocUpdatesListeners — delega clicks en #doc-updates-list.
 function _initDocUpdatesListeners() {
   const list = document.getElementById('doc-updates-list');
@@ -1157,6 +1181,7 @@ function _initDocUpdatesListeners() {
       if (entry) {
         _blogLog('aplicado', key, entry.titulo || '', 'backlog');
       }
+      _pushDocUpdateResolved(key, 'aplicado');
       delete idx[key];
       _setDocUpdateIndex(idx);
       showToast('success', 'DOC-UPDATE aplicado y registrado en DocLog.');
@@ -1173,6 +1198,7 @@ function _initDocUpdatesListeners() {
       if (entry) {
         _blogLog('descartado', key, entry.titulo || '', 'backlog');
       }
+      _pushDocUpdateResolved(key, 'descartado');
       delete idx[key];
       _setDocUpdateIndex(idx);
       showToast('info', 'DOC-UPDATE descartado.');
