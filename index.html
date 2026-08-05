@@ -1,3 +1,10 @@
+<!-- [PP] mod:178 · autor:Rune · 2026-08-04 UTC-6 -->
+<!-- Ad-hoc (propuesta de Nova aprobada por founder en sesión — sin REQ/TKT, mismo tratamiento
+     que mod:146/172): #qdisc-limit-indicator se mueve de línea propia (fuera de
+     #qdisc-header-unified) a dentro de .bl-panel-identity, como tercer hijo tras el caption —
+     mismo nodo, mismo id, sin cambio de JS (_renderQDiscLimitIndicator() solo rellena innerHTML
+     por id). design_intent: qdisc_limit_integrado_header. CSS entregado por Nova —
+     locus-backlog.css mod:139. -->
 <!-- [PP] mod:177 · autor:Rune · 2026-08-05 UTC-6 -->
 <!-- TKT-202608-237: fix de convención — #sspanel-du-resolved renombrado a #sspanel-resueltos.
      Único par sstab-btn-X/sspanel-X roto de 9 en este archivo (dashboard/htmlmap/context/
@@ -787,6 +794,11 @@
         <div class="bl-panel-identity">
           <span class="bl-panel-identity-label">Discoveries</span>
           <span class="bl-panel-identity-caption">Q-DISC · ideas en evaluación</span>
+          <!-- mod:178 (ad-hoc, design_intent: qdisc_limit_integrado_header): reubicado desde línea
+               propia fuera de #qdisc-header-unified — mismo id, mismo aria-live, sin cambio de JS.
+               .qdisc-limit-indicator (locus-backlog.css mod:139) trae margin-left:auto — se
+               empuja al extremo derecho de esta fila sin wrapper adicional. -->
+          <div class="qdisc-limit-indicator" id="qdisc-limit-indicator" aria-live="polite"></div>
         </div>
         <div class="bl-header-sep"></div>
         <div class="stats-bar" id="qdisc-stats-bar">
@@ -836,10 +848,6 @@
           </div>
         </div>
       </div>
-      <!-- TKT-202607-010 (TKT2 REQ-202607-006): shell estático del indicador de límite
-           (15 activos máx) — siempre presente en el DOM, contenido/color vía
-           renderQDiscPanel() en locus-backlog-qdisc.js. -->
-      <div class="qdisc-limit-indicator" id="qdisc-limit-indicator" aria-live="polite"></div>
       <!-- TKT-202607-013 (TKT5 REQ-202607-006): shell estático del banner de grooming — siempre
            presente en el DOM, vacío (textContent='') cuando no hay staleness. CSS
            .qdisc-grooming-banner:empty{display:none} lo retira visualmente sin destruir el nodo

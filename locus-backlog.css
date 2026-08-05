@@ -1,4 +1,12 @@
-/* [PP] mod:138 · autor:Rune · 2026-08-03 UTC-6 */
+/* [PP] mod:139 · autor:Nova · 2026-08-04 UTC-6 */
+/* Ad-hoc (propuesta visual aprobada por founder en sesión — sin REQ/TKT, mismo tratamiento que
+   mod:146/172 de index.html): .qdisc-limit-indicator se integra a .bl-panel-identity (Q-DISC),
+   deja de vivir en línea propia. design_intent: qdisc_limit_integrado_header — dos opciones
+   comparadas con el founder (A: integrado a la derecha del header · B: franja de ancho
+   completo), A aprobada. Barra 34px×4px → 90px×8px, texto --text-2xs → --text-xs — más
+   prominencia sin familia de componente nueva (reusa .bl-panel-identity ya vigente en
+   Q-Backlog/Q-DISC, design_intent: qbacklog_qdisc_panel_identity). Cambio estructural
+   correspondiente en index.html — ver mod:178 (Rune), CSS dependencies abajo. */
 /* TKT1 (REQ CAEL-0803-03, design_intent: qbacklog_activos_group_mockup): .bl-active-* — tercer
    grupo colapsable en Q-Backlog, junto a .qbacklog-draft-group/.bl-done-group. Envuelve la
    lista de ítems activos que hoy vive suelta dentro de .bl-zone-body sin header propio.
@@ -5842,11 +5850,12 @@
 .qdisc-limit-indicator {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 6px;
   width: fit-content;
-  margin: 8px 0 0 12px;
-  padding: 1px 8px;
-  font-size: var(--text-2xs);
+  margin-left: auto; /* empuja el indicador al extremo derecho de .bl-panel-identity (flex) */
+  align-self: center; /* .bl-panel-identity usa align-items:baseline — el pill se centra en vez de alinear por baseline de texto */
+  padding: 3px 10px;
+  font-size: var(--text-xs); /* antes --text-2xs — más prominencia, mismo criterio del founder */
   font-weight: 600;
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
@@ -6218,8 +6227,8 @@
 
 .qdisc-limit-bar {
   display: inline-block;
-  width: 34px;
-  height: 4px;
+  width: 90px; /* antes 34px */
+  height: 8px; /* antes 4px */
   border-radius: var(--radius-pill);
   background: var(--surface3);
   overflow: hidden;
