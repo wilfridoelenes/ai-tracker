@@ -1,3 +1,7 @@
+// [PP] mod:10 · autor:Rune · 2026-08-05 UTC-6
+// TKT (Nova, análisis visual Q-INC): copyItemHtml pasa a icon-only — retira el label de
+// texto "Copiar ítem" del botón, conserva title/aria-label. Ver comentario inline en la
+// entrega de este mod, más abajo en el archivo.
 // [PP] mod:9 · autor:Rune · 2026-07-27 UTC-6
 // TKT-202607-164 (parent REQ-202607-053, depends_on TKT-202607-161): gap de integración
 // detectado por Finn en sesión de cierre del REQ — locus-incidents.css (TKT-202607-160, Nova)
@@ -298,8 +302,15 @@ export function buildQIncItem(item) {
   // TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-06): botón "Copiar ítem" — copia el bloque
   // completo del ítem (mismo formato que _PP-incidents.md §Ítems) sin exportar el archivo
   // entero. data-qi-action propio, distinto de copy-code (que solo copia el código).
+  // [PP] mod:10 · autor:Rune · 2026-08-05 UTC-6
+  // TKT (Nova, análisis visual Q-INC): icon-only — retira el label de texto "Copiar ítem"
+  // siempre visible en el header de la card, mismo patrón ya adoptado en el resto del
+  // ecosistema para acciones secundarias (ej. .sc-menu-btn). title/aria-label ya llevaban el
+  // texto completo desde TKT-B — sin pérdida de accesibilidad, solo retira el nodo de texto
+  // visible. CSS ya entregado por Nova (locus-incidents.css mod:11, .qinc-item-copy-btn
+  // icon-only 22×22px) — este cambio consume esa regla sin ajuste adicional de estilos.
   const copyItemHtml = `<button type="button" class="qinc-item-copy-btn" data-qi-action="qi-copy-item" data-code="${esc(code)}" title="Copiar ítem completo" aria-label="Copiar contenido completo de ${esc(code)}">
-    <i class="ti ti-copy" aria-hidden="true"></i> Copiar ítem
+    <i class="ti ti-copy" aria-hidden="true"></i>
   </button>`;
 
   // TKT-A (REQ CAEL-0722-01, ref_id CAEL-0722-05): línea meta secundaria — origin_module +

@@ -75,8 +75,8 @@
 }
 
 .htmlmap-filter-btn {
-  padding: 4px 12px;
-  border-radius: var(--radius-2xl);
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
   border: 1px solid var(--border2);
   background: none;
   font-size: var(--text-xs);
@@ -93,6 +93,7 @@
 .htmlmap-filter-btn.active {
   background: var(--accent);
   border-color: var(--accent);
+  border-width: 1.5px;
   color: #fff;
   font-weight: 600;
 }
@@ -201,7 +202,7 @@
 
 .hmfilter-pill {
   padding: 4px 11px;
-  border-radius: var(--radius-2xl);
+  border-radius: var(--radius-xs);
   border: 1.5px solid var(--border2);
   background: transparent;
   font-size: var(--text-sm);
