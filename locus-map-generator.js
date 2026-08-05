@@ -1,3 +1,11 @@
+// [PP] mod:36 · autor:Rune · 2026-08-04 UTC-6
+// TKT1 (REQ ref_id CAEL-0804-01): _mgUpdateStepper() nueva — sincroniza .mg-stepper-step--active/
+// --done y #mg-step-badge con el estado real (_mapGen.files.length + estado de #mg-confirm-btn).
+// Invocada desde _mgRenderFileList() (cambia al agregar/quitar archivo), _mgResetPreview() (cubre
+// apertura vía openMapGenerator y remoción de archivo, que ya llama a esta función) y
+// _mgShowPreview() (MAP generado). No_incluye declarado en el TKT: no oculta secciones del
+// mg-body, no invalida preview al agregar archivo post-generación (gap preexistente en
+// _mgLoadFiles, fuera de scope de este TKT).
 // [PP] mod:35 · autor:Rune · 2026-07-30 UTC-6
 // TKT2/TKT3/TKT4 (REQ-[pendiente-ID], ref_id CAEL-0730-01): Document Generator queda exclusivo a
 // MAP. Retirados de generateDocuments()/_mgShowPreview()/_doConfirmGenerate()/_mgExportAllZip():
@@ -350,6 +358,7 @@ function _mgRenderFileList() {
 
   if (!_mapGen.files.length) {
     list.innerHTML = '<p class="mg-empty-files">Sin archivos adjuntados</p>';
+    _mgUpdateStepper(); // TKT1 (REQ ref_id CAEL-0804-01)
     return;
   }
 
@@ -365,6 +374,7 @@ function _mgRenderFileList() {
         <button class="mg-file-remove" data-remove-idx="${i}" title="Eliminar">✕</button>
       </div>`;
   }).join('');
+  _mgUpdateStepper(); // TKT1 (REQ ref_id CAEL-0804-01)
 }
 
 function _mgRemoveFile(idx) {
@@ -1119,11 +1129,42 @@ function _mgNow() {
 
 // ─── Preview ─────────────────────────────────────────────────────────────────
 
+// TKT1 (REQ ref_id CAEL-0804-01): estado del stepper — función pura sobre el estado vigente.
+// AC1: sin archivos → paso 1 activo. AC2: con archivos y sin preview generado (confirm-btn
+// deshabilitado) → paso 2 activo, paso 1 done. AC3: con preview generado (confirm-btn
+// habilitado) → paso 3 activo, paso 2 done. AC4: se recalcula desde cero en cada llamada —
+// la remoción de un archivo (que ya invoca _mgResetPreview) retrocede el paso automáticamente
+// sin necesitar lógica de reversión dedicada. AC de error: sin #mg-stepper/#mg-step-badge en
+// el DOM → return silencioso, no bloquea el resto del flujo.
+function _mgUpdateStepper() {
+  const steps = document.querySelectorAll('.mg-stepper-step');
+  const badge = document.getElementById('mg-step-badge');
+  if (!steps.length || !badge) return;
+
+  const hasFiles = _mapGen.files.length > 0;
+  const confirmBtn = document.getElementById('mg-confirm-btn');
+  const hasPreview = !!(confirmBtn && !confirmBtn.disabled);
+  const current = hasPreview ? 3 : (hasFiles ? 2 : 1);
+
+  steps.forEach((stepEl, idx) => {
+    const stepNum = idx + 1;
+    stepEl.classList.remove('mg-stepper-step--active', 'mg-stepper-step--done');
+    if (stepNum < current) stepEl.classList.add('mg-stepper-step--done');
+    if (stepNum === current) stepEl.classList.add('mg-stepper-step--active');
+    if (stepNum === current) stepEl.setAttribute('aria-current', 'step');
+    else stepEl.removeAttribute('aria-current');
+  });
+
+  badge.textContent = String(current);
+  badge.setAttribute('aria-label', `Paso ${current} de 3`);
+}
+
 function _mgResetPreview() {
   const area = document.getElementById('mg-preview-area');
   if (area) area.innerHTML = '<p class="mg-preview-placeholder">Los documentos generados aparecerán aquí.</p>';
   const confirmBtn = document.getElementById('mg-confirm-btn');
   if (confirmBtn) confirmBtn.disabled = true;
+  _mgUpdateStepper(); // TKT1 (REQ ref_id CAEL-0804-01)
 }
 
 function _mgShowPreview(docs) {
@@ -1188,6 +1229,7 @@ function _mgShowPreview(docs) {
   area.innerHTML = html;
   const confirmBtn = document.getElementById('mg-confirm-btn');
   if (confirmBtn) confirmBtn.disabled = false;
+  _mgUpdateStepper(); // TKT1 (REQ ref_id CAEL-0804-01)
 }
 
 function confirmMapGenerator() {

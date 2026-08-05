@@ -1,4 +1,4 @@
-// [PP] mod:158 · autor:Rune · 2026-08-04 UTC-6
+// [PP] mod:159 · autor:Rune · 2026-08-04 16:40 UTC-6
 // TKT2 (parent: [pendiente-ID] · contract_update: sí, ver _Locus-module-contracts): 
 // _assignPendingIds() distingue ahora, en unresolvedRefs (campos escalares _refFields), entre
 // "código con formato real inexistente" (source:'ref_no_resuelta', sin cambio) y "valor sin
@@ -3363,6 +3363,12 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
     return _ckptHeaderRoleFallback;
   }
 
+  // TKT1 (REQ CAEL-0804-01): códigos de REQ cuyo patch en este batch aplicó draft:true→false —
+  // usado al final del forEach principal para verificar TKT hijos aún draft:true. Ver bloque de
+  // verificación tras el forEach — no bloqueante, solo alerta DocLog (mismo criterio de
+  // severidad que la alerta de "origen_disc sin patch de promoción", __BR-Ecosystem §8).
+  const _draftClearedReqCodes = [];
+
   const patched = [];
   const ignoredPatches = [];
 
@@ -3929,6 +3935,11 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
           existing.draft = incoming;
           if (current === true && incoming === false) {
             existing.statusChangedAt = nowTs;
+            // TKT1 (REQ CAEL-0804-01): registrar el código para el chequeo post-forEach de
+            // hijos TKT aún draft:true — solo aplica a REQ, un TKT no tiene hijos.
+            if (itemKind(existing) === 'REQ') {
+              _draftClearedReqCodes.push(existing.code);
+            }
           }
         }
         return;
@@ -4043,6 +4054,25 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
       });
     } else {
       ignoredPatches.push({ code, reason: 'sin-cambios' });
+    }
+  });
+
+  // TKT1 (REQ CAEL-0804-01): chequeo post-forEach — corre después de que todas las mutaciones
+  // del batch completaron, para no dar falso positivo cuando el TKT hijo se patchea a
+  // draft:false en el mismo batch que su REQ padre (regla dura de aval por código, no por
+  // cascada, __BR-Execution §1 Fase 5). No bloqueante — solo señala en DocLog el desfase entre
+  // un REQ ya avalado y sus TKT hijos que aún esperan su propio patch de Fase 5.
+  _draftClearedReqCodes.forEach(reqCode => {
+    const _pendingDraftChildren = getItems().filter(it =>
+      itemKind(it) === 'TKT' && it.parentId === reqCode && it.draft === true
+    );
+    if (_pendingDraftChildren.length) {
+      _blogLog(
+        'draft-hijos-pendientes',
+        reqCode,
+        `REQ ${reqCode} avalado (draft:false) con ${_pendingDraftChildren.length} TKT hijo(s) aún draft:true — ${_pendingDraftChildren.map(it => it.code).join(', ')}. Ver __BR-Execution §1 Fase 5 — aval por código, no por cascada.`,
+        'backlog'
+      );
     }
   });
 
