@@ -1,4 +1,4 @@
-/* [PP] mod:6 · autor:Nova · 2026-07-20 19:10 UTC-6 */
+/* [PP] mod:7 · autor:Nova · 2026-08-05 22:30 UTC-6 */
 /* Fix cascade: 3 variantes .scm-release-type--{major,minor,patch} → compound
    .scm-release-type.scm-release-type--X — la base (declarada después) pisaba el
    background de las 3, el badge de release type siempre mostraba el mismo fondo
@@ -1019,17 +1019,17 @@
   transition: var(--trans-color);
 }
 
-/* ── Fila aplicada ── */
-.scm-du-row.is-aplicado {
-  background: var(--c-low-bg);
-  border-color: var(--c-low-border);
-}
-
-/* ── Fila descartada ── */
-.scm-du-row.is-descartado {
+/* ── Fila resuelta (aplicada o descartada) — INC-[pendiente-ID] 2026-08-05:
+   corregido de .is-aplicado/.is-descartado (nunca emitidos por el JS) a
+   --resolved, única clase real que aplica _scmStepDuHtml sobre la fila
+   independiente del tipo de resolución. La distinción visual aplicado/
+   descartado ahora vive solo en botón y badge, que sí reciben clase por
+   tipo desde el JS — ver .scm-du-btn--aplicado/--descartado y
+   .scm-du-badge--aplicado/--descartado más abajo. ── */
+.scm-du-row--resolved {
   background: var(--surface);
   border-color: var(--border);
-  opacity: 0.55;
+  opacity: 0.75;
 }
 
 /* ── Sin resolución — indicador pendiente ── */
@@ -1094,21 +1094,30 @@
   border-color: var(--hint);
 }
 
-/* ── Botón "Aplicado" — activo ── */
-.scm-du-btn.aplicado.active {
+/* ── Botón "Aplicado" — activo — INC-[pendiente-ID] 2026-08-05:
+   corregido de .aplicado.active a --aplicado + .is-active, clases reales
+   emitidas por el handler scm-du-resolve ── */
+.scm-du-btn--aplicado.is-active {
   background: var(--c-low-bg);
   border-color: var(--c-low-border);
   color: var(--c-low-text);
 }
 
-/* ── Botón "Descartado" — activo ── */
-.scm-du-btn.descartado.active {
+/* ── Botón "Descartado" — activo — mismo criterio que arriba ── */
+.scm-du-btn--descartado.is-active {
   background: var(--surface);
   border-color: var(--hint);
   color: var(--text2);
 }
 
-/* ── Badge de estado por fila ── */
+/* ── Badge de estado por fila — INC-[pendiente-ID] 2026-08-05:
+   el badge queda oculto para siempre porque el JS nunca aplica
+   .scm-du-row.is-aplicado/.is-descartado a la fila (ver corrección de
+   .scm-du-row--resolved arriba) — el selector ancestro nunca matcheaba.
+   El JS crea el badge ya con su propia clase de tipo
+   (.scm-du-badge--aplicado / .scm-du-badge--descartado) al insertarlo en
+   el DOM, así que la visibilidad se resuelve directo sobre esa clase, sin
+   depender del estado de la fila. ── */
 .scm-du-badge {
   display: none;
   font-size: var(--text-2xs);
@@ -1118,14 +1127,14 @@
   white-space: nowrap;
 }
 
-.scm-du-row.is-aplicado .scm-du-badge {
+.scm-du-badge--aplicado {
   display: inline-flex;
   background: var(--c-low-bg);
   color: var(--c-low-text);
   border: 1px solid var(--c-low-border);
 }
 
-.scm-du-row.is-descartado .scm-du-badge {
+.scm-du-badge--descartado {
   display: inline-flex;
   background: var(--surface);
   color: var(--text3);

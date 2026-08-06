@@ -1,4 +1,13 @@
-/* [PP] mod:28 · autor:Nova · 2026-08-01 09:55 UTC-6 */
+/* [PP] mod:29 · autor:Nova · 2026-08-05 22:10 UTC-6 */
+/* mod:29 — TKT1 CAEL-0805-02 (REQ CAEL-0805-01): unificación de borde/foco/disabled en
+   .btn-icon/.btn-ghost/.btn-danger/.btn-danger-ghost. .btn-icon 1.5px→1px reposo (mismo
+   grosor que .btn-ghost/.filter-btn). .active/[aria-pressed] agregado a .btn-icon/.btn-ghost
+   (1.5px + accent, sin uso HTML/JS actual — hook forward-compatible, mismo criterio que
+   .filter-btn.active). Focus-visible: box-shadow color-mix(...30%,transparent) agregado a
+   las 4 clases — antes solo outline. Bug encontrado y corregido: .btn-danger/.btn-danger-ghost
+   solo declaraban border-color, nunca border-width/border-style — el borde no se renderizaba
+   independientemente del elemento. :disabled agregado a las 4 clases (opacity 0.35 · cursor
+   not-allowed · pointer-events none, mismo patrón que .hdr-menu-apply-btn:disabled). */
 /* mod:28 — Nova revisa y re-entrega TKT-202607-218 (Shell & Tabs — gutters de header/tabs/subtabs
    a --space-*) tras hallazgo de CSS Purity en mod:27 (autor:Rune, viola __BR-Execution §3).
    Contenido verificado sin cambios de comportamiento — solo re-atribución de autoría.
@@ -747,7 +756,7 @@ header {
   width: 32px;
   height: 32px;
   border-radius: var(--radius-md);
-  border: 1.5px solid var(--border);
+  border: 1px solid var(--border);
   background: var(--surface2);
   color: var(--text2);
   transition: var(--trans-medium);
@@ -761,6 +770,28 @@ header {
   border-color: var(--accent);
   color: var(--accent-text);
   background: var(--accent-dim);
+}
+
+/* TKT1 CAEL-0805-02 (REQ CAEL-0805-01): estado activo/seleccionado — mismo mecanismo
+   1px reposo / 1.5px activo ya vigente en .filter-btn.active. Cubre .active y
+   [aria-pressed="true"] para no depender de una sola convención de marcado. */
+.btn-icon.active,
+.btn-icon[aria-pressed="true"] {
+  border: 1.5px solid var(--accent);
+  color: var(--accent-text);
+  background: var(--accent-dim);
+}
+
+.btn-icon:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.btn-icon:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 ::-webkit-scrollbar {
@@ -2099,9 +2130,25 @@ header {
   transform: scale(0.97);
 }
 
+/* TKT1 CAEL-0805-02 (REQ CAEL-0805-01): estado activo/seleccionado — mismo mecanismo
+   que .btn-icon.active / .filter-btn.active (1px reposo → 1.5px activo). */
+.btn-ghost.active,
+.btn-ghost[aria-pressed="true"] {
+  border: 1.5px solid var(--accent);
+  color: var(--text);
+  background: var(--accent-dim);
+}
+
 .btn-ghost:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.btn-ghost:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* .empty-state — scope: backlog · proyectos · tracker · analytics */
@@ -2225,7 +2272,10 @@ header {
   transition: all 0.15s;
   background: var(--red-dim);
   color: var(--red);
-  border-color: var(--red-border);
+  /* TKT1 CAEL-0805-02 (REQ CAEL-0805-01) — hallazgo: solo declaraba border-color,
+     nunca border-width/border-style. Sin border-style el borde no se renderiza
+     independientemente del elemento — bug de origen, no ajuste de valor. */
+  border: 1px solid var(--red-border);
 }
 
 .btn-danger:hover {
@@ -2234,12 +2284,28 @@ header {
   border-color: var(--red);
 }
 
+.btn-danger:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* .btn-danger-ghost — scope: backlog · tracker */
 .btn-danger-ghost {
   transition: all 0.12s;
   background: transparent;
-  border-color: transparent;
+  /* TKT1 CAEL-0805-02: mismo hallazgo que .btn-danger — border-color sin
+     border-width/style. "Ghost" es intencional (transparente en reposo), pero
+     necesita width/style declarados para que .btn-danger-ghost:hover
+     (locus-sesiones.css:802) revele el borde sin salto de layout. */
+  border: 1px solid transparent;
   color: var(--text3);
+}
+
+.btn-danger-ghost:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* .btn-primary — fuente canónica: locus-layout.css — scope: backlog · layout */
@@ -2334,6 +2400,7 @@ header {
 .btn-danger-ghost:focus-visible {
   outline: 2px solid var(--red);
   outline-offset: 2px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 30%, transparent);
 }
 
 /* ── Botones icono (sin label) ── */
