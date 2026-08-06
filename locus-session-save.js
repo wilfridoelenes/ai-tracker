@@ -1,3 +1,18 @@
+// [PP] mod:86 · autor:Rune · 2026-08-05 UTC-6
+// TKT CAEL-0805-02 (REQ CAEL-0805-01): badge de status en sidebar Workers quedaba desfasado
+// tras guardar sesión en algunos casos. Causa raíz: `ai` (parámetro de _doApplyMergeAndFinish)
+// es una referencia capturada al abrir saveSession()/_doSaveSession() — si _applyStateData()
+// (locus-storage.js, Object.assign(state, raw)) reemplaza state.ais por completo mientras el
+// panel DIFF sigue abierto (ventana async entre paste y confirmación del founder), `ai` queda
+// huérfano: mutar su status ya no se refleja en getState().ais, que es lo que lee
+// renderGlobalRadarSidebar(). Fix: getAI(id) re-resuelto justo antes de la mutación de status
+// (`_liveAi`), en vez de reutilizar el parámetro capturado. No cambia la firma de
+// _doApplyMergeAndFinish ni ningún otro punto del flujo de guardado. Alinea además con el
+// invariant documentado en _Locus-module-contracts §Workers: toda mutación de Worker debe
+// operar sobre la referencia viva de state, no sobre una copia capturada fuera de save()/
+// saveImmediate(). no_incluye: no toca renderGlobalRadarSidebar() ni locus-radar.js — el gap
+// estaba en qué objeto se mutaba, no en el mecanismo de refresco, que ya disparaba
+// correctamente en cada guardado exitoso.
 // [PP] mod:85 · autor:Rune · 2026-08-04 UTC-6
 // TKT-202608-239 (parent: REQ-202608-091): resuelta la referencia — mod:83 implementó este mismo
 //   fix bajo ref_id CAEL-0804-02/REQ-[pendiente-ID], ambos ya confirmados con código real por
@@ -948,8 +963,16 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   }
   // ── END T-202606-017 / T-202606-073 AC-2 ──
 
-  if (horaResult) { ai.status = 'exhausted'; ai.resetTime = horaResult.hhmm; ai.resetEpoch = horaResult.epoch; }
-  ai._parsed = {};
+  // TKT CAEL-0805-02 (parent: REQ CAEL-0805-01): `ai` es el objeto capturado al inicio de
+  // saveSession()/_doSaveSession() — puede quedar huérfano si _applyStateData() (locus-storage.js,
+  // Object.assign(state, raw)) reemplaza state.ais completo mientras el panel DIFF estuvo abierto
+  // (ventana async entre el paste y la confirmación del founder). Mutar el objeto huérfano no se
+  // refleja en getState().ais, que es lo que lee renderGlobalRadarSidebar() — el sidebar queda con
+  // status desfasado sin error visible. Re-obtener la referencia viva justo antes de mutar cierra
+  // la ventana de carrera sin cambiar la firma de la función ni el resto del flujo.
+  const _liveAi = getAI(id) || ai;
+  if (horaResult) { _liveAi.status = 'exhausted'; _liveAi.resetTime = horaResult.hhmm; _liveAi.resetEpoch = horaResult.epoch; }
+  _liveAi._parsed = {};
   // T-202604-103: limpiar timer de confirmación si quedó activo
   if (_confirmTimers[id]) { clearTimeout(_confirmTimers[id]); delete _confirmTimers[id]; }
   // B-202605-NNN: clearTimeout antes de removeItem — evita que un timer completado justo antes
