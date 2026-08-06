@@ -1,4 +1,4 @@
-// [PP] mod:175 · autor:Rune · 2026-08-05 UTC-6
+// [PP] mod:176 · autor:Rune · 2026-08-06 UTC-6
 // TKT1 (ref_id CAEL-0805-01, REQ-202608-101 — Opción A, pivote confirmado por el founder
 // 2026-08-05 tras hallazgo de Finn en auditoría end-to-end del REQ): _splitCheckpointBlocks()
 // retira el scanner de profundidad de llaves para bloques bare (_extractBareJsonBlocks +
@@ -700,11 +700,27 @@ function _looksLikeBareCheckpointJson(text) {
 // CHECKPOINT, sin heurística de llaves ni scanner de profundidad.
 // no_incluye: no modifica parseCheckpoint()/_resolveCheckpointBatch()/_processIngestBatch() —
 // solo el split. No modifica _looksLikeBareCheckpointJson().
+// TKT-202608-261 (REQ-202608-103): cuando hay 1+ match de fence, cualquier texto no-whitespace
+// que quede fuera de esos fences se estaba descartando en silencio — sin señal al founder
+// (DISC-202608-104). Se agrega alerta DocLog con el conteo de caracteres descartados. No
+// reintenta parsear ese texto ni lo agrega como bloque — el descarte en sí no cambia, solo deja
+// de ser silencioso. Whitespace puro fuera de los fences no genera alerta (AC edge case).
 export function _splitCheckpointBlocks(text) {
   if (!text) return [];
   const _re = /```(?:json)?\s*[\s\S]*?```/g;
   const _matches = text.match(_re);
-  if (_matches) return _matches;
+  if (_matches) {
+    const _remainder = text.replace(_re, '').trim();
+    if (_remainder.length > 0) {
+      _blogLog(
+        'texto-bare-descartado-post-fence',
+        '',
+        `Texto fuera de bloques \`\`\` descartado tras ${_matches.length} bloque(s) fenced — ${_remainder.length} caracteres ignorados.`,
+        'backlog'
+      );
+    }
+    return _matches;
+  }
   // Sin match de fence — único caso bare soportado: el texto completo es un solo objeto JSON
   // (mismo criterio que _looksLikeBareCheckpointJson usa para el path single de parsePaste).
   // 2+ objetos bare concatenados sin fence ni delimitador ya no se detectan como N bloques —
