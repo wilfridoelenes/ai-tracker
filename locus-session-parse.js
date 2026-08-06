@@ -1,4 +1,4 @@
-// [PP] mod:176 · autor:Rune · 2026-08-06 UTC-6
+// [PP] mod:177 · autor:Rune · 2026-08-06 UTC-6
 // TKT1 (ref_id CAEL-0805-01, REQ-202608-101 — Opción A, pivote confirmado por el founder
 // 2026-08-05 tras hallazgo de Finn en auditoría end-to-end del REQ): _splitCheckpointBlocks()
 // retira el scanner de profundidad de llaves para bloques bare (_extractBareJsonBlocks +
@@ -793,6 +793,9 @@ import { renderBacklogList } from './locus-backlog-render.js';
 // Fix INC-202608-094: mismo gap que en _doApplyMergeAndFinish (locus-session-save.js) —
 // _onApplyBatch (más abajo) renderizaba backlog/stats pero nunca el tab Sprint.
 import { renderSprintTab } from './locus-sprint.js';
+import { renderAnalytics } from './locus-analytics-render.js'; // INC-202608-097: guard de refresco post-CHECKPOINT para tab Analytics — mismo patrón ya usado para 'sprint'
+import { renderQIncPanel } from './locus-incidents-render.js'; // INC-202608-097: idem para subtab Q-INC (tab 'incidentes')
+import { renderProyectos } from './locus-projects.js'; // INC-202608-097: idem para tab Proyectos
 import { _ctrMergeFromItem } from './locus-contracts.js';
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
@@ -2976,6 +2979,13 @@ export async function _processIngestBatch() {
     // correctamente a ITEMS/Supabase pero el tab Sprint no se refrescaba hasta cambio
     // de tab o reload cuando era el tab activo al confirmar el batch.
     if (getCurrentTab() === 'sprint') { renderSprintTab(); }
+    // Fix INC-202608-097: mismo gap que INC-202608-094 (tab Sprint) en el path batch —
+    // Analytics, Q-INC (tab 'incidentes') y Proyectos no se refrescaban tras aplicar un batch
+    // de CHECKPOINTs si estaban activos. Mismo criterio que el guard de _doApplyMergeAndFinish
+    // (locus-session-save.js mod:88) — sin dirty-flag propio, se llama directo.
+    if (getCurrentTab() === 'analytics') { renderAnalytics(); }
+    if (getCurrentTab() === 'incidentes') { renderQIncPanel(); }
+    if (getCurrentTab() === 'proyectos') { renderProyectos(); }
     window.dispatchEvent(new CustomEvent('shell:render-tracker'));
     const _totalApplied = tgItems.length + (patchItems ? patchItems.length : 0);
     // TKT-202608-234 (REQ-202608-089, AC edge case): cuando el batch mezcla bloques que

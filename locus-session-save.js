@@ -1,4 +1,4 @@
-// [PP] mod:87 · autor:Rune · 2026-08-05 UTC-6
+// [PP] mod:88 · autor:Rune · 2026-08-06 UTC-6
 // TKT CAEL-0805-02 (REQ CAEL-0805-01): badge de status en sidebar Workers quedaba desfasado
 // tras guardar sesión en algunos casos. Causa raíz: `ai` (parámetro de _doApplyMergeAndFinish)
 // es una referencia capturada al abrir saveSession()/_doSaveSession() — si _applyStateData()
@@ -192,6 +192,9 @@ import { extractContextSections, extractDocUpdates, extractHtmlMapSections, merg
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 
 import { render, _markTrackerDirty } from './locus-sesiones.js';
+import { renderAnalytics } from './locus-analytics-render.js'; // INC-202608-097: guard de refresco post-CHECKPOINT para tab Analytics — mismo patrón ya usado para 'sprint'
+import { renderQIncPanel } from './locus-incidents-render.js'; // INC-202608-097: idem para subtab Q-INC (tab 'incidentes')
+import { renderProyectos } from './locus-projects.js'; // INC-202608-097: idem para tab Proyectos
 
 import { _showProjRequiredInPanel, interpretHora } from './locus-session-hora.js';
 
@@ -1026,6 +1029,14 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // seguía mostrando el estado previo hasta cambio de tab o reload. Mismo patrón que el
   // guard de 'backlog' — sin dirty-flag propio en este módulo para Sprint, se llama directo.
   if (getCurrentTab() === 'sprint') { renderSprintTab(); }
+  // Fix INC-202608-097: mismo gap que INC-202608-094 (tab Sprint), extendido a los tres tabs
+  // que quedaban sin guard — Analytics, Q-INC (tab 'incidentes') y Proyectos no se refrescaban
+  // tras aplicar un CHECKPOINT si estaban activos, hasta cambio de tab o reload. Auditoría
+  // completa en REQ-202608-102/TKT-202608-260 — sin dirty-flag propio para estos tres módulos
+  // en este archivo, se llama directo, mismo criterio que el guard de 'sprint' ya existente.
+  if (getCurrentTab() === 'analytics') { renderAnalytics(); }
+  if (getCurrentTab() === 'incidentes') { renderQIncPanel(); }
+  if (getCurrentTab() === 'proyectos') { renderProyectos(); }
   // R-202604-016: actualizar log card
   _rebuildLogBody();
   // R-003: animar la primera sess-row del card recién guardado
