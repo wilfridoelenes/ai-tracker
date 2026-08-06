@@ -1,4 +1,18 @@
-// [PP] mod:60 · autor:Rune · 2026-08-04 UTC-6
+// [PP] mod:61 · autor:Rune · 2026-08-05 UTC-6
+// CHG-202608-002: Paso 2 del wizard de cierre (DOC-UPDATEs) — limpieza de código muerto tras
+// la conversión a solo lectura ya presente en _scmStepDuHtml(). Retirado: case 'scm-du-resolve'
+// del delegador de clicks (sin botones que lo disparen desde mod:60), bloque de persistencia
+// de resolución en _scmExecuteClose() (no-op — solo corría con docUpdates.length===0), y el
+// check de `resolucion` en _scmUpdateDuNextBtn() (campo vestigial, nunca mutado). Los gates
+// de bloqueo de "Siguiente" y de cierre se simplifican a docUpdates.length > 0 — mismo
+// comportamiento observable, sin lógica muerta. Hallazgo fuera de scope registrado en
+// CHECKPOINT: _generateSprintRetroMd() sigue leyendo d.resolucion para las secciones
+// "Doc-Updates aplicados/Descartados" de la retro — con resolucion siempre null desde
+// CHG-202608-002 (y desde antes, dado que _scmStepDuHtml ya era solo-lectura en mod:60), esas
+// dos secciones de la retro reportan 0 siempre. Además desalineado con __BR-Ecosystem §5
+// ("Doc-Updates aplicados/pendientes no son campos propios de la retro... no se duplican
+// aquí"). No corregido en este CHG — toca una función distinta (generación de retro), fuera
+// del origin_module declarado. Ver INC registrado en el CHECKPOINT de esta entrega.
 // INC-202608-085 (auditoría end-to-end footer DOC-UPDATEs solicitada por el founder):
 // confirmCloseSprint() leía sp.docUpdates para poblar el Paso 2 del modal de cierre — campo
 // que ningún archivo del repo asigna jamás (grep confirmado); el Paso 2 siempre renderizaba
@@ -1004,13 +1018,14 @@ function _scmRender() {
   }
 }
 
-// T-202606-120 AC-4: evalúa si todos los DOC-UPDATEs tienen resolución y actualiza el botón Siguiente
+// T-202606-120 AC-4 — simplificado por CHG-202608-002: el Paso 2 es de solo lectura desde
+// _scmStepDuHtml(), la resolución ya no ocurre en este wizard (vive en Doc Log). El campo
+// `resolucion` de cada entrada de _scmState.docUpdates es ahora vestigial — nunca se muta,
+// así que el gate se reduce a "hay o no hay entradas pendientes en el índice real".
 function _scmUpdateDuNextBtn(nextBtn) {
   if (!_scmState || !nextBtn) return;
   const du = _scmState.docUpdates || [];
-  // Si no hay DOC-UPDATEs, el estado vacío (AC-5) permite avanzar libremente
-  const allResolved = du.length === 0 || du.every(d => d.resolucion !== null);
-  nextBtn.disabled = !allResolved;
+  nextBtn.disabled = du.length > 0;
 }
 
 // Gate duro Gen2: Siguiente habilitado solo cuando todos los ítems activos
@@ -1151,9 +1166,12 @@ function _scmStep1Html(sp, pendingItems, doneItems, metrics) {
   `;
 }
 
-// T-202606-120 AC-2: Paso 2 — lista de DOC-UPDATEs pendientes con resolución por fila
-// AC-5: estado vacío si docUpdates es array vacío — muestra mensaje, Siguiente habilitado
-// AC-7/AC-8/AC-9/AC-10: botones aplicado/descartado por fila con actualización visual sin recargar
+// T-202606-120 AC-2/AC-5 — reescrito por CHG-202608-002: Paso 2 pasa a ser un gate de
+// solo lectura. Se retiran los botones Aplicado/Descartado (antes AC-7/AC-8/AC-9/AC-10) —
+// la resolución de cada DOC-UPDATE vive exclusivamente en Doc Log (Tab Documentos,
+// locus-docs.js). Este paso solo lista lo que sigue pendiente en el índice real y bloquea
+// "Siguiente" mientras existan entradas — nunca las muta. Ver _scmUpdateDuNextBtn() y el
+// gate de _scmExecuteClose() para la re-verificación en vivo contra el índice.
 function _scmStepDuHtml(docUpdates) {
   if (!docUpdates || docUpdates.length === 0) {
     // AC-5: estado vacío
@@ -1161,31 +1179,18 @@ function _scmStepDuHtml(docUpdates) {
   }
 
   const rows = docUpdates.map(du => {
-    const res = du.resolucion; // 'aplicado' | 'descartado' | null
     const escAl = du.escalarA ? `<span class="scm-du-escalar">→ ${esc(du.escalarA)}</span>` : '';
-    const badgeHtml = res
-      ? `<span class="scm-du-badge scm-du-badge--${res}">${res === 'aplicado' ? '✓ Aplicado' : '✗ Descartado'}</span>`
-      : '';
     return `
-      <div class="scm-du-row${res ? ' scm-du-row--resolved' : ''}" data-du-id="${du.id}">
+      <div class="scm-du-row" data-du-id="${du.id}">
         <div class="scm-du-meta">
           <span class="scm-du-doc">${esc(du.doc)}</span>
           <span class="scm-du-seccion">${esc(du.seccion)}</span>
           ${escAl}
-          ${badgeHtml}
-        </div>
-        <div class="scm-du-actions">
-          <button class="scm-du-btn scm-du-btn--aplicado${res === 'aplicado' ? ' is-active' : ''}"
-            data-action="scm-du-resolve" data-du-id="${du.id}" data-resolucion="aplicado"
-            type="button">Aplicado</button>
-          <button class="scm-du-btn scm-du-btn--descartado${res === 'descartado' ? ' is-active' : ''}"
-            data-action="scm-du-resolve" data-du-id="${du.id}" data-resolucion="descartado"
-            type="button">Descartado</button>
         </div>
       </div>`;
   }).join('');
 
-  return `<div class="scm-du-list">${rows}</div>`;
+  return `<div class="scm-du-list">${rows}</div><div class="scm-du-empty">Resuélvelos desde Doc Log (Tab Documentos) — este paso ya no aplica ni descarta, solo bloquea el cierre mientras queden pendientes.</div>`;
 }
 
 // Gate duro de cierre (__BR-Ecosystem §5 Gen2): la única salida válida de un ítem activo
@@ -1428,31 +1433,16 @@ async function _scmExecuteClose() {
           effortPlanned, effortDone, effortScopeAdded, effortNotDone, docUpdates } = _scmState;
 
   // Gate duro de cierre — DOC-UPDATE sin resolver (__BR-Ecosystem §5: "Locus bloquea el
-  // cierre automáticamente si hay DOC-UPDATEs sin resolución"). INC-202608-085: antes de
-  // este fix, _scmState.docUpdates se construía siempre vacío (sp.docUpdates nunca poblado) —
-  // el gate de _scmUpdateDuNextBtn (arriba, disabled del botón Siguiente) se satisfacía
-  // trivialmente por longitud 0 y nunca bloqueaba nada. Con docUpdates ahora poblado desde el
-  // índice real (confirmCloseSprint()), este guard es defensa en profundidad — misma regla que
-  // ya debería impedir llegar aquí vía UI, pero la regla dura del BR es sobre el cierre en sí,
-  // no solo sobre la navegación del wizard.
-  const _duUnresolved = (docUpdates || []).some(d => d.resolucion === null);
-  if (_duUnresolved) {
-    showToast('error', 'Bloqueo: hay DOC-UPDATEs sin resolver — vuelve al Paso 2 antes de cerrar el sprint.');
-    return;
-  }
-
-  // Persistir la resolución del Paso 2 sobre el índice real — misma acción que
-  // "Aplicar"/"Descartar" en el panel de Backlog (locus-docs.js _initDocUpdatesListeners):
-  // elimina la key del índice y registra en DocLog. El gate de arriba ya garantiza que toda
-  // entrada de docUpdates tiene resolucion !== null en este punto.
+  // cierre automáticamente si hay DOC-UPDATEs sin resolución"). Simplificado por
+  // CHG-202608-002: la resolución ya no ocurre en este wizard — el Paso 2 es de solo lectura
+  // (ver _scmStepDuHtml()) y la única vía de resolver un DOC-UPDATE es Doc Log (Tab
+  // Documentos, locus-docs.js). El campo `resolucion` de cada entrada nunca se muta desde
+  // aquí, así que el gate se reduce a "¿sigue habiendo entradas en el índice real capturadas
+  // al abrir el modal?" — defensa en profundidad, misma regla que ya debería impedir llegar
+  // aquí vía UI (botón Siguiente deshabilitado, ver _scmUpdateDuNextBtn()).
   if (docUpdates && docUpdates.length) {
-    const _duIndexClose = _getDocUpdateIndex();
-    docUpdates.forEach(du => {
-      if (!du.key || !_duIndexClose[du.key]) return;
-      _blogLog(du.resolucion, du.key, du.doc + '::' + du.seccion + ' — resuelto en cierre de sprint ' + id, 'backlog');
-      delete _duIndexClose[du.key];
-    });
-    _setDocUpdateIndex(_duIndexClose);
+    showToast('error', 'Bloqueo: hay DOC-UPDATEs sin resolver — resuélvelos desde Doc Log (Tab Documentos) antes de cerrar el sprint.');
+    return;
   }
 
   // aplicar migraciones de pendientes
@@ -1772,41 +1762,11 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'scm-open-map-generator':
         openMapGenerator();
         break;
-      case 'scm-du-resolve': {
-        // T-202606-120 AC-7/AC-8/AC-9/AC-10: resolución de DOC-UPDATE por fila sin recargar stepper
-        if (!_scmState) break;
-        const duId  = parseInt(btn.dataset.duId, 10);
-        const resol = btn.dataset.resolucion; // 'aplicado' | 'descartado'
-        const du = (_scmState.docUpdates || []).find(d => d.id === duId);
-        if (!du) break;
-        // AC-9: toggle — si ya tenía la misma resolución, limpiar (vuelve a null)
-        du.resolucion = du.resolucion === resol ? null : resol;
-        // AC-7: actualizar visual de la fila sin rerender completo
-        const row = btn.closest('[data-du-id]');
-        if (row) {
-          row.classList.toggle('scm-du-row--resolved', du.resolucion !== null);
-          // actualizar badge
-          const meta = row.querySelector('.scm-du-meta');
-          if (meta) {
-            const existing = meta.querySelector('.scm-du-badge');
-            if (existing) existing.remove();
-            if (du.resolucion) {
-              const badge = document.createElement('span');
-              badge.className = `scm-du-badge scm-du-badge--${du.resolucion}`;
-              badge.textContent = du.resolucion === 'aplicado' ? '✓ Aplicado' : '✗ Descartado';
-              meta.appendChild(badge);
-            }
-          }
-          // actualizar estado is-active de botones de la fila
-          row.querySelectorAll('[data-action="scm-du-resolve"]').forEach(b => {
-            b.classList.toggle('is-active', b.dataset.resolucion === du.resolucion);
-          });
-        }
-        // AC-4: re-evaluar gate del botón Siguiente
-        const nBtn = document.getElementById('sprint-close-next-btn');
-        _scmUpdateDuNextBtn(nBtn);
-        break;
-      }
+      // T-202606-120 AC-7/AC-8/AC-9/AC-10 (resolución de DOC-UPDATE por fila) — retirado por
+      // CHG-202608-002: _scmStepDuHtml() ya no renderiza botones con data-action
+      // "scm-du-resolve" (Paso 2 es de solo lectura, la resolución vive en Doc Log). Este case
+      // era código muerto — quedaba huérfano operando sobre un elemento que ya no existe en
+      // el DOM. Ver _scmUpdateDuNextBtn() para el gate simplificado.
       case 'scm-export-history':
         exportFullHistoryMd();
         break;

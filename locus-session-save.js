@@ -970,7 +970,18 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // refleja en getState().ais, que es lo que lee renderGlobalRadarSidebar() — el sidebar queda con
   // status desfasado sin error visible. Re-obtener la referencia viva justo antes de mutar cierra
   // la ventana de carrera sin cambiar la firma de la función ni el resto del flujo.
-  const _liveAi = getAI(id) || ai;
+  // Fix Finn (QA · devuelto en primera iteración): el fallback original `getAI(id) || ai` caía
+  // de vuelta al objeto huérfano si el worker fue eliminado durante la ventana del DIFF —
+  // reintroducía el mismo bug en ese caso extremo en vez de cerrarlo. Corte explícito, mismo
+  // patrón ya usado en saveSession() (línea ~391, worker no encontrado). La sesión (newSess) ya
+  // fue empujada a activeProj.sessions arriba en esta función — igual que el catch existente de
+  // _mergeBacklogWithProject más arriba, cortar aquí no deja sessions[] huérfano, solo evita
+  // completar limpieza de draft/render/toast para un worker que ya no existe.
+  const _liveAi = getAI(id);
+  if (!_liveAi) {
+    showToast('error', '⚠ El worker fue eliminado durante la revisión — sesión registrada, sidebar no actualizado');
+    return;
+  }
   if (horaResult) { _liveAi.status = 'exhausted'; _liveAi.resetTime = horaResult.hhmm; _liveAi.resetEpoch = horaResult.epoch; }
   _liveAi._parsed = {};
   // T-202604-103: limpiar timer de confirmación si quedó activo

@@ -1,3 +1,10 @@
+/* [PP] mod:9 · autor:Nova · 2026-08-05 UTC-6 */
+/* TKT-202608-254: .badge-status-historico border migrado de rgb(100 116 139/28%) —
+   tinte de baja opacidad, mismo anti-pattern ya corregido en .stat-type-chip.tc-*
+   (TKT-202608-252) — a #94a3b8 sólido, el mismo valor ya usado en color: de este selector.
+   Verificado 5.05–5.5:1 contra el fondo propio compuesto (rgb(100 116 139/18%) sobre
+   --surface2/--surface3 dark) — muy por encima del mínimo 3:1. Sin cambio en background/
+   color/font-size/etc. */
 /* [PP] mod:8 · autor:Nova · 2026-07-20 19:10 UTC-6 */
 /* Corrección de contraste — mod:6 entregó opacity:0.85 como supuesto conservador sin
    verificar contra tokens reales (locus-base.css no estaba adjunto en esa sesión). Con

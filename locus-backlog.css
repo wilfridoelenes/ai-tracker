@@ -1,4 +1,23 @@
-/* [PP] mod:143 · autor:Nova · 2026-08-05 14:10 UTC-6 */
+/* [PP] mod:144 · autor:Nova · 2026-08-05 UTC-6 */
+/* TKT-202608-254 (TKT3 · Pills de tipo/status — bordes/radios/foco unificados):
+   .item-type-pill.DISC/.TKT/.REQ/.BUG — sin border previo, ahora border:1px solid var(--X-text)
+   (o var(--X) cuando no hay override -text, ej. .DISC). .INC/.PRB/.CHG migran de
+   border:1px solid color-mix(var(--X) 28%, transparent) — mismo anti-pattern de tinte de baja
+   opacidad ya corregido en .stat-type-chip.tc-* (TKT-202608-252) — a border solid con el token
+   *-text, verificado ≥3:1 contra el fondo propio del pill (5.5–8.7:1 en dark, verificado por
+   luminancia relativa WCAG contra los tres backdrops de superficie del sistema). .BUG (deprecated,
+   sin caller activo) recibe el mismo tratamiento que .INC (comparte --red) — AC1 lo incluye
+   explícitamente pese a la deprecación, no se omite.
+   .badge-status-* — ya tenían border:1px solid vía la clase base .badge; solo border-color se
+   corrige de tokens de baja opacidad (var(--border2), var(--c-high-border), var(--c-critical-border),
+   var(--c-done-border), color-mix(amber 28%)) a tokens sólidos verificados. Excepción: .done/
+   .descartado NO migran a var(--c-done-text) — ese token falla 3:1 contra su propio fondo en ambos
+   temas (1.63–2.36:1, verificado por luminancia relativa compuesta sobre --c-done-bg) — hallazgo
+   nuevo, no registrado antes en ningún Doc Ref. Se usa var(--text3) en su lugar — mismo tratamiento
+   neutro ya aplicado a .badge-status-backlog, semánticamente coherente (ambos son estados "sin
+   urgencia"/foto neutra) y verificado 4.6–5.75:1 contra el fondo compuesto de done en ambos temas.
+   AC3 (sin estado activo/seleccionado en .item-type-pill) y AC5 (sin :focus-visible) NO se
+   implementan — ver CHECKPOINT para el hallazgo que los excluye de scope, no es omisión. */
 /* TKT-202608-252 (REQ-202608-099, TKT2 · Pills/Chips — bordes/foco unificados):
    .status-pill (base sin border-width/style → 1px + border-color por variante derivado
    de token *-text) y .stat-type-chip.tc-* (border-color de rgb(mismo-tinte/40%) a token
@@ -1618,39 +1637,42 @@
 
 .badge-status-backlog {
   background: var(--surface3);
-  border-color: var(--border2);
+  border-color: var(--text3);
   color: var(--text3);
 }
 
 .badge-status-en-progreso {
   background: var(--c-high-bg);
-  border-color: var(--c-high-border);
+  border-color: var(--c-high-text);
   color: var(--c-high-text);
 }
 
 /* T-202605-040: en-revision — reutiliza variables de en-curso/en-progreso */
 .badge-status-en-revision {
   background: var(--c-high-bg);
-  border-color: var(--c-high-border);
+  border-color: var(--c-high-text);
   color: var(--c-high-text);
 }
 
+/* TKT-202608-254: border-color NO usa var(--c-done-text) — falla 3:1 contra --c-done-bg
+   propio en ambos temas (1.63–2.36:1, verificado). var(--text3) sustituye — mismo tratamiento
+   neutro que .badge-status-backlog, verificado 4.6–5.75:1 contra el fondo done compuesto. */
 .badge-status-done {
   background: var(--c-done-bg);
-  border-color: var(--c-done-border);
+  border-color: var(--text3);
   color: var(--c-done-text);
 }
 
 .badge-status-descartado {
   background: var(--c-done-bg);
-  border-color: var(--c-done-border);
+  border-color: var(--text3);
   color: var(--c-done-text);
 }
 
 /* B-202606-095: status bloqueado/orphaned en Rs — badge visual diferenciado */
 .badge-status-bloqueado {
   background: var(--c-critical-bg);
-  border-color: var(--c-critical-border);
+  border-color: var(--c-critical-text);
   color: var(--c-critical-text);
 }
 
@@ -1659,7 +1681,7 @@
    (dead code — sin caller en JS, statusClass() nunca lo retornaba). */
 .badge-status-orphaned {
   background: color-mix(in srgb, var(--amber) 10%, transparent);
-  border-color: color-mix(in srgb, var(--amber) 28%, transparent);
+  border-color: var(--amber-text);
   color: var(--amber-text);
 }
 
@@ -1916,41 +1938,45 @@
 
 .item-type-pill.DISC {
   background: rgb(56 189 248 / 15%);
+  border: 1px solid var(--blue-text);
   color: var(--blue);
 }
 
 .item-type-pill.INC {
   background: color-mix(in srgb, var(--red) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--red) 28%, transparent);
+  border: 1px solid var(--red-text);
   color: var(--red);
 }
 
 .item-type-pill.TKT {
   background: rgb(46 204 120 / 15%);
+  border: 1px solid var(--green-text);
   color: var(--green-text);
 }
 
 .item-type-pill.REQ {
   background: rgb(124 106 247 / 15%);
+  border: 1px solid var(--purple-text);
   color: var(--purple-text);
 }
 
 /* Tipos ITIL derivados — Gen 2 — alineados BR-Ecosystem §4 */
 .item-type-pill.PRB {
   background: color-mix(in srgb, var(--orange) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--orange) 28%, transparent);
+  border: 1px solid var(--orange-text);
   color: var(--orange);
 }
 
 .item-type-pill.CHG {
   background: color-mix(in srgb, var(--slate) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--slate) 28%, transparent);
+  border: 1px solid var(--slate-text);
   color: var(--slate);
 }
 
 /* Deprecated — sin call sites activos. Eliminar en sprint siguiente */
 .item-type-pill.BUG {
   background: rgb(232 85 85 / 15%);
+  border: 1px solid var(--red-text);
   color: var(--red);
 }
 
