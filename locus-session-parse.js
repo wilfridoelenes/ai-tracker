@@ -1,4 +1,4 @@
-// [PP] mod:177 · autor:Rune · 2026-08-06 UTC-6
+// [PP] mod:178 · autor:Rune · 2026-08-06 15:10 UTC-6
 // TKT1 (ref_id CAEL-0805-01, REQ-202608-101 — Opción A, pivote confirmado por el founder
 // 2026-08-05 tras hallazgo de Finn en auditoría end-to-end del REQ): _splitCheckpointBlocks()
 // retira el scanner de profundidad de llaves para bloques bare (_extractBareJsonBlocks +
@@ -1330,6 +1330,25 @@ export function parseCheckpoint(text) {
     if (!_jsonErrRaw && _parsedRaw && typeof _parsedRaw === 'object' && !Array.isArray(_parsedRaw) && _parsedRaw.title) {
       // Reusar path fence — reconstruir fence mínimo y re-invocar para evitar duplicación de lógica
       return parseCheckpoint('```\n' + _trimmed + '\n```');
+    }
+    // TKT1 (PRB-202608-002, ref_id CAEL-08061530-02 · AC corregido en sesión — ver gap de
+    // especificación devuelto a Cael: la redacción original condicionaba este mensaje a "falla
+    // _looksLikeBareCheckpointJson", predicado que ya es true por construcción para llegar a esta
+    // rama — nunca puede "fallar" aquí. La condición real que distingue un batch de 2+ CHECKPOINTs
+    // pegados sin fence de cualquier otro JSON malformado/sin título es la que sigue: JSON.parse
+    // falló O el objeto parseó pero sin "title", Y el texto contiene 2+ ocurrencias de la
+    // subcadena "title" (una por cada CHECKPOINT concatenado). mod:178.
+    const _titleOccurrences = (_trimmed.match(/title/g) || []).length;
+    if (_titleOccurrences >= 2) {
+      return {
+        titulo: '', proyecto: '', rol: '', resumen: '', archivos: '',
+        discItems: '', tktItems: '', reqItems: '', incItems: '',
+        estado: '', decision: '', proximoPaso: '',
+        contexto: '', bloqueantes: '', aprendizaje: '',
+        isCheckpoint: true,
+        _jsonParseError: `Detecté ${_titleOccurrences} CHECKPOINTs pegados sin separar. Envuelve cada uno en \`\`\` (tres backticks) para que Locus los detecte por separado.`,
+        rawCounts: { DISC: 0, TKT: 0, REQ: 0, INC: 0 }
+      };
     }
     // B-[pendiente-ID] AC-1/AC-2: JSON sin fence inválido, o válido sin "title" —
     // mismo objeto de error estructurado que el path con fence. Nunca null aquí:
