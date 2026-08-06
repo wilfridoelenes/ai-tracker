@@ -1,4 +1,15 @@
-/* [PP] mod:144 · autor:Nova · 2026-08-05 UTC-6 */
+/* [PP] mod:145 · autor:Nova · 2026-08-05 UTC-6 */
+/* TKT-202608-254 — AC5 cerrado en este mod: :focus-visible agregado a .item-type-pill
+   (base) y a la familia .badge-status-* (backlog/en-progreso/en-revision/done/descartado/
+   bloqueado/orphaned) — outline 2px solid var(--accent), mismo patrón que las 14+ instancias
+   ya existentes en este archivo. NO se usó box-shadow con token -text de variante pese a que
+   _Locus-css-ref mod:171 lo describía como criterio — esa descripción se auto-marcaba "sin
+   verificar en esta sesión" contra este archivo real; el grounding contra código real (Regla
+   dura de grounding, misma que ya aplicó Nova en mod:138 de _Locus-css-ref para
+   .qinc-section-header) prevalece sobre el supuesto no verificado del Doc Ref. Ver detalle
+   inline en cada bloque (L1938-1948, L1688-1697 aprox.). Origen: INC-202608-095 descartado
+   (premisa falsa — TKT nunca estuvo done) → gap real de AC5 identificado y cerrado en el
+   ciclo normal de QA del TKT, no como incidente. */
 /* TKT-202608-254 (TKT3 · Pills de tipo/status — bordes/radios/foco unificados):
    .item-type-pill.DISC/.TKT/.REQ/.BUG — sin border previo, ahora border:1px solid var(--X-text)
    (o var(--X) cuando no hay override -text, ej. .DISC). .INC/.PRB/.CHG migran de
@@ -17,7 +28,9 @@
    neutro ya aplicado a .badge-status-backlog, semánticamente coherente (ambos son estados "sin
    urgencia"/foto neutra) y verificado 4.6–5.75:1 contra el fondo compuesto de done en ambos temas.
    AC3 (sin estado activo/seleccionado en .item-type-pill) y AC5 (sin :focus-visible) NO se
-   implementan — ver CHECKPOINT para el hallazgo que los excluye de scope, no es omisión. */
+   implementaron en mod:144 — ver CHECKPOINT de esa entrega para el hallazgo que los excluyó
+   de scope entonces. AC5 cerrado en mod:145 (ver nota al inicio del archivo); AC3 se
+   confirmó sin gap real — no existe estado activo/seleccionado en código para .item-type-pill. */
 /* TKT-202608-252 (REQ-202608-099, TKT2 · Pills/Chips — bordes/foco unificados):
    .status-pill (base sin border-width/style → 1px + border-color por variante derivado
    de token *-text) y .stat-type-chip.tc-* (border-color de rgb(mismo-tinte/40%) a token
@@ -1685,6 +1698,22 @@
   color: var(--amber-text);
 }
 
+/* TKT-202608-254 (AC5): foco visible — misma nota que .item-type-pill arriba (L1938-1948):
+   outline genérico --accent, no box-shadow por token -text de variante — grounding contra
+   el patrón real ya establecido en este archivo, no contra la descripción sin verificar de
+   _Locus-css-ref mod:171. Regla inerte hasta que alguna instancia de .badge-status-* reciba
+   tabindex/click vía JS — hoy son badges estáticos de fila. */
+.badge-status-backlog:focus-visible,
+.badge-status-en-progreso:focus-visible,
+.badge-status-en-revision:focus-visible,
+.badge-status-done:focus-visible,
+.badge-status-descartado:focus-visible,
+.badge-status-bloqueado:focus-visible,
+.badge-status-orphaned:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* T-202604-050: campos obligatorios effort/area/ac */
 .item-required-fields {
   display: flex;
@@ -1934,6 +1963,21 @@
   width: 28px; height: 24px; border-radius: var(--radius-xs); flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
   white-space: nowrap; line-height: 1;
+}
+
+/* TKT-202608-254 (AC5): foco visible — solo produce efecto visual en las instancias que
+   reciban tabindex/click vía JS; sobre el badge estático de fila (uso actual) la regla
+   queda inerte, sin coste. Token genérico --accent, no box-shadow por token -text de
+   variante: _Locus-css-ref mod:171 declaraba box-shadow como criterio pero se auto-marcaba
+   "sin verificar en esta sesión" — grounding contra este archivo real muestra outline
+   2px solid var(--accent) como único patrón de :focus-visible en las 14+ instancias ya
+   existentes aquí (.stat-type-chip, .stat-pri-chip, .bl-toolbar-new-item-btn, etc.) y en
+   locus-historico.css. Se sigue el patrón real del sistema, no la descripción no verificada
+   del Doc Ref — mismo criterio ya aplicado en mod:138 de _Locus-css-ref (corrección de
+   token de .qinc-section-header antes de que Finn audite). */
+.item-type-pill:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .item-type-pill.DISC {

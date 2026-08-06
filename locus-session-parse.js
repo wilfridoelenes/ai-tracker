@@ -666,113 +666,30 @@ function _looksLikeBareCheckpointJson(text) {
   return _t.startsWith('{') && _t.endsWith('}');
 }
 
-// TKT1 (REQ CAEL-0727-01, triggered_by INC-202607-068): lookahead schema-aware — antes de
-// trackear una '{' en _depth===0 como apertura real de bloque, verifica que lo que sigue (tras
-// espacios en blanco) sea una clave entre comillas seguida de ':' (o '}' de objeto vacío). Un
-// CHECKPOINT real siempre abre con una clave entre comillas (ej. "title": ...) — una llave
-// suelta en prosa (ej. mencionar el objeto {ref_id, title} al documentar schema) casi nunca la
-// sigue de ese patrón exacto, así que se descarta como candidato sin tocar _depth. Función pura,
-// sin efectos laterales, sin export — interna a este módulo, único consumidor es
-// _extractBareJsonBlocks.
-function _looksLikeJsonObjectStart(text, i) {
-  let j = i + 1;
-  while (j < text.length && /\s/.test(text[j])) j++;
-  if (text[j] === '}') return true; // objeto vacío {} — candidato válido
-  if (text[j] !== '"') return false;
-  let k = j + 1;
-  let _escaped = false;
-  while (k < text.length) {
-    const c = text[k];
-    if (_escaped) {
-      _escaped = false;
-    } else if (c === '\\') {
-      _escaped = true;
-    } else if (c === '"') {
-      break;
-    }
-    k++;
-  }
-  if (k >= text.length) return false; // comilla de clave sin cerrar — no es JSON válido
-  let m = k + 1;
-  while (m < text.length && /\s/.test(text[m])) m++;
-  return text[m] === ':';
-}
-
-// TKT-202607-162 (REQ-202607-054): scanner de profundidad de llaves — separa N objetos JSON
-// balanceados de un texto sin fence, ignorando prosa intercalada y sin contar llaves que
-// aparecen dentro de valores string (comillas dobles con escape \"). Función pura, sin efectos
-// laterales, no valida JSON (eso ocurre después, en parseCheckpoint por bloque). Retorna
-// string[] — [] si no hay ningún bloque balanceado completo en el texto.
-// TKT1 (REQ CAEL-0727-01): apertura en _depth===0 pasa por _looksLikeJsonObjectStart() antes de
-// contar — una '{' que no supera el lookahead se ignora completamente (no incrementa _depth, no
-// toca _start), evitando que llaves sueltas de prosa desplacen el offset de bloques reales
-// posteriores. Aperturas anidadas (_depth>0, ya dentro de un candidato validado) no pasan por el
-// lookahead — se cuentan igual que antes, sin cambio de comportamiento ahí.
-function _extractBareJsonBlocks(text) {
-  const _blocks = [];
-  let _depth = 0;
-  let _start = -1;
-  let _inString = false;
-  let _escaped = false;
-
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-
-    if (_inString) {
-      if (_escaped) {
-        _escaped = false;
-      } else if (ch === '\\') {
-        _escaped = true;
-      } else if (ch === '"') {
-        _inString = false;
-      }
-      continue;
-    }
-
-    if (ch === '"') {
-      _inString = true;
-      continue;
-    }
-
-    if (ch === '{') {
-      if (_depth === 0) {
-        if (!_looksLikeJsonObjectStart(text, i)) continue;
-        _start = i;
-      }
-      _depth++;
-    } else if (ch === '}') {
-      if (_depth > 0) {
-        _depth--;
-        if (_depth === 0 && _start !== -1) {
-          _blocks.push(text.slice(_start, i + 1));
-          _start = -1;
-        }
-      }
-    }
-  }
-  // AC edge case "bloque incompleto": si el texto termina con _depth > 0 (llave sin cerrar),
-  // el bloque abierto en _start nunca se hace push — se descarta silenciosamente, sin entrada
-  // parcial ni excepción.
-  return _blocks;
-}
-
+// TKT1 (REQ-202608-101, Opción A — pivote confirmado por el founder 2026-08-05 tras hallazgo de
+// Finn en auditoría end-to-end del REQ): retira el scanner de profundidad de llaves para bloques
+// bare (_extractBareJsonBlocks + _looksLikeJsonObjectStart, TKT-202607-162/REQ CAEL-0727-01) —
+// causa raíz confirmada de INC-202607-066 e INC-202607-068 (una llave suelta en prosa, ej.
+// mencionar el objeto {ref_id, title} al documentar schema, podía producir un bloque falso o
+// desplazar el offset de bloques reales posteriores). _splitCheckpointBlocks() vuelve a ser
+// split-por-fence puro: un batch de 2+ CHECKPOINTs exige que cada uno esté en su propio fence
+// ``` — ya no soporta mezclar fence + bloques bare sueltos en el mismo texto (capacidad agregada
+// en TKT4/REQ-202607-054, retirada aquí junto con su causa). El caso single-bare (texto completo
+// es un único objeto JSON sin fence) se conserva sin cambio, vía _looksLikeBareCheckpointJson()
+// — mismo mecanismo que ya usa parsePaste() (isCheckpoint) para decidir si el texto es un
+// CHECKPOINT, sin heurística de llaves ni scanner de profundidad.
+// no_incluye: no modifica parseCheckpoint()/_resolveCheckpointBatch()/_processIngestBatch() —
+// solo el split. No modifica _looksLikeBareCheckpointJson().
 export function _splitCheckpointBlocks(text) {
   if (!text) return [];
   const _re = /```(?:json)?\s*[\s\S]*?```/g;
   const _matches = text.match(_re);
-  if (_matches) {
-    // TKT4 (REQ-202607-054, origen_disc DISC-202607-051): fence-priority se conserva — los
-    // bloques fenced siempre encabezan el array, en orden de aparición. El remanente (texto
-    // con los fences ya removidos) pasa por el mismo scanner de llaves para capturar bloques
-    // bare mezclados en el mismo texto, que antes se ignoraban en silencio.
-    const _remainder = text.replace(_re, '');
-    const _bareInRemainder = _extractBareJsonBlocks(_remainder);
-    return _bareInRemainder.length ? _matches.concat(_bareInRemainder) : _matches;
-  }
-  // TKT-202607-162: sin match de fence — scanner de profundidad de llaves detecta 0, 1 o N
-  // bloques JSON bare, reemplazando el heurístico de bloque único de INC-202607-066 (caso
-  // trivial N=1 del mismo scanner, sin regresión — ver header de mod:154).
-  return _extractBareJsonBlocks(text);
+  if (_matches) return _matches;
+  // Sin match de fence — único caso bare soportado: el texto completo es un solo objeto JSON
+  // (mismo criterio que _looksLikeBareCheckpointJson usa para el path single de parsePaste).
+  // 2+ objetos bare concatenados sin fence ni delimitador ya no se detectan como N bloques —
+  // fuera de scope de este TKT (ver no_incluye del TKT1).
+  return _looksLikeBareCheckpointJson(text) ? [text.trim()] : [];
 }
 // [PP] mod:87 · autor:Rune · 2026-07-01 15:40 UTC-6
 // TKT-202606-014 (REQ-202606-003 · AC2): agregado draftRaw — valor crudo de _parsed.draft
