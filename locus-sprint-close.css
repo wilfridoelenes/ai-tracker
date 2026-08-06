@@ -1,3 +1,8 @@
+/* [PP] mod:9 · autor:Nova · 2026-08-05 23:10 UTC-6 */
+/* DISC-202608-102: retirado marcador [pendiente-ID] huérfano en comentarios de
+   sección (L488/L740 pre-edición) — ítem original irrecuperable, nunca resuelto
+   a código real. Ver __BR-Execution §9 — [pendiente-ID] nunca persiste en
+   archivo real. */
 /* [PP] mod:8 · autor:Nova · 2026-08-05 22:45 UTC-6 */
 /* Fix cascade: 3 variantes .scm-release-type--{major,minor,patch} → compound
    .scm-release-type.scm-release-type--X — la base (declarada después) pisaba el
@@ -485,7 +490,7 @@
 
 /* ══ END T-202605-440 ══ */
 
-/* ══ R-[pendiente-ID]: Sprint close modal — layout completo + skip-step2 ══ */
+/* ══ Sprint close modal — layout completo + skip-step2 ══ */
 
 /* ── Overlay ── */
 .sprint-close-overlay {
@@ -737,7 +742,7 @@
   }
 }
 
-/* ══ END R-[pendiente-ID] ══ */
+/* ══ END Sprint close modal ══ */
 
 /* R-202605-005 · A4-b · scm-* */
 

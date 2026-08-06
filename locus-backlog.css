@@ -1,8 +1,13 @@
-/* [PP] mod:141 · autor:Nova · 2026-08-05 UTC-6 */
+/* [PP] mod:143 · autor:Nova · 2026-08-05 14:10 UTC-6 */
 /* TKT-202608-252 (REQ-202608-099, TKT2 · Pills/Chips — bordes/foco unificados):
    .status-pill (base sin border-width/style → 1px + border-color por variante derivado
    de token *-text) y .stat-type-chip.tc-* (border-color de rgb(mismo-tinte/40%) a token
-   *-text) — ver detalle inline en cada bloque. */
+   *-text) — ver detalle inline en cada bloque. Fix de gap reportado por Finn (QA momento 1,
+   mod:141): comentario histórico L5928 contenía un placeholder de ID sin asignar (el TKT
+   descrito nunca llegó a promoverse — no había código real que sustituir) — reescrito sin
+   ese placeholder. Nota de mod:142 corregida en mod:143: la descripción anterior citaba el
+   placeholder textualmente entre backticks, reintroduciendo el mismo string que el fix
+   eliminaba (gap detectado por Finn, segunda pasada). */
 /* TKT-202608-248 (REQ-202608-098, TKT1 · Estandarizar mecanismo visual de pills de filtro):
    .filter-type-btn/.filter-status-btn/.filter-done-chip migran de var(--radius-2xl) a
    var(--radius-xs) y de su padding propio a 3px 8px — mismo mecanismo ya vigente en
@@ -5925,7 +5930,7 @@
   border-color: color-mix(in srgb, var(--amber) 28%, transparent);
 }
 
-/* REQ homologación visual Q-Backlog/Q-DISC (TKT pendiente-ID) — RETIRADO: .qdisc-stats-block/
+/* REQ homologación visual Q-Backlog/Q-DISC (TKT no promovido — descartado antes de recibir código real) — RETIRADO: .qdisc-stats-block/
    .qdisc-stat-cell (grid de 4 celdas con íconos, design_intent: qdisc_stats_block_v2, mod:90/91)
    migró a .stats-row--compact dentro de .bl-header-unified, mismo patrón que Backlog Vista
    Lista/Histórico (mod:33) — decisión confirmada por el founder de convertir en vez de mantener
