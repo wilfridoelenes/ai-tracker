@@ -1,3 +1,10 @@
+// [PP] mod:22 · autor:Rune · 2026-08-06 UTC-6
+// TKT-202608-263 (parent: REQ-202608-104): listener shell:export-qinc-full agregado al final
+// del archivo, mismo patrón que shell:export-qinc — descarga _${prefix}-incidents-full.md vía
+// _generateIncidentsFullMd() (locus-incidents-generator.js mod:15). Import ampliado con
+// _generateIncidentsFullMd. Sin cambio en renderQIncPanel()/_attachQIncDelegation() — el botón
+// nuevo vive en el toolbar estático (#qinc-toolbar, index.html), no en el body generado por
+// este módulo.
 // [PP] mod:21 · autor:Nova · 2026-08-05 UTC-6
 // TKT (Nova, análisis visual Q-INC): renderQIncStats() envuelve su contenido en
 // .qinc-stats-bar-inner (CSS depende de esto — ver locus-incidents.css mod:9). Headers de
@@ -267,7 +274,7 @@ import { buildQIncItem } from './locus-incidents-item.js';
 
 import { incSlaPriority, incIncidentStatus, SLA_RIESGO_WINDOW_MS } from './locus-inc-fields.js';
 
-import { _generateIncidentsMd, _countClosedIncidents, copyIncidentItemMd } from './locus-incidents-generator.js'; // TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-06): copyIncidentItemMd — botón "Copiar ítem" en _attachQIncDelegation
+import { _generateIncidentsMd, _generateIncidentsFullMd, _countClosedIncidents, copyIncidentItemMd } from './locus-incidents-generator.js'; // TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-06): copyIncidentItemMd — botón "Copiar ítem" en _attachQIncDelegation. TKT-202608-263 (REQ-202608-104): _generateIncidentsFullMd — listener shell:export-qinc-full
 
 import { _getActiveProjectFilter, _docPrefix, markIncidentsExported } from './locus-storage.js';
 
@@ -773,4 +780,24 @@ window.addEventListener('shell:export-qinc', () => {
   // TKT3 (REQ CAEL-0721-07): marca snapshot DESPUÉS de generar contenido — el delta del export
   // que el founder acaba de descargar refleja el snapshot ANTERIOR, no el que se marca ahora.
   markIncidentsExported(_countClosedIncidents());
+});
+
+// TKT-202608-263 (parent: REQ-202608-104, depends_on: TKT-202608-262): descarga de
+// _${prefix}-incidents-full.md — mismo mecanismo de Blob/URL.createObjectURL que
+// shell:export-qinc (arriba), disparado por #btn-export-qinc-full (mismo #qinc-toolbar) vía el
+// evento shell:export-qinc-full despachado desde locus-ui-shell.js. Generador propio
+// (_generateIncidentsFullMd) — sin filtro de activos, histórico completo. Sin llamada a
+// markIncidentsExported(): ese snapshot/delta es exclusivo del export activo — este export
+// puntual no participa de ese cálculo, mismo criterio ya declarado en locus-incidents-generator.js
+// mod:15.
+window.addEventListener('shell:export-qinc-full', () => {
+  const content = _generateIncidentsFullMd();
+  const filename = `_${_docPrefix()}-incidents-full.md`;
+  const blob = new Blob([content], { type: 'text/markdown' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 });

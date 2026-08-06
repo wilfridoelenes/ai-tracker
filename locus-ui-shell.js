@@ -1,3 +1,6 @@
+// [PP] mod:67 · autor:Rune · 2026-08-06 12:00 UTC-6
+// TKT-202608-263 (REQ-202608-104): agrega wiring btn-export-qinc-full →
+// shell:export-qinc-full — mismo patrón que btn-export-qinc/btn-export-backlog-full.
 // [PP] mod:66 · autor:Rune · 2026-07-31 16:45 UTC-6
 // TKT-202607-150 (REQ-202607-048, TKT2): breadcrumb-proj cambia de dispatch
 // 'shell:open-proj-panel' a switchTab('proyectos') directo — tab-btn-proyectos se retiró de
@@ -1450,6 +1453,14 @@ document.addEventListener('DOMContentLoaded', function () {
   const btnExportQinc = document.getElementById('btn-export-qinc');
   if (btnExportQinc) btnExportQinc.addEventListener('click', function () {
     window.dispatchEvent(new CustomEvent('shell:export-qinc'));
+  });
+
+  // btn-export-qinc-full — TKT-202608-263 (REQ-202608-104): mismo toolbar estático
+  // #qinc-toolbar que btn-export-qinc — export puntual sin filtro closed (ver
+  // exportFullHistoryMd() en locus-backlog-generator.js para el patrón replicado)
+  const btnExportQincFull = document.getElementById('btn-export-qinc-full');
+  if (btnExportQincFull) btnExportQincFull.addEventListener('click', function () {
+    window.dispatchEvent(new CustomEvent('shell:export-qinc-full'));
   });
 
   // btn-export-backlog-full

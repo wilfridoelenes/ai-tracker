@@ -1,3 +1,21 @@
+// [PP] mod:15 · autor:Rune · 2026-08-06 UTC-6
+// TKT-202608-263 (parent: REQ-202608-104, depends_on: TKT-202608-262): nueva función exportada
+// _generateIncidentsFullMd() — export puntual "histórico completo" que el comentario de mod:14
+// (línea 8, sin cambiar) ya anticipaba. Reutiliza _isIndexEligible() (mod:13, conservada sin
+// llamar en _generateIncidentsMd() desde mod:14 exactamente para este propósito) para
+// '## Índice de estado' — closed(INC/PRB)/done(CHG) incluidos, solo `descartado` fuera. A
+// diferencia del export activo, '## Ítems' recibe `all` sin ningún filtro — incluye
+// `descartado`, porque este es el snapshot histórico completo, complemento natural del export
+// activo (que desde mod:14 excluye tanto closed como descartado). Sin sección '## Cerrados
+// recientes' — esa sección es el complemento del filtro del export activo; aquí no hay
+// complemento que declarar, todo vive ya en '## Ítems'. Sin llamada a markIncidentsExported() —
+// ese mecanismo de snapshot/delta es exclusivo del export activo (shell:export-qinc), no tiene
+// relación con un snapshot puntual sin filtro. Fuente de datos: exclusivamente getIncidents() —
+// mismo invariant que _generateIncidentsMd(). Sin parámetro de versión — mismo criterio.
+// Naming del archivo (`_${prefix}-incidents-full.md`, sin versión en el nombre) vive en el
+// caller (locus-incidents-render.js) — este módulo solo genera contenido, nunca decide
+// filename, mismo split de responsabilidad que _generateIncidentsMd(). contract_update: no —
+// función nueva sin consumidor previo, sin cambio de firma en ninguna función existente.
 // [PP] mod:14 · autor:Rune · 2026-08-06 UTC-6
 // TKT-202608-262 (parent: REQ-202608-104, depends_on: []): _generateIncidentsMd() pasa a ser
 // el export "activo" en sentido estricto — '## Estado actual', '## Índice de estado' y
@@ -528,6 +546,54 @@ export function _generateIncidentsMd() {
   md += '## Estadísticas finales\n\n';
   md += '| Campo | Valor |\n|---|---|\n';
   md += `| Ítems totales | ${active.length} |\n`;
+
+  return md;
+}
+
+// _generateIncidentsFullMd() — TKT-202608-263. Export puntual sin filtro — histórico completo
+// de Q-INC. Ver mod:15 para el detalle completo del criterio de cada sección.
+export function _generateIncidentsFullMd() {
+  const all = getIncidents() || [];
+  const indexEligible = all.filter(_isIndexEligible);
+
+  const prefix = _docPrefix();
+  const proj = getActiveProject();
+  const projName = proj ? (proj.name || 'Sin proyecto') : 'Sin proyecto';
+  const updated = _nowUtc6Str();
+
+  const counts = { INC: 0, PRB: 0, CHG: 0 };
+  all.forEach(i => {
+    const t = itemKind(i);
+    if (counts[t] !== undefined) counts[t]++;
+  });
+
+  let md = `# _${prefix}-incidents-full.md\n`;
+  md += `<!-- Última actualización: ${updated} | Proyecto: ${projName} | Export puntual — histórico completo, sin versión en el nombre -->\n`;
+  md += `${_infraVersionLine()}\n`;
+  md += '\n---\n\n';
+
+  md += '## Meta\n\n';
+  md += '| Campo | Valor |\n|---|---|\n';
+  md += `| Proyecto | ${projName} |\n`;
+  md += `| Última actualización | ${updated} |\n`;
+  md += `| Generado por | Locus — exportado desde app (histórico completo, sin filtro) |\n`;
+  md += '\n---\n\n';
+
+  md += '## Estado actual\n\n';
+  md += `**Q-INC (histórico completo):** INC=${counts.INC} · PRB=${counts.PRB} · CHG=${counts.CHG}\n\n`;
+
+  // Mismo criterio de mod:13 (_isIndexEligible) — closed/done incluidos, solo descartado fuera.
+  md += _buildIndiceMd(indexEligible);
+  md += '\n---\n\n';
+
+  // Sin filtro — a diferencia del export activo (que recibe `active`), aquí `all` incluye
+  // también los ítems `descartado`.
+  md += _buildItemsMd(all);
+  md += '\n---\n\n';
+
+  md += '## Estadísticas finales\n\n';
+  md += '| Campo | Valor |\n|---|---|\n';
+  md += `| Ítems totales | ${all.length} |\n`;
 
   return md;
 }

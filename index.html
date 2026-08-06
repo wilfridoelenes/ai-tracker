@@ -1,3 +1,8 @@
+<!-- [PP] mod:179 · autor:Rune · 2026-08-06 UTC-6 -->
+<!-- TKT-202608-263 (REQ-202608-104): botón btn-export-qinc-full agregado a #qinc-toolbar,
+     junto a btn-export-qinc — dispara shell:export-qinc-full (locus-ui-shell.js mod:67),
+     escuchado por locus-incidents-render.js mod:22. Comentario de gap anterior (líneas
+     siguientes) actualizado — la funcionalidad que declaraba pendiente ya está implementada. -->
 <!-- [PP] mod:178 · autor:Rune · 2026-08-04 UTC-6 -->
 <!-- Ad-hoc (propuesta de Nova aprobada por founder en sesión — sin REQ/TKT, mismo tratamiento
      que mod:146/172): #qdisc-limit-indicator se mueve de línea propia (fuera de
@@ -917,13 +922,14 @@
 <!-- TKT2 (REQ CAEL-0720-05): #qinc-toolbar + #qinc-stats-bar agregados como siblings estáticos
      de #qinc-panel-body — mismo patrón que #tpl-toolbar/#stats-bar en #tab-backlog. Antes,
      ambos vivían dentro del innerHTML de renderQIncPanel() y desaparecían con 0 ítems activos.
-     Gap registrado: solo el botón "Descargar Q-INC (activos)" tiene generador implementado
-     (_generateIncidentsMd, TKT3). "Historial completo (cerrados)" del wireframe de Nova no se
-     agrega aquí — no existe generador de histórico de incidentes en el código real; requiere AC
-     de Cael antes de implementarse. Ver CHECKPOINT. -->
+     TKT-202608-263 (REQ-202608-104): "Historial completo" del wireframe de Nova agregado —
+     gap anterior (solo Q-INC activos tenía generador) cerrado. Mismo elemento .tpl-action-btn
+     que btn-export-backlog-full en #tpl-toolbar (Tab Documentos) — sin clase is-hidden, ya que
+     #qinc-toolbar no oculta sus botones tras auth (a diferencia de #tpl-toolbar). -->
 <div class="tab-panel" id="tab-incidentes">
   <div class="tpl-sidebar-actions" id="qinc-toolbar">
     <button class="tpl-action-btn" id="btn-export-qinc" title="Descargar incidents.md (activos)">⬇ Descargar Q-INC (activos)</button>
+    <button class="tpl-action-btn" id="btn-export-qinc-full" title="Descargar historial completo de Q-INC como .md">⬇ Historial completo Q-INC</button>
   </div>
   <div class="qinc-stats-bar" id="qinc-stats-bar"></div>
   <div id="qinc-panel-body"></div>
