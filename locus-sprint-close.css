@@ -1,4 +1,4 @@
-/* [PP] mod:7 · autor:Nova · 2026-08-05 22:30 UTC-6 */
+/* [PP] mod:8 · autor:Nova · 2026-08-05 22:45 UTC-6 */
 /* Fix cascade: 3 variantes .scm-release-type--{major,minor,patch} → compound
    .scm-release-type.scm-release-type--X — la base (declarada después) pisaba el
    background de las 3, el badge de release type siempre mostraba el mismo fondo
@@ -1019,7 +1019,7 @@
   transition: var(--trans-color);
 }
 
-/* ── Fila resuelta (aplicada o descartada) — INC-[pendiente-ID] 2026-08-05:
+/* ── Fila resuelta (aplicada o descartada) — INC-202608-091 2026-08-05:
    corregido de .is-aplicado/.is-descartado (nunca emitidos por el JS) a
    --resolved, única clase real que aplica _scmStepDuHtml sobre la fila
    independiente del tipo de resolución. La distinción visual aplicado/
@@ -1094,7 +1094,7 @@
   border-color: var(--hint);
 }
 
-/* ── Botón "Aplicado" — activo — INC-[pendiente-ID] 2026-08-05:
+/* ── Botón "Aplicado" — activo — INC-202608-091 2026-08-05:
    corregido de .aplicado.active a --aplicado + .is-active, clases reales
    emitidas por el handler scm-du-resolve ── */
 .scm-du-btn--aplicado.is-active {
@@ -1110,7 +1110,7 @@
   color: var(--text2);
 }
 
-/* ── Badge de estado por fila — INC-[pendiente-ID] 2026-08-05:
+/* ── Badge de estado por fila — INC-202608-091 2026-08-05:
    el badge queda oculto para siempre porque el JS nunca aplica
    .scm-du-row.is-aplicado/.is-descartado a la fila (ver corrección de
    .scm-du-row--resolved arriba) — el selector ancestro nunca matcheaba.
