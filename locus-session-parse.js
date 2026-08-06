@@ -1,4 +1,4 @@
-// [PP] mod:178 · autor:Rune · 2026-08-06 15:10 UTC-6
+// [PP] mod:179 · autor:Rune · 2026-08-06 16:05 UTC-6
 // TKT1 (ref_id CAEL-0805-01, REQ-202608-101 — Opción A, pivote confirmado por el founder
 // 2026-08-05 tras hallazgo de Finn en auditoría end-to-end del REQ): _splitCheckpointBlocks()
 // retira el scanner de profundidad de llaves para bloques bare (_extractBareJsonBlocks +
@@ -705,9 +705,20 @@ function _looksLikeBareCheckpointJson(text) {
 // (DISC-202608-104). Se agrega alerta DocLog con el conteo de caracteres descartados. No
 // reintenta parsear ese texto ni lo agrega como bloque — el descarte en sí no cambia, solo deja
 // de ser silencioso. Whitespace puro fuera de los fences no genera alerta (AC edge case).
+// TKT (ref_id CAEL-08061510-02, REQ-[pendiente-ID] ref_id CAEL-08061510-01, triggered_by
+// PRB-202608-002): el regex de fence no estaba anclado a línea real — un ``` embebido dentro de
+// un campo de texto de un CHECKPOINT (ej. doc_updates[].content citando SQL/código) se trataba
+// como delimitador real, cortando el batch en el punto equivocado y corrompiendo el JSON
+// resultante (INC-202608-098). Fix de causa raíz: el fence de apertura y cierre debe ocupar su
+// propia línea real (multiline ^/$) — un ``` que aparece a mitad de una línea (ej. dentro de un
+// string JSON serializado, precedido por \n escapado en vez de salto de línea real) ya no cuenta
+// como delimitador. Fence-priority se conserva sin cambio — no reintroduce el mecanismo de
+// bare-blocks retirado en REQ-202608-101, no modifica _looksLikeBareCheckpointJson(). Cálculo de
+// `_remainder` (TKT-202608-261, arriba) no cambia de lógica — solo opera sobre los matches ya
+// corregidos.
 export function _splitCheckpointBlocks(text) {
   if (!text) return [];
-  const _re = /```(?:json)?\s*[\s\S]*?```/g;
+  const _re = /^\s*```(?:json)?\s*\n[\s\S]*?\n\s*```\s*$/gm;
   const _matches = text.match(_re);
   if (_matches) {
     const _remainder = text.replace(_re, '').trim();

@@ -1,3 +1,34 @@
+// [PP] mod:14 · autor:Rune · 2026-08-06 UTC-6
+// TKT-202608-262 (parent: REQ-202608-104, depends_on: []): _generateIncidentsMd() pasa a ser
+// el export "activo" en sentido estricto — '## Estado actual', '## Índice de estado' y
+// '## Ítems' ahora se calculan sobre `active` (ítems no-closed vía _isActiveIncident()) en vez
+// de `all`/`indexEligible`. Efecto directo: _buildIndiceMd() vuelve a recibir el set estrecho —
+// la ampliación de mod:13 (INC-202607-039, indexEligible incluía closed(INC/PRB)/done(CHG)) queda
+// revertida para este export; esa visibilidad de histórico completo la cubrirá el export puntual
+// separado _[Prefijo]-incidents-full.md (TKT-202608-263, mismo REQ) — _isIndexEligible() se
+// conserva sin llamar en este archivo, no se borra: TKT-202608-263 la reutilizará para ese export.
+// Nueva sección '## Cerrados recientes' (_buildCerradosRecientesMd) inmediatamente después de
+// '## Ítems' — tabla Código/Tipo/Título/resolution_type·discard_reason/Cerrado sobre
+// closedItems = all \ active (INC/PRB en closed o descartado, CHG en done o descartado — mismo
+// criterio que ya excluye _isActiveIncident(), sin predicado nuevo). Columna 'Cerrado' usa el
+// nuevo helper genérico _fmtTs(ms) (factoriza el cálculo ya usado por _fmtDeadline, sin cambiar
+// su output) sobre i.statusChangedAt (tracker_incidents, columna agregada en TKT-202607-122) —
+// '—' si el ítem no la declara (filas hidratadas antes de ese ALTER).
+// '## Estadísticas finales': eliminadas las filas 'Cerrados — desde el último export' y
+// 'Cerrados — acumulado histórico' (mod:5/mod:12) junto con las variables locales que solo
+// alimentaban esas dos filas (closedCount, _exportSnapshot, _closedSinceLastExport) — AC4 exige
+// que las tres secciones (Estado actual/Índice/Estadísticas) calculen valores exclusivamente
+// sobre el set filtrado; una fila de "cerrados" es por definición un valor del complemento, no
+// del set filtrado, y esa cobertura la absorbe la nueva '## Cerrados recientes' (lista completa,
+// no solo un conteo) y el export full de TKT-202608-263 (histórico acumulado real). 'Ítems
+// totales' pasa de `all.length` a `active.length` (AC4, ejemplo literal: 5 totales/2 closed →
+// base 3, no 5) — la fila 'Activos' queda como duplicado exacto del mismo valor y se retira en
+// vez de dejar dos filas idénticas sin valor informativo.
+// _countClosedIncidents() (mod:6, exportada) NO se toca — consumidor externo
+// (locus-incidents-render.js → markIncidentsExported()) sigue necesitando all.length-active.length
+// sin relación con el contenido del .md exportado. contract_update: no — _buildIndiceMd()/
+// _buildItemsMd() siguen sin cambio de firma (mismo tipo de parámetro, un array de ítems), _fmtTs()
+// y _buildCerradosRecientesMd() son funciones internas nuevas sin consumidor fuera de este archivo.
 // [PP] mod:13 · autor:Rune · 2026-07-25 UTC-6
 // INC-202607-039 (fix — hallazgo de auditoría contra _ob-DocStandards §3b, sin ítem padre):
 // _buildIndiceMd() recibía `active` (filtrado por _isActiveIncident()) — INC/PRB en closed y
@@ -178,6 +209,9 @@ function _isActiveIncident(i) {
 // incluye closed(INC/PRB) y done(CHG), porque el índice ya declara Status por fila y OBDS §3b
 // exige visibilidad de esos estados ahí, no solo en '## Ítems'. Solo excluye `descartado` —
 // ítem cancelado, sin valor de índice de estado.
+// TKT-202608-262: sin call site en este archivo desde este mod — _generateIncidentsMd() (export
+// activo) volvió a `active` para el índice, ver mod:14. Se conserva sin borrar: TKT-202608-263
+// (mismo REQ, export full histórico) reutiliza este criterio ampliado para ese archivo.
 function _isIndexEligible(i) {
   const t = itemKind(i);
   if (t === 'CHG') return i.status !== 'descartado';
@@ -237,11 +271,20 @@ function _sortIncs(list) {
   });
 }
 
-function _fmtDeadline(i) {
-  if (typeof i.slaDeadline !== 'number') return '—';
-  const d = new Date(i.slaDeadline);
+// _fmtTs(ms) — TKT-202608-262: formateador genérico de timestamp UTC, factorizado del cálculo
+// que _fmtDeadline() ya hacía inline para slaDeadline. Mismo output exacto — _fmtDeadline() no
+// cambia de comportamiento, solo delega. Reutilizado por _buildCerradosRecientesMd() para la
+// columna 'Cerrado' (i.statusChangedAt).
+function _fmtTs(ms) {
+  if (typeof ms !== 'number') return '—';
+  const d = new Date(ms);
   return `${d.getUTCFullYear()}-${_pad(d.getUTCMonth() + 1)}-${_pad(d.getUTCDate())} ` +
          `${_pad(d.getUTCHours())}:${_pad(d.getUTCMinutes())} UTC`;
+}
+
+function _fmtDeadline(i) {
+  if (typeof i.slaDeadline !== 'number') return '—';
+  return _fmtTs(i.slaDeadline);
 }
 
 // Indicador de riesgo/vencimiento — solo INC high, mismo umbral que renderQIncPanel().
@@ -340,11 +383,18 @@ function _buildItemBlockMd(i, t) {
   return lines;
 }
 
-// Sección '## Ítems' — cuerpo completo por ítem, TODOS los ítems (incluye closed/descartado,
-// a diferencia de '## Índice de estado' que es solo activos). Un bloque por tipo, mismo orden
-// que el índice. Campos: origin_module, archivos, comportamiento_actual, resolution_type,
+// Sección '## Ítems' — cuerpo completo por ítem del set recibido. Un bloque por tipo, mismo
+// orden que el índice. Campos: origin_module, archivos, comportamiento_actual, resolution_type,
 // discard_reason — solo se imprime la línea del campo si el ítem lo declara (no listar
 // campos ausentes como '—' aquí; el índice ya cubre ese caso de forma tabular).
+// TKT-202608-262 (mod:14): corrección de comentario — este bloque describía "TODOS los ítems
+// (incluye closed/descartado)" desde antes de este TKT; desde mod:14 el único call site pasa
+// `active` (ver _generateIncidentsMd), no `all` — el nombre del parámetro (`all`) es residual
+// del período pre-TKT y no se renombra aquí por no ser parte del scope (sin impacto funcional,
+// solo el nombre de la variable local). El comentario anterior quedaba contradictorio con el
+// comportamiento real desde este mismo mod — corregido en la misma sesión (Excepción de
+// resolución directa: Patch, sin bifurcación, dueño presente — __BR-Core NO DEJAR DEUDA EN
+// SILENCIO).
 function _buildItemsMd(all) {
   const byType = { INC: [], PRB: [], CHG: [] };
   all.forEach(i => {
@@ -365,6 +415,30 @@ function _buildItemsMd(all) {
     });
   });
 
+  return lines.join('\n');
+}
+
+// Sección '## Cerrados recientes' — TKT-202608-262 (REQ-202608-104). Complemento de '## Ítems',
+// que desde este TKT solo lista activos (no-closed). closedItems = all \ active — INC/PRB en
+// incident_status closed o descartado, CHG en status done o descartado (mismo criterio que ya
+// excluye _isActiveIncident(), sin predicado nuevo). Empty state 'ninguno' — mismo patrón ya
+// usado por _buildIndiceMd()/_buildItemsMd() por tipo, nunca tabla vacía sin mensaje.
+function _buildCerradosRecientesMd(closedItems) {
+  const lines = ['## Cerrados recientes', ''];
+  if (!closedItems.length) {
+    lines.push('ninguno', '');
+    return lines.join('\n');
+  }
+  lines.push(
+    '| Código | Tipo | Título | resolution_type/discard_reason | Cerrado |',
+    '|---|---|---|---|---|'
+  );
+  closedItems.forEach(i => {
+    const t = itemKind(i);
+    const rd = incResolutionType(i) || incDiscardReason(i) || 'n/a';
+    lines.push(`| \`${i.code}\` | ${t} | ${i.title || '—'} | ${rd} | ${_fmtTs(i.statusChangedAt)} |`);
+  });
+  lines.push('');
   return lines.join('\n');
 }
 
@@ -399,24 +473,16 @@ export function _countClosedIncidents() {
 export function _generateIncidentsMd() {
   const all = getIncidents() || [];
   const active = all.filter(_isActiveIncident);
-  // mod:6: closedCount ahora delega en el mismo cálculo que _countClosedIncidents() — una sola fuente.
-  const closedCount = all.length - active.length;
+  // TKT-202608-262: 'closedItems' reemplaza el uso previo de closedCount agregado en este
+  // export — ahora se listan los ítems cerrados completos en '## Cerrados recientes' en vez de
+  // solo un conteo. _countClosedIncidents() (mod:6, exportada) sigue siendo la fuente para
+  // markIncidentsExported() — no se toca, es un consumidor externo sin relación con el .md.
+  const closedItems = all.filter(i => !_isActiveIncident(i));
 
   const prefix = _docPrefix();
   const proj = getActiveProject();
   const projName = proj ? (proj.name || 'Sin proyecto') : 'Sin proyecto';
   const updated = _nowUtc6Str();
-
-  // TKT3 (parent: REQ-202607-035, depends_on: n/a): delta de closed contra el snapshot del
-  // último export exitoso — mismo mecanismo que TKT-202607-115 ya consume en _buildIndiceMd()
-  // (proj.incidentsExportSnapshot, poblado por markIncidentsExported() en
-  // locus-incidents-render.js — no tocado por este TKT, fuera de scope). Snapshot ausente
-  // (primer export, null por default) → el delta muestra el mismo valor que el acumulado
-  // histórico, sin restar nada — no hay export anterior contra el cual medir diferencia.
-  const _exportSnapshot = proj && proj.incidentsExportSnapshot;
-  const _closedSinceLastExport = _exportSnapshot
-    ? closedCount - _exportSnapshot.closedCount
-    : closedCount;
 
   const counts = { INC: 0, PRB: 0, CHG: 0 };
   active.forEach(i => {
@@ -439,21 +505,29 @@ export function _generateIncidentsMd() {
   md += '## Estado actual\n\n';
   md += `**Q-INC:** INC=${counts.INC} · PRB=${counts.PRB} · CHG=${counts.CHG} activos\n\n`;
 
-  // INC-202607-039: el índice usa un criterio más amplio que 'activos' — incluye closed/done,
-  // solo excluye descartado. La línea de arriba (counts) sigue midiendo actividad real, sin cambio.
-  const indexEligible = all.filter(_isIndexEligible);
-  md += _buildIndiceMd(indexEligible);
+  // TKT-202608-262 (AC4): '## Índice de estado' vuelve a calcularse sobre `active` — la
+  // ampliación de mod:13/INC-202607-039 (indexEligible, incluía closed/done) queda revertida
+  // para este export activo. _isIndexEligible() se conserva sin llamar aquí — TKT-202608-263
+  // (export full histórico, mismo REQ) la reutiliza.
+  md += _buildIndiceMd(active);
   md += '\n---\n\n';
 
-  md += _buildItemsMd(all);
+  // TKT-202608-262 (AC1): '## Ítems' solo lista no-closed — antes recibía `all`.
+  md += _buildItemsMd(active);
   md += '\n---\n\n';
 
+  // TKT-202608-262 (AC2): nueva sección — complemento de '## Ítems' para los ítems que el
+  // filtro de arriba excluyó, sin obligar a abrir el export full para verlos.
+  md += _buildCerradosRecientesMd(closedItems);
+  md += '\n---\n\n';
+
+  // TKT-202608-262 (AC4): 'Ítems totales' pasa de `all.length` a `active.length` — la fila
+  // 'Activos' (mod:1) quedaría como duplicado exacto del mismo valor y se retira. Las filas de
+  // cerrados (mod:5/mod:12) se retiran — un valor de cerrados es por definición del complemento
+  // del set filtrado; esa cobertura la asume '## Cerrados recientes' (arriba) y el export full.
   md += '## Estadísticas finales\n\n';
   md += '| Campo | Valor |\n|---|---|\n';
-  md += `| Ítems totales | ${all.length} |\n`;
-  md += `| Activos | ${active.length} |\n`;
-  md += `| Cerrados — desde el último export | ${_closedSinceLastExport} |\n`;
-  md += `| Cerrados — acumulado histórico (no es delta desde el último export) | ${closedCount} |\n`;
+  md += `| Ítems totales | ${active.length} |\n`;
 
   return md;
 }

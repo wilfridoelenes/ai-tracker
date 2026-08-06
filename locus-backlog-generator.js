@@ -1,4 +1,4 @@
-// [PP] mod:56 · autor:Rune · 2026-07-26 UTC-6
+// [PP] mod:58 · autor:Rune · 2026-08-06 UTC-6
 // TKT-202607-143 (DISC-202607-047, ref_id CAEL-0726-01): extraído _withFreshData() — helper interno
 // no exportado que centraliza el par `await _loadFromSupabase(); await refreshHistoricoCache();`
 // repetido en exportBacklogMd(), exportFullHistoryMd() y exportSprintsMd(). Mismo orden vigente
@@ -178,6 +178,15 @@ function _isActiveQIncItem(i) {
   if (t === 'PRB') return i.status === 'detected' || i.status === 'in_progress' || i.status === 'resolved';
   if (t === 'CHG') return i.status === 'pendiente' || i.status === 'en-revision';
   return false;
+}
+
+// TKT-202608-264 (REQ-202608-105): predicado de pertenencia a Q-Backlog — REQ/TKT
+// refinados sin sprint asignado (`__BR-Ecosystem §5`: pertenencia vive en `sprint` vacío/ausente,
+// nunca en un campo `zona` propio de REQ/TKT). Reutilizado por _buildItemsMd (exclusión, mismo
+// patrón ya vigente para _isActiveDisc/_isActiveQIncItem) y _buildQBacklogMd.
+function _isQBacklogItem(i) {
+  const t = _itemTypeGen2(i);
+  return (t === 'REQ' || t === 'TKT') && !i.sprint;
 }
 
 // [tmp:inc-historico-generator] Fix INC — getItems() excluye status 'historico' desde T-202606-106
@@ -775,6 +784,79 @@ function _buildQIncMd(items) {
   return lines.join('\n');
 }
 
+// TKT-202608-264 (REQ-202608-105, origen_disc DISC-202608-107): sección '## Q-Backlog' —
+// snapshot agrupado de REQ/TKT refinados sin sprint asignado. Antes, estos ítems se listaban
+// mezclados dentro de '## Ítems' (sorteados al final vía _sprintGroup, sin subtítulo propio) y,
+// solo si el sprint activo estaba vacío, un fallback ad-hoc los resumía en una línea plana sin
+// distinguir status. AC1/AC2: dos subtítulos — Activos (pendiente/en-proceso/en-revision/
+// bloqueado/orphaned) y Terminados (done/descartado, status exacto declarado por línea).
+// AC3/AC4: TKTs anidados bajo su REQ padre dentro del mismo subgrupo; huérfanos (sin parent, o
+// cuyo parent cayó en el otro subgrupo — ej. REQ aún en-proceso con un TKT ya done) se listan
+// sueltos en su propio subgrupo — mismo criterio ya usado para huérfanos en Vista Lista/_buildItemsMd.
+// Entrada: array de ítems (exportItems). Salida: sección Markdown, nunca omitida — declara
+// 'Sin ítems en Q-Backlog' explícito cuando no hay REQ/TKT sin sprint.
+function _buildQBacklogMd(items) {
+  const src = (items || []).filter(_isQBacklogItem);
+  const lines = ['## Q-Backlog', ''];
+  if (!src.length) {
+    lines.push('Sin ítems en Q-Backlog', '', '---', '');
+    return lines.join('\n');
+  }
+
+  const ACTIVOS_STATUSES = new Set(['pendiente', 'en-proceso', 'en-revision', 'bloqueado', 'orphaned']);
+  const TERMINADOS_STATUSES = new Set(['done', 'descartado']);
+
+  const _renderSubgroup = (groupItems, showStatus) => {
+    if (!groupItems.length) return 'Sin ítems.';
+    const tsByParent = {};
+    groupItems.forEach(i => {
+      if (_itemTypeGen2(i) !== 'TKT') return;
+      const pid = i.parentId || i.parent;
+      if (!pid) return;
+      if (!tsByParent[pid]) tsByParent[pid] = [];
+      tsByParent[pid].push(i);
+    });
+    const rendered = new Set();
+    const out = [];
+
+    groupItems.forEach(r => {
+      if (_itemTypeGen2(r) !== 'REQ') return;
+      const rTag = showStatus ? ` · ${r.status}` : '';
+      out.push(`- ${r.code} · ${r.title || '(sin título)'}${rTag}`);
+      rendered.add(r.code);
+      (tsByParent[r.code] || []).forEach(t => {
+        const tTag = showStatus ? ` · ${t.status}` : '';
+        out.push(`  - ${t.code} · ${t.title || '(sin título)'}${tTag}`);
+        rendered.add(t.code);
+      });
+    });
+
+    // Huérfanos de este subgrupo: TKT sin parent declarado, o cuyo parent quedó en el
+    // otro subgrupo (REQ y su TKT no siempre comparten status — un REQ en-proceso puede
+    // tener TKTs ya done). Mismo tratamiento visual que un huérfano sin parent — AC4.
+    groupItems.forEach(t => {
+      if (_itemTypeGen2(t) !== 'TKT') return;
+      if (rendered.has(t.code)) return;
+      const tTag = showStatus ? ` · ${t.status}` : '';
+      out.push(`- ${t.code} · ${t.title || '(sin título)'}${tTag}`);
+      rendered.add(t.code);
+    });
+
+    return out.join('\n');
+  };
+
+  const activos = src.filter(i => ACTIVOS_STATUSES.has(i.status));
+  const terminados = src.filter(i => TERMINADOS_STATUSES.has(i.status));
+
+  lines.push('### Activos', '');
+  lines.push(_renderSubgroup(activos, false));
+  lines.push('');
+  lines.push('### Terminados', '');
+  lines.push(_renderSubgroup(terminados, true));
+  lines.push('', '---', '');
+  return lines.join('\n');
+}
+
 // T-202606-009: INFRA_VERSIONS reemplazado por getInfraVersionData() desde storage.
 // Fallback a valores hardcodeados si storage vacío (sin sync previo).
 // [tmp:tkt-backlog-gen-housekeeping] AC-1: valores Gen 2 vigentes — infra_version:13, ver __OB-Strategy §5.
@@ -902,6 +984,16 @@ export function _generateBacklogContent(newVersion, opts = {}) {
       if (_isActiveDisc(i)) return true;
       // TKT1 AC-4/AC-6: Regla 1d — PRB/KE/CHG activos en Q-INC, independiente de sprint
       if (_isActiveQIncItem(i)) return true;
+      // TKT-202608-264 (REQ-202608-105): Regla 1e — Q-Backlog es zona persistente
+      // independiente de sprint, mismo criterio ya vigente para Q-DISC/Q-INC (Reglas 1c/1d).
+      // Sin esta regla, un REQ/TKT sin sprint con status done o descartado nunca entraba a
+      // exportItems (Regla 1 solo cubre pendiente/en-revision; las reglas de sprint cerrado/activo
+      // exigen i.sprint) — el subgrupo '### Terminados' de _buildQBacklogMd() quedaba
+      // estructuralmente inalcanzable para esos ítems, pese a que _buildQBacklogMd ya los
+      // clasifica correctamente si llegan a recibirlos. Bug encontrado en QA de TKT-202608-264,
+      // antes de declarar en-revision — no reportado como gap de especificación porque el AC de
+      // coherencia del REQ ('la sección refleja exactamente el estado real') ya lo exigía.
+      if (_isQBacklogItem(i)) return true;
       // Regla 2: hijos (TKT o INC) de REQ activo — exportar sin importar su status
       if ((_itemTypeGen2(i) === 'TKT' || _itemTypeGen2(i) === 'INC') &&
           (i.parentId || i.parent) && activeRCodes.has(i.parentId || i.parent)) return true;
@@ -1002,18 +1094,11 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   const { mainMd, orphansMd } = _buildItemsMd(sortedExportItems);
 
   // TKT4 AC-2/AC-3: ## Ítems declara vacío explícito en vez de quedar en blanco entre separadores.
-  // Si hay REQ/TKT refinados sin sprint asignado (Q-Backlog), lo declara aparte —
-  // distingue "sprint vacío" de "backlog vacío" (_ob-DocStandards §3 v1.10).
-  let itemsBodyMd = mainMd;
-  if (!mainMd) {
-    const qBacklogItems = getItems().filter(i => {
-      const t = _itemTypeGen2(i);
-      return (t === 'REQ' || t === 'TKT') && !i.sprint;
-    });
-    itemsBodyMd = qBacklogItems.length
-      ? `Sin ítems pendientes en sprint activo.\n\nQ-Backlog: ${qBacklogItems.length} ítems refinados en espera.\n\n${qBacklogItems.map(i => `- ${i.code} · ${i.title || '(sin título)'}`).join('\n')}`
-      : `Sin ítems pendientes en sprint activo.`;
-  }
+  // TKT-202608-264: el detalle de REQ/TKT sin sprint (Q-Backlog) ya no se resume aquí como
+  // fallback plano — vive exclusivamente en la sección dedicada '## Q-Backlog' (ver qBacklogMd
+  // más abajo), consistente con la exclusión aplicada en _buildItemsMd. Este fallback solo
+  // distingue "sprint activo sin ítems" — la cuenta/listado de Q-Backlog no se duplica aquí.
+  let itemsBodyMd = mainMd || `Sin ítems pendientes en sprint activo.`;
 
   const totalItems = exportItems.length;
   const doneCount = exportItems.filter(i => i.status === 'done').length;
@@ -1030,6 +1115,7 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   const historicoTailMd = historialSprintsMd;
   const qDiscMd = _buildQDiscMd(exportItems); // [tmp:tkt-backlog-gen-core] AC-1
   const qIncMd = _buildQIncMd(exportItems); // [tmp:tkt-backlog-gen-core] AC-3
+  const qBacklogMd = _buildQBacklogMd(exportItems); // TKT-202608-264 AC1-AC4
   const _appVerStr = _effectiveVersion();
   const pfx = _docPrefix();
 
@@ -1054,7 +1140,7 @@ ${sprintActivoMd}${sprintsProgramadosMd}## Meta
 
 ---
 
-${currentStateMd}${qDiscMd}${qIncMd}## Índice de estado
+${currentStateMd}${qDiscMd}${qIncMd}${qBacklogMd}## Índice de estado
 
 \`\`\`
 Contadores:
@@ -1386,7 +1472,9 @@ function _buildItemsMd(items) {
     // [tmp:tkt-backlog-gen-core] AC-9: ítems que pertenecen a Q-DISC/Q-INC por _isActiveDisc/
     // _isActiveQIncItem se excluyen del loop genérico — se renderizan únicamente en su sección
     // dedicada ('## Q-DISC' / '## Q-INC'), nunca en '## Ítems'.
-    if (_isActiveDisc(item) || _isActiveQIncItem(item)) return;
+    // TKT-202608-264: mismo criterio extendido a Q-Backlog — un REQ/TKT sin sprint ahora se
+    // renderiza únicamente en '## Q-Backlog', nunca duplicado en '## Ítems'.
+    if (_isActiveDisc(item) || _isActiveQIncItem(item) || _isQBacklogItem(item)) return;
 
     // T-202606-059: AC-2 — huérfanos excluidos del loop normal, acumulados en orphanSections
     if (orphanCodes.has(item.code)) {
