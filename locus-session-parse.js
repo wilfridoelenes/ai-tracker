@@ -1,4 +1,4 @@
-// [PP] mod:173 · autor:Rune · 2026-08-04 UTC-6
+// [PP] mod:174 · autor:Rune · 2026-08-05 UTC-6
 // TKT (ref_id CAEL-0804-01, REQ-202608-089): _renderIngestBlockPreview() pasa de función privada
 // a exportada — locus-sesiones.js (_openIngestModal) la necesita para limpiar
 // #ingest-block-preview-anchor cuando el modal se reabre para un Worker distinto sin draft que
@@ -837,6 +837,9 @@ import { renderStats, getItems, normalizeStatus, itemKind, _GEN2_TYPES } from '.
 import { _isPlaceholderCode, _isNonCanonicalPlaceholder, applyPatchesFromTG, _assignPendingIds } from './locus-backlog-item.js'; // T-202606-089 AC-3 · TKT3 (REQ CAEL-0716-01): mergeBacklogFromTG retirado del import — sin consumidores directos en este archivo (dry-run per-keystroke ya se había removido antes; dry-run de batch removido en este TKT, ver _processIngestBatch). La persistencia real sigue viva vía _applyCheckpointBatch (locus-session-save.js), que la invoca internamente · TKT (ref_id CAEL-0725-03): _isNonCanonicalPlaceholder agregado — gap paralelo al ya corregido en locus-backlog-item.js (CAEL-0725-01), ver uso en el panel de validación de ingesta más abajo
 import { showMergeDiffPanel } from './locus-backlog-merge.js'; // TKT3 (REQ CAEL-0716-01): chipTonesFromDiff retirado — _processIngestBatch ya no renderiza resumen de chips, invoca showMergeDiffPanel real (mismo panel que el flujo single). Sigue vivo en locus-backlog-merge.js (uso interno propio, L726) — no se elimina de ese archivo
 import { renderBacklogList } from './locus-backlog-render.js';
+// Fix INC-202608-094: mismo gap que en _doApplyMergeAndFinish (locus-session-save.js) —
+// _onApplyBatch (más abajo) renderizaba backlog/stats pero nunca el tab Sprint.
+import { renderSprintTab } from './locus-sprint.js';
 import { _ctrMergeFromItem } from './locus-contracts.js';
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
@@ -847,7 +850,7 @@ import { showToast, toast } from './locus-toast.js';
 
 
 
-import { esc } from './locus-ui-shell.js';
+import { esc, getCurrentTab } from './locus-ui-shell.js'; // Fix INC-202608-094: getCurrentTab agregado — guard de refresco del tab Sprint en _onApplyBatch
 
 // T-202606-012: _INFRA_VERSION_ACTIVE eliminada — importada como INFRA_VERSION_ACTIVE desde locus-storage.js
 // T-202606-029: INFRA_VERSION_ACTIVE (constante) migrada a getInfraVersionActive() / setInfraVersionActive() — AC-4 de T-202606-027 cerrado
@@ -3016,6 +3019,10 @@ export async function _processIngestBatch() {
 
     renderBacklogList();
     renderStats();
+    // Fix INC-202608-094: mismo gap que en _doApplyMergeAndFinish — el batch aplicaba
+    // correctamente a ITEMS/Supabase pero el tab Sprint no se refrescaba hasta cambio
+    // de tab o reload cuando era el tab activo al confirmar el batch.
+    if (getCurrentTab() === 'sprint') { renderSprintTab(); }
     window.dispatchEvent(new CustomEvent('shell:render-tracker'));
     const _totalApplied = tgItems.length + (patchItems ? patchItems.length : 0);
     // TKT-202608-234 (REQ-202608-089, AC edge case): cuando el batch mezcla bloques que

@@ -1,4 +1,4 @@
-// [PP] mod:86 · autor:Rune · 2026-08-05 UTC-6
+// [PP] mod:87 · autor:Rune · 2026-08-05 UTC-6
 // TKT CAEL-0805-02 (REQ CAEL-0805-01): badge de status en sidebar Workers quedaba desfasado
 // tras guardar sesión en algunos casos. Causa raíz: `ai` (parámetro de _doApplyMergeAndFinish)
 // es una referencia capturada al abrir saveSession()/_doSaveSession() — si _applyStateData()
@@ -174,6 +174,11 @@ import { loadBacklog, renderStats, getItems, getAnyItem, itemKind } from './locu
 import { mergeBacklogFromTG, applyPatchesFromTG } from './locus-backlog-item.js'; // INC-[pendiente-ID]: applyPatchesFromTG restaurado — ver header mod:53
 import { showMergeDiffPanel } from './locus-backlog-merge.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
+// Fix INC-202608-094: renderSprintTab agregado — mismo criterio que renderBacklogList,
+// mirror del guard `getCurrentTab() === 'backlog'` ya existente. Sin este import, un
+// CHECKPOINT aplicado con el tab Sprint activo no reflejaba el cambio hasta reload o
+// navegación fuera/dentro del tab.
+import { renderSprintTab } from './locus-sprint.js';
 import { updateTabNotifBadges } from './locus-notifications.js';
 import { _markRadarDirty, renderGlobalRadarSidebar, toggleRadarSidebar } from './locus-radar.js';
 import { stopSessionTimer } from './locus-sesiones-utils.js';
@@ -1016,6 +1021,11 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // B-202604-XXX: actualizar tab Hoy tras guardar CKPT con hora de cierre — sin esto el card no refleja estado exhausted sin refresh manual
   if (getCurrentTab() === 'sesiones') { _markTrackerDirty(); render(); }
   if (getCurrentTab() === 'backlog') { _markBacklogListDirty(); renderBacklogList(); }
+  // Fix INC-202608-094: el tab Sprint no se refrescaba tras aplicar un CHECKPOINT — el
+  // ítem quedaba correcto en ITEMS/Supabase pero la vista de Sprint (ítems, burndown)
+  // seguía mostrando el estado previo hasta cambio de tab o reload. Mismo patrón que el
+  // guard de 'backlog' — sin dirty-flag propio en este módulo para Sprint, se llama directo.
+  if (getCurrentTab() === 'sprint') { renderSprintTab(); }
   // R-202604-016: actualizar log card
   _rebuildLogBody();
   // R-003: animar la primera sess-row del card recién guardado
