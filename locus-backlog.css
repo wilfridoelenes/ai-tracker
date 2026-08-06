@@ -1,4 +1,8 @@
-/* [PP] mod:140 · autor:Nova · 2026-08-05 UTC-6 */
+/* [PP] mod:141 · autor:Nova · 2026-08-05 UTC-6 */
+/* TKT-202608-252 (REQ-202608-099, TKT2 · Pills/Chips — bordes/foco unificados):
+   .status-pill (base sin border-width/style → 1px + border-color por variante derivado
+   de token *-text) y .stat-type-chip.tc-* (border-color de rgb(mismo-tinte/40%) a token
+   *-text) — ver detalle inline en cada bloque. */
 /* TKT-202608-248 (REQ-202608-098, TKT1 · Estandarizar mecanismo visual de pills de filtro):
    .filter-type-btn/.filter-status-btn/.filter-done-chip migran de var(--radius-2xl) a
    var(--radius-xs) y de su padding propio a 3px 8px — mismo mecanismo ya vigente en
@@ -681,27 +685,31 @@
   opacity: 0.6;
 }
 
+/* TKT-202608-252 (REQ-202608-099, TKT2 · AC2): border-color migrado de rgb(mismo-tinte/40%)
+   — mismo hue que el background al 12%, solo con más opacidad, contraste insuficiente
+   contra el propio fondo del chip — al token *-text correspondiente, ya verificado WCAG
+   en locus-base.css y ya usado como color de texto de cada variante. */
 .stat-type-chip.tc-INC {
   background: rgb(232 85 85 / 12%);
-  border-color: rgb(232 85 85 / 40%);
+  border-color: var(--red-text);
   color: var(--red-text);
 }
 
 .stat-type-chip.tc-TKT {
   background: rgb(46 204 120 / 12%);
-  border-color: rgb(46 204 120 / 40%);
+  border-color: var(--green-text);
   color: var(--green-text);
 }
 
 .stat-type-chip.tc-REQ {
   background: rgb(56 189 248 / 12%);
-  border-color: rgb(56 189 248 / 40%);
+  border-color: var(--blue-text);
   color: var(--blue-text);
 }
 
 .stat-type-chip.tc-DISC {
   background: rgb(124 106 247 / 12%);
-  border-color: rgb(124 106 247 / 40%);
+  border-color: var(--purple-text);
   color: var(--purple-text);
 }
 
@@ -728,13 +736,13 @@
 /* Gen2 — tipos ITIL: PRB (#f59e0b amber) · KE (#eab308 yellow) · CHG (#64748b slate) */
 .stat-type-chip.tc-PRB {
   background: rgb(245 158 11 / 12%);
-  border-color: rgb(245 158 11 / 40%);
+  border-color: var(--amber-text, #e8a832);
   color: var(--amber-text, #e8a832);
 }
 
 .stat-type-chip.tc-CHG {
   background: rgb(100 116 139 / 12%);
-  border-color: rgb(100 116 139 / 40%);
+  border-color: var(--slate-text, #94a3b8);
   color: var(--slate-text, #94a3b8);
 }
 
@@ -3830,10 +3838,19 @@
   flex-shrink: 0;
 }
 
+/* TKT-202608-252 (REQ-202608-099, TKT2 · Unificación de bordes/radios/foco):
+   border agregado a la base — antes .status-pill no declaraba border-width/border-style,
+   dejando huérfana la declaración border-color ya existente en .status-pill--en-revision
+   (mismo patrón de bug que .btn-danger en locus-layout.css TKT1: border-color sin
+   border-style no renderiza nada). Cada modificador declara su propio border-color
+   derivado del token *-text ya usado para su color de texto — mismo token, no un tinte
+   de opacidad distinta, garantiza contraste ≥3:1 verificado (los tokens *-text ya están
+   documentados WCAG AA en locus-base.css). */
 .status-pill {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
+  border: 1px solid;
   border-radius: var(--radius-md-plus);
   font-size: var(--text-xs);
   font-weight: 600;
@@ -3847,6 +3864,7 @@
   color: var(--accent-text);
   background: rgb(99 102 241 / 12%);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: var(--accent-text);
 }
 
 /* Done — secundario, verde apagado */
@@ -3854,6 +3872,7 @@
   color: var(--green, var(--green));
   background: rgb(46 204 120 / 10%);
   background: color-mix(in srgb, var(--green, var(--green)) 10%, transparent);
+  border-color: var(--green-text);
   font-weight: 500;
   opacity: 0.85;
 }
@@ -3863,15 +3882,19 @@
   color: var(--c-done-text, #888);
   background: rgb(136 136 136 / 10%);
   background: var(--c-done-bg, color-mix(in srgb, #888 10%, transparent));
+  border-color: var(--c-done-text, #888);
   font-weight: 500;
   opacity: 0.7;
 }
 
-/* T-202605-040: En revisión — reutiliza variables de en-curso */
+/* T-202605-040: En revisión — reutiliza variables de en-curso.
+   TKT-202608-252: border-color migrado de --c-high-border (18-30% opacity — mismo tinte
+   que --c-high-bg, patrón de bajo contraste ya identificado en AC2 de este TKT sobre
+   .stat-type-chip) a --c-high-text, consistente con el resto de la familia .status-pill. */
 .status-pill--en-revision {
   color: var(--c-high-text);
   background: var(--c-high-bg);
-  border-color: var(--c-high-border);
+  border-color: var(--c-high-text);
   font-weight: 600;
 }
 

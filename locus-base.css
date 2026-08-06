@@ -1,4 +1,6 @@
-/* [PP] mod:16 · autor:Nova · 2026-08-01 10:20 UTC-6 */
+/* [PP] mod:17 · autor:Nova · 2026-08-05 UTC-6 */
+/* TKT-202608-252 (REQ-202608-099, TKT2): .diff-chip border-width 0.5px→1px, default
+   border-color de transparent a var(--border). */
 /* locus-base.css */
 
 
@@ -515,7 +517,11 @@ body {
    Entregable de Nova (mod:58 de _Locus-css-ref) integrado por Rune.
    .diff-chip--creado usa --green-text (no --c-done-text, que es gris — ver
    gap cerrado en esta sesión, _Locus-css-ref §Cambios). ── */
-.diff-chip{display:inline-flex;align-items:center;gap:5px;font-size:var(--text-2xs-plus,10px);font-weight:500;padding:3px 8px;border-radius:999px;border:0.5px solid transparent;white-space:nowrap;}
+/* TKT-202608-252 (REQ-202608-099, TKT2 · AC3): border-width 0.5px→1px, default border-color
+   de transparent a var(--border) — cada modificador de abajo ya sobreescribe border-color
+   con su propio token, este cambio solo cierra el caso de un modificador futuro que no lo
+   declare, para que nunca quede con borde transparente/invisible. */
+.diff-chip{display:inline-flex;align-items:center;gap:5px;font-size:var(--text-2xs-plus,10px);font-weight:500;padding:3px 8px;border-radius:999px;border:1px solid var(--border);white-space:nowrap;}
 .diff-chip--creado{color:var(--green-text);background:color-mix(in srgb, var(--green) 10%, transparent);border-color:color-mix(in srgb, var(--green) 28%, transparent);}
 .diff-chip--avance{color:var(--blue-text);background:color-mix(in srgb, var(--blue) 10%, transparent);border-color:color-mix(in srgb, var(--blue) 28%, transparent);}
 .diff-chip--actualizado{color:var(--text2);background:var(--surface2);border-color:var(--border);}
