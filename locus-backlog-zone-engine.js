@@ -1,3 +1,15 @@
+// [PP] mod:15 · autor:Rune · 2026-08-06 UTC-6
+// TKT (founder, sesión directa): fila del grupo de drafts (Pendiente de validación Finn)
+// rediseñada — el chip de tipo (.item-type-pill, solo "REQ"/"TKT") y el código quedaban
+// separados, repitiendo visualmente el tipo (chip "TKT" + texto "TKT-202608-262 · ..."). Se
+// fusiona en un solo chip clickeable .qbacklog-draft-code-chip que muestra el ID completo y
+// copia al portapapeles al click — mismo patrón de estado (icono ti-copy→ti-check, color verde,
+// reset a los 1.5s) ya usado en .qinc-item-code-chip (locus-incidents-item.js, no tocado por
+// este TKT — mecanismo replicado, no importado, para no crear dependencia cross-módulo por un
+// solo patrón visual). Colores por tipo reusan los tokens ya declarados en .item-type-pill.REQ/
+// .item-type-pill.TKT (locus-backlog.css) — sin token nuevo. Listener de copia agregado a la
+// misma delegación de click ya adjunta a `body` por _attachDraftGroupToggle — sin nuevo listener
+// de body, un solo guard _zpDraftDelegationAttached cubre toggle + copy.
 // [PP] mod:14 · autor:Rune · 2026-08-03 UTC-6
 // TKT2 (REQ CAEL-0803-03, design_intent: qbacklog_activos_group_mockup): grupo colapsable
 // .bl-active-* envuelve la lista de ítems activos (items-grid + sus dos empty-states internos)
@@ -180,8 +192,11 @@ function _draftGroupHtml(items) {
   const rootItems = items.filter(i => !i.parentId || !rCodes.has(i.parentId));
   let rows = '';
   const _row = (item, isChild) => `<div class="qbacklog-draft-row${isChild ? ' qbacklog-draft-row--child' : ''}">
-      <span class="item-type-pill ${itemKind(item)}">${itemKind(item)}</span>
-      <span>${item.code} · ${(item.title || '').replace(/</g, '&lt;')}</span>
+      <button type="button" class="qbacklog-draft-code-chip ${itemKind(item)}" data-copy-code="${item.code}" title="Copiar ${item.code}" aria-label="Copiar código ${item.code}">
+        <span class="qbacklog-draft-code-chip-text">${item.code}</span>
+        <i class="ti ti-copy qbacklog-draft-code-chip-icon" aria-hidden="true"></i>
+      </button>
+      <span class="qbacklog-draft-title-text">${(item.title || '').replace(/</g, '&lt;')}</span>
     </div>`;
   rootItems.forEach(item => {
     rows += _row(item, false);
@@ -213,7 +228,32 @@ function _attachDraftGroupToggle(body) {
     const collapsed = group.classList.toggle('is-collapsed');
     header.setAttribute('aria-expanded', String(!collapsed));
   };
+  // Copia el código completo del chip — mismo patrón de estado que .qinc-item-code-chip:
+  // icono ti-copy → ti-check + .is-copied en éxito, .is-copy-error si el clipboard falla,
+  // reset a los 1.5s. Timer por-botón (btn._copyResetTimer) para no pisar el reset de otro
+  // chip si se copian varios códigos seguidos.
+  const _copyCode = async btn => {
+    const code = btn.dataset.copyCode;
+    if (!code) return;
+    const icon = btn.querySelector('.qbacklog-draft-code-chip-icon');
+    try {
+      await navigator.clipboard.writeText(code);
+      btn.classList.remove('is-copy-error');
+      btn.classList.add('is-copied');
+      if (icon) icon.className = 'ti ti-check qbacklog-draft-code-chip-icon';
+    } catch {
+      btn.classList.remove('is-copied');
+      btn.classList.add('is-copy-error');
+    }
+    clearTimeout(btn._copyResetTimer);
+    btn._copyResetTimer = setTimeout(() => {
+      btn.classList.remove('is-copied', 'is-copy-error');
+      if (icon) icon.className = 'ti ti-copy qbacklog-draft-code-chip-icon';
+    }, 1500);
+  };
   body.addEventListener('click', e => {
+    const copyBtn = e.target.closest('.qbacklog-draft-code-chip');
+    if (copyBtn) { _copyCode(copyBtn); return; }
     const header = e.target.closest('.qbacklog-draft-header');
     if (header) _toggle(header);
   });

@@ -1,3 +1,23 @@
+// [PP] mod:62 · autor:Rune · 2026-08-06 17:10 UTC-6
+// INC-202608-093: _generateSprintRetroMd() leía duAplicados/duDescartados desde
+// _scmState.docUpdates filtrando por d.resolucion — campo vestigial desde CHG-202608-002
+// (Paso 2 del wizard es de solo lectura, `resolucion` nunca se muta ahí), así que ambas
+// listas de la retro reportaban 0 siempre, sin importar cuántos DOC-UPDATEs se hubieran
+// resuelto realmente vía Doc Log durante el sprint. Fuente corregida: docUpdateResolvedLog
+// (TKT-202608-236, _getDocUpdateResolvedLog()/locus-storage.js) — poblado exclusivamente por
+// _pushDocUpdateResolved() (locus-docs.js) al hacer clic Aplicar/Descartar en Doc Log, único
+// lugar donde un DOC-UPDATE se resuelve desde CHG-202608-002. Se acota a la ventana del
+// sprint (resolvedAt >= sprint.startedAt) — mismo criterio ya usado para incidentes cerrados
+// (_incEligibleForSprintClose), evita arrastrar resoluciones de sprints anteriores. Campos
+// `aplicado-por`/`escalar-a` retirados del formato de línea — docUpdateResolvedLog no declara
+// `resolvedBy` (Locus es single-user, ver comentario de _pushDocUpdateResolved() en
+// locus-docs.js); reemplazados por la fecha de resolución (mismo formato _incDate ya usado
+// para incidentes). Import nuevo: _getDocUpdateResolvedLog desde locus-storage.js — export ya
+// existente, sin cambio de firma, consumido hoy también por locus-docs.js (sin conflicto).
+// Hallazgo fuera de scope registrado en CHECKPOINT de esta entrega, no corregido aquí: el
+// template de salida de la retro (más abajo en esta función) rotula la segunda lista como
+// "Doc-Updates pendientes:" pese a estar poblada con descartados — mismatch de etiqueta
+// preexistente a este fix, fuera del AC de INC-202608-093.
 // [PP] mod:61 · autor:Rune · 2026-08-05 UTC-6
 // CHG-202608-002: Paso 2 del wizard de cierre (DOC-UPDATEs) — limpieza de código muerto tras
 // la conversión a solo lectura ya presente en _scmStepDuHtml(). Retirado: case 'scm-du-resolve'
@@ -137,7 +157,7 @@ import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render
 import { _templateTrigger } from './locus-session-hora.js';
 import { exportFullHistoryMd } from './locus-backlog-generator.js';
 import { renderSprintTab } from './locus-sprint.js';
-import { _blogLog, _docPrefix, _effectiveVersion, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, saveHistoricoItems, getHistoricoItems, _invalidateHistoricoCache, _getDocUpdateIndex, _setDocUpdateIndex, _upsertSprint, _sprintDisplay } from './locus-storage.js'; // T-202606-107 · T-202606-005 · TKT1 (REQ-sprints-migration): _loadSprintsFromSupabase eliminado del import — sin call site real, solo referenciado en comentario línea ~959. Función reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js, sin uso en este módulo. TKT7 (REQ-202607-015): deleteIncidentRows removida del import — su único call site (_scmExecuteClose) fue eliminado; export retirado de locus-storage.js. TKT-202607-134: getAI retirada — su único call site (renderSprintWorkers) fue retirado.
+import { _blogLog, _docPrefix, _effectiveVersion, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, saveHistoricoItems, getHistoricoItems, _invalidateHistoricoCache, _getDocUpdateIndex, _setDocUpdateIndex, _getDocUpdateResolvedLog, _upsertSprint, _sprintDisplay } from './locus-storage.js'; // T-202606-107 · T-202606-005 · TKT1 (REQ-sprints-migration): _loadSprintsFromSupabase eliminado del import — sin call site real, solo referenciado en comentario línea ~959. Función reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js, sin uso en este módulo. TKT7 (REQ-202607-015): deleteIncidentRows removida del import — su único call site (_scmExecuteClose) fue eliminado; export retirado de locus-storage.js. TKT-202607-134: getAI retirada — su único call site (renderSprintWorkers) fue retirado. INC-202608-093: _getDocUpdateResolvedLog agregada — export existente de locus-storage.js (TKT-202608-236), ya consumido por locus-docs.js, sin cambio de firma.
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 // TKT-202607-134: import de navigateToItem retirado — sus únicos call sites (delegación
@@ -320,13 +340,8 @@ function _generateSprintRetroMd(id, notes) {
     }
   }
 
-  // ── AC-5/AC-6: Doc-Updates — leer desde _scmState.docUpdates con resolución aplicada en Paso 2.
-  const docUpdates = (_scmState && Array.isArray(_scmState.docUpdates))
-    ? _scmState.docUpdates
-    : [];
-  const duAplicados   = docUpdates.filter(d => d.resolucion === 'aplicado');
-  const duDescartados = docUpdates.filter(d => d.resolucion === 'descartado');
-
+  // Ventana del sprint — movida antes del bloque de Doc-Updates (INC-202608-093): la
+  // ventana debe existir antes de filtrar el log de resueltos, no solo para incidentes.
   // TKT-PARSER-sprints (REQ-[pendiente-ID]): INC closed de Q-INC con closedAt >= sprint.openedAt
   // reemplaza bloque de S-HOTFIX — Gen2: Q-INC es la cola ITIL, S-HOTFIX deprecado.
   // INC closed antes de la apertura del sprint no se incluyen.
@@ -337,6 +352,22 @@ function _generateSprintRetroMd(id, notes) {
     const d = new Date(ts || Date.now());
     return `${d.getFullYear()}-${_pad(d.getMonth()+1)}-${_pad(d.getDate())}`;
   };
+
+  // ── AC-5/AC-6: Doc-Updates — corregido INC-202608-093. _scmState.docUpdates es el
+  // snapshot del índice ABIERTO (docUpdateIndex) capturado al abrir el modal de cierre —
+  // desde CHG-202608-002 el Paso 2 es de solo lectura y `resolucion` nunca se muta ahí, así
+  // que filtrar por d.resolucion producía siempre dos listas vacías. La fuente real de qué
+  // se resolvió (aplicado/descartado) y cuándo es docUpdateResolvedLog (TKT-202608-236,
+  // _getDocUpdateResolvedLog()/_pushDocUpdateResolved() — locus-storage.js/locus-docs.js),
+  // poblado exclusivamente desde Doc Log, único lugar donde un DOC-UPDATE se resuelve desde
+  // ese CHG. Acotado a la ventana del sprint (resolvedAt >= _sprintOpenedAt) — mismo criterio
+  // ya usado para incidentes cerrados (_incEligibleForSprintClose) — para no arrastrar a esta
+  // retro resoluciones de sprints anteriores.
+  const _duResolvedLog = _getDocUpdateResolvedLog();
+  const _duInWindow     = _duResolvedLog.filter(d => (d.resolvedAt || 0) >= _sprintOpenedAt);
+  const duAplicados     = _duInWindow.filter(d => d.action === 'aplicado');
+  const duDescartados   = _duInWindow.filter(d => d.action === 'descartado');
+
   // TKT-202607-045 (REQ-202607-015): concat(getIncidents()) — INC/PRB/KE/CHG viven en INCIDENTS
   // desde REQ-202607-003, getItems() ya no los incluye. Sin este concat, ningún incidente
   // aparecía en la retro pese a estar closed dentro de la ventana del sprint.
@@ -360,15 +391,17 @@ function _generateSprintRetroMd(id, notes) {
       }).join('\n')
     : 'ninguno';
 
-  // AC-5: Doc-Updates aplicados — 'doc: [nombre] · sección: [sección] · aplicado-por: [escalarA]'
+  // AC-5: Doc-Updates aplicados — 'doc: [nombre] · sección: [sección] · aplicado: [fecha]'.
+  // Campo `aplicado-por` retirado (INC-202608-093) — docUpdateResolvedLog no declara
+  // resolvedBy (Locus es single-user, ver comentario de _pushDocUpdateResolved() en locus-docs.js).
   const _duAplicadosList = duAplicados.length
-    ? duAplicados.map(d => `- doc: ${d.doc} · sección: ${d.seccion} · aplicado-por: ${d.escalarA || 'n/a'}`).join('\n')
+    ? duAplicados.map(d => `- doc: ${d.doc} · sección: ${d.section} · aplicado: ${_incDate(d.resolvedAt)}`).join('\n')
     : 'ninguno';
 
-  // AC-6: Doc-Updates pendientes (marcados como descartados en el stepper) —
-  // 'doc: [nombre] · sección: [sección] · escalar-a: [escalarA] · descartado en cierre'
+  // AC-6: Doc-Updates descartados — 'doc: [nombre] · sección: [sección] · descartado: [fecha]'.
+  // Campo `escalar-a` retirado (INC-202608-093), mismo motivo que arriba.
   const _duDescartadosList = duDescartados.length
-    ? duDescartados.map(d => `- doc: ${d.doc} · sección: ${d.seccion} · escalar-a: ${d.escalarA || 'n/a'} · descartado en cierre`).join('\n')
+    ? duDescartados.map(d => `- doc: ${d.doc} · sección: ${d.section} · descartado: ${_incDate(d.resolvedAt)}`).join('\n')
     : 'ninguno';
 
   // AC-7: sección Narrativa — placeholder vacío
