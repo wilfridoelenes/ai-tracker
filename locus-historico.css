@@ -1,3 +1,12 @@
+/* [PP] mod:12 · autor:Nova · 2026-08-06 UTC-6 */
+/* Corrección mod:12 (DISC-202608-106): el comentario de mod:5 (abajo) contenía el literal
+   `REQ-[pendiente-ID]` sin resolver desde el rename original (2026-07-05) — violación de
+   BR-Execution §9, el placeholder nunca fue reemplazado por código real ni acompañado de
+   `ref_id`. Sin `_Locus-history-log` ni `_Locus-module-contracts` adjuntos en esta sesión
+   para confirmar el código real del REQ que ejecutó el rename, se reemplaza por la nota
+   estándar de origen histórico no confirmable — mismo patrón ya usado en locus-sesiones.css
+   para DISC-202608-093. Sin cambio de reglas ni valores de ningún selector — corrección
+   puramente documental del comentario de mod:5. */
 /* [PP] mod:11 · autor:Nova · 2026-08-05 UTC-6 */
 /* TKT-202608-254 — AC5 cerrado en este mod: :focus-visible agregado a .badge-status-historico
    (outline 2px solid var(--accent), mismo patrón que .historico-header/.historico-tab/
@@ -42,9 +51,10 @@
    sesión). Valor elegido con margen conservador; founder confirma visualmente que sigue
    siendo legible. */
 /* [PP] mod:5 · autor:Nova · 2026-07-05 UTC-6 */
-/* REQ-[pendiente-ID] Unificar vocabulario historico: rename mecánico de todos los selectores
-   arch-* → historico-* (1:1, sin cambio de reglas ni valores — mismo aspecto visual).
-   Archivo renombrado: locus-archive.css → locus-historico.css. */
+/* Unificar vocabulario historico: rename mecánico de todos los selectores arch-* →
+   historico-* (1:1, sin cambio de reglas ni valores — mismo aspecto visual). Archivo
+   renombrado: locus-archive.css → locus-historico.css. (origen histórico sin código real
+   confirmable — DISC-202608-106; ver corrección mod:12 arriba). */
 /* locus-historico.css
    Versión: 1.0 | Última actualización: 2026-05-25 | Locus — Archivo Histórico de sprints
    Scope: HISTÓRICO UNIFICADO — vistas Por sprint y Lista plana

@@ -1,3 +1,23 @@
+// [PP] mod:175 · autor:Rune · 2026-08-05 UTC-6
+// TKT1 (ref_id CAEL-0805-01, REQ-202608-101 — Opción A, pivote confirmado por el founder
+// 2026-08-05 tras hallazgo de Finn en auditoría end-to-end del REQ): _splitCheckpointBlocks()
+// retira el scanner de profundidad de llaves para bloques bare (_extractBareJsonBlocks +
+// _looksLikeJsonObjectStart, TKT-202607-162/REQ CAEL-0727-01) — causa raíz confirmada de
+// INC-202607-066/INC-202607-068 (una llave suelta en prosa, ej. mencionar el objeto
+// {ref_id, title} al documentar schema, podía producir un bloque falso o desplazar el offset de
+// bloques reales posteriores). Vuelve a ser split-por-fence puro — un batch de 2+ CHECKPOINTs
+// exige que cada uno esté en su propio fence ```, ya no soporta mezclar fence + bloques bare
+// sueltos (capacidad agregada en TKT4/REQ-202607-054, retirada aquí junto con su causa). El caso
+// single-bare (texto completo como único objeto JSON sin fence) se conserva sin cambio, vía
+// _looksLikeBareCheckpointJson() — mismo mecanismo que parsePaste() (isCheckpoint) ya usa. Sin
+// cambio de firma pública — mismos 4 call sites internos (_routeParse, _updateIngestBlockCount,
+// _renderIngestBlockPreview, _processIngestBatch), confirmados por grep, sin consumidor
+// cross-módulo. no_incluye: no modifica parseCheckpoint()/_resolveCheckpointBatch()/
+// _processIngestBatch() más allá de recibir bloques ya fence-delimited — solo el split.
+// Corrección de header aplicada en esta sesión: el cambio de código (comentario in-situ,
+// ~línea 668, y el cuerpo de _splitCheckpointBlocks) ya vivía en el archivo desde la sesión de
+// implementación, sin que el bump de header correspondiente se aplicara sobre un archivo real —
+// verificado ahora contra el archivo adjunto por el founder, discrepancia cerrada.
 // [PP] mod:174 · autor:Rune · 2026-08-05 UTC-6
 // TKT (ref_id CAEL-0804-01, REQ-202608-089): _renderIngestBlockPreview() pasa de función privada
 // a exportada — locus-sesiones.js (_openIngestModal) la necesita para limpiar
