@@ -1,3 +1,28 @@
+// [PP] mod:180 · autor:Rune · 2026-08-06 UTC-6
+// TKT-202608-265: verificación contra el AC del TKT ("anclar fence-marker a inicio/fin de línea
+// real en _splitCheckpointBlocks") — confirma que el código ya presente en el archivo
+// (~líneas 703-740, comentario in-situ con ref_id CAEL-08061510-02, triggered_by PRB-202608-002)
+// satisface los 4 AC del TKT sin cambio de código. El regex vigente,
+// `/^\s*```(?:json)?\s*\n[\s\S]*?\n\s*```\s*$/gm`, ya usa anclaje multiline (^/$): un ``` embebido
+// dentro de un valor de string JSON (ej. `"content":"```sql\n...\n```"`) nunca ocupa su propia
+// línea real, porque JSON serializa saltos de línea de un string como `\n` escapado (dos
+// caracteres literales), nunca un salto de línea real dentro del valor — por construcción, ese
+// ``` embebido siempre queda mid-line y nunca puede matchear el delimitador anclado.
+// Verificado con harness aislado reproduciendo la función pura (sin dependencias externas salvo
+// el side-effect de `_blogLog`, irrelevante para el resultado del split) — 7 casos: happy path
+// (2 bloques fenced, el primero con ``` embebido en un campo de texto), edge case (``` mid-línea
+// fuera de cualquier fence real) y los 5 casos de no-regresión declarados en el AC (bare sin
+// fence · fence con prosa previa · 3+ bloques fenced con prosa intercalada · especificador json ·
+// fence indentado con espacios). Los 7 pasan contra el código sin modificarlo — length esperado
+// en cada caso confirmado exacto. Locus no tiene suite de tests en el repo real — verificación es
+// lectura + ejecución aislada de la función pura, no un test runner del proyecto.
+// Sin cambio de firma ni de comportamiento — este mod es corrección de header únicamente, mismo
+// criterio ya aplicado en mod:179 para un gap de header distinto (línea ~668, TKT2608-101 pivot).
+// Hallazgo fuera de scope (registrado en el CHECKPOINT de esta sesión, no resuelto aquí): los
+// mods 175-178 no tienen entrada de header propia en este archivo — no reconstruibles en esta
+// sesión sin CHECKPOINT ni registro disponible (mismo criterio ya usado en INC-202607-070, más
+// abajo, para el salto de header 159→161 — gap conocido, no una entrada retroactiva inventada).
+// contract_update: no — sin cambio de firma ni de comportamiento de ninguna función exportada.
 // [PP] mod:179 · autor:Rune · 2026-08-06 16:05 UTC-6
 // TKT1 (ref_id CAEL-0805-01, REQ-202608-101 — Opción A, pivote confirmado por el founder
 // 2026-08-05 tras hallazgo de Finn en auditoría end-to-end del REQ): _splitCheckpointBlocks()
