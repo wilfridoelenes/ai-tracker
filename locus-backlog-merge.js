@@ -1,4 +1,7 @@
-// [PP] mod:89 · autor:Rune · 2026-08-04 UTC-6
+// [PP] mod:90 · autor:Rune · 2026-08-06 14:10 UTC-6
+// INC-202608-099: _CKPT_CATEGORY_LABELS/_ckptCategoryFor y _itemsForBlockIdx movidos antes de su
+// primer uso (dentro de showMergeDiffPanel) — TDZ error al procesar cualquier batch. Sin cambio
+// de lógica ni de dependencias, solo reordenamiento de declaraciones dentro del mismo closure.
 // TKT-202608-241 (REQ ref_id CAEL-0804-01, TKT2 — origen_disc DISC-202608-098): _ckptCategoryFor
 // separa el bucket fusionado 'lite' en dos categorías con causa raíz distinta — 'vacio' cuando
 // meta.idx no tiene ningún ítem declarado (_blockTg.length===0 && _blockPatch.length===0, AC1) y
@@ -1138,6 +1141,92 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     const rows = _patchItems.map(p => _buildPatchCard(p, getAnyItem(p.code))).join('');
     sectionsAutoHtml += _section('patches', 'accent', `✎ Cambios directos (patch) <span class="mdiff-sec-count">${_patchItems.length}</span>`, rows);
   }
+  // TKT-078 (AC corregido — Opción C, 2026-07-24): detalle completo de ítems por bloque,
+  // filtrando las listas ya clasificadas por idx (propagado en TKT2/mergeBacklogFromTG y
+  // TKT1/_resolveCheckpointBatch) contra el índice del bloque — sin tocar la clasificación
+  // de diff ni reestructurar sectionsHtml combinado. Función pura de presentación: no muta
+  // los arrays del diff, no invoca mergeBacklogFromTG ni applyPatchesFromTG.
+  // no_incluye (TKT-078): sin botón de aprobación granular por bloque · sin deshabilitar
+  // interacción con tarjetas fuera de orden · sin clase CSS nueva fuera de lo declarado por
+  // Nova en TKT-077 (.mdiff-block-badge--ok/--flag/--skipped).
+  const _itemsForBlockIdx = metaIdx => {
+    const _pick = (arr, builder) => (Array.isArray(arr) ? arr : [])
+      .filter(i => i && i.idx === metaIdx)
+      .map(builder);
+    return [
+      ..._pick(diff.created, i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'), _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))),
+      ..._pick(diff.advanced, i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), _depsHtml(i.dependsOn), undefined, i.sprint, i.type || _itemKindFn({ code: i.code }))),
+      // INC-202608-084: _updatedRowHtml es fuente única con el render principal — este path
+      // es el de re-render por bloque (batch de CHECKPOINTs), no puede divergir en qué pill
+      // muestra.
+      ..._pick(diff.updated, _updatedRowHtml),
+      ..._pick(diff.createdAndClosed, i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado') + _pill('advanced', 'pendiente → done'), `<div class="mdiff-change-hint">Creado y cerrado en esta sesión</div>` + _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))),
+      ..._pick(diff.retroceso, (i) => _retrocedoRow(i, i.idx)),
+      ..._pick(diff.discarded, (i) => _discardRow(i, i.idx)),
+      // Bug 2 (Finn, Momento 1): diff.ignored también lleva idx (locus-backlog-item.js
+      // L2440-2776) y es el escenario real que el AC de error state describía como "skipped" —
+      // los bloques inválidos no llegan a tener entrada en metas, por lo que nunca aparecen
+      // aquí. Reusa el accent 'muted' de ignoredOk en sectionsHtml, con el i.reason real como
+      // label del pill en vez del literal fijo 'sin cambios' (los 5 reasons de ignored no son
+      // todos "sin cambios" — ver _criticalReasons).
+      ..._pick(diff.ignored, i => _card(i.code, i.desc, 'muted', _pill('ignored', esc(i.reason || 'sin cambios')), undefined, undefined, undefined, i.type || _itemKindFn({ code: i.code }))),
+    ];
+  };
+
+  // TKT-202607-170 (REQ-202607-058 · AC corregido en Fase 5 v2, grounding contra
+  // locus-session-parse.js L2731-2738 y L3027): categoría semántica del bloque —
+  // distinta de _blockBadge (arriba), que mide resultado del diff (ok/flag/skipped), no
+  // qué tipo de acción de ecosistema es el CHECKPOINT. Clasifica sobre tgItems/_patchItems
+  // ya combinados y filtrados por meta.idx — no recibe el objeto CHECKPOINT crudo, esa
+  // forma de entrada no existe en este archivo (confirmado: _ckptMetas solo trae el
+  // resumen narrativo vía _extractCkptMeta, nunca items/draft/status por bloque).
+  // Precedencia fija (AC7): liberación > incidente > avalado > cierre > entrega >
+  // borrador > sin-clasificar. INC/PRB/CHG llegan a tgItems vía _buildItilItem con
+  // type/idx intactos (mismo spread {...it, idx:b.idx} que REQ/TKT/DISC en
+  // _resolveCheckpointBatch) — sin necesidad de parámetro adicional.
+  // TKT-202607-170 (AC corregido en Fase 5 v2, sobre patch de Cael tras hallazgo de Finn en
+  // Momento 1): claves renombradas para coincidir exactamente con los 7 sufijos ya
+  // implementados en locus-backlog-item.css mod:79 (Nova, TKT-202607-171) —
+  // .mdiff-ckpt-category--{borrador|avalado|entrega|cierre|liberado|incidente|lite}.
+  // 'liberacion' → 'liberado'. 'sinclasificar' → 'lite' — mismo valor para el caso vacío
+  // (bloque sin ningún ítem REQ/TKT/INC/PRB/CHG) y el estado sin resolver (ítem presente que
+  // no matchea ninguna de las 6 ramas restantes); AC corregido exige un solo valor de retorno
+  // para ambos, sin octava categoría (no_incluye).
+  // TKT-202608-241 (REQ ref_id CAEL-0804-01, mod:89): 'lite' se separa en 'vacio'/'sin-resolver'
+  // (Nova, locus-backlog-item.css mod:92) — precedencia actualizada: liberación > incidente >
+  // avalado > cierre > entrega > borrador > sin-resolver > vacio. 'sinclasificar'/'lite' ya no
+  // existen como valores de retorno — ver _ckptCategoryFor más abajo para la lógica del split.
+  const _CKPT_CATEGORY_LABELS = {
+    liberado:       'Liberación',
+    incidente:      'Incidente',
+    avalado:        'Avalado',
+    cierre:         'Cierre',
+    entrega:        'Entrega',
+    borrador:       'Borrador',
+    vacio:          'Sin ítems',
+    'sin-resolver': 'Referencia sin resolver'
+  };
+  const _ckptCategoryFor = meta => {
+    if (meta && meta.finnRelease) return 'liberado';
+    const _blockTg    = tgItems.filter(i => i && i.idx === meta.idx);
+    const _blockPatch = _patchItems.filter(i => i && i.idx === meta.idx);
+    if (_blockTg.some(i => i.type === 'INC' || i.type === 'PRB' || i.type === 'CHG')) return 'incidente';
+    if (_blockPatch.some(p => p.draft === false && p.verified_by)) return 'avalado';
+    if (_blockTg.some(i => i.status === 'done') || _blockPatch.some(p => p.status === 'done')) return 'cierre';
+    if (_blockTg.some(i => i.status === 'en-revision')) return 'entrega';
+    if (_blockTg.some(i => i.draft === true)) return 'borrador';
+    // TKT-202608-241 AC1/AC2: 'lite' fusionaba dos causas raíz distintas — bloque sin ningún
+    // ítem declarado (AC1) vs. ítem(s) declarado(s) que no resolvieron contra ninguna de las 7
+    // categorías del diff (AC2, incluye ignored — ver _itemsForBlockIdx más arriba). Caso
+    // residual (ítem declarado Y resuelto en el diff, pero sin matchear ninguna rama de estado
+    // de arriba) no observado en el diseño original de 'lite' — el comentario de TKT-202607-170
+    // arriba declara exactamente 2 casos, no 3. De ocurrir, cae en 'sin-resolver' por ser el
+    // fallback semánticamente más seguro (nunca 'vacio' habiendo ítems reales presentes).
+    if (!_blockTg.length && !_blockPatch.length) return 'vacio';
+    if (!_itemsForBlockIdx(meta.idx).length) return 'sin-resolver';
+    return 'sin-resolver';
+  };
+
 
   // TKT2 (REQ CAEL-0720-02, AC de coherencia): resolver de búsqueda para diff.unresolvedRefs —
   // consumido desde el único punto de entrada expuesto por mergeBacklogFromTG (locus-backlog-item.js
@@ -1410,38 +1499,6 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     return { html, hasRelease: true };
   };
 
-  // TKT-078 (AC corregido — Opción C, 2026-07-24): detalle completo de ítems por bloque,
-  // filtrando las listas ya clasificadas por idx (propagado en TKT2/mergeBacklogFromTG y
-  // TKT1/_resolveCheckpointBatch) contra el índice del bloque — sin tocar la clasificación
-  // de diff ni reestructurar sectionsHtml combinado. Función pura de presentación: no muta
-  // los arrays del diff, no invoca mergeBacklogFromTG ni applyPatchesFromTG.
-  // no_incluye (TKT-078): sin botón de aprobación granular por bloque · sin deshabilitar
-  // interacción con tarjetas fuera de orden · sin clase CSS nueva fuera de lo declarado por
-  // Nova en TKT-077 (.mdiff-block-badge--ok/--flag/--skipped).
-  const _itemsForBlockIdx = metaIdx => {
-    const _pick = (arr, builder) => (Array.isArray(arr) ? arr : [])
-      .filter(i => i && i.idx === metaIdx)
-      .map(builder);
-    return [
-      ..._pick(diff.created, i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'), _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))),
-      ..._pick(diff.advanced, i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), _depsHtml(i.dependsOn), undefined, i.sprint, i.type || _itemKindFn({ code: i.code }))),
-      // INC-202608-084: _updatedRowHtml es fuente única con el render principal — este path
-      // es el de re-render por bloque (batch de CHECKPOINTs), no puede divergir en qué pill
-      // muestra.
-      ..._pick(diff.updated, _updatedRowHtml),
-      ..._pick(diff.createdAndClosed, i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado') + _pill('advanced', 'pendiente → done'), `<div class="mdiff-change-hint">Creado y cerrado en esta sesión</div>` + _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))),
-      ..._pick(diff.retroceso, (i) => _retrocedoRow(i, i.idx)),
-      ..._pick(diff.discarded, (i) => _discardRow(i, i.idx)),
-      // Bug 2 (Finn, Momento 1): diff.ignored también lleva idx (locus-backlog-item.js
-      // L2440-2776) y es el escenario real que el AC de error state describía como "skipped" —
-      // los bloques inválidos no llegan a tener entrada en metas, por lo que nunca aparecen
-      // aquí. Reusa el accent 'muted' de ignoredOk en sectionsHtml, con el i.reason real como
-      // label del pill en vez del literal fijo 'sin cambios' (los 5 reasons de ignored no son
-      // todos "sin cambios" — ver _criticalReasons).
-      ..._pick(diff.ignored, i => _card(i.code, i.desc, 'muted', _pill('ignored', esc(i.reason || 'sin cambios')), undefined, undefined, undefined, i.type || _itemKindFn({ code: i.code }))),
-    ];
-  };
-
   // Clasificación del badge (Nova, TKT-077 — .mdiff-block-badge--ok/--flag; 'skipped' retirado en
   // TKT-202608-241 AC4): el caso de "bloque sin detalle" (filtro por meta.idx sin ningún ítem en
   // ninguna de las 7 categorías del diff, incluyendo ignored) ya no lleva badge propio — el
@@ -1457,60 +1514,6 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       + (Array.isArray(diff.discarded) ? diff.discarded.filter(i => i && i.idx === metaIdx).length : 0);
     if (!_flagCount) return { cls: 'ok', label: 'sin flags' };
     return { cls: 'flag', label: `${_flagCount} flag${_flagCount === 1 ? '' : 's'}` };
-  };
-
-  // TKT-202607-170 (REQ-202607-058 · AC corregido en Fase 5 v2, grounding contra
-  // locus-session-parse.js L2731-2738 y L3027): categoría semántica del bloque —
-  // distinta de _blockBadge (arriba), que mide resultado del diff (ok/flag/skipped), no
-  // qué tipo de acción de ecosistema es el CHECKPOINT. Clasifica sobre tgItems/_patchItems
-  // ya combinados y filtrados por meta.idx — no recibe el objeto CHECKPOINT crudo, esa
-  // forma de entrada no existe en este archivo (confirmado: _ckptMetas solo trae el
-  // resumen narrativo vía _extractCkptMeta, nunca items/draft/status por bloque).
-  // Precedencia fija (AC7): liberación > incidente > avalado > cierre > entrega >
-  // borrador > sin-clasificar. INC/PRB/CHG llegan a tgItems vía _buildItilItem con
-  // type/idx intactos (mismo spread {...it, idx:b.idx} que REQ/TKT/DISC en
-  // _resolveCheckpointBatch) — sin necesidad de parámetro adicional.
-  // TKT-202607-170 (AC corregido en Fase 5 v2, sobre patch de Cael tras hallazgo de Finn en
-  // Momento 1): claves renombradas para coincidir exactamente con los 7 sufijos ya
-  // implementados en locus-backlog-item.css mod:79 (Nova, TKT-202607-171) —
-  // .mdiff-ckpt-category--{borrador|avalado|entrega|cierre|liberado|incidente|lite}.
-  // 'liberacion' → 'liberado'. 'sinclasificar' → 'lite' — mismo valor para el caso vacío
-  // (bloque sin ningún ítem REQ/TKT/INC/PRB/CHG) y el estado sin resolver (ítem presente que
-  // no matchea ninguna de las 6 ramas restantes); AC corregido exige un solo valor de retorno
-  // para ambos, sin octava categoría (no_incluye).
-  // TKT-202608-241 (REQ ref_id CAEL-0804-01, mod:89): 'lite' se separa en 'vacio'/'sin-resolver'
-  // (Nova, locus-backlog-item.css mod:92) — precedencia actualizada: liberación > incidente >
-  // avalado > cierre > entrega > borrador > sin-resolver > vacio. 'sinclasificar'/'lite' ya no
-  // existen como valores de retorno — ver _ckptCategoryFor más abajo para la lógica del split.
-  const _CKPT_CATEGORY_LABELS = {
-    liberado:       'Liberación',
-    incidente:      'Incidente',
-    avalado:        'Avalado',
-    cierre:         'Cierre',
-    entrega:        'Entrega',
-    borrador:       'Borrador',
-    vacio:          'Sin ítems',
-    'sin-resolver': 'Referencia sin resolver'
-  };
-  const _ckptCategoryFor = meta => {
-    if (meta && meta.finnRelease) return 'liberado';
-    const _blockTg    = tgItems.filter(i => i && i.idx === meta.idx);
-    const _blockPatch = _patchItems.filter(i => i && i.idx === meta.idx);
-    if (_blockTg.some(i => i.type === 'INC' || i.type === 'PRB' || i.type === 'CHG')) return 'incidente';
-    if (_blockPatch.some(p => p.draft === false && p.verified_by)) return 'avalado';
-    if (_blockTg.some(i => i.status === 'done') || _blockPatch.some(p => p.status === 'done')) return 'cierre';
-    if (_blockTg.some(i => i.status === 'en-revision')) return 'entrega';
-    if (_blockTg.some(i => i.draft === true)) return 'borrador';
-    // TKT-202608-241 AC1/AC2: 'lite' fusionaba dos causas raíz distintas — bloque sin ningún
-    // ítem declarado (AC1) vs. ítem(s) declarado(s) que no resolvieron contra ninguna de las 7
-    // categorías del diff (AC2, incluye ignored — ver _itemsForBlockIdx más arriba). Caso
-    // residual (ítem declarado Y resuelto en el diff, pero sin matchear ninguna rama de estado
-    // de arriba) no observado en el diseño original de 'lite' — el comentario de TKT-202607-170
-    // arriba declara exactamente 2 casos, no 3. De ocurrir, cae en 'sin-resolver' por ser el
-    // fallback semánticamente más seguro (nunca 'vacio' habiendo ítems reales presentes).
-    if (!_blockTg.length && !_blockPatch.length) return 'vacio';
-    if (!_itemsForBlockIdx(meta.idx).length) return 'sin-resolver';
-    return 'sin-resolver';
   };
 
   // TKT-202607-172 (AC-9a, REQ-202607-058 — redactado por Cael tras gap de Rune sobre el AC-9
