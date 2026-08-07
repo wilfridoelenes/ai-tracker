@@ -1,5 +1,5 @@
 // [PP] mod:183 · autor:Rune · 2026-08-06 UTC-6
-// TKT2 (REQ-202608-107): integrado tier-3 en _splitCheckpointBlocks() — _extractBareCheckpoint-
+// TKT2 (REQ ref_id CAEL-08061830-01): integrado tier-3 en _splitCheckpointBlocks() — _extractBareCheckpoint-
 // Candidates() como último recurso, solo cuando ni fence ni bare-single-parseable aplican. Fix
 // de bug propio detectado por harness antes de en-revision: el check de bare-single original
 // solo verificaba límites estructurales ({...}), no que el texto completo parseara como UN
@@ -9,7 +9,7 @@
 // harness contra el archivo real, incluido el texto exacto que produjo el síntoma original del
 // founder (2 CHECKPOINTs bare + frase de cierre pegada, sin fences). contract_update: sí.
 // [PP] mod:182 · autor:Rune · 2026-08-06 UTC-6
-// TKT1 (REQ-202608-107): agregada _extractBareCheckpointCandidates(text) — función pura,
+// TKT1 (REQ ref_id CAEL-08061830-01): agregada _extractBareCheckpointCandidates(text) — función pura,
 // sin export, sin efectos laterales. Escanea objetos JSON top-level balanceados (respetando
 // strings/escapes), valida con JSON.parse real, filtra por gate title+project. No integrada
 // aún a ningún caller (TKT2, siguiente sesión de este mismo REQ). 7/7 AC verificados con
@@ -737,7 +737,7 @@ function _looksLikeBareCheckpointJson(text) {
   return _t.startsWith('{') && _t.endsWith('}');
 }
 
-// TKT1 (REQ-202608-107, ref_id CAEL-08061830-02, triggered_by PRB-202608-002 vía founder —
+// TKT1 (REQ ref_id CAEL-08061830-01, ref_id propio CAEL-08061830-02, triggered_by PRB-202608-002 vía founder —
 //   síntoma real: paste desde el chat de Claude pierde los fences ``` y suele traer prosa
 //   alrededor de los CHECKPOINTs, lo que hoy tumba a _splitCheckpointBlocks() a 0 bloques):
 //   función pura que escanea el texto completo en busca de objetos JSON de nivel superior
@@ -856,7 +856,7 @@ export function _splitCheckpointBlocks(text) {
     try { JSON.parse(text.trim()); return [text.trim()]; }
     catch (e) { /* no es un único objeto válido — probablemente 2+ concatenados, cae a tier-3 */ }
   }
-  // TKT2 (REQ-202608-107, ref_id CAEL-08061830-03): tier-3 — último recurso. Solo se alcanza
+  // TKT2 (REQ ref_id CAEL-08061830-01, ref_id propio CAEL-08061830-03): tier-3 — último recurso. Solo se alcanza
   // cuando no hubo match de fence NI el texto completo es un único objeto limpio — ej. 2+
   // CHECKPOINTs bare concatenados, o un CHECKPOINT bare con prosa alrededor (caso real: paste
   // desde el chat de Claude, que pierde los fences y suele traer comentarios antes/después).
