@@ -1,3 +1,13 @@
+// [PP] mod:181 · autor:Rune · 2026-08-06 UTC-6
+// TKT-202608-265 (QA de Finn, Momento 1): comentario in-situ del fix de anclaje de fence
+// (~línea 733, agregado en mod:175) todavía citaba `REQ-[pendiente-ID] ref_id CAEL-08061510-01`
+// pese a que REQ-202608-106 y el propio TKT-202608-265 ya tienen código real confirmado en el
+// backlog — violación de la regla dura de `__BR-Execution §9` (Referencias a ítems del backlog
+// embebidas en código): una vez asignado código real, la referencia usa el código real, nunca el
+// literal `[pendiente-ID]` ni el `ref_id` (exclusivo de la ventana previa a la ingesta en Locus).
+// Fix: comentario actualizado a `TKT-202608-265 (REQ-202608-106, triggered_by PRB-202608-002)`.
+// Sin cambio de código funcional — corrección de header/comentario únicamente, mismo criterio ya
+// aplicado en mod:179/mod:180 para gaps de header distintos. contract_update: no.
 // [PP] mod:180 · autor:Rune · 2026-08-06 UTC-6
 // TKT-202608-265: verificación contra el AC del TKT ("anclar fence-marker a inicio/fin de línea
 // real en _splitCheckpointBlocks") — confirma que el código ya presente en el archivo
@@ -730,8 +740,8 @@ function _looksLikeBareCheckpointJson(text) {
 // (DISC-202608-104). Se agrega alerta DocLog con el conteo de caracteres descartados. No
 // reintenta parsear ese texto ni lo agrega como bloque — el descarte en sí no cambia, solo deja
 // de ser silencioso. Whitespace puro fuera de los fences no genera alerta (AC edge case).
-// TKT (ref_id CAEL-08061510-02, REQ-[pendiente-ID] ref_id CAEL-08061510-01, triggered_by
-// PRB-202608-002): el regex de fence no estaba anclado a línea real — un ``` embebido dentro de
+// TKT-202608-265 (REQ-202608-106, triggered_by PRB-202608-002): el regex de fence no estaba
+// anclado a línea real — un ``` embebido dentro de
 // un campo de texto de un CHECKPOINT (ej. doc_updates[].content citando SQL/código) se trataba
 // como delimitador real, cortando el batch en el punto equivocado y corrompiendo el JSON
 // resultante (INC-202608-098). Fix de causa raíz: el fence de apertura y cierre debe ocupar su
