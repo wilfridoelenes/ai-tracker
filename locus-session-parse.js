@@ -1,3 +1,19 @@
+// [PP] mod:183 · autor:Rune · 2026-08-06 UTC-6
+// TKT2 (REQ-202608-107): integrado tier-3 en _splitCheckpointBlocks() — _extractBareCheckpoint-
+// Candidates() como último recurso, solo cuando ni fence ni bare-single-parseable aplican. Fix
+// de bug propio detectado por harness antes de en-revision: el check de bare-single original
+// solo verificaba límites estructurales ({...}), no que el texto completo parseara como UN
+// objeto — 2+ objetos concatenados sin separador también cumplen esa forma estructural, lo que
+// los desviaba a la rama equivocada antes de llegar a tier-3. Corregido verificando JSON.parse
+// real sobre el texto completo antes de comprometerse a la rama single. 8/8 AC verificados con
+// harness contra el archivo real, incluido el texto exacto que produjo el síntoma original del
+// founder (2 CHECKPOINTs bare + frase de cierre pegada, sin fences). contract_update: sí.
+// [PP] mod:182 · autor:Rune · 2026-08-06 UTC-6
+// TKT1 (REQ-202608-107): agregada _extractBareCheckpointCandidates(text) — función pura,
+// sin export, sin efectos laterales. Escanea objetos JSON top-level balanceados (respetando
+// strings/escapes), valida con JSON.parse real, filtra por gate title+project. No integrada
+// aún a ningún caller (TKT2, siguiente sesión de este mismo REQ). 7/7 AC verificados con
+// harness contra el archivo real. contract_update: sí — ver detalle en el CHECKPOINT del TKT.
 // [PP] mod:181 · autor:Rune · 2026-08-06 UTC-6
 // TKT-202608-265 (QA de Finn, Momento 1): comentario in-situ del fix de anclaje de fence
 // (~línea 733, agregado en mod:175) todavía citaba `REQ-[pendiente-ID] ref_id CAEL-08061510-01`
@@ -721,6 +737,68 @@ function _looksLikeBareCheckpointJson(text) {
   return _t.startsWith('{') && _t.endsWith('}');
 }
 
+// TKT1 (REQ-202608-107, ref_id CAEL-08061830-02, triggered_by PRB-202608-002 vía founder —
+//   síntoma real: paste desde el chat de Claude pierde los fences ``` y suele traer prosa
+//   alrededor de los CHECKPOINTs, lo que hoy tumba a _splitCheckpointBlocks() a 0 bloques):
+//   función pura que escanea el texto completo en busca de objetos JSON de nivel superior
+//   ({...} balanceados, respetando strings y escapes) y los valida con JSON.parse real —
+//   nunca por profundidad de llaves sola. Deliberadamente NO reintroduce el scanner heurístico
+//   retirado en REQ-202608-101 (_extractBareJsonBlocks/_looksLikeJsonObjectStart, causa raíz de
+//   INC-202607-066/068: una llave suelta en prosa, ej. mencionar {ref_id, title} al documentar
+//   schema, producía un bloque fantasma). Aquí la barrera es doble: (1) JSON.parse real — una
+//   llave suelta en prosa no-JSON (claves sin comillas, sin dos-puntos) nunca parsea, se descarta
+//   sin generar candidato; (2) gate title+project — el candidato debe tener ambos campos como
+//   string no vacío, mismo criterio que ya usa parseCheckpoint() en su rama bare-single (.title)
+//   mas exigente (+.project) porque este scanner opera sobre texto libre, con mayor superficie
+//   de falso positivo que el caso ya-anclado de un solo objeto. Sin efectos laterales — no toca
+//   DOM, no llama _blogLog (el caller decide si registra el texto descartado). Contract_update:
+//   sí — invariant: nunca devuelve un candidato que no pase JSON.parse + title + project.
+function _extractBareCheckpointCandidates(text) {
+  const _candidates = [];
+  if (!text) return _candidates;
+  const _n = text.length;
+  let _i = 0;
+  while (_i < _n) {
+    if (text[_i] === '{') {
+      let _depth = 0, _j = _i, _inStr = false, _esc = false;
+      for (; _j < _n; _j++) {
+        const _c = text[_j];
+        if (_inStr) {
+          if (_esc) { _esc = false; }
+          else if (_c === '\\') { _esc = true; }
+          else if (_c === '"') { _inStr = false; }
+        } else {
+          if (_c === '"') _inStr = true;
+          else if (_c === '{') _depth++;
+          else if (_c === '}') {
+            _depth--;
+            if (_depth === 0) { _j++; break; }
+          }
+        }
+      }
+      const _span = text.slice(_i, _j);
+      try {
+        const _parsed = JSON.parse(_span);
+        if (
+          _parsed && typeof _parsed === 'object' && !Array.isArray(_parsed) &&
+          typeof _parsed.title === 'string' && _parsed.title.trim() &&
+          typeof _parsed.project === 'string' && _parsed.project.trim()
+        ) {
+          _candidates.push('```\n' + _span + '\n```');
+        }
+      } catch (e) {
+        // JSON inválido — no es candidato, se descarta silenciosamente. No produce bloque
+        // fantasma (mismo criterio que cerró INC-202607-066/068, vía JSON.parse real en vez
+        // de conteo de llaves).
+      }
+      _i = _j > _i ? _j : _i + 1;
+    } else {
+      _i++;
+    }
+  }
+  return _candidates;
+}
+
 // TKT1 (REQ-202608-101, Opción A — pivote confirmado por el founder 2026-08-05 tras hallazgo de
 // Finn en auditoría end-to-end del REQ): retira el scanner de profundidad de llaves para bloques
 // bare (_extractBareJsonBlocks + _looksLikeJsonObjectStart, TKT-202607-162/REQ CAEL-0727-01) —
@@ -767,11 +845,42 @@ export function _splitCheckpointBlocks(text) {
     }
     return _matches;
   }
-  // Sin match de fence — único caso bare soportado: el texto completo es un solo objeto JSON
-  // (mismo criterio que _looksLikeBareCheckpointJson usa para el path single de parsePaste).
-  // 2+ objetos bare concatenados sin fence ni delimitador ya no se detectan como N bloques —
-  // fuera de scope de este TKT (ver no_incluye del TKT1).
-  return _looksLikeBareCheckpointJson(text) ? [text.trim()] : [];
+  // Sin match de fence — segundo caso: el texto completo es un solo objeto JSON limpio.
+  // _looksLikeBareCheckpointJson solo verifica límites estructurales ({...}) — 2+ objetos
+  // concatenados sin separador también cumplen esa forma (empiezan '{', terminan '}'), así que
+  // se verifica además que el texto completo parsee como UN único objeto antes de comprometerse
+  // a esta rama — si falla (caso típico: 2+ CHECKPOINTs concatenados sin separador), cae a
+  // tier-3 en vez de tratar todo el texto como un solo bloque inválido. Bug encontrado por
+  // harness de TKT2 antes de declarar en-revision — ver CHECKPOINT del TKT.
+  if (_looksLikeBareCheckpointJson(text)) {
+    try { JSON.parse(text.trim()); return [text.trim()]; }
+    catch (e) { /* no es un único objeto válido — probablemente 2+ concatenados, cae a tier-3 */ }
+  }
+  // TKT2 (REQ-202608-107, ref_id CAEL-08061830-03): tier-3 — último recurso. Solo se alcanza
+  // cuando no hubo match de fence NI el texto completo es un único objeto limpio — ej. 2+
+  // CHECKPOINTs bare concatenados, o un CHECKPOINT bare con prosa alrededor (caso real: paste
+  // desde el chat de Claude, que pierde los fences y suele traer comentarios antes/después).
+  // Capacidad que existió en TKT4/REQ-202607-054 y se retiró en REQ-202608-101 por su causa raíz
+  // (scanner heurístico de profundidad de llaves, sin validar JSON real) — no se reintroduce esa
+  // implementación. _extractBareCheckpointCandidates() usa JSON.parse real + gate title+project,
+  // ver TKT1 para el detalle de por qué no reproduce INC-202607-066/068.
+  const _bareCandidates = _extractBareCheckpointCandidates(text);
+  if (_bareCandidates.length > 0) {
+    const _matchedSpans = _bareCandidates.map(c => c.replace(/^```\n/, '').replace(/\n```$/, ''));
+    let _consumed = 0;
+    for (const _span of _matchedSpans) _consumed += _span.length;
+    const _discarded = text.length - _consumed;
+    if (_discarded > 0) {
+      _blogLog(
+        'texto-bare-descartado-tier3',
+        '',
+        `Texto fuera de los ${_bareCandidates.length} CHECKPOINT(s) bare detectados (sin fence) descartado — ${_discarded} caracteres ignorados (prosa/separadores entre bloques).`,
+        'backlog'
+      );
+    }
+    return _bareCandidates;
+  }
+  return [];
 }
 // [PP] mod:87 · autor:Rune · 2026-07-01 15:40 UTC-6
 // TKT-202606-014 (REQ-202606-003 · AC2): agregado draftRaw — valor crudo de _parsed.draft
