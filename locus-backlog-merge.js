@@ -1,4 +1,11 @@
-// [PP] mod:90 · autor:Rune · 2026-08-06 14:10 UTC-6
+// [PP] mod:91 · autor:Rune · 2026-08-06 15:05 UTC-6
+// TKT3 (REQ CAEL-08061000-01): alineación visual con Quick Capture (hint vacío estático
+// "hora de desbloqueo (opcional)" — el label ya decía "Hora de reset", sin cambio ahí) +
+// bloqueo de confirmación cuando la hora excede la ventana de 5h (interpretHora().
+// withinResetWindow). El bloqueo vive al inicio de _mdiffDoApply, antes de retrocesos/
+// descartes/saveBacklog — evita dejar el backlog en estado inconsistente con el overlay
+// todavía abierto. La lectura de hora sin procesar que pasa a onApply (B-202606-037) no
+// se modifica — este TKT usa una lectura propia, stripeada, solo para el chequeo.
 // INC-202608-099: _CKPT_CATEGORY_LABELS/_ckptCategoryFor y _itemsForBlockIdx movidos antes de su
 // primer uso (dentro de showMergeDiffPanel) — TDZ error al procesar cualquier batch. Sin cambio
 // de lógica ni de dependencias, solo reordenamiento de declaraciones dentro del mismo closure.
@@ -2269,7 +2276,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
           autocomplete="off"
           aria-label="Hora de reset del worker en formato HHMM (ej: 2130)"
         >
-        <div class="mdiff-duration-hint" id="mdiff-duration-disp">—</div>
+        <div class="mdiff-duration-hint" id="mdiff-duration-disp">hora de desbloqueo (opcional)</div>
       </div>
       <div class="mdiff-footer-actions">
         <button id="mdiff-cancel-btn" class="mdiff-btn mdiff-btn--cancel">✕ Cancelar</button>
@@ -2365,6 +2372,27 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
 
   // ── Handler de aplicar: aplica retrocesos y descartes ──
   function _mdiffDoApply(andThenGoBacklog) {
+    // TKT3 (REQ CAEL-08061000-01): bloquear ANTES de cualquier efecto secundario (retrocesos,
+    // descartes, saveBacklog) si la hora excede la ventana de 5h — mismo criterio que
+    // interpretHora().withinResetWindow ya aplica en Quick Capture (TKT2) y visualmente en
+    // _horaUpdate (TKT1). Se declara aquí, al inicio de la función, a propósito: bloquear
+    // después de que retrocesos/descartes ya se persistieron dejaría el backlog en estado
+    // inconsistente con el overlay todavía abierto. Lectura propia (dígitos limpios) — no
+    // reutiliza la lectura de _horaRaw de más abajo (B-202606-037), que preserva el valor
+    // sin procesar para onApply/saveSession y no debe alterarse por este TKT.
+    const _durationInputCheck = document.getElementById('mdiff-duration-input');
+    const _horaRawForCheck = _durationInputCheck ? _durationInputCheck.value.replace(/\D/g, '') : '';
+    const _horaResultCheck = _horaRawForCheck ? interpretHora(_horaRawForCheck) : null;
+    if (_horaResultCheck && !_horaResultCheck.withinResetWindow) {
+      const _durationDispElBlock = document.getElementById('mdiff-duration-disp');
+      if (_durationInputCheck) { _durationInputCheck.focus(); _durationInputCheck.classList.add('error'); }
+      if (_durationDispElBlock) {
+        _durationDispElBlock.textContent = 'máximo 5 horas desde ahora';
+        _durationDispElBlock.className = 'hora-disp--error';
+      }
+      return;
+    }
+
     // TKT-202607-206 (REQ-202607-079, AC4): registrar en el historial de sesión cada ref_id que
     // este batch trajo resuelto (diff.refIdTitleMap, por-batch, ya calculado en el dry-run de
     // apertura) — aquí, en el apply real, no en el dry-run, porque solo en este punto el ref_id
@@ -2597,6 +2625,15 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       _horaUpdate(_durationInputEl, _durationDispEl);
     }
     _durationInputEl.addEventListener('input', () => {
+      // TKT3 (REQ CAEL-08061000-01): mismo patrón que quickParseHora (locus-sesiones-capture.js)
+      // — cuando el input queda vacío, mostrar el hint estático en vez del '—' por defecto de
+      // _horaUpdate, para que el estado vacío sea idéntico al de Quick Capture.
+      if (!_durationInputEl.value.replace(/\D/g, '')) {
+        _durationDispEl.textContent = 'hora de desbloqueo (opcional)';
+        _durationDispEl.className = 'hora-disp--hint';
+        _durationInputEl.classList.remove('error');
+        return;
+      }
       _horaUpdate(_durationInputEl, _durationDispEl);
     });
     // B-202606-NNN: Enter en input de hora mueve foco al botón Guardar.

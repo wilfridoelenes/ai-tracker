@@ -1,4 +1,9 @@
-// [PP] mod:5 · autor:Rune · 2026-08-06 09:40 UTC-6
+// [PP] mod:6 · autor:Rune · 2026-08-06 10:15 UTC-6
+// TKT1 (REQ CAEL-08061000-01): interpretHora() gana withinResetWindow — ventana máxima
+// de negocio de 5h para que un worker quede exhausted. Criterio único consumido por
+// _horaUpdate (visual, este archivo) y por los tres confirm handlers externos (Quick
+// Capture, panel DIFF, modal de corrección de hora) — mismas reglas en los cuatro
+// puntos de consumo, sin duplicar el cálculo.
 // INC-202608-092: _horaUpdate() solo reescribía inputEl.value cuando raw.length > 4
 // tras stripear no-dígitos — pero maxlength="4" del input (locus-backlog-merge.js
 // #mdiff-duration-input) cuenta caracteres, no dígitos, y truncaba nativamente antes
@@ -37,7 +42,12 @@ export function _horaUpdate(inputEl, dispEl) {
   if (raw.length > 4) raw = raw.slice(0, 4);
   if (inputEl && inputEl.value !== raw) inputEl.value = raw;
   const result = interpretHora(raw);
-  if (result) {
+  if (result && !result.withinResetWindow) {
+    // TKT1 (REQ CAEL-08061000-01): hora válida pero fuera de la ventana de 5h.
+    dispEl.textContent = 'máximo 5 horas desde ahora';
+    dispEl.className = 'hora-disp--error';
+    if (inputEl) inputEl.classList.add('error');
+  } else if (result) {
     dispEl.textContent = result.label;
     dispEl.className = 'hora-disp--valid';
     if (inputEl) inputEl.classList.remove('error');
@@ -70,7 +80,11 @@ export function interpretHora(raw) {
   const _r = new Date(); _r.setHours(h, m, 0, 0);
   if (_r <= new Date()) _r.setDate(_r.getDate() + 1);
   const epoch = _r.getTime();
-  return {h, m, hhmm, label: `${h12}:${String(m).padStart(2,'0')} ${period}`, epoch};
+  // TKT1 (REQ CAEL-08061000-01): withinResetWindow — inclusive, exactamente 5h se
+  // considera dentro de la ventana. Único criterio, consumido por _horaUpdate (abajo)
+  // y por los tres confirm handlers externos vía este mismo campo del retorno.
+  const withinResetWindow = (epoch - Date.now()) <= 5 * 60 * 60 * 1000;
+  return {h, m, hhmm, label: `${h12}:${String(m).padStart(2,'0')} ${period}`, epoch, withinResetWindow};
 }
 
 export function fmt12(hhmm) {

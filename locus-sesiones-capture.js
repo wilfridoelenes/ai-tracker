@@ -1,4 +1,8 @@
-// [PP] mod:20 · autor:Rune · 2026-07-31 22:21 UTC-6
+// [PP] mod:21 · autor:Rune · 2026-08-06 10:30 UTC-6
+// TKT2 (REQ CAEL-08061000-01): confirmQuickCapture bloquea el guardado cuando
+// interpretHora(horaRaw).withinResetWindow es false — mismo criterio de ventana
+// máxima de 5h que _horaUpdate ya aplica visualmente. Reutiliza el patrón de error
+// ya usado para título vacío (input-border-error), sin componente nuevo.
 // TKT-202607-213 (REQ-202607-083): shell:open-proj-panel → switchTab('proyectos') — proj-panel
 // overlay retirado, sin cambio de comportamiento observable (mismo destino: tab Proyectos).
 // locus-sesiones-capture.js
@@ -250,6 +254,14 @@ function confirmQuickCapture() {
   const summary = _qcEl('quick-summary').value.trim();
   const horaRaw = _qcEl('quick-hora').value.replace(/\D/g,'');
   const horaResult = horaRaw ? interpretHora(horaRaw) : null;
+
+  // TKT2 (REQ CAEL-08061000-01): bloquear guardado si la hora excede la ventana de 5h —
+  // mismo criterio interpretHora().withinResetWindow que _horaUpdate usa visualmente.
+  if (horaResult && !horaResult.withinResetWindow) {
+    const _hi = _qcEl('quick-hora');
+    if (_hi) { _hi.focus(); _hi.classList.add('input-border-error'); setTimeout(() => _hi.classList.remove('input-border-error'), 1200); }
+    return;
+  }
 
   const ai = getAI(_quickAIId);
   const now = new Date();

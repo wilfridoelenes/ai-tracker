@@ -1,4 +1,8 @@
-// [PP] mod:10 · autor:Rune · 2026-08-04 UTC-6
+// [PP] mod:11 · autor:Rune · 2026-08-06 15:25 UTC-6
+// TKT4 (REQ CAEL-08061000-01): confirmCorrectHora() ahora bloquea (antes solo advertía,
+// T-202606-065) cuando interpretHora().withinResetWindow es false — mismo criterio
+// centralizado que TKT1/TKT2/TKT3, reemplaza el umbral duplicado (5*3600000 hardcoded)
+// que vivía solo en el listener de input de este archivo.
 // INC-[pendiente-ID]: confirmCorrectHora()/unlockNowFromCard() no marcaban _trackerDirty antes de
 //   render() — mismo patrón roto que locus-session-save.js. render() salía sin pintar el estado
 //   real salvo que otra interacción previa ya hubiera dejado _trackerDirty en true. Fix: llamar
@@ -76,10 +80,11 @@ export function openCorrectHora(id) {
         disp.textContent = r ? r.label : (raw.length >= 3 ? 'hora inválida' : (raw.length ? '...' : '—'));
         disp.className = r ? 'hora-disp--valid' : (raw.length >= 3 ? 'hora-disp--error' : 'hora-disp--hint');
       }
-      // T-202606-065: advertencia no bloqueante si hora > 5h desde ahora
+      // TKT4 (REQ CAEL-08061000-01): reemplaza el umbral duplicado (T-202606-065) por el
+      // criterio centralizado de interpretHora() — mismo mensaje que Quick Capture/DIFF.
       if (warn) {
-        if (r && (r.epoch - Date.now()) > 5 * 3600000) {
-          warn.textContent = '⚠ ¿Más de 5h?';
+        if (r && !r.withinResetWindow) {
+          warn.textContent = 'máximo 5 horas desde ahora';
           warn.classList.remove('is-hidden');
         } else {
           warn.textContent = '';
@@ -129,6 +134,15 @@ function confirmCorrectHora() {
   if (!inp) return;
   const raw = inp.value.replace(/\D/g, '');
   const result = interpretHora(raw);
+
+  if (result && !result.withinResetWindow) {
+    // TKT4 (REQ CAEL-08061000-01): antes solo advertía (T-202606-065, no bloqueante) —
+    // ahora bloquea, mismo criterio que TKT1/TKT2/TKT3. Mismo patrón visual ya usado
+    // abajo para hora inválida (clase 'error' + auto-limpieza a 1.2s).
+    inp.classList.add('error');
+    setTimeout(() => inp.classList.remove('error'), 1200);
+    return;
+  }
 
   if (result) {
     // B-202606-019: asegurar que la IA queda exhausted al guardar hora desde modal diff
