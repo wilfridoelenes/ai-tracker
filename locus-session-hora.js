@@ -1,4 +1,13 @@
-// [PP] mod:4 · autor:Rune · 2026-07-31 18:20 UTC-6
+// [PP] mod:5 · autor:Rune · 2026-08-06 09:40 UTC-6
+// INC-202608-092: _horaUpdate() solo reescribía inputEl.value cuando raw.length > 4
+// tras stripear no-dígitos — pero maxlength="4" del input (locus-backlog-merge.js
+// #mdiff-duration-input) cuenta caracteres, no dígitos, y truncaba nativamente antes
+// de que esta función pudiera intervenir (ej. "21:30" → navegador trunca a "21:3" →
+// stripeado "213", 3 dígitos, nunca superaba el umbral que disparaba la reescritura).
+// interpretHora("213") interpretaba 2:13 en vez de 21:30 — sin error visible, solo
+// hora incorrecta. Fix de causa raíz: reescribir inputEl.value = raw en cada evento
+// input, no solo al superar 4 dígitos — unifica unidad de conteo (dígito) entre esta
+// función y el atributo maxlength nativo (carácter) para cualquier input que la use.
 // TKT-202607-217 (origen DISC-202607-079): parseHora/horaKey/correctHora eliminadas —
 // dead code confirmado, sin export, sin exposición a window, sin caller real en el
 // proyecto. Comentario huérfano de exposición a window (fin de archivo) retirado junto.
@@ -19,12 +28,14 @@ import { esc } from './locus-ui-shell.js';
 
 export function _horaUpdate(inputEl, dispEl) {
   if (!dispEl) return;
-  // B-202606-018: truncar a 4 dígitos en tiempo real — previene 'hora inválida' por exceso de dígitos
+  // B-202606-018 + INC-202608-092: siempre reescribir con solo dígitos — no solo al
+  // superar 4. Un maxlength nativo en el input cuenta caracteres, no dígitos: con
+  // separador (ej. "21:30") el navegador puede truncar a 4 caracteres ("21:3") antes
+  // de que este stripeo corra, dejando un resultado de 3 dígitos que nunca disparaba
+  // la reescritura previa (solo activa con raw.length > 4) y perdía el dígito final.
   let raw = inputEl ? inputEl.value.replace(/\D/g, '') : '';
-  if (inputEl && raw.length > 4) {
-    raw = raw.slice(0, 4);
-    inputEl.value = raw;
-  }
+  if (raw.length > 4) raw = raw.slice(0, 4);
+  if (inputEl && inputEl.value !== raw) inputEl.value = raw;
   const result = interpretHora(raw);
   if (result) {
     dispEl.textContent = result.label;
