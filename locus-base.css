@@ -1,4 +1,11 @@
-/* [PP] mod:17 · autor:Nova · 2026-08-05 UTC-6 */
+/* [PP] mod:18 · autor:Nova · 2026-08-08 UTC-6 */
+/* TKT-202608-273 (REQ-202608-111, TKT1): html vuelve a 16px real (1rem=16px), desacoplado
+   de --text-base. Densidad de fila fijada como token propio --row-h-default (38px, F0),
+   independiente de rem/tipografía. Ver _Locus-css-ref §Hallazgo 2. */
+/* TKT-202608-275 (REQ-202608-111, TKT3): radios reducidos a 4 tokens con nombre de
+   intención — --radius-control/--radius-card/--radius-pill/--radius-none. --radius-md y
+   --radius-lg pasan a alias exactos de los nuevos (mismo valor px, sin cambio visual).
+   Ver _Locus-css-ref §Hallazgo 4 (mismo criterio ya aplicado a z-index). */
 /* TKT-202608-252 (REQ-202608-099, TKT2): .diff-chip border-width 0.5px→1px, default
    border-color de transparent a var(--border). */
 /* locus-base.css */

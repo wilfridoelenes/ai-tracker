@@ -1,4 +1,10 @@
-// [PP] mod:160 · autor:Rune · 2026-08-08 15:40 UTC-6
+// [PP] mod:162 · autor:Rune · 2026-08-08 16:32 UTC-6
+// TKT1 (parent CAEL-08081620-01, ref_id CAEL-08081620-02, origen_disc DISC-202608-113):
+// _promoteItem() agrega guard de status terminal — mismo patrón que _promoteTktToReq()
+// (L1810), adaptado a los estados válidos de DISC (discovery/promoted/descartado, DISC
+// nunca alcanza 'done'). El guard retorna antes de overlay.classList.add('open'), sin
+// tocar _promoteTktToReq() ni el modal compartido #promote-modal-overlay.
+// [PP] mod:161 · autor:Rune · 2026-08-08 16:05 UTC-6
 // TKT3 (parent CAEL-08081500-01, ref_id CAEL-08081500-04): _promoteItem() agrega bloque
 // .promote-modal-info con el mismo aviso de descarte que ya muestra _promoteTktToReq() —
 // antes P→T/R descartaba el DISC origen sin avisarlo. Reutiliza la clase .promote-modal-info
@@ -615,7 +621,7 @@
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _isQDiscActive, QDISC_ACTIVE_LIMIT, _openItemEditorSafe, _setIncidents, _skelHide, _undoSnapshotItems, _undoSnapshotIncidents, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass, _newBacklogItem, _syncParentRStatus, _computeRStatusFromChildren } from './locus-backlog-core.js'; // TKT1 (REQ CAEL-0720-01): _computeRStatusFromChildren agregada — reutilizada por _checkAndOrphanParentR // TKT2 (REQ-202607-025): _newBacklogItem agregado // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202607-010: _isQDiscActive + QDISC_ACTIVE_LIMIT agregados — gate de límite Q-DISC en mergeBacklogFromTG · TKT1 (REQ-202607-021): _syncParentRStatus agregada — reemplaza a _checkAndAdvanceParentR (función local eliminada, duplicaba la misma regla con criterio divergente)
+import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _setIncidents, _skelHide, _undoSnapshotItems, _undoSnapshotIncidents, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass, _newBacklogItem, _syncParentRStatus, _computeRStatusFromChildren } from './locus-backlog-core.js'; // TKT1 (REQ CAEL-0720-01): _computeRStatusFromChildren agregada — reutilizada por _checkAndOrphanParentR // TKT2 (REQ-202607-025): _newBacklogItem agregado // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202608-268: _isQDiscActive + QDISC_ACTIVE_LIMIT retirados del import — gate de límite Q-DISC eliminado (infra_version 92, sin tope de entrada), sin caller en este archivo · TKT1 (REQ-202607-021): _syncParentRStatus agregada — reemplaza a _checkAndAdvanceParentR (función local eliminada, duplicaba la misma regla con criterio divergente)
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges · TKT (REQ CAEL-0720-24): setItemParent retirado — función eliminada, sin callers
 import { _normalizeSprint } from './locus-session-parse.js'; // INC — fix producción 2026-07-24: _VALID_INCIDENT_STATUS/_VALID_PRB_STATUS/_VALID_KE_STATUS retirados del import — ninguno se usaba en este archivo (buildIncidentItem/validateIncidentTransitions, únicos consumidores plausibles, ya viven en locus-incidents-item.js desde TKT2 mod:133). _VALID_KE_STATUS dejó de existir como export en TKT1 de CAEL-0724-01 (locus-session-parse.js mod:136) — causaba SyntaxError de módulo ESM al cargar. _VALID_INCIDENT_STATUS/_VALID_PRB_STATUS seguían existiendo pero igual de muertos aquí — mismo patrón de deuda, retirados por consistencia (causa raíz: imports huérfanos post-TKT2, no solo el síntoma que rompió hoy)
 import { _blogLog, _tplKey, getAI, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito // INC-[pendiente-ID] (retiro archivedInSprint): getActiveSprints retirado — sin caller tras eliminar el bloque de escritura de archivedInSprint
@@ -1697,6 +1703,12 @@ export function buildBacklogItem(item, opts = {}) {
 function _promoteItem(code) {
   const item = getItems().find(i => i.code === code);
   if (!item) return;
+  // TKT1 (parent CAEL-08081620-01, origen_disc DISC-202608-113): guard de status
+  // terminal — mismo patrón que _promoteTktToReq() (L1810 previa a este cambio), adaptado
+  // a los estados válidos de DISC (__BR-Ecosystem §5: discovery/promoted/descartado — DISC
+  // nunca alcanza 'done'). Sin este guard, un DISC ya promovido o descartado podía reabrir
+  // el modal de promoción.
+  if (item.status === 'promoted' || item.status === 'descartado') return;
 
   // R-202604-047: shell estático en index.html — inject content + classList
   const overlay = document.getElementById('promote-modal-overlay');
@@ -3063,22 +3075,12 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
         }
       }
 
-      // TKT-202607-010 (TKT2 REQ-202607-006): gate de parser — Q-DISC al límite de 15
-      // activos no acepta un DISC nuevo. Mismo patrón que el gate REQ-sin-TKT de arriba:
-      // bloqueo por ítem — no de todo el batch. Cuenta contra getItems() ya persistidos
-      // (universo real de la zona vía _isQDiscActive, que ya excluye descartado/promoted/
-      // historico) — no contra el batch entrante, que si trae un DISC con código real
-      // matcheando uno existente cae en la rama "existing" (arriba), no aquí.
-      if (_incomingTypePreCheck === 'DISC') {
-        const _activeDiscCount = getItems().filter(_isQDiscActive).length;
-        if (_activeDiscCount >= QDISC_ACTIVE_LIMIT) {
-          const _qdMsg = `Q-DISC al límite (${QDISC_ACTIVE_LIMIT}/${QDISC_ACTIVE_LIMIT}) — descarta o promueve antes de agregar`;
-          ignored.push({ code: item.code, reason: 'qdisc-limite', desc: item.title || '', idx: item.idx });
-          if (!_dryRun) showToast('error', 'Q-DISC al límite', _qdMsg);
-          _blogLog('qdisc-limite', item.code || '', _qdMsg, 'backlog');
-          return; // no se crea en el backlog
-        }
-      }
+      // TKT-202608-268 (TKT1): gate de límite Q-DISC (qdisc-limite, ex TKT-202607-010)
+      // retirado — infra_version 92 elimina el tope de entrada de Q-DISC (__BR-Ecosystem §5:
+      // "Sin tope de entrada — Q-DISC no rechaza DISCs por volumen. Un DISC entra siempre").
+      // La presión de grooming se gestiona vía los tres mecanismos no bloqueantes ya vigentes
+      // (métrica dominical de Vera, alerta de Locus a 30 días, grooming obligatorio de Cael
+      // al abrir sprint) — no vía rechazo de ingesta.
 
       // R-202605-021: resolver parentId para ítems nuevos
       // TKT3 (REQ CAEL-0720-1x): parentId exclusivo de TKT (__BR-Ecosystem §5) — AC corregido,
