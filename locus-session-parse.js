@@ -2561,30 +2561,17 @@ export function parsePaste(id) {
     }
   }
 
-  if (title || summary) {
-    // CAEL-29 (TKT5): identidad de resultado vía _showIngestValidationResult —
-    // reemplaza el bloque roto que usaba `prev`/`state.projects` (ver comentario junto
-    // a esa función). Proyecto activo vía getActiveProject() — única fuente vigente desde
-    // la migración a #ingest-ta global (CAEL-22); la card por-Worker con su propio selector
-    // de proyecto (sess-proj-${id}) no existe más.
-    const _activeProjIVR = getActiveProject();
-    _showIngestValidationResult({
-      ckptProyecto: ckpt ? (ckpt.proyecto || '') : '',
-      activeProjectName: _activeProjIVR ? (_activeProjIVR.name || '') : '',
-      title,
-      summary,
-      files,
-      nextStep,
-      blockers: bloqueantesRaw,
-      items: tgItems
-    });
-    // CAEL-31 (TKT7): lista de ítems (tgItems) ahora se renderiza — cierra el no_incluye
-    // original de CAEL-29. #ingest-validation-result queda completo: badges, título,
-    // resumen, archivo, próximo paso, bloqueantes e ítems, todos vía un solo call site.
-  } else {
-    const _resultElReset = document.getElementById('ingest-validation-result');
-    if (_resultElReset) _resultElReset.classList.add('is-hidden');
-  }
+  // TKT-202608-277 (REQ-202608-112, AC1): _showIngestValidationResult() retirada de este call
+  // site. Con el gate de _routeParse() ampliado a >=1 bloque (TKT-202608-276), parsePaste() solo
+  // se alcanza cuando _splitCheckpointBlocks(ta.value).length === 0 — y en ese caso title/summary
+  // nunca quedan poblados (parseCheckpoint() solo produce titulo/resumen no vacíos por la misma
+  // vía estructural que _splitCheckpointBlocks usa para contar bloques: fence completo o JSON
+  // bare completo — ver isCheckpoint/_looksLikeBareCheckpointJson arriba). El bloque
+  // `if (title || summary)` queda estructuralmente inalcanzable — #ingest-validation-result
+  // permanece siempre oculto desde este call site, mismo resultado visual final que antes tenía
+  // el branch `else`, ahora sin condición porque la rama `if` nunca se cumple.
+  const _resultElReset = document.getElementById('ingest-validation-result');
+  if (_resultElReset) _resultElReset.classList.add('is-hidden');
 }
 // T-202606-032: _pasteInFlight (módulo) e isParseInFlight eliminados — AC-4/AC-5.
 // El guard de saveSession se eliminó. handlePaste usa su propia variable local _pasteRetry

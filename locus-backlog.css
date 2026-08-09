@@ -655,9 +655,14 @@
   flex-shrink: 0;
 }
 
+/* TKT-202608-281: border-width fijo 1.5px en reposo — ya no crece a 1.5px solo en .active
+   (AC5). Padding sin cambio — este chip usa una escala propia (5px 10px), fuera del alcance
+   literal de AC2, que declara la migración de 3px 8px → 4px 9px para la familia de chips de
+   filtro de una línea; el mecanismo de tamaño estable (mismo padding en ambos estados) ya
+   se cumplía aquí de por sí, border-width nunca varió el tamaño. */
 .stat-type-chip {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 5px 10px; border-radius: var(--radius-md); border: 1px solid;
+  padding: 5px 10px; border-radius: var(--radius-md); border: 1.5px solid;
   cursor: pointer; transition: var(--trans-fast); user-select: none;
   opacity: 0.35;
 }
@@ -674,7 +679,6 @@
 
 .stat-type-chip.active {
   opacity: 1;
-  border-width: 1.5px;
 }
 
 .stat-type-chip.active:hover {
@@ -756,24 +760,30 @@
   color: var(--purple-text);
 }
 
+/* TKT-202608-281: mismo mecanismo — fill sólido del color identidad + texto de alto contraste,
+   en vez del tinte medio (*-border al 25%) que usaba antes. Ver nota en .filter-btn. */
 .stat-type-chip.active.tc-INC {
-  background: var(--red-border);
-  border-color: var(--red);
+  background: var(--red-text);
+  border-color: var(--red-text);
+  color: var(--on-fill-vivid);
 }
 
 .stat-type-chip.active.tc-TKT {
-  background: var(--green-border);
-  border-color: var(--green);
+  background: var(--green-text);
+  border-color: var(--green-text);
+  color: var(--on-fill-vivid);
 }
 
 .stat-type-chip.active.tc-REQ {
-  background: var(--blue-border);
-  border-color: var(--blue);
+  background: var(--blue-text);
+  border-color: var(--blue-text);
+  color: var(--on-fill-vivid);
 }
 
 .stat-type-chip.active.tc-DISC {
-  background: var(--purple-border);
-  border-color: var(--purple);
+  background: var(--purple-text);
+  border-color: var(--purple-text);
+  color: var(--on-fill-vivid);
 }
 
 /* Gen2 — tipos ITIL: PRB (#f59e0b amber) · KE (#eab308 yellow) · CHG (#64748b slate) */
@@ -790,13 +800,15 @@
 }
 
 .stat-type-chip.active.tc-PRB {
-  background: rgb(245 158 11 / 22%);
-  border-color: var(--amber, #e8a832);
+  background: var(--amber-text, #e8a832);
+  border-color: var(--amber-text, #e8a832);
+  color: var(--on-fill-vivid);
 }
 
 .stat-type-chip.active.tc-CHG {
-  background: rgb(100 116 139 / 22%);
-  border-color: #94a3b8;
+  background: var(--slate-text, #94a3b8);
+  border-color: var(--slate-text, #94a3b8);
+  color: var(--on-fill-vivid);
 }
 
 /* T-202606-006: modifier para chips informativos — sin interacción.
@@ -1134,13 +1146,20 @@
   margin-right: 4px;
 }
 
+/* TKT-202608-281 (REQ-202608-116, N07): mecanismo de border-width 1px→1.5px (mod:146,
+   TKT-202608-248) retirado como señal de estado activo — bajo umbral de percepción sin
+   comparación lado a lado. Reemplazado por inversión de superficie: reposo = fill tenue +
+   borde/texto del color identidad; activo = fill sólido del color identidad + texto de alto
+   contraste (--on-fill-vivid/--on-fill-muted, locus-base.css). border-width ahora 1.5px fijo
+   en ambos estados — nunca difiere entre reposo y activo (AC5). padding 3px 8px → 4px 9px en
+   ambos estados simultáneamente (AC2) — compensa el grosor de borde ahora constante. */
 .filter-btn {
   font-family: var(--font-sans);
   font-size: var(--text-xs);
   font-weight: 500;
-  padding: 3px 8px;
+  padding: 4px 9px;
   border-radius: var(--radius-xs);
-  border: 1px solid var(--border2);
+  border: 1.5px solid var(--border2);
   background: transparent;
   color: var(--text2);
   cursor: pointer;
@@ -1153,45 +1172,45 @@
 }
 
 .filter-btn.active {
-  background: var(--surface);
-  color: var(--text);
-  border: 1.5px solid var(--accent);
+  background: var(--accent-text);
+  color: var(--on-fill-vivid);
+  border-color: var(--accent-text);
 }
 
 .filter-btn.active.f-critical {
-  border: 1.5px solid var(--c-critical-text);
-  color: var(--c-critical-text);
-  background: var(--c-critical-bg);
+  background: var(--c-critical-text);
+  color: var(--on-fill-vivid);
+  border-color: var(--c-critical-text);
 }
 
 .filter-btn.active.f-high {
-  border: 1.5px solid var(--c-high-text);
-  color: var(--c-high-text);
-  background: var(--c-high-bg);
+  background: var(--c-high-text);
+  color: var(--on-fill-vivid);
+  border-color: var(--c-high-text);
 }
 
 .filter-btn.active.f-medium {
-  border: 1.5px solid var(--c-medium-text);
-  color: var(--c-medium-text);
-  background: var(--c-medium-bg);
+  background: var(--c-medium-text);
+  color: #000;
+  border-color: var(--c-medium-text);
 }
 
 .filter-btn.active.f-pulido {
-  border: 1.5px solid var(--c-pulido-text);
-  color: var(--c-pulido-text);
-  background: var(--c-pulido-bg);
+  background: var(--c-pulido-text);
+  color: var(--on-fill-vivid);
+  border-color: var(--c-pulido-text);
 }
 
 .filter-btn.active.f-low {
-  border: 1.5px solid var(--c-low-text);
-  color: var(--c-low-text);
-  background: var(--c-low-bg);
+  background: var(--c-low-text);
+  color: #000;
+  border-color: var(--c-low-text);
 }
 
 .filter-btn.active.f-won {
-  border: 1.5px solid var(--c-won-text);
-  color: var(--c-won-text);
-  background: var(--c-won-bg);
+  background: var(--c-won-text);
+  color: var(--on-fill-muted);
+  border-color: var(--c-won-text);
 }
 
 .version-group {
@@ -2030,9 +2049,10 @@
   color: var(--red);
 }
 
+/* TKT-202608-281: mismo mecanismo que .filter-btn — ver nota completa arriba en este archivo. */
 .filter-type-btn {
   font-family: var(--mono); font-size: var(--text-xs); font-weight: 700;
-  padding: 3px 8px; border-radius: var(--radius-xs); border: 1px solid var(--border2);
+  padding: 4px 9px; border-radius: var(--radius-xs); border: 1.5px solid var(--border2);
   background: transparent; cursor: pointer; transition: var(--trans-fast); color: var(--text3);
 }
 
@@ -2041,40 +2061,34 @@
   color: var(--text2);
 }
 
-.filter-type-btn.active-DISC,
-.filter-type-btn.active-TKT,
-.filter-type-btn.active-REQ,
-.filter-type-btn.active-INC {
-  border-width: 1.5px;
-}
-
 .filter-type-btn.active-DISC {
-  background: rgb(124 106 247 / 15%);
-  color: var(--purple-text);
-  border-color: var(--purple);
+  background: var(--purple-text);
+  color: var(--on-fill-vivid);
+  border-color: var(--purple-text);
 }
 
 .filter-type-btn.active-TKT {
-  background: rgb(46 204 120 / 15%);
-  color: var(--green-text);
-  border-color: var(--green);
+  background: var(--green-text);
+  color: var(--on-fill-vivid);
+  border-color: var(--green-text);
 }
 
 .filter-type-btn.active-REQ {
-  background: rgb(56 189 248 / 15%);
-  color: var(--blue-text);
-  border-color: var(--blue);
+  background: var(--blue-text);
+  color: var(--on-fill-vivid);
+  border-color: var(--blue-text);
 }
 
 .filter-type-btn.active-INC {
-  background: rgb(232 85 85 / 15%);
-  color: var(--red-text);
-  border-color: var(--red);
+  background: var(--red-text);
+  color: var(--on-fill-vivid);
+  border-color: var(--red-text);
 }
 
+/* TKT-202608-281: mismo mecanismo — ver nota completa en .filter-btn arriba en este archivo. */
 .filter-status-btn {
   font-family: var(--font-sans); font-size: var(--text-xs); font-weight: 500;
-  padding: 3px 8px; border-radius: var(--radius-xs); border: 1px solid var(--border2);
+  padding: 4px 9px; border-radius: var(--radius-xs); border: 1.5px solid var(--border2);
   background: transparent; color: var(--text3); cursor: pointer; transition: var(--trans-fast);
 }
 
@@ -2084,15 +2098,14 @@
 }
 
 .filter-status-btn.active {
-  background: var(--surface2);
-  color: var(--text);
-  border-color: var(--accent);
-  border-width: 1.5px;
+  background: var(--accent-text);
+  color: var(--on-fill-vivid);
+  border-color: var(--accent-text);
 }
 
 .filter-done-chip {
-  font-size: var(--text-xs); font-weight: 500; padding: 3px 8px; border-radius: var(--radius-xs);
-  border: 1px solid var(--c-done-border); background: var(--c-done-bg);
+  font-size: var(--text-xs); font-weight: 500; padding: 4px 9px; border-radius: var(--radius-xs);
+  border: 1.5px solid var(--c-done-border); background: var(--c-done-bg);
   color: var(--c-done-text); cursor: pointer; transition: var(--trans-fast);
 }
 
@@ -2102,9 +2115,9 @@
 }
 
 .filter-done-chip.active {
-  border-color: var(--text2);
-  color: var(--text);
-  background: var(--surface2);
+  background: var(--c-done-text);
+  color: var(--on-fill-muted);
+  border-color: var(--c-done-text);
 }
 
 /* T-108: ítem colapsable */
@@ -3313,13 +3326,16 @@
 /* Mi vista — oculto por defecto */
 
 /* Pills de filtro en la strip */
+/* TKT-202608-281: mismo mecanismo — ver nota completa en .filter-btn arriba en este archivo.
+   s-pendiente usaba el token de color naranja (rgb(245 158 11)) etiquetado --amber-text por
+   herencia de naming — se preserva ese mismo token de identidad, solo cambia el mecanismo. */
 .bl-strip-btn {
   font-family: var(--font-sans);
   font-size: var(--text-xs);
   font-weight: 500;
-  padding: 3px 8px;
+  padding: 4px 9px;
   border-radius: var(--radius-xs);
-  border: 1px solid transparent;
+  border: 1.5px solid transparent;
   background: transparent;
   color: var(--text2);
   cursor: pointer;
@@ -3333,45 +3349,35 @@
 }
 
 .bl-strip-btn.active {
-  border-color: var(--accent);
-  border-width: 1.5px;
-  background: var(--accent-dim);
-  color: var(--text);
-}
-
-.bl-strip-btn.active.s-done,
-.bl-strip-btn.active.s-en-curso,
-.bl-strip-btn.active.s-en-revision,
-.bl-strip-btn.active.s-pendiente,
-.bl-strip-btn.active.s-descartado,
-.bl-strip-btn.active.s-bloqueado {
-  border-width: 1.5px;
+  border-color: var(--accent-text);
+  background: var(--accent-text);
+  color: var(--on-fill-vivid);
 }
 
 .bl-strip-btn.active.s-done {
-  border-color: var(--c-done-border);
-  background: var(--c-done-bg);
-  color: var(--c-done-text);
+  border-color: var(--c-done-text);
+  background: var(--c-done-text);
+  color: var(--on-fill-muted);
 }
 
 .bl-strip-btn.active.s-en-curso {
-  border-color: var(--c-pulido-border);
-  background: var(--c-pulido-bg);
-  color: var(--c-pulido-text);
+  border-color: var(--c-pulido-text);
+  background: var(--c-pulido-text);
+  color: var(--on-fill-vivid);
 }
 
 /* T-202605-040: En revisión — reutiliza variables de en-curso */
 .bl-strip-btn.active.s-en-revision {
-  border-color: var(--c-high-border);
-  background: var(--c-high-bg);
-  color: var(--c-high-text);
+  border-color: var(--c-high-text);
+  background: var(--c-high-text);
+  color: var(--on-fill-vivid);
 }
 
 /* T-202606-089: Pendiente — protagonista amber */
 .bl-strip-btn.active.s-pendiente {
-  border-color: rgb(245 158 11 / 35%);
-  background: rgb(245 158 11 / 12%);
-  color: var(--amber-text);
+  border-color: var(--amber-text);
+  background: var(--amber-text);
+  color: var(--on-fill-vivid);
 }
 
 /* T-202606-089: done/descartado atenuados cuando no están activos como filtro */
@@ -3381,15 +3387,15 @@
 }
 
 .bl-strip-btn.active.s-descartado {
-  border-color: var(--c-won-border);
-  background: var(--c-won-bg);
-  color: var(--c-won-text);
+  border-color: var(--c-won-text);
+  background: var(--c-won-text);
+  color: var(--on-fill-muted);
 }
 
 .bl-strip-btn.active.s-bloqueado {
-  border-color: var(--red-border);
-  background: var(--red-dim);
-  color: var(--red-text);
+  border-color: var(--red-text);
+  background: var(--red-text);
+  color: var(--on-fill-vivid);
 }
 
 /* Sort dropdown inline */

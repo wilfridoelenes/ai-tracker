@@ -1,4 +1,9 @@
-/* [PP] mod:7 · autor:Nova · 2026-08-05 UTC-6 */
+/* [PP] mod:8 · autor:Nova · 2026-08-09 16:40 UTC-6 */
+/* TKT-202608-281 (REQ-202608-116, N07 — chip activo: inversión de superficie): mod:7 quedó
+   sin bump pese a que este mod entrega la migración de .htmlmap-filter-btn.active al mismo
+   mecanismo de inversión de superficie que .filter-btn (locus-backlog.css) — ver comentario
+   inline junto al bloque, más abajo. Gap de header detectado por Rune al verificar identidad
+   antes de integrar, corregido en el mismo ciclo. */
 /* TKT-202608-249 (REQ-202608-098, TKT2 · Estandarizar mecanismo visual de pills de filtro):
    .htmlmap-filter-btn migra a var(--radius-xs) + padding 3px 8px (normal y activo, unificados
    para evitar salto de tamaño al alternar — mismo patrón que TKT1 aplicó a .filter-status-btn)
@@ -74,10 +79,11 @@
   flex-wrap: wrap;
 }
 
+/* TKT-202608-281: mismo mecanismo que .filter-btn (locus-backlog.css) — ver nota completa ahí. */
 .htmlmap-filter-btn {
-  padding: 3px 8px;
+  padding: 4px 9px;
   border-radius: var(--radius-xs);
-  border: 1px solid var(--border2);
+  border: 1.5px solid var(--border2);
   background: none;
   font-size: var(--text-xs);
   color: var(--text2);
@@ -91,10 +97,9 @@
 }
 
 .htmlmap-filter-btn.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  border-width: 1.5px;
-  color: #fff;
+  background: var(--accent-text);
+  border-color: var(--accent-text);
+  color: var(--on-fill-vivid);
   font-weight: 600;
 }
 

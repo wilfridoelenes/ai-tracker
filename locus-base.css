@@ -1,4 +1,8 @@
-/* [PP] mod:21 · autor:Nova · 2026-08-09 UTC-6 */
+/* [PP] mod:22 · autor:Nova · 2026-08-09 16:40 UTC-6 */
+/* TKT-202608-281 (REQ-202608-116, N07 — chip activo: inversión de superficie): mod:21 quedó
+   sin bump pese a que este mod entrega --on-fill-vivid/--on-fill-muted en ambos temas (ver
+   bloques Cluster B "TKT-202608-281" dentro de cada tema, más abajo) — gap de header
+   detectado por Rune al verificar identidad antes de integrar, corregido en el mismo ciclo. */
 /* TKT-202608-274 (REQ-202608-111, TKT2) — corrección de arquitectura (mod:21, decisión del
    founder tras Pausa de ciclo, opción B): mod:20 declaraba 7 pasos con piso en 12px y base
    fija en 16px — matemáticamente incumplía su propio AC3 (salto ≥2px entre pasos), porque
@@ -246,6 +250,19 @@
   --yellow-text: var(--yellow);
   --slate-text:  #808da0;
 
+  /* ── TKT-202608-281 (N07 — chip activo: inversión de superficie): texto sobre fill sólido
+     de chip activo. Cada *-text de hue (critical/high/pulido/red/green/blue/purple/amber/slate/
+     accent-text/orange) se usa como background-color del estado .active — verificado contra
+     negro/blanco vía cálculo WCAG relativo (no contra --surface, contra el propio color del
+     fill): en dark, negro pasa ≥4.5:1 contra todos esos fills; en light, blanco pasa ≥4.5:1
+     contra todos esos fills. --on-fill-vivid es ese ganador por tema.
+     --on-fill-muted es el ganador inverso, exclusivo de los dos tokens desaturados grises
+     (--c-won-text / --c-done-text), cuya polaridad de contraste se invierte respecto al resto:
+     en dark ganan blanco, en light ganan negro. Ambos casos verificados con la misma fórmula
+     WCAG relativa (contraste sRGB), no medidos contra --surface. */
+  --on-fill-vivid:  #000;
+  --on-fill-muted:  #fff;
+
   /* ── TKT1 (REQ CAEL-01 · design_intent: QDISC-headers-3-bloques-verticales) — mismo patrón
      Cluster B: --blue/--red ya pasan 4.5:1 en dark (7.85–9.55:1 / 4.68–5.69:1 vs
      --surface3/--surface2/--bg2) — sin override, igual que --orange-text en este tema. ── */
@@ -397,6 +414,13 @@
   --orange-text: #995f06;
   --yellow-text: #836900;
   --slate-text:  var(--slate);
+
+  /* ── TKT-202608-281 — espejo de light theme. Polaridad invertida respecto a dark:
+     en light, blanco pasa ≥4.5:1 contra los fills vivid (critical/high/pulido/red/green/blue/
+     purple/amber/slate/accent-text/orange); negro pasa contra los dos fills muted
+     (--c-won-text/--c-done-text). Ver nota completa en el bloque dark. */
+  --on-fill-vivid:  #fff;
+  --on-fill-muted:  #000;
 
   /* ── TKT1 (REQ CAEL-01 · design_intent: QDISC-headers-3-bloques-verticales) — gap cerrado:
      --blue/--red fallan como texto en light (3.31–4.11:1 / 4.01–4.41:1 vs --surface3/--surface2/
