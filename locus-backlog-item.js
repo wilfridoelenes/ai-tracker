@@ -1,4 +1,10 @@
-// [PP] mod:162 · autor:Rune · 2026-08-08 16:32 UTC-6
+// [PP] mod:164 · autor:Rune · 2026-08-08 22:55 UTC-6
+// TKT-202608-279 (REQ-202608-113, origen_disc DISC-202608-115): applyPatchesFromTG no
+// normalizaba no_incluye en patch — el catch-all genérico escribía el valor crudo sin
+// validar tipo. Rama propia agregada antes del catch-all: string se normaliza a array
+// (split por coma + trim), formato inválido con contenido no pisa el valor existente y
+// deja rastro en DocLog. Ver TKT-202608-278 (locus-session-parse.js) para la contraparte
+// en creación — asimetría intencional: en creación no hay valor previo que proteger.
 // TKT1 (parent CAEL-08081620-01, ref_id CAEL-08081620-02, origen_disc DISC-202608-113):
 // _promoteItem() agrega guard de status terminal — mismo patrón que _promoteTktToReq()
 // (L1810), adaptado a los estados válidos de DISC (discovery/promoted/descartado, DISC
@@ -3197,6 +3203,29 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
     _updateSubtabBadges();
     if (getCurrentTab() === 'backlog') { _markBacklogListDirty(); renderBacklogList(); updateBacklogBanner(); }
   }
+
+  // TKT1 (parent CAEL-08081700-01, ref_id CAEL-08081700-02, origen_disc DISC-202608-111):
+  // chequeo post-batch — corre después de que todos los ítems nuevos del bloque ya fueron
+  // creados, para no dar falso positivo cuando la DISC y su patch de promoción llegan en el
+  // mismo bloque (mismo criterio de "verificar después del batch completo" que
+  // draft-hijos-pendientes en applyPatchesFromTG). No bloqueante — solo señala en DocLog un
+  // item nuevo con origen_disc cuya DISC de origen no quedó en status:promoted tras aplicar
+  // el batch completo. No usa el shape de `created` (sin campo origenDisc, ver contrato de
+  // mergeBacklogFromTG en _Locus-module-contracts §2) — relee directo de getItems() por code.
+  created.forEach(c => {
+    const _newItem = getItems().find(it => it.code === c.code);
+    if (!_newItem || !_newItem.origenDisc) return;
+    const _originDisc = getItems().find(it => it.code === _newItem.origenDisc);
+    if (_originDisc && _originDisc.status !== 'promoted') {
+      _blogLog(
+        'origen-disc-sin-promocion',
+        c.code,
+        `origen_disc ${_newItem.origenDisc} sin patch de promoción — DISC permanece en discovery. Ver __BR-Ecosystem §8.`,
+        'backlog'
+      );
+    }
+  });
+
   return { created, advanced, retroceso, discarded, updated, ignored, createdAndClosed, tmpSuggestions, invalidTransition, slugMap: _slugMap, refIdTitleMap: _refIdTitleMap, unresolvedRefs }; // T-[pendiente-ID]: invalidTransition poblado pre-clasificación · B-202606-022: slugMap para resolución de [tmp:slug] en applyPatchesFromTG · TKT1 (REQ-[pendiente-ID] · CAEL-04): refIdTitleMap expuesto — ya se construía internamente (L2056) para normalizar parentId/triggeredBy/origenDisc/promovida_a/dependsOn, pero nunca salía de esta función. applyPatchesFromTG lo necesita para resolver patch.code cuando llega como {ref_id,title} o [tmp:REF_ID] · TKT1 (REQ CAEL-0720-[pendiente-ID] · gap 3): unresolvedRefs expuesto — poblado en _normalizeRefIdValue con entradas ref-id-sin-declarante ({code, field, ref_id, title}), consumido por el resolver de búsqueda de TKT2
 }
 
@@ -4029,6 +4058,23 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
           changes.push({ field: 'blockedAt', from: current !== undefined ? current : '—', to: incoming === undefined ? null : incoming });
           existing.blockedAt = (incoming === undefined) ? null : incoming;
         }
+        return;
+      }
+      // TKT-202608-279 (REQ-202608-113, origen_disc DISC-202608-115): no_incluye no tenía
+      // normalización en patch — el catch-all genérico de abajo escribía el valor crudo del
+      // patch sin validar tipo (asimetría con _buildTgItemsFromParsed en creación, que sí
+      // coaccionaba a [] — TKT-202608-278). Aquí la asimetría es intencional en sentido
+      // contrario: un patch con formato inválido NO pisa un no_incluye ya persistido con [] —
+      // no hay valor previo que proteger en creación, pero sí lo hay en patch.
+      if (field === 'no_incluye' && typeof incoming === 'string') {
+        const _trimmed = incoming.trim();
+        const _normalized = _trimmed === '' ? [] : _trimmed.split(',').map(s => s.trim()).filter(s => s !== '');
+        changes.push({ field: 'no_incluye', from: current !== undefined ? current : '—', to: _normalized });
+        existing.no_incluye = _normalized;
+        return;
+      }
+      if (field === 'no_incluye' && incoming !== undefined && incoming !== null && !Array.isArray(incoming)) {
+        _blogLog('no_incluye-formato-invalido', code, `no_incluye con formato inválido en patch (no string, no array) — valor existente conservado sin modificar. Valor crudo: ${JSON.stringify(incoming)}`, 'backlog');
         return;
       }
       if (incoming !== undefined && incoming !== null && incoming !== current) {

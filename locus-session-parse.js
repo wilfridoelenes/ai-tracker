@@ -1,4 +1,10 @@
-// [PP] mod:186 · autor:Rune · 2026-08-08 UTC-6
+// [PP] mod:187 · autor:Rune · 2026-08-08 22:40 UTC-6
+// TKT-202608-278 (REQ-202608-113, origen_disc DISC-202608-115): _buildTgItemsFromParsed
+// coaccionaba no_incluye a [] en silencio cuando el valor entrante no era ya un array —
+// agregado _normalizeNoIncluye() (string con comas → array trimmed, string sin comas →
+// array de 1, otro tipo con contenido → [] + _blogLog). Aplicado en los 2 sitios de
+// construcción de tgItems dentro de la función. Ver TKT-202608-279 (locus-backlog-item.js)
+// para la contraparte simétrica en patch.
 // TKT-202608-267 (REQ-202608-107): loop inline de parsePaste()
 // (~110 líneas, gate de type/status/ITIL/en-revision-sin-sprint/REQ+bloqueado/REQ-sin-AC/
 // patch/patch-intencion) retirado y reemplazado por la llamada a _buildTgItemsFromParsed() —
@@ -3080,6 +3086,31 @@ export function _tryIngestSprintProposalFromParsed(proposalObj) {
 //   flujo batch (2+ bloques, AC1/AC2/AC4) para construir el preview de cada bloque con
 //   buildTGPreview. Sin efectos laterales propios más allá de _blogLog/showToast — mismos
 //   que ya existían inline. No persiste, no wiring a _applyCheckpointBatch (eso es TKT4).
+// TKT-202608-278 (REQ-202608-113, origen_disc DISC-202608-115): _buildTgItemsFromParsed
+// coaccionaba no_incluye a [] en silencio cuando el valor entrante no era ya un array JS —
+// __BR-Ecosystem §8 muestra no_incluye como valor escalar de ejemplo en el schema, sin
+// declarar que debe ser array, y module-contracts mod:104 ya fijaba array como forma canónica
+// de storage. Normaliza: array pasa igual · string con comas se divide y se trimea · string
+// sin comas se envuelve en array de 1 · cualquier otro tipo con contenido se coacciona a []
+// pero deja rastro en DocLog · vacío/ausente/null/undefined/"" se coacciona a [] sin ruido.
+function _normalizeNoIncluye(raw, itemCode) {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') {
+    const _trimmed = raw.trim();
+    if (_trimmed === '') return [];
+    return _trimmed.split(',').map(s => s.trim()).filter(s => s !== '');
+  }
+  if (raw !== null && raw !== undefined && raw !== '') {
+    _blogLog(
+      'no_incluye-formato-invalido',
+      itemCode || '[pendiente-ID]',
+      `no_incluye con formato inválido (no string, no array) — coaccionado a []. Valor crudo: ${JSON.stringify(raw)}`,
+      'backlog'
+    );
+  }
+  return [];
+}
+
 function _buildTgItemsFromParsed(ckpt, parsedJSON) {
   const _validTypes    = _GEN2_TYPES;
   const _validStatuses = _VALID_STATUSES_GATE;
@@ -3202,7 +3233,7 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
           triggeredBy:   it.triggered_by  || null,
           origenDisc:    it.origen_disc   || null,
           intencion:     it.intencion     || null,
-          no_incluye:    Array.isArray(it.no_incluye) ? it.no_incluye : [],
+          no_incluye:    _normalizeNoIncluye(it.no_incluye, it.code),
           // T-[pendiente-ID] (REQ-contract-rename, TKT4): contract_detail no se propagaba a
           // tgItems — se perdía entre el parseo y mergeBacklogFromTG. Alineado a BR-Execution §2.
           contract_detail: it.contract_detail || null,
@@ -3265,7 +3296,7 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
       triggeredBy:   it.triggered_by  || null,
       origenDisc:    it.origen_disc   || null,
       intencion:     it.intencion     || null,
-      no_incluye:    Array.isArray(it.no_incluye) ? it.no_incluye : [],
+      no_incluye:    _normalizeNoIncluye(it.no_incluye, it.code),
       // T-[pendiente-ID] (REQ-contract-rename, TKT4): contract_detail no se propagaba a
       // tgItems — se perdía entre el parseo y mergeBacklogFromTG. Alineado a BR-Execution §2.
       contract_detail: it.contract_detail || null,

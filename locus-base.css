@@ -1,10 +1,20 @@
-/* [PP] mod:18 · autor:Nova · 2026-08-08 UTC-6 */
+/* [PP] mod:20 · autor:Nova · 2026-08-08 UTC-6 */
+/* TKT-202608-274 (REQ-202608-111, TKT2): escala tipográfica reducida de 10 a 7 pasos con
+   salto perceptible y piso en 12px. --text-base pasa de 13px a 16px — coincide ahora con
+   la raíz real (1rem=16px, TKT-202608-273). --text-3xs/--text-2xs-plus/--text-2xl quedan
+   como alias exactos del paso más cercano — sin DISC de retiro todavía. Cambio visual real,
+   no solo de token — requiere QA de Finn sobre los 17 archivos consumidores antes de
+   en-revision. Ver _Locus-css-ref §Hallazgo 3. */
+/* Corrección mod:19 (hallazgo de Rune, mismo ciclo): mod:18 declaraba en este header los
+   cambios de TKT-202608-273 y TKT-202608-275 sin que el cuerpo del CSS los contuviera —
+   solo comentario, sin código real. Este mod aplica el cambio real descrito abajo. */
 /* TKT-202608-273 (REQ-202608-111, TKT1): html vuelve a 16px real (1rem=16px), desacoplado
    de --text-base. Densidad de fila fijada como token propio --row-h-default (38px, F0),
    independiente de rem/tipografía. Ver _Locus-css-ref §Hallazgo 2. */
 /* TKT-202608-275 (REQ-202608-111, TKT3): radios reducidos a 4 tokens con nombre de
    intención — --radius-control/--radius-card/--radius-pill/--radius-none. --radius-md y
    --radius-lg pasan a alias exactos de los nuevos (mismo valor px, sin cambio visual).
+   Escala numérica legacy conservada sin retiro — ningún TKT abrió esa migración.
    Ver _Locus-css-ref §Hallazgo 4 (mismo criterio ya aplicado a z-index). */
 /* TKT-202608-252 (REQ-202608-099, TKT2): .diff-chip border-width 0.5px→1px, default
    border-color de transparent a var(--border). */
@@ -27,17 +37,23 @@
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --font-display: 'DM Sans', sans-serif;
 
-  /* ── Escala tipográfica ── */
-  --text-3xs:      8px;   /* badge ultra-compacto: .sprint-badge */
-  --text-2xs:      9px;   /* labels de metadatos compactos */
-  --text-2xs-plus: 10px;  /* CSS-01: valor 10px en locus-modals.css — entre --text-2xs y --text-xs */
-  --text-xs:       11px;
-  --text-sm:       12px;
-  --text-base:     13px;
-  --text-md:       14px;
-  --text-lg:       16px;
-  --text-xl:       18px;
-  --text-2xl:      22px;
+  /* ── Escala tipográfica — TKT-202608-274 (REQ-202608-111, TKT2): 7 pasos con salto
+  perceptible, piso en 12px (cierra Hallazgo 3 de _Locus-css-ref — antes 4 pasos de 1px
+  indistinguibles en pantalla + 2 pasos bajo el umbral de lectura sostenida). ── */
+  --text-2xs: 12px;  /* piso — labels de metadatos compactos, badges */
+  --text-xs:  13px;
+  --text-sm:  14px;
+  --text-base:16px;  /* default de lectura — ahora coincide con la raíz real (1rem=16px, TKT-202608-273) */
+  --text-md:  18px;
+  --text-lg:  20px;
+  --text-xl:  24px;
+
+  /* Escala anterior — retirada, conservada como alias exacto del paso más cercano. No hay
+  DISC de retiro emitida todavía para estos 3 nombres — pendiente de acordar con Cael el
+  sprint en que se elimina la referencia directa en los 17 archivos consumidores. */
+  --text-3xs:      var(--text-2xs); /* antes 8px — bajo el umbral de lectura, colapsa al piso */
+  --text-2xs-plus: var(--text-xs);  /* antes 10px — paso indistinguible, colapsa al vecino superior */
+  --text-2xl:      var(--text-xl);  /* antes 22px — sin paso propio en la escala de 7, alias al tope */
 
   /* ── Escala display — stat numbers, headings de sección ── */
   --text-display-sm:  17px;  /* heading de sección compacto */
@@ -47,17 +63,27 @@
   --text-display-2xl: 40px;  /* empty state icons */
 
   /* ── Espaciado / Radios ── */
+  /* TKT-202608-275: set reducido a 4 tokens con nombre de intención — mismo criterio
+  ya aplicado a z-index (ver _Locus-css-ref §Hallazgo 4). Elegir un radio ya no requiere
+  leer los archivos que lo consumen. */
+  --radius-control: 8px;   /* controles — botones, inputs, chips */
+  --radius-card:    12px;  /* cards, paneles, superficies contenedoras */
+  --radius-pill:    999px; /* badges, pills, elementos completamente redondeados */
+  --radius-none:    0px;   /* sin radio — bordes rectos explícitos */
+
+  /* Escala numérica original — conservada sin retiro. Ningún TKT abrió la migración de
+  estos 9 tokens legacy; solo --radius-md y --radius-lg pasan a alias exactos de los
+  nuevos (mismo valor px, sin cambio visual) porque son los dos con mayor consumo directo. */
   --radius-3xs:     1px;   /* CSS-02: suavizado mínimo de borde — separadores, líneas */
   --radius-2xs:     2px;   /* CSS-02: detalle fino — barras de progreso, focus outlines, dots */
   --radius-sm:      4px;
   --radius-xs:      6px;   /* CSS-02: valor 6px en uso — entre --radius-sm y --radius-md */
-  --radius-md:      8px;
+  --radius-md:      var(--radius-control); /* alias exacto — antes 8px literal */
   --radius-md-plus: 10px;  /* CSS-02: valor 10px en uso — entre --radius-md y --radius-lg */
-  --radius-lg:      12px;
+  --radius-lg:      var(--radius-card); /* alias exacto — antes 12px literal */
   --radius-lg-plus: 14px;  /* CSS-02: valor 14px en uso — entre --radius-lg y --radius-xl */
   --radius-xl:      16px;
   --radius-2xl:     20px;  /* CSS-02: valor 20px en uso — sobre --radius-xl */
-  --radius-pill:    999px;
 
   /* ── Layout — gutters horizontales (TKT1 · REQ gutter subtabs; TKT1 · REQ CAEL-0717-02 consolidación) ── */
   --subtab-gutter: 12px; /* gutter compacto — .tpl-detail, #tab-proyectos, #tab-sesiones, #sprint-panel-sprints */
@@ -473,7 +499,9 @@
 /* ── GLOBAL TYPOGRAPHY ── */
 
 html {
-  font-size: var(--text-base);
+  font-size: 16px; /* TKT-202608-273: raíz real — 1rem=16px. Antes: var(--text-base), fijaba
+  la raíz en 13px y anulaba el ajuste de tamaño de fuente del navegador. Ver _Locus-css-ref
+  §Hallazgo 2. La densidad ya no depende de este valor — ver --row-h-default abajo. */
 }
 
 body {
@@ -482,6 +510,10 @@ body {
   color: var(--text);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  --row-h-default: 38px; /* TKT-202608-273: densidad de fila como preferencia declarada,
+  independiente de rem/tipografía — antes era efecto secundario de --text-base sobre html.
+  Consumido por componentes de fila (items de backlog, filas de sesión, etc.) vía
+  height/min-height: var(--row-h-default). Fijo en F0 — no es preferencia de usuario todavía. */
 }
 
 [data-theme="dark"] body {
