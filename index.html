@@ -1,4 +1,4 @@
-<!-- [PP] mod:180 · autor:Rune · 2026-08-08 15:40 UTC-6 -->
+<!-- [PP] mod:181 · autor:Nova · 2026-08-09 18:05 UTC-6 -->
 <!-- TKT1 (parent CAEL-08081500-01, ref_id CAEL-08081500-02): agregado #scs-step-4 (faltaba el
      4º nodo del indicador del wizard de cierre — el bucle en JS lo recorría, index.html no lo
      tenía) + rótulos de #scs-step-2/#scs-step-3 corregidos a su contenido real. Separador nuevo
@@ -1368,6 +1368,23 @@
 </div>
 
 <!-- ═══ OVERLAYS / MODALES (Tracker) ═══ -->
+
+<!-- TKT2 (REQ-202608-118): shell estático del modal ⌘K — contenido dinámico (grupos/filas de resultado) inyectado por Rune en TKT3 -->
+<div id="cmdk-overlay" role="dialog" aria-modal="true" aria-label="Buscador global">
+  <div class="cmdk-modal">
+    <div class="cmdk-input-row">
+      <i class="ti ti-search cmdk-input-icon"></i>
+      <input type="text" id="cmdk-input" placeholder="Buscar por código o título…" autocomplete="off">
+      <span class="cmdk-hint-esc">esc</span>
+    </div>
+    <div class="cmdk-body" id="cmdk-body" data-state="normal">
+      <div class="cmdk-empty-hint">Escribí un código o título para buscar en todo el ecosistema.</div>
+      <div class="cmdk-loading">Cargando índice…</div>
+      <div class="cmdk-empty">Sin resultados para "<span id="cmdk-empty-query"></span>".</div>
+    </div>
+  </div>
+</div>
+<!-- /cmdk-overlay -->
 
 
 
