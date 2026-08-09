@@ -1,4 +1,12 @@
-/* [PP] mod:22 · autor:Nova · 2026-08-09 16:40 UTC-6 */
+/* [PP] mod:23 · autor:Nova · 2026-08-09 17:40 UTC-6 */
+/* TKT-202608-282 (REQ-202608-117, TKT1 — patrón A-09, tres niveles nombrados): cierra el
+   Hallazgo 4 de _Locus-css-ref (31 peldaños de z-index sin criterio de elección). Se agregan
+   3 tokens de nivel — --z-lvl-inline/--z-lvl-panel/--z-lvl-dialogo — con rango propio y sin
+   solapamiento (1-150 / 200-3100 / 8000-10000). Los 31 tokens existentes se reescriben como
+   calc(var(--z-lvl-*) + offset) que resuelve exactamente al mismo valor computado que antes —
+   cero cambio visual (AC4), la escala numérica queda como alias interno de los 3 niveles
+   (AC2), no se migra ningún consumidor real todavía (eso es TKT-202608-283/285). Ver
+   _Locus-css-ref mod:180 y _Locus-ux-ref mod:47 para la regla de uso completa. */
 /* TKT-202608-281 (REQ-202608-116, N07 — chip activo: inversión de superficie): mod:21 quedó
    sin bump pese a que este mod entrega --on-fill-vivid/--on-fill-muted en ambos temas (ver
    bloques Cluster B "TKT-202608-281" dentro de cada tema, más abajo) — gap de header
@@ -140,38 +148,51 @@
   --font:      var(--font-sans);
   --font-base: var(--font-sans);
 
-  /* ── Escala de z-index ── */
-  --z-deep:         1;     /* stacking mínimo — fondos decorativos */
-  --z-raised:       2;     /* elementos inline con elevación leve */
-  --z-base:         10;
-  --z-float-sm:     30;    /* CSS-06: flotantes ligeros de baja prioridad */
-  --z-float-md:     40;    /* CSS-06: flotantes ligeros de prioridad media */
-  --z-float:        50;    /* elementos flotantes ligeros */
-  --z-sticky:       100;
-  --z-popover:      120;   /* popovers · dropdowns compactos (cubre 119/120) */
-  --z-sidebar:      200;
-  --z-sidebar-plus: 210;   /* CSS-06: elementos sobre sidebar base */
-  --z-layer:        250;   /* CSS-06: capa intermedia sidebar→dropdown */
-  --z-layer-2:      300;   /* CSS-06: segunda capa intermedia */
-  --z-dropdown:     400;
-  --z-modal:        500;
-  --z-modal-plus:   600;   /* CSS-06: elementos sobre modal base */
-  --z-overlay-sub:  800;   /* CSS-06: sub-overlay antes del toast */
-  --z-overlay:      900;
-  --z-toast:        1000;
-  --z-toast-plus:   1001;  /* CSS-06: elementos sobre toast base */
-  --z-panel:        1100;  /* paneles sobre modal base */
-  --z-panel-2:      1200;  /* paneles secundarios apilados */
-  --z-panel-3:      1300;  /* tercer nivel de panel */
-  --z-panel-top:    3100;  /* CSS-06: panel de máxima prioridad */
-  --z-supreme-sub:  8000;  /* CSS-06: sub-nivel antes de supreme */
-  --z-supreme-mid:  8500;  /* CSS-06: nivel medio antes de supreme */
-  --z-supreme:      9000;  /* elementos sobre overlay general */
-  --z-supreme-2:    9200;  /* segundo nivel sobre overlay */
-  --z-critical:     9500;  /* CSS-06: entre supreme-2 y top */
-  --z-critical-2:   9900;  /* CSS-06: segundo nivel crítico */
-  --z-top:          9999;
-  --z-absolute:     10000; /* máximo absoluto — supera --z-top */
+  /* ── Escala de z-index — TKT-202608-282 (REQ-202608-117, TKT1): patrón A-09, tres
+  niveles nombrados por intención — cierra Hallazgo 4 de _Locus-css-ref. Regla de uso completa
+  en _Locus-css-ref §Patrón A-09 y _Locus-ux-ref §Patrón A-09: un flujo no abre dos capas del
+  mismo nivel. Rangos sin solapamiento — headroom interno entre niveles para crecimiento
+  futuro sin cruzar banda. Este TKT solo define el vocabulario: los 31 tokens legacy de abajo
+  quedan con el mismo valor computado que tenían — cero migración de consumidores (AC4). ── */
+  --z-lvl-inline:  0;     /* nivel INLINE — el detalle se expande en su propia fila, sin overlay. Rango: 1-150 */
+  --z-lvl-panel:   200;   /* nivel PANEL — columna lateral persistente, no modal. Rango: 200-3100 */
+  --z-lvl-dialogo: 8000;  /* nivel DIÁLOGO — solo confirmaciones destructivas. Rango: 8000-10000 */
+
+  /* ── Escala numérica legacy — alias interno de los 3 niveles de arriba, no superficie de
+  elección (AC2). Cada token resuelve vía calc(nivel + offset) al mismo entero que tenía antes
+  de este TKT — ningún consumidor real se toca. No referenciar estos 31 nombres en código
+  nuevo: usar directamente --z-lvl-inline/--z-lvl-panel/--z-lvl-dialogo. ── */
+  --z-deep:         calc(var(--z-lvl-inline) + 1);     /* = 1 · stacking mínimo — fondos decorativos */
+  --z-raised:       calc(var(--z-lvl-inline) + 2);     /* = 2 · elementos inline con elevación leve */
+  --z-base:         calc(var(--z-lvl-inline) + 10);    /* = 10 */
+  --z-float-sm:     calc(var(--z-lvl-inline) + 30);    /* = 30 · CSS-06: flotantes ligeros de baja prioridad */
+  --z-float-md:     calc(var(--z-lvl-inline) + 40);    /* = 40 · CSS-06: flotantes ligeros de prioridad media */
+  --z-float:        calc(var(--z-lvl-inline) + 50);    /* = 50 · elementos flotantes ligeros */
+  --z-sticky:       calc(var(--z-lvl-inline) + 100);   /* = 100 */
+  --z-popover:      calc(var(--z-lvl-inline) + 120);   /* = 120 · popovers · dropdowns compactos (cubre 119/120) */
+  --z-sidebar:      calc(var(--z-lvl-panel) + 0);      /* = 200 */
+  --z-sidebar-plus: calc(var(--z-lvl-panel) + 10);     /* = 210 · CSS-06: elementos sobre sidebar base */
+  --z-layer:        calc(var(--z-lvl-panel) + 50);     /* = 250 · CSS-06: capa intermedia sidebar→dropdown */
+  --z-layer-2:      calc(var(--z-lvl-panel) + 100);    /* = 300 · CSS-06: segunda capa intermedia */
+  --z-dropdown:     calc(var(--z-lvl-panel) + 200);    /* = 400 */
+  --z-modal:        calc(var(--z-lvl-panel) + 300);    /* = 500 */
+  --z-modal-plus:   calc(var(--z-lvl-panel) + 400);    /* = 600 · CSS-06: elementos sobre modal base */
+  --z-overlay-sub:  calc(var(--z-lvl-panel) + 600);    /* = 800 · CSS-06: sub-overlay antes del toast */
+  --z-overlay:      calc(var(--z-lvl-panel) + 700);    /* = 900 */
+  --z-toast:        calc(var(--z-lvl-panel) + 800);    /* = 1000 */
+  --z-toast-plus:   calc(var(--z-lvl-panel) + 801);    /* = 1001 · CSS-06: elementos sobre toast base */
+  --z-panel:        calc(var(--z-lvl-panel) + 900);    /* = 1100 · paneles sobre modal base */
+  --z-panel-2:      calc(var(--z-lvl-panel) + 1000);   /* = 1200 · paneles secundarios apilados */
+  --z-panel-3:      calc(var(--z-lvl-panel) + 1100);   /* = 1300 · tercer nivel de panel */
+  --z-panel-top:    calc(var(--z-lvl-panel) + 2900);   /* = 3100 · CSS-06: panel de máxima prioridad */
+  --z-supreme-sub:  calc(var(--z-lvl-dialogo) + 0);    /* = 8000 · CSS-06: sub-nivel antes de supreme */
+  --z-supreme-mid:  calc(var(--z-lvl-dialogo) + 500);  /* = 8500 · CSS-06: nivel medio antes de supreme */
+  --z-supreme:      calc(var(--z-lvl-dialogo) + 1000); /* = 9000 · elementos sobre overlay general */
+  --z-supreme-2:    calc(var(--z-lvl-dialogo) + 1200); /* = 9200 · segundo nivel sobre overlay */
+  --z-critical:     calc(var(--z-lvl-dialogo) + 1500); /* = 9500 · CSS-06: entre supreme-2 y top */
+  --z-critical-2:   calc(var(--z-lvl-dialogo) + 1900); /* = 9900 · CSS-06: segundo nivel crítico */
+  --z-top:          calc(var(--z-lvl-dialogo) + 1999); /* = 9999 */
+  --z-absolute:     calc(var(--z-lvl-dialogo) + 2000); /* = 10000 · máximo absoluto — supera --z-top */
 
   /* ── Breakpoints responsive ── */
   --bp-wide:      1920px;  /* monitor estándar */

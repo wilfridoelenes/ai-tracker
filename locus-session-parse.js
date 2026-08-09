@@ -1,4 +1,4 @@
-// [PP] mod:188 · autor:Rune · 2026-08-09 UTC-6
+// [PP] mod:190 · autor:Rune · 2026-08-09 UTC-6
 // TKT-202608-278 (REQ-202608-113, origen_disc DISC-202608-115): _buildTgItemsFromParsed
 // coaccionaba no_incluye a [] en silencio cuando el valor entrante no era ya un array —
 // agregado _normalizeNoIncluye() (string con comas → array trimmed, string sin comas →
@@ -1762,13 +1762,11 @@ function _showIngestValidationError(msgHtml) {
   const errEl = document.getElementById('ingest-validation-error');
   const errMsgEl = document.getElementById('ingest-validation-error-msg');
   const warnEl = document.getElementById('ingest-validation-warnings');
-  const resultEl = document.getElementById('ingest-validation-result');
   if (!panel || !errEl || !errMsgEl) return;
   panel.classList.remove('is-hidden');
   errEl.classList.remove('is-hidden');
   errMsgEl.innerHTML = msgHtml;
   if (warnEl) warnEl.classList.add('is-hidden');
-  if (resultEl) resultEl.classList.add('is-hidden');
 }
 
 // CAEL-26: helper de warnings dinámicos — mismo shell que _showIngestValidationError,
@@ -1781,13 +1779,11 @@ function _showIngestValidationWarning(msgHtml, onForce) {
   const warnMsgEl = document.getElementById('ingest-validation-warning-msg');
   const forceBtn = document.getElementById('ingest-validation-force-btn');
   const errEl = document.getElementById('ingest-validation-error');
-  const resultEl = document.getElementById('ingest-validation-result');
   if (!panel || !warnEl || !warnMsgEl || !forceBtn) return;
   panel.classList.remove('is-hidden');
   warnEl.classList.remove('is-hidden');
   warnMsgEl.innerHTML = msgHtml;
   if (errEl) errEl.classList.add('is-hidden');
-  if (resultEl) resultEl.classList.add('is-hidden');
   const _freshBtn = forceBtn.cloneNode(true);
   forceBtn.parentNode.replaceChild(_freshBtn, forceBtn);
   _freshBtn.addEventListener('click', onForce, { once: true });
@@ -1799,213 +1795,25 @@ function _resetIngestValidationPanel() {
   const errMsgEl = document.getElementById('ingest-validation-error-msg');
   const warnEl = document.getElementById('ingest-validation-warnings');
   const warnMsgEl = document.getElementById('ingest-validation-warning-msg'); // CAEL-26
-  const resultEl = document.getElementById('ingest-validation-result');
   if (panel) panel.classList.add('is-hidden');
   if (errEl) errEl.classList.add('is-hidden');
   if (errMsgEl) errMsgEl.innerHTML = '';
   if (warnEl) warnEl.classList.add('is-hidden');
   if (warnMsgEl) warnMsgEl.innerHTML = ''; // CAEL-26
-  if (resultEl) resultEl.classList.add('is-hidden');
 }
 
-// CAEL-29 (TKT5): identidad de resultado — reemplaza el bloque que usaba `prev` y `state.projects`,
-// ninguno declarado en el scope de parsePaste (ReferenceError en cada paste con title o summary
-// truthy — la rama principal tras validación exitosa). Mismo patrón de referencia muerta ya
-// resuelto para prev-${id} en CAEL-25/26/27 y para sess-proj-${id} aquí (fix inline — mismo
-// archivo, sin scope nuevo, verificable por Finn junto con el TKT: la card por-Worker con
-// selector de proyecto propio no existe desde la migración a #ingest-ta global, CAEL-22;
-// getActiveProject() ya es la fuente única de proyecto activo en el resto de este archivo,
-// líneas 1722/2258/2305). Migra badges de proyecto + título + resumen + archivo a
-// #ingest-validation-result. no_incluye: próximo paso / bloqueantes (TKT6) y lista de ítems
-// (TKT7) — quedan sin renderizar hasta que esos TKTs se emitan (ver AC de CAEL-29).
-// CAEL-30 (TKT6): agregado próximo paso (nextStep) + bloqueantes (blockers) — 3 estados vía
-// _renderIngestBlockers. Regex de código de ítem propio de este TKT (sin precedente en el
-// archivo ni en module-contracts) — mismo patrón canónico [Tipo][YYYYMM][NNN]-[Sigla] de
-// __BR-Ecosystem §4, sigla de 2-4 letras.
-const _INGEST_BLOCKER_CODE_RE = /[A-Z]{2,4}-\d{6}-\d{3}/g;
-
-function _renderIngestBlockers(containerEl, blockersRaw) {
-  // Conserva el label estático (.validation-result-blockers-label) — limpia solo filas previas.
-  containerEl.querySelectorAll('.blocker-row').forEach((el) => el.remove());
-  const _raw = (blockersRaw || '').trim();
-  const row = document.createElement('div');
-  row.className = 'blocker-row';
-
-  // AC3 (CAEL-30) — estado n/a
-  if (!_raw || _raw.toLowerCase() === 'n/a') {
-    row.classList.add('blocker-row--ok');
-    const icon = document.createElement('i');
-    icon.className = 'ti ti-check';
-    icon.setAttribute('aria-hidden', 'true');
-    row.appendChild(icon);
-    row.appendChild(document.createTextNode('n/a'));
-    containerEl.appendChild(row);
-    return;
-  }
-
-  // AC4 (CAEL-30) — referencia a ítem: al menos un match del patrón de código
-  _INGEST_BLOCKER_CODE_RE.lastIndex = 0;
-  if (_INGEST_BLOCKER_CODE_RE.test(_raw)) {
-    row.classList.add('blocker-row--ref');
-    _INGEST_BLOCKER_CODE_RE.lastIndex = 0;
-    let lastIndex = 0;
-    let match;
-    while ((match = _INGEST_BLOCKER_CODE_RE.exec(_raw)) !== null) {
-      if (match.index > lastIndex) {
-        row.appendChild(document.createTextNode(_raw.slice(lastIndex, match.index)));
-      }
-      const chip = document.createElement('span');
-      chip.className = 'blocker-chip';
-      chip.textContent = match[0];
-      row.appendChild(chip);
-      lastIndex = match.index + match[0].length;
-    }
-    if (lastIndex < _raw.length) {
-      row.appendChild(document.createTextNode(_raw.slice(lastIndex)));
-    }
-    containerEl.appendChild(row);
-    return;
-  }
-
-  // AC5 (CAEL-30) — texto libre sin ID
-  row.classList.add('blocker-row--warning');
-  const icon = document.createElement('i');
-  icon.className = 'ti ti-alert-triangle';
-  icon.setAttribute('aria-hidden', 'true');
-  row.appendChild(icon);
-  row.appendChild(document.createTextNode(_raw));
-  containerEl.appendChild(row);
-}
-
-// CAEL-31 (TKT7): lista de ítems — 3ª y última pieza que restablece el no_incluye original
-// de CAEL-29. Shell (.validation-result-items) ya existe en index.html desde CAEL-19/23 —
-// sin cambio de HTML en este TKT.
-function _renderIngestResultItems(containerEl, items) {
-  const _items = Array.isArray(items) ? items : [];
-  // AC3 (CAEL-31) — reset: sin ítems, ocultar y vaciar
-  if (_items.length === 0) {
-    containerEl.classList.add('is-hidden');
-    containerEl.innerHTML = '';
-    return;
-  }
-  // AC1/AC2 (CAEL-31) — happy path + status badge. Fallback 'nuevo' es defensivo, no un
-  // caso vivo: con la construcción actual de tgItems (parsePaste, único caller real de
-  // _showIngestValidationResult → este helper) todo ítem llega con .status truthy —
-  // ITIL vía _buildItilItem() (mirror de incident_status, nunca null si no hubo error) y
-  // Scrum vía _normSt, que cae a 'pendiente' por default (nunca queda vacío). Un ítem con
-  // error de construcción nunca llega hasta acá — el batch completo se descarta antes
-  // (tgItems=[]) y el CHECKPOINT se bloquea vía _showIngestValidationError(). Se conserva
-  // el fallback como guardia defensiva de bajo costo ante un caller futuro que rompa ese
-  // invariante — no se retira código funcional sin evidencia de que el path sea alcanzable.
-  // (Propuesta de mejora confirmada por el founder — resolución directa en sesión, Patch
-  // sin bifurcación, dueño de este archivo co-presente — __BR-Core NO DEJAR DEUDA EN SILENCIO)
-  containerEl.innerHTML = '';
-  containerEl.classList.remove('is-hidden');
-  _items.forEach((item) => {
-    const row = document.createElement('div');
-    row.className = 'validation-result-item';
-    const left = document.createElement('span');
-    left.className = 'validation-result-item-left';
-    // AC4 (TKT1 badges) — reusa _GEN2_TYPES (fuente única de tipos válidos del módulo, ya
-    // importada) en vez de declarar una lista nueva. Sufijo verbatim — sin cambio de casing.
-    const _typeKnown = _GEN2_TYPES.includes(item.type);
-    const badge = document.createElement('span');
-    badge.className = _typeKnown
-      ? `validation-result-item-type validation-result-item-type--${item.type}`
-      : 'validation-result-item-type validation-result-item-type--unknown';
-    badge.textContent = _typeKnown ? item.type : '—';
-    const desc = document.createElement('span');
-    desc.textContent = `${item.type} · ${item.title}`;
-    left.appendChild(badge);
-    left.appendChild(desc);
-    const status = document.createElement('span');
-    status.className = 'validation-result-item-status';
-    status.textContent = item.status || 'nuevo';
-    row.appendChild(left);
-    row.appendChild(status);
-    containerEl.appendChild(row);
-  });
-}
-
-function _showIngestValidationResult({ ckptProyecto, activeProjectName, title, summary, files, nextStep, blockers, items }) {
-  const panel = document.getElementById('ingest-validation-panel');
-  const resultEl = document.getElementById('ingest-validation-result');
-  const badgeProjectEl = document.getElementById('ingest-result-badge-project');
-  const titleEl = document.getElementById('ingest-result-title');
-  const summaryEl = document.getElementById('ingest-result-summary');
-  const fileEl = document.getElementById('ingest-result-file');
-  const fileNameEl = document.getElementById('ingest-result-file-name');
-  const nextStepRowEl = document.getElementById('ingest-result-next-step');
-  const nextStepTextEl = document.getElementById('ingest-result-next-step-text');
-  const blockersRowEl = document.getElementById('ingest-result-blockers');
-  const itemsEl = document.getElementById('ingest-result-items');
-  // AC guard — sin DOM: retorna sin lanzar excepción si falta cualquiera de los 10 targets.
-  if (!panel || !resultEl || !badgeProjectEl || !titleEl || !summaryEl || !fileEl || !fileNameEl
-      || !nextStepRowEl || !nextStepTextEl || !blockersRowEl || !itemsEl) return;
-  const errEl = document.getElementById('ingest-validation-error');
-  const warnEl = document.getElementById('ingest-validation-warnings');
-
-  // AC1/AC2/AC3 — badge de proyecto
-  const _ckptProj = (ckptProyecto || '').trim();
-  const _activeProj = (activeProjectName || '').trim();
-  if (_ckptProj && _activeProj && _ckptProj === _activeProj) {
-    badgeProjectEl.classList.remove('validation-badge--warning');
-    badgeProjectEl.classList.add('validation-badge--success');
-    badgeProjectEl.textContent = `✓ Proyecto: ${_ckptProj}`;
-  } else if (_ckptProj) {
-    // INC-202607-062 (Rune): .replace() no aplica el segundo token si el primero no está
-    // presente — si el badge no tiene aún ninguna clase --success/--warning (primer pegado
-    // de la sesión) y el proyecto no matchea, el texto se actualizaba pero --warning nunca
-    // se aplicaba (badge sin color de estado). Mismo fix que INC-202607-060: remove + add
-    // explícito, sin depender de que --success exista previamente.
-    badgeProjectEl.classList.remove('validation-badge--success');
-    badgeProjectEl.classList.add('validation-badge--warning');
-    badgeProjectEl.textContent = `⚠ Proyecto: ${_ckptProj}`;
-  } else {
-    // INC-202607-060 (Rune): esta rama solo hacía .add('--warning') sin remover '--success'
-    // previa — si un pegado anterior en la misma sesión tuvo proyecto coincidente (badge en
-    // --success) y una edición posterior borra el campo Proyecto:, el badge quedaba con ambas
-    // clases simultáneas. Funcionaba visualmente por orden de cascada CSS, no por lógica de
-    // estado. Mismo criterio que la rama de mismatch (arriba, vía .replace()): remover
-    // explícitamente antes de agregar.
-    badgeProjectEl.classList.remove('validation-badge--success');
-    badgeProjectEl.classList.add('validation-badge--warning');
-    badgeProjectEl.textContent = '⚠ Sin campo Proyecto';
-  }
-
-  // AC4/AC5
-  titleEl.textContent = title || '';
-  summaryEl.textContent = summary || '';
-
-  // AC6/AC7
-  if (files) {
-    fileEl.classList.remove('is-hidden');
-    fileNameEl.textContent = files;
-  } else {
-    fileEl.classList.add('is-hidden');
-  }
-
-  // AC1/AC2 (CAEL-30) — próximo paso, texto plano sin variante de tono
-  const _nextStep = (nextStep || '').trim();
-  if (_nextStep) {
-    nextStepRowEl.classList.remove('is-hidden');
-    nextStepTextEl.textContent = _nextStep;
-  } else {
-    nextStepRowEl.classList.add('is-hidden');
-  }
-
-  // AC3/AC4/AC5 (CAEL-30) — bloqueantes, tres estados vía _renderIngestBlockers
-  _renderIngestBlockers(blockersRowEl, blockers);
-
-  // AC1/AC2/AC3 (CAEL-31) — lista de ítems
-  _renderIngestResultItems(itemsEl, items);
-
-  // AC8 — mostrar panel, mismo criterio que _showIngestValidationError/_showIngestValidationWarning
-  panel.classList.remove('is-hidden');
-  resultEl.classList.remove('is-hidden');
-  if (errEl) errEl.classList.add('is-hidden');
-  if (warnEl) warnEl.classList.add('is-hidden');
-}
+// TKT-202608-291 (REQ-202608-119, origen: TKT-202608-277): _showIngestValidationResult(),
+// _renderIngestBlockers() y _renderIngestResultItems() (CAEL-29/30/31) retiradas — sin call
+// sites activos fuera de sus propias definiciones desde TKT-202608-277 (REQ-202608-112), que
+// ya había retirado el único caller real en parsePaste(). _INGEST_BLOCKER_CODE_RE (usado
+// exclusivamente por _renderIngestBlockers) retirada en el mismo movimiento — fix inline,
+// mismo archivo, sin scope nuevo.
+//
+// TKT-202608-292 (REQ-202608-119): markup #ingest-validation-result retirado de index.html
+// (mismo REQ) — inalcanzable desde TKT-202608-277, nunca poblado ni mostrado. Los tres
+// getElementById('ingest-validation-result') guardados con `if (resultEl)` en
+// _showIngestValidationError(), _showIngestValidationWarning() y _resetIngestValidationPanel()
+// retirados en el mismo movimiento — referenciaban un nodo que ya no existe en el DOM.
 
 export function parsePaste(id) {
   const ta = document.getElementById('ingest-ta') /* CAEL-22 */;
@@ -2567,11 +2375,9 @@ export function parsePaste(id) {
   // nunca quedan poblados (parseCheckpoint() solo produce titulo/resumen no vacíos por la misma
   // vía estructural que _splitCheckpointBlocks usa para contar bloques: fence completo o JSON
   // bare completo — ver isCheckpoint/_looksLikeBareCheckpointJson arriba). El bloque
-  // `if (title || summary)` queda estructuralmente inalcanzable — #ingest-validation-result
-  // permanece siempre oculto desde este call site, mismo resultado visual final que antes tenía
-  // el branch `else`, ahora sin condición porque la rama `if` nunca se cumple.
-  const _resultElReset = document.getElementById('ingest-validation-result');
-  if (_resultElReset) _resultElReset.classList.add('is-hidden');
+  // `if (title || summary)` quedaba estructuralmente inalcanzable — TKT-202608-292 (REQ-202608-119)
+  // retiró el reset de #ingest-validation-result en este call site junto con el nodo DOM, que
+  // ya no existe.
 }
 // T-202606-032: _pasteInFlight (módulo) e isParseInFlight eliminados — AC-4/AC-5.
 // El guard de saveSession se eliminó. handlePaste usa su propia variable local _pasteRetry

@@ -1,3 +1,11 @@
+<!-- [PP] mod:182 · autor:Rune · 2026-08-09 UTC-6 -->
+<!-- TKT-202608-289 (parent REQ-202608-118) — parte HTML: <link> de locus-cmdk.css agregado —
+     el shell estático del modal ⌘K (#cmdk-overlay, TKT2, ya presente en mod:181) quedaba sin
+     estilos porque el entregable de Nova (locus-cmdk.css) nunca se enlazó en <head>. Insertado
+     después de locus-modals-misc.css, antes de locus-docs.css — junto al resto de módulos de
+     modal. Wiring JS (búsqueda, navegación por teclado, apertura ⌘K, render dinámico de
+     .cmdk-group/.cmdk-row) NO incluido en este mod — sin AC de TKT-202608-289 en contexto de
+     esta sesión, ver bloqueo declarado en CHECKPOINT. -->
 <!-- [PP] mod:181 · autor:Nova · 2026-08-09 18:05 UTC-6 -->
 <!-- TKT1 (parent CAEL-08081500-01, ref_id CAEL-08081500-02): agregado #scs-step-4 (faltaba el
      4º nodo del indicador del wizard de cierre — el bucle en JS lo recorría, index.html no lo
@@ -286,6 +294,7 @@
 <link rel="stylesheet" href="locus-modals-tracker.css">
 <link rel="stylesheet" href="locus-modals-editor.css">
 <link rel="stylesheet" href="locus-modals-misc.css">
+<link rel="stylesheet" href="locus-cmdk.css">
 <link rel="stylesheet" href="locus-docs.css">
 <link rel="stylesheet" href="locus-document-generator.css">
 <link rel="stylesheet" href="locus-proyectos.css">
