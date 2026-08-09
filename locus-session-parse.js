@@ -1,4 +1,4 @@
-// [PP] mod:187 · autor:Rune · 2026-08-08 22:40 UTC-6
+// [PP] mod:188 · autor:Rune · 2026-08-09 UTC-6
 // TKT-202608-278 (REQ-202608-113, origen_disc DISC-202608-115): _buildTgItemsFromParsed
 // coaccionaba no_incluye a [] en silencio cuando el valor entrante no era ya un array —
 // agregado _normalizeNoIncluye() (string con comas → array trimmed, string sin comas →
@@ -2718,7 +2718,12 @@ let _lastBatchRouteTs = 0;
 const _BATCH_ROUTE_DEBOUNCE_MS = 1000;
 
 function _routeParse(id, ta) {
-  if (ta && _splitCheckpointBlocks(ta.value).length > 1) {
+  // TKT-202608-276 (REQ-202608-112, AC1): gate ampliado de >1 a >=1 — 1 solo bloque ahora
+  // rutea al mismo camino que 2+ (_processIngestBatch → showMergeDiffPanel), en vez de caer
+  // a parsePaste() en su modo de persistencia directa. Comportamiento de 2+ bloques sin
+  // cambio (AC2) — el gate anterior ya cubría ese caso, este cambio solo extiende el límite
+  // inferior de 2 a 1.
+  if (ta && _splitCheckpointBlocks(ta.value).length >= 1) {
     const _now = Date.now();
     if (ta.value === _lastBatchRouteText && (_now - _lastBatchRouteTs) < _BATCH_ROUTE_DEBOUNCE_MS) {
       return true; // ya se ruteó a batch para este mismo contenido — evita doble _processIngestBatch()
@@ -2831,6 +2836,20 @@ export async function _processIngestBatch() {
   const _rejectedEntry = skipped.find(s => s.type === 'rejected');
   if (_rejectedEntry) {
     showToast('warning', `⚠ ${_rejectedEntry.reason}`);
+    return;
+  }
+  // TKT-202608-276 (REQ-202608-112, AC3): batch de un único bloque, ese bloque inválido
+  // (JSON malformado o sin 'title') — mismo caso que antes de este REQ resolvía parsePaste()
+  // directo con _showIngestValidationError(). Con el gate de _routeParse ampliado a >=1
+  // (AC1), este batch de tamaño 1 ahora llega aquí en vez de a parsePaste() — sin este check,
+  // caería al toast genérico 'Sin ítems para procesar en este batch' de la rama de abajo,
+  // perdiendo el detalle accionable del error real (r.error, ya construido por
+  // _parseBatchBlock/skipped). Exclusivo de batch de tamaño 1 — con 2+ bloques, un bloque
+  // inválido entre válidos sigue cayendo al aviso ya existente (_blogLog +
+  // 'checkpoint-batch-invalido'), sin cambio (AC2).
+  const _singleInvalid = rawBlocks.length === 1 && skipped.length === 1 && skipped[0].type === 'invalid';
+  if (_singleInvalid && !tgItems.length && !(patchItems && patchItems.length)) {
+    _showIngestValidationError(`&#9940; ${esc(skipped[0].reason)}`);
     return;
   }
   if (!tgItems.length && !(patchItems && patchItems.length)) {
