@@ -1,10 +1,14 @@
-/* [PP] mod:20 · autor:Nova · 2026-08-08 UTC-6 */
-/* TKT-202608-274 (REQ-202608-111, TKT2): escala tipográfica reducida de 10 a 7 pasos con
-   salto perceptible y piso en 12px. --text-base pasa de 13px a 16px — coincide ahora con
-   la raíz real (1rem=16px, TKT-202608-273). --text-3xs/--text-2xs-plus/--text-2xl quedan
-   como alias exactos del paso más cercano — sin DISC de retiro todavía. Cambio visual real,
-   no solo de token — requiere QA de Finn sobre los 17 archivos consumidores antes de
-   en-revision. Ver _Locus-css-ref §Hallazgo 3. */
+/* [PP] mod:21 · autor:Nova · 2026-08-09 UTC-6 */
+/* TKT-202608-274 (REQ-202608-111, TKT2) — corrección de arquitectura (mod:21, decisión del
+   founder tras Pausa de ciclo, opción B): mod:20 declaraba 7 pasos con piso en 12px y base
+   fija en 16px — matemáticamente incumplía su propio AC3 (salto ≥2px entre pasos), porque
+   solo hay 4px de rango entre floor y base para 3 saltos que exigen 6px mínimo. Fix: escala
+   reducida a 6 pasos — --text-xs se redefine de 13px a 14px (absorbe el valor de la extinta
+   --text-sm) y --text-sm pasa a alias de --text-xs, sin cambio de valor para sus consumidores.
+   Saltos resultantes: 12→14→16→18→20→24 (Δ2,Δ2,Δ2,Δ2,Δ4) — todos ≥2px. --text-3xs/
+   --text-2xs-plus/--text-2xl siguen como alias del paso más cercano. Consumidores directos de
+   --text-xs (antes 13px) suben a 14px — +1px, requiere QA de Finn sobre los 21 archivos
+   consumidores (recuento corregido, ver _Locus-css-ref §Hallazgo 3) antes de en-revision. */
 /* Corrección mod:19 (hallazgo de Rune, mismo ciclo): mod:18 declaraba en este header los
    cambios de TKT-202608-273 y TKT-202608-275 sin que el cuerpo del CSS los contuviera —
    solo comentario, sin código real. Este mod aplica el cambio real descrito abajo. */
@@ -37,23 +41,24 @@
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --font-display: 'DM Sans', sans-serif;
 
-  /* ── Escala tipográfica — TKT-202608-274 (REQ-202608-111, TKT2): 7 pasos con salto
-  perceptible, piso en 12px (cierra Hallazgo 3 de _Locus-css-ref — antes 4 pasos de 1px
-  indistinguibles en pantalla + 2 pasos bajo el umbral de lectura sostenida). ── */
+  /* ── Escala tipográfica — TKT-202608-274 mod:21 (REQ-202608-111, TKT2): 6 pasos con salto
+  ≥2px garantizado entre todos los pares adyacentes, piso en 12px (cierra Hallazgo 3 de
+  _Locus-css-ref, corregido tras Pausa de arquitectura — opción B: fusión xs/sm). ── */
   --text-2xs: 12px;  /* piso — labels de metadatos compactos, badges */
-  --text-xs:  13px;
-  --text-sm:  14px;
-  --text-base:16px;  /* default de lectura — ahora coincide con la raíz real (1rem=16px, TKT-202608-273) */
+  --text-xs:  14px;  /* antes 13px — absorbe el valor de la extinta --text-sm (14px) para cumplir Δ≥2px con el piso */
+  --text-base:16px;  /* default de lectura — coincide con la raíz real (1rem=16px, TKT-202608-273) */
   --text-md:  18px;
   --text-lg:  20px;
   --text-xl:  24px;
 
   /* Escala anterior — retirada, conservada como alias exacto del paso más cercano. No hay
-  DISC de retiro emitida todavía para estos 3 nombres — pendiente de acordar con Cael el
-  sprint en que se elimina la referencia directa en los 17 archivos consumidores. */
+  DISC de retiro emitida todavía para estos 4 nombres — pendiente de acordar con Cael el
+  sprint en que se elimina la referencia directa en los 21 archivos consumidores (recuento
+  corregido, ver _Locus-css-ref §Hallazgo 3). */
   --text-3xs:      var(--text-2xs); /* antes 8px — bajo el umbral de lectura, colapsa al piso */
   --text-2xs-plus: var(--text-xs);  /* antes 10px — paso indistinguible, colapsa al vecino superior */
-  --text-2xl:      var(--text-xl);  /* antes 22px — sin paso propio en la escala de 7, alias al tope */
+  --text-sm:       var(--text-xs);  /* antes 14px como paso propio — mod:21 lo fusiona con xs, mismo valor computado (14px), sin cambio para sus consumidores */
+  --text-2xl:      var(--text-xl);  /* antes 22px — sin paso propio en la escala de 6, alias al tope */
 
   /* ── Escala display — stat numbers, headings de sección ── */
   --text-display-sm:  17px;  /* heading de sección compacto */

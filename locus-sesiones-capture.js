@@ -1,8 +1,14 @@
-// [PP] mod:22 · autor:Rune · 2026-08-08 15:40 UTC-6
+// [PP] mod:23 · autor:Rune · 2026-08-09 UTC-6
+// Fix inline (triggered_by INC-[pendiente-ID]): _qcAttemptSave() mutaba ai.status/resetTime/
+// resetEpoch/interrupted DESPUÉS de que saveImmediate() ya había subido `state` y disparado
+// shell:render-radar — la mutación nunca llegaba a Supabase/localStorage ni al Radar. Movida
+// a antes de saveImmediate() (mismo round-trip que `sess`), con snapshot + rollback en catch()
+// para preservar la garantía de Patrón A-10 sin volver a diferir la mutación. Corrige la
+// entrada de mod:22 (abajo), que describía la mutación como aplicada "dentro del .then()".
 // TKT2 (parent CAEL-08081500-01, ref_id CAEL-08081500-03): openQuickCapture() valida proyecto
 // activo al abrir (antes solo confirmQuickCapture() lo hacía, al final). ai.status/resetTime/
-// resetEpoch e interruptSession() se aplican dentro del .then() de _qcAttemptSave, no antes de
-// guardar — sess.push sigue precediendo al guardado (excepción ya documentada, sin cambio).
+// resetEpoch e interruptSession() se aplican antes de saveImmediate() en _qcAttemptSave —
+// sess.push sigue precediendo al guardado (excepción ya documentada, sin cambio).
 // Cierra Hallazgo A-10 / Patrón A-10 de _Locus-ux-ref.
 // TKT2 (REQ CAEL-08061000-01): confirmQuickCapture bloquea el guardado cuando
 // interpretHora(horaRaw).withinResetWindow es false — mismo criterio de ventana
@@ -309,10 +315,10 @@ function confirmQuickCapture() {
   activeProj.sessions.push(sess);
 
   // TKT2 (parent CAEL-08081500-01, ver _Locus-ux-ref Patrón A-10): mutación del worker
-  // (status/resetTime/resetEpoch) e interruptSession() ya no ocurren aquí — se diferían antes
-  // de que _qcAttemptSave confirmara la persistencia. Si saveImmediate() fallaba, ai.status ya
-  // había quedado en 'exhausted' en memoria pese a que nada se guardó. Ahora viajan como datos
-  // a _qcAttemptSave y se aplican solo dentro de su .then().
+  // (status/resetTime/resetEpoch) e interruptSession() no ocurren aquí — viajan como datos
+  // a _qcAttemptSave, que las aplica justo antes de llamar a saveImmediate() (mismo
+  // round-trip que `sess`) y las revierte en su catch() si el guardado falla — ver fix
+  // inline (triggered_by INC-[pendiente-ID]) dentro de _qcAttemptSave.
   const _qcWipEl = _qcEl('quick-wip');
   const wipChecked = !!(_qcWipEl && _qcWipEl.checked);
   _qcAttemptSave(ai, horaResult, wipChecked);
@@ -321,27 +327,45 @@ function confirmQuickCapture() {
 // TKT1 (CAEL-01): intento de guardado real — separado de confirmQuickCapture() para que
 // Reintentar reinvoque saveImmediate() sin reconstruir sess (evita push duplicado).
 // TKT2 (parent CAEL-08081500-01): recibe horaResult/wipChecked para aplicar la mutación del
-// worker solo tras confirmar persistencia — ver Patrón A-10 en _Locus-ux-ref.
+// worker antes del guardado, con rollback en catch() si falla — ver Patrón A-10 en
+// _Locus-ux-ref y corrección de INC-[pendiente-ID] (fix inline) más abajo.
 function _qcAttemptSave(ai, horaResult, wipChecked) {
   _qcSaving = true;
   _qcSetSavingState(true);
+
+  // Fix inline (triggered_by INC-[pendiente-ID]): la mutación de ai.status/resetTime/
+  // resetEpoch/interrupted vivía en el .then() de saveImmediate() — DESPUÉS de que
+  // _saveFlush() ya había serializado y subido `state` y despachado shell:render-radar,
+  // por lo que (a) el Radar nunca reflejaba el estado agotado (el único render-radar de
+  // este ciclo ya había ocurrido con el status previo) y (b) la mutación nunca se
+  // persistía — quedaba solo en memoria hasta que algo más disparara un save() o hasta
+  // el próximo _loadFromSupabase(), que la revertía a disponible/en sesión. Se mueve la
+  // mutación a antes de saveImmediate() para que viaje en el mismo round-trip que `sess`
+  // (ya empujada por el caller) — mismo patrón ya usado por confirmBlindExhaust()/
+  // _hoyMarkExhausted() en locus-sesiones.js. Snapshot + rollback en catch() preserva la
+  // garantía original de Patrón A-10 (no exhausted en memoria si el guardado falla) sin
+  // volver a diferir la mutación fuera del guardado.
+  const _prevStatus = ai.status;
+  const _prevResetTime = ai.resetTime;
+  const _prevResetEpoch = ai.resetEpoch;
+  const _prevInterrupted = ai.interrupted;
+
+  if (horaResult) {
+    // T-089: solo cambiar status a exhausted si estaba disponible
+    if (ai.status === 'available') ai.status = 'exhausted';
+    ai.resetTime = horaResult.hhmm;
+    ai.resetEpoch = horaResult.epoch;
+  }
+  // TKT1 (CAEL-0723-02): checkbox "Este worker tiene un WIP" — invoca interruptSession()
+  // (mutador puro, sin modal ni save propio).
+  if (wipChecked) interruptSession(ai.id);
+
   // B-202605-XXX: usar saveImmediate() para garantizar escritura en Supabase antes de
   // cualquier recarga. save() con debounce de 5s podía perder resetTime/resetEpoch/status
   // si el usuario recargaba la tab antes de que el timer disparara.
   saveImmediate().then(() => {
     _qcSaving = false;
     _qcRetryFn = null;
-
-    // TKT2: mutación diferida — solo se aplica una vez que saveImmediate() resolvió.
-    if (horaResult) {
-      // T-089: solo cambiar status a exhausted si estaba disponible
-      if (ai.status === 'available') ai.status = 'exhausted';
-      ai.resetTime = horaResult.hhmm;
-      ai.resetEpoch = horaResult.epoch;
-    }
-    // TKT1 (CAEL-0723-02): checkbox "Este worker tiene un WIP" — invoca interruptSession()
-    // (mutador puro, sin modal ni save propio), ahora tras confirmar el guardado.
-    if (wipChecked) interruptSession(ai.id);
 
     // AC edge case: si el usuario cerró el modal manualmente mientras guardaba, no reabrir
     // ni mostrar el toast final — el guardado ya completó, solo faltaba el feedback visual.
@@ -359,6 +383,13 @@ function _qcAttemptSave(ai, horaResult, wipChecked) {
       window.dispatchEvent(new CustomEvent('shell:select-tracker-ai', { detail: { aiId: ai.id } }));
     }
   }).catch(() => {
+    // Rollback — la mutación ya se aplicó antes de llamar a saveImmediate() (ver arriba).
+    // Sin este rollback, un guardado fallido dejaría a ai.status en 'exhausted' en memoria
+    // sin haberse persistido — exactamente el síntoma que Patrón A-10 documentaba.
+    ai.status = _prevStatus;
+    ai.resetTime = _prevResetTime;
+    ai.resetEpoch = _prevResetEpoch;
+    ai.interrupted = _prevInterrupted;
     _qcSaving = false;
     _qcSetSavingState(false);
     _qcShowError('No se pudo guardar. Revisa tu conexión.');
