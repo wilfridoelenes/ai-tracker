@@ -1,4 +1,9 @@
-// [PP] mod:21 · autor:Rune · 2026-08-06 10:30 UTC-6
+// [PP] mod:22 · autor:Rune · 2026-08-08 15:40 UTC-6
+// TKT2 (parent CAEL-08081500-01, ref_id CAEL-08081500-03): openQuickCapture() valida proyecto
+// activo al abrir (antes solo confirmQuickCapture() lo hacía, al final). ai.status/resetTime/
+// resetEpoch e interruptSession() se aplican dentro del .then() de _qcAttemptSave, no antes de
+// guardar — sess.push sigue precediendo al guardado (excepción ya documentada, sin cambio).
+// Cierra Hallazgo A-10 / Patrón A-10 de _Locus-ux-ref.
 // TKT2 (REQ CAEL-08061000-01): confirmQuickCapture bloquea el guardado cuando
 // interpretHora(horaRaw).withinResetWindow es false — mismo criterio de ventana
 // máxima de 5h que _horaUpdate ya aplica visualmente. Reutiliza el patrón de error
@@ -139,6 +144,17 @@ function _qcRenderWorkerList() {
 export function openQuickCapture(id) {
   const overlay = _qcEl('qc-modal-overlay');
   if (!overlay) return;
+
+  // TKT2 (parent CAEL-08081500-01, ver _Locus-ux-ref Patrón A-10): proyecto activo es una
+  // precondición evaluable antes de que el founder escriba nada — se comprueba al abrir, no
+  // al confirmar. Antes, confirmQuickCapture() la comprobaba después de título/resumen/hora/WIP
+  // ya cargados, invirtiendo ese trabajo si fallaba. Mismo mensaje y mismo destino que ya se
+  // usaban en el chequeo tardío retirado.
+  if (!getActiveProject()) {
+    showToast('warning', '⚠ Selecciona un proyecto antes de guardar la sesión');
+    switchTab('proyectos');
+    return;
+  }
 
   // Limpiar estado previo
   _quickAIId = null;
@@ -282,37 +298,31 @@ function confirmQuickCapture() {
     sessionGroupId: 'sg-' + Date.now()
   };
 
-  // v3: sesión va al proyecto activo con aiId
+  // v3: sesión va al proyecto activo con aiId — openQuickCapture() ya bloqueó la apertura
+  // si no hay proyecto activo (TKT2, ver arriba); este chequeo era la validación tardía
+  // que el Hallazgo A-10 señalaba y ya no puede fallar aquí.
   sess.aiId = _quickAIId;
   const activeProj = getActiveProject();
-  if (!activeProj) {
-    showToast('warning', '⚠ Selecciona un proyecto antes de guardar la sesión');
-    switchTab('proyectos'); // TKT-202607-213: reemplaza shell:open-proj-panel (overlay retirado)
-    return;
-  }
   if (!activeProj.sessions) activeProj.sessions = [];
+  // TKT1 (CAEL-01): sess se empuja antes del guardado — excepción documentada y sin cambio,
+  // el retry reintenta saveImmediate() sobre el mismo estado, sin reconstruir ni duplicar.
   activeProj.sessions.push(sess);
 
-  if (horaResult) {
-    // T-089: solo cambiar status a exhausted si estaba disponible
-    if (ai.status === 'available') ai.status = 'exhausted';
-    ai.resetTime = horaResult.hhmm;
-    ai.resetEpoch = horaResult.epoch;
-  }
-
-  // TKT1 (CAEL-0723-02): checkbox "Este worker tiene un WIP" — invoca interruptSession()
-  // (mutador puro, sin modal ni save propio) antes del guardado único de _qcAttemptSave.
+  // TKT2 (parent CAEL-08081500-01, ver _Locus-ux-ref Patrón A-10): mutación del worker
+  // (status/resetTime/resetEpoch) e interruptSession() ya no ocurren aquí — se diferían antes
+  // de que _qcAttemptSave confirmara la persistencia. Si saveImmediate() fallaba, ai.status ya
+  // había quedado en 'exhausted' en memoria pese a que nada se guardó. Ahora viajan como datos
+  // a _qcAttemptSave y se aplican solo dentro de su .then().
   const _qcWipEl = _qcEl('quick-wip');
-  if (_qcWipEl && _qcWipEl.checked) interruptSession(ai.id);
-
-  // TKT1 (CAEL-01): sess ya está en activeProj.sessions — el retry reintenta saveImmediate()
-  // sobre el mismo estado, sin reconstruir ni duplicar el objeto sess.
-  _qcAttemptSave(ai);
+  const wipChecked = !!(_qcWipEl && _qcWipEl.checked);
+  _qcAttemptSave(ai, horaResult, wipChecked);
 }
 
 // TKT1 (CAEL-01): intento de guardado real — separado de confirmQuickCapture() para que
 // Reintentar reinvoque saveImmediate() sin reconstruir sess (evita push duplicado).
-function _qcAttemptSave(ai) {
+// TKT2 (parent CAEL-08081500-01): recibe horaResult/wipChecked para aplicar la mutación del
+// worker solo tras confirmar persistencia — ver Patrón A-10 en _Locus-ux-ref.
+function _qcAttemptSave(ai, horaResult, wipChecked) {
   _qcSaving = true;
   _qcSetSavingState(true);
   // B-202605-XXX: usar saveImmediate() para garantizar escritura en Supabase antes de
@@ -321,6 +331,18 @@ function _qcAttemptSave(ai) {
   saveImmediate().then(() => {
     _qcSaving = false;
     _qcRetryFn = null;
+
+    // TKT2: mutación diferida — solo se aplica una vez que saveImmediate() resolvió.
+    if (horaResult) {
+      // T-089: solo cambiar status a exhausted si estaba disponible
+      if (ai.status === 'available') ai.status = 'exhausted';
+      ai.resetTime = horaResult.hhmm;
+      ai.resetEpoch = horaResult.epoch;
+    }
+    // TKT1 (CAEL-0723-02): checkbox "Este worker tiene un WIP" — invoca interruptSession()
+    // (mutador puro, sin modal ni save propio), ahora tras confirmar el guardado.
+    if (wipChecked) interruptSession(ai.id);
+
     // AC edge case: si el usuario cerró el modal manualmente mientras guardaba, no reabrir
     // ni mostrar el toast final — el guardado ya completó, solo faltaba el feedback visual.
     const stillOpen = _qcEl('qc-modal-overlay').classList.contains('open');
@@ -340,7 +362,7 @@ function _qcAttemptSave(ai) {
     _qcSaving = false;
     _qcSetSavingState(false);
     _qcShowError('No se pudo guardar. Revisa tu conexión.');
-    _qcRetryFn = () => _qcAttemptSave(ai);
+    _qcRetryFn = () => _qcAttemptSave(ai, horaResult, wipChecked);
   });
 }
 

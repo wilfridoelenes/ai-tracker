@@ -1,4 +1,9 @@
-// [PP] mod:62 · autor:Rune · 2026-08-06 17:10 UTC-6
+// [PP] mod:63 · autor:Rune · 2026-08-08 15:40 UTC-6
+// TKT1 (parent CAEL-08081500-01, ref_id CAEL-08081500-02): _SCM_STEPS reemplaza el mapeo
+// hardcodeado paso→render/indicador/totalSteps, antes triplicado en _scmBack/_scmNext/_scmRender.
+// Renombrados por contenido: _scmStep1Html→_scmStepResumenHtml, _scmStepDuHtml→
+// _scmStepDocUpdatesHtml, _scmStep2Html→_scmStepMigracionHtml, _scmStep3Html→_scmStepRetroHtml.
+// Cierra Hallazgo E de _Locus-ux-ref — ver index.html para el 4º nodo de indicador agregado.
 // INC-202608-093: _generateSprintRetroMd() leía duAplicados/duDescartados desde
 // _scmState.docUpdates filtrando por d.resolucion — campo vestigial desde CHG-202608-002
 // (Paso 2 del wizard es de solo lectura, `resolucion` nunca se muta ahí), así que ambas
@@ -20,7 +25,7 @@
 // preexistente a este fix, fuera del AC de INC-202608-093.
 // [PP] mod:61 · autor:Rune · 2026-08-05 UTC-6
 // CHG-202608-002: Paso 2 del wizard de cierre (DOC-UPDATEs) — limpieza de código muerto tras
-// la conversión a solo lectura ya presente en _scmStepDuHtml(). Retirado: case 'scm-du-resolve'
+// la conversión a solo lectura ya presente en _scmStepDocUpdatesHtml(). Retirado: case 'scm-du-resolve'
 // del delegador de clicks (sin botones que lo disparen desde mod:60), bloque de persistencia
 // de resolución en _scmExecuteClose() (no-op — solo corría con docUpdates.length===0), y el
 // check de `resolucion` en _scmUpdateDuNextBtn() (campo vestigial, nunca mutado). Los gates
@@ -28,7 +33,7 @@
 // comportamiento observable, sin lógica muerta. Hallazgo fuera de scope registrado en
 // CHECKPOINT: _generateSprintRetroMd() sigue leyendo d.resolucion para las secciones
 // "Doc-Updates aplicados/Descartados" de la retro — con resolucion siempre null desde
-// CHG-202608-002 (y desde antes, dado que _scmStepDuHtml ya era solo-lectura en mod:60), esas
+// CHG-202608-002 (y desde antes, dado que _scmStepDocUpdatesHtml ya era solo-lectura en mod:60), esas
 // dos secciones de la retro reportan 0 siempre. Además desalineado con __BR-Ecosystem §5
 // ("Doc-Updates aplicados/pendientes no son campos propios de la retro... no se duplican
 // aquí"). No corregido en este CHG — toca una función distinta (generación de retro), fuera
@@ -46,7 +51,7 @@
 // tocar docUpdateIndex, dejando las entradas "resueltas" en el wizard visibles otra vez en el
 // panel de Backlog. contract_update: sí — ver CHECKPOINT de esta entrega, docUpdates de
 // _scmState gana campo `key` (referencia directa a docUpdateIndex, evita reconstruir
-// doc+'::'+seccion). No modifica _scmStepDuHtml() ni el markup del Paso 2 — mismos campos
+// doc+'::'+seccion). No modifica _scmStepDocUpdatesHtml() ni el markup del Paso 2 — mismos campos
 // consumidos (doc/seccion/escalarA/resolucion), solo cambia su origen.
 // [PP] mod:59 · autor:Rune · 2026-07-26 09:40 UTC-6
 // Corrección de trazabilidad — resuelta en sesión (Patch, dueño presente, sin bifurcación
@@ -949,19 +954,37 @@ function closeCloseSprintModal() {
   _scmState = null;
 }
 
+// TKT1 (parent CAEL-08081500-01, ver _Locus-ux-ref Hallazgo E): única fuente de verdad para
+// número de paso, rótulo del indicador y condición de salto — antes duplicada como literal
+// `skipStep3 ? 3 : 4` en _scmNext/_scmRender y como bucle estático [1,2,3,4] con un `if (n===3)`
+// hardcodeado en el indicador. _scmBack, _scmNext y _scmRender consumen esta misma lista —
+// ninguno vuelve a declarar el mapeo por su cuenta.
+const _SCM_STEPS = [
+  { n: 1, label: '1 · Resumen' },
+  { n: 2, label: '2 · DOC-UPDATEs' },
+  { n: 3, label: '3 · Migración', skippableWhen: (state) => !!state.skipStep3 },
+  { n: 4, label: '4 · Confirmar' },
+];
+
+// Pasos que se muestran en la secuencia activa para el sprint en curso — filtra el paso 3
+// cuando skipStep3. Su longitud reemplaza el literal `skipStep3 ? 3 : 4` en los tres puntos
+// que antes lo declaraban por separado.
+function _scmActiveSteps(state) {
+  return _SCM_STEPS.filter(s => !(s.skippableWhen && s.skippableWhen(state)));
+}
+
 function _scmBack() {
   if (!_scmState) return;
   if (_scmState.step <= 1) return;
   _scmState.step--;
-  // T-202606-120 AC-1: Paso 3 (migración) se salta si skipStep3 — Paso 2 (DOC-UPDATEs) nunca se salta
+  // Paso 3 (migración) se salta si skipStep3 — Paso 2 (DOC-UPDATEs) nunca se salta
   if (_scmState.skipStep3 && _scmState.step === 3) _scmState.step--;
   _scmRender();
 }
 
 function _scmNext() {
   if (!_scmState) return;
-  // T-202606-120 AC-1: 4 pasos base, 3 si skipStep3 (migración omitida)
-  const totalSteps = _scmState.skipStep3 ? 3 : 4;
+  const totalSteps = _scmActiveSteps(_scmState).length;
   if (_scmState.step >= totalSteps) {
     _scmExecuteClose();
     return;
@@ -972,26 +995,27 @@ function _scmNext() {
   _scmRender();
 }
 
-// _scmBulkApply eliminada — Gen2: _scmStep2Html no ofrece opciones de sprint.
+// _scmBulkApply eliminada — Gen2: _scmStepMigracionHtml no ofrece opciones de sprint.
 // Todos los ítems activos solo pueden descartarse (Gate duro §5).
 
 function _scmRender() {
   if (!_scmState) return;
   const { step, skipStep3, pendingItems, doneItems, migrations, id, docUpdates } = _scmState;
-  // T-202606-120 AC-1: 4 pasos base, 3 si skipStep3 (migración omitida — Paso 2 DOC-UPDATEs nunca se salta)
-  const totalSteps = skipStep3 ? 3 : 4;
+  const totalSteps = _scmActiveSteps(_scmState).length;
   const sp = _getSprintById(id);
 
-  // actualizar indicadores de paso (scs-step-1..4)
-  [1, 2, 3, 4].forEach(n => {
-    const el = document.getElementById('scs-step-' + n);
+  // TKT1 (CAEL-08081500-02): indicador derivado de _SCM_STEPS — rótulo (textContent) y clase
+  // se recalculan en cada render desde la única fuente, nunca desde el texto estático del HTML.
+  // Cierra Hallazgo E: antes solo existían 3 nodos (scs-step-1..3) para 4 pasos reales, y el
+  // paso 4 quedaba absorbido en silencio por el `if (!el) return;`.
+  _SCM_STEPS.forEach(def => {
+    const el = document.getElementById('scs-step-' + def.n);
     if (!el) return;
+    el.textContent = def.label;
     el.classList.remove('active', 'done', 'skipped');
-    // Paso 3 se salta si skipStep3
-    if (n === 3 && skipStep3) { el.classList.add('skipped'); return; }
-    // Calcular n efectivo para comparar con step (cuando skipStep3, step salta de 2 a 4)
-    if (step === n) el.classList.add('active');
-    else if (step > n) el.classList.add('done');
+    if (def.skippableWhen && def.skippableWhen(_scmState)) { el.classList.add('skipped'); return; }
+    if (step === def.n) el.classList.add('active');
+    else if (step > def.n) el.classList.add('done');
   });
 
   // botones de navegación
@@ -1018,7 +1042,7 @@ function _scmRender() {
   const body = document.getElementById('sprint-close-body');
   if (!body) return;
 
-  // B-202605-067: extraer métricas de _scmState antes de llamar a _scmStep1Html
+  // B-202605-067: extraer métricas de _scmState antes de llamar a _scmStepResumenHtml
   const _step1Metrics = {
     effortPlanned:         _scmState.effortPlanned          || 0,
     effortDone:            _scmState.effortDone             || 0,
@@ -1028,23 +1052,23 @@ function _scmRender() {
   };
 
   if (step === 1) {
-    body.innerHTML = _scmStep1Html(sp, pendingItems, doneItems, _step1Metrics);
+    body.innerHTML = _scmStepResumenHtml(sp, pendingItems, doneItems, _step1Metrics);
     // T-202606-118: gate de campos obligatorios
     const _gv = (v) => v && v !== 'n/a' && String(v).trim() !== '';
     const gateOk = sp && _gv(sp.version_target) && _gv(sp.release_type) && _gv(sp.scope);
     if (nextBtn) nextBtn.disabled = !gateOk;
   } else if (step === 2) {
     // T-202606-120 AC-2/AC-4/AC-5: Paso 2 siempre presente — DOC-UPDATEs
-    body.innerHTML = _scmStepDuHtml(docUpdates || []);
+    body.innerHTML = _scmStepDocUpdatesHtml(docUpdates || []);
     // T-202606-120 AC-4: gate — Siguiente habilitado solo si todos tienen resolución
     _scmUpdateDuNextBtn(nextBtn);
   } else if (step === 3 && !skipStep3) {
     // Paso 3: descarte obligatorio de ítems activos (Gate duro de cierre — sin opción de reasignar)
-    body.innerHTML = _scmStep2Html(pendingItems, migrations);
+    body.innerHTML = _scmStepMigracionHtml(pendingItems, migrations);
     _scmUpdateMigrationNextBtn(nextBtn);
   } else if (step === 4 || (step === 3 && skipStep3)) {
     // Paso 4 (o 3 si skipStep3): retro
-    body.innerHTML = _scmStep3Html(pendingItems, doneItems, migrations, skipStep3);
+    body.innerHTML = _scmStepRetroHtml(pendingItems, doneItems, migrations, skipStep3);
     const notesTA = document.getElementById('scm-retro-notes-ta');
     if (notesTA) notesTA.addEventListener('input', () => { if (_scmState) _scmState.retroNotes = notesTA.value; });
     if (nextBtn) nextBtn.disabled = false;
@@ -1052,7 +1076,7 @@ function _scmRender() {
 }
 
 // T-202606-120 AC-4 — simplificado por CHG-202608-002: el Paso 2 es de solo lectura desde
-// _scmStepDuHtml(), la resolución ya no ocurre en este wizard (vive en Doc Log). El campo
+// _scmStepDocUpdatesHtml(), la resolución ya no ocurre en este wizard (vive en Doc Log). El campo
 // `resolucion` de cada entrada de _scmState.docUpdates es ahora vestigial — nunca se muta,
 // así que el gate se reduce a "hay o no hay entradas pendientes en el índice real".
 function _scmUpdateDuNextBtn(nextBtn) {
@@ -1072,7 +1096,7 @@ function _scmUpdateMigrationNextBtn(nextBtn) {
 }
 
 // B-202605-067: métricas de entrega recibidas como parámetro — sin acceso a _scmState global
-function _scmStep1Html(sp, pendingItems, doneItems, metrics) {
+function _scmStepResumenHtml(sp, pendingItems, doneItems, metrics) {
   const doneCount  = doneItems.filter(i => i.status === 'done').length;
   const pendCount  = pendingItems.length;
 
@@ -1205,7 +1229,7 @@ function _scmStep1Html(sp, pendingItems, doneItems, metrics) {
 // locus-docs.js). Este paso solo lista lo que sigue pendiente en el índice real y bloquea
 // "Siguiente" mientras existan entradas — nunca las muta. Ver _scmUpdateDuNextBtn() y el
 // gate de _scmExecuteClose() para la re-verificación en vivo contra el índice.
-function _scmStepDuHtml(docUpdates) {
+function _scmStepDocUpdatesHtml(docUpdates) {
   if (!docUpdates || docUpdates.length === 0) {
     // AC-5: estado vacío
     return `<div class="scm-du-empty">No hay DOC-UPDATEs pendientes en este sprint.</div>`;
@@ -1228,9 +1252,9 @@ function _scmStepDuHtml(docUpdates) {
 
 // Gate duro de cierre (__BR-Ecosystem §5 Gen2): la única salida válida de un ítem activo
 // es done o descartado — reasignar a otro sprint no destraba el cierre.
-// _scmStep2Html ya no ofrece opciones de sprint. Todos los ítems pendientes se descartan
+// _scmStepMigracionHtml ya no ofrece opciones de sprint. Todos los ítems pendientes se descartan
 // y el founder confirma ítem por ítem con un checkbox antes de avanzar.
-function _scmStep2Html(pendingItems, migrations) {
+function _scmStepMigracionHtml(pendingItems, migrations) {
   if (!pendingItems.length) {
     return '<div class="scm-migration-intro">Sin ítems activos — continúa al siguiente paso.</div>';
   }
@@ -1283,7 +1307,7 @@ function _scmDownloadRetro() {
   showToast('download', 'Retro descargada', fname);
 }
 
-function _scmStep3Html(pendingItems, doneItems, migrations, skipStep3) {
+function _scmStepRetroHtml(pendingItems, doneItems, migrations, skipStep3) {
   const doneCount      = doneItems.filter(i => i.status === 'done').length;
   const discardedCount = doneItems.filter(i => i.status === 'descartado').length;
 
@@ -1468,7 +1492,7 @@ async function _scmExecuteClose() {
   // Gate duro de cierre — DOC-UPDATE sin resolver (__BR-Ecosystem §5: "Locus bloquea el
   // cierre automáticamente si hay DOC-UPDATEs sin resolución"). Simplificado por
   // CHG-202608-002: la resolución ya no ocurre en este wizard — el Paso 2 es de solo lectura
-  // (ver _scmStepDuHtml()) y la única vía de resolver un DOC-UPDATE es Doc Log (Tab
+  // (ver _scmStepDocUpdatesHtml()) y la única vía de resolver un DOC-UPDATE es Doc Log (Tab
   // Documentos, locus-docs.js). El campo `resolucion` de cada entrada nunca se muta desde
   // aquí, así que el gate se reduce a "¿sigue habiendo entradas en el índice real capturadas
   // al abrir el modal?" — defensa en profundidad, misma regla que ya debería impedir llegar
@@ -1647,7 +1671,7 @@ async function _scmExecuteClose() {
     }
     // R-202605-125: métricas de entrega para Analytics (Nivel 2)
     // Fix denominador % entrega — effortPlanned ya incluye scope_added (allSprintItems no lo excluye),
-    // no sumar effortScopeAdded otra vez. Mismo fix aplicado en _scmStep1Html — ver L1159.
+    // no sumar effortScopeAdded otra vez. Mismo fix aplicado en _scmStepResumenHtml — ver L1159.
     const denominator = effortPlanned || 0;
     sp.deliveryMetrics = {
       effortPlanned:    effortPlanned    || 0,
@@ -1796,7 +1820,7 @@ document.addEventListener('DOMContentLoaded', () => {
         openMapGenerator();
         break;
       // T-202606-120 AC-7/AC-8/AC-9/AC-10 (resolución de DOC-UPDATE por fila) — retirado por
-      // CHG-202608-002: _scmStepDuHtml() ya no renderiza botones con data-action
+      // CHG-202608-002: _scmStepDocUpdatesHtml() ya no renderiza botones con data-action
       // "scm-du-resolve" (Paso 2 es de solo lectura, la resolución vive en Doc Log). Este case
       // era código muerto — quedaba huérfano operando sobre un elemento que ya no existe en
       // el DOM. Ver _scmUpdateDuNextBtn() para el gate simplificado.

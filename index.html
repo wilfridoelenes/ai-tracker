@@ -1,4 +1,10 @@
-<!-- [PP] mod:179 · autor:Rune · 2026-08-06 UTC-6 -->
+<!-- [PP] mod:180 · autor:Rune · 2026-08-08 15:40 UTC-6 -->
+<!-- TKT1 (parent CAEL-08081500-01, ref_id CAEL-08081500-02): agregado #scs-step-4 (faltaba el
+     4º nodo del indicador del wizard de cierre — el bucle en JS lo recorría, index.html no lo
+     tenía) + rótulos de #scs-step-2/#scs-step-3 corregidos a su contenido real. Separador nuevo
+     entre #scs-step-3 y #scs-step-4 reutiliza la clase .scs-sep sin modificador (misma que el
+     separador entre #scs-step-1 y #scs-step-2) — sin CSS nueva. JS (_SCM_STEPS, locus-backlog-
+     sprints.js) sobreescribe textContent en cada render; estos son los rótulos de fallback. -->
 <!-- TKT-202608-263 (REQ-202608-104): botón btn-export-qinc-full agregado a #qinc-toolbar,
      junto a btn-export-qinc — dispara shell:export-qinc-full (locus-ui-shell.js mod:67),
      escuchado por locus-incidents-render.js mod:22. Comentario de gap anterior (líneas
@@ -1945,9 +1951,11 @@
       <div class="sprint-close-steps" id="sprint-close-steps">
         <span class="scs-step" id="scs-step-1">1 · Resumen</span>
         <span class="scs-sep">›</span>
-        <span class="scs-step" id="scs-step-2">2 · Migración</span>
+        <span class="scs-step" id="scs-step-2">2 · DOC-UPDATEs</span>
         <span class="scs-sep scs-sep--2">›</span>
-        <span class="scs-step" id="scs-step-3">3 · Confirmar</span>
+        <span class="scs-step" id="scs-step-3">3 · Migración</span>
+        <span class="scs-sep">›</span>
+        <span class="scs-step" id="scs-step-4">4 · Confirmar</span>
       </div>
     </div>
     <!-- Body (content injected by JS) -->

@@ -1,4 +1,30 @@
-// [PP] mod:183 · autor:Rune · 2026-08-06 UTC-6
+// [PP] mod:186 · autor:Rune · 2026-08-08 UTC-6
+// TKT-202608-267 (REQ-202608-107): loop inline de parsePaste()
+// (~110 líneas, gate de type/status/ITIL/en-revision-sin-sprint/REQ+bloqueado/REQ-sin-AC/
+// patch/patch-intencion) retirado y reemplazado por la llamada a _buildTgItemsFromParsed() —
+// misma función que ya consumía el path batch (_parseBatchBlock). Preserva sin duplicar: todos
+// los gates salvo rol-no-autorizado-bloqueado para type:'patch' sobre REQ existente, que NO se
+// replica — ya enforced incondicionalmente en applyPatchesFromTG() (locus-backlog-item.js,
+// capa de persistencia común a ambos paths, ver ese contrato). Único cambio observable: el
+// texto exacto del mensaje DocLog para ese caso específico difiere levemente (mismo _blogLog
+// key 'rol-no-autorizado-bloqueado', mismo resultado — patch rechazado). Locals ckptHeaderRole/
+// _proyectoRawForQueue/_validTypes/_validStatuses retirados de parsePaste — muertos tras el
+// retiro del loop, _buildTgItemsFromParsed resuelve lo mismo internamente desde ckpt completo.
+// contract_update: sí — module-contracts sin entrada previa para _buildTgItemsFromParsed
+// (gap ya registrado en DISC-202608-112), TKT3 de este mismo REQ ya emitió DOC-UPDATE de
+// creación; este TKT amplía esa misma entrada con el nuevo consumidor (parsePaste).
+// [PP] mod:185 · autor:Rune · 2026-08-08 UTC-6
+// TKT3 (REQ-202608-107, ref_id CAEL-08081130-03): portado el gate de REQ sin AC (_reqsNoAc)
+// desde el loop inline de parsePaste hacia _buildTgItemsFromParsed() — la función compartida
+// entre el path single (vía TKT2 pendiente de este mismo REQ) y el path batch
+// (_parseBatchBlock). Antes de este TKT, _buildTgItemsFromParsed no tenía ningún gate contra
+// REQ sin AC — gap preexistente del path batch, nunca documentado en _Locus-module-contracts,
+// que este TKT cierra como efecto colateral de la consolidación (BR-Ecosystem §5, REQ sin AC
+// rechazado por Locus sin excepción de path). Mismo texto de mensaje, mismo criterio de
+// acumulación sin interrupción del loop, mismo orden relativo respecto al bloque de
+// REQ+bloqueado no autorizado (verificado: un REQ bloqueado con rol no autorizado sale por
+// continue antes de llegar a este check, igual que en parsePaste). contract_update: sí.
+// [PP] mod:184 · autor:Rune · 2026-08-07 UTC-6
 // TKT2 (REQ ref_id CAEL-08061830-01): integrado tier-3 en _splitCheckpointBlocks() — _extractBareCheckpoint-
 // Candidates() como último recurso, solo cuando ni fence ni bare-single-parseable aplican. Fix
 // de bug propio detectado por harness antes de en-revision: el check de bare-single original
@@ -2020,281 +2046,44 @@ export function parsePaste(id) {
     else if (ckpt._isJsonFormat) {
       delete window[`_itemsJsonError_${id}`];
       const _rawItems = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
-      const _validTypes    = _GEN2_TYPES;
-      const _validStatuses = _VALID_STATUSES_GATE;
-      const ckptHeaderRole = ckpt.rol || '';
-      const _proyectoRawForQueue = (ckpt.proyecto || '').trim();
+      // TKT2 (REQ-202608-107): loop inline retirado — reemplazado por _buildTgItemsFromParsed(),
+      // la misma función que ya consume el path batch. Preserva sin duplicar: gate de type/status,
+      // ITIL, en-revision sin sprint, REQ+bloqueado (creación nueva), REQ sin AC (TKT3 de este
+      // mismo REQ), patch/patch-intencion con sus propios gates. rol-no-autorizado-bloqueado para
+      // type:'patch' sobre REQ existente NO se replica aquí — ya enforced incondicionalmente en
+      // applyPatchesFromTG() (locus-backlog-item.js), capa de persistencia común a ambos paths;
+      // ver CHECKPOINT de entrega para el detalle de equivalencia verificada.
       let _itemError = null;
-      const _rsNoAc = []; // T-202606-030 fix AC-3: acumular Rs sin AC — no hacer break en el primero
-      for (let _i = 0; _i < _rawItems.length; _i++) {
-        const _it = _rawItems[_i];
-        // R-202605-062: patch — instrucción de operación, no tipo de ítem
-        if (_it.type === 'patch') {
-          if (!_it.code || _isPlaceholderCode(_it.code)) {
-            // AC-7: patch sobre código placeholder → ignorar + advertencia DocLog
-            _blogLog('patch-ignorado', _it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (_it.code || '(vacío)'), 'backlog');
-            // T-202606-055 AC-1: toast visible al founder — el _blogLog solo no es suficiente
-            showToast('warn', `Patch descartado: código placeholder no patcheable — ${_it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
-          } else {
-            // T-202606-080: validación de rol para patch con status: bloqueado sobre R
-            // AC-1: si status normalizado es 'bloqueado' y el ítem target en backlog es type R,
-            //       verificar que ckptHeaderRole === 'QA · Finn' antes de acumular
-            // AC-2: al fallar → _blogLog con mensaje canónico + patch descartado
-            // AC-3: patch autorizado ('QA · Finn') → acumular normalmente sin advertencia
-            // AC-4: patches con status distinto a bloqueado → flujo normal sin modificar
-            const _patchNormSt = _it.status ? _canonicalStatus(_it.status, 'REQ') : null;
-            if (_patchNormSt === 'bloqueado') {
-              const _patchTarget = (getItems() || []).find(x => x.code === _it.code);
-              if (_patchTarget && itemKind(_patchTarget) === 'REQ') {
-                const _patchAuthorizedRole = 'QA · Finn';
-                if (ckptHeaderRole !== _patchAuthorizedRole) {
-                  _blogLog(
-                    'rol-no-autorizado-bloqueado',
-                    _it.code,
-                    `Transición bloqueado en R ${_it.code} rechazada: solo Finn puede mover un R a bloqueado. Origen: ${ckpt ? (ckpt.titulo || '') : ''}`,
-                    'backlog'
-                  );
-                  continue; // AC-2: patch descartado — no acumular en _patchItems
-                }
-              }
-            }
-            window[`_patchItems_${id}`] = window[`_patchItems_${id}`] || [];
-            window[`_patchItems_${id}`].push(_it);
-          }
-          continue;
-        }
-        // TKT1 (REQ-202607-061): patch-intencion — instrucción de operación separada de
-        // type:'patch' ordinario. Único vehículo para modificar intencion/kill_criteria/ac
-        // de coherencia de un REQ ya existente, exclusivamente tras confirmación explícita
-        // del founder (founder_confirmado). Gate de rechazo solamente en este TKT — la
-        // aplicación real de los campos (TKT2/TKT-202607-177) consume _patchIntencionItems_
-        // por separado de _patchItems_, para que applyPatchesFromTG() (que aún no conoce
-        // este type) no la trate como patch genérico a medias antes de que TKT2 esté listo.
-        if (_it.type === 'patch-intencion') {
-          if (!_it.code || _isPlaceholderCode(_it.code)) {
-            _blogLog('patch-ignorado', _it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (_it.code || '(vacío)'), 'backlog');
-            showToast('warn', `Patch descartado: código placeholder no patcheable — ${_it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
-          } else if (!_it.founder_confirmado || typeof _it.founder_confirmado !== 'string' || _it.founder_confirmado.trim() === '') {
-            // AC-2: sin founder_confirmado (ausente/vacío) → rechazo completo, sin aplicar ningún campo parcial
-            _blogLog('patch-intencion-sin-confirmacion', _it.code, 'patch-intencion sin founder_confirmado — no aplicado. Declarar confirmación explícita del founder.', 'backlog');
-            showToast('warn', `patch-intencion descartado: falta founder_confirmado — ${_it.code}.`);
-          } else {
-            // AC-1: instrucción válida — pasa a TKT2 vía canal propio, no mezclado con _patchItems_
-            window[`_patchIntencionItems_${id}`] = window[`_patchIntencionItems_${id}`] || [];
-            window[`_patchIntencionItems_${id}`].push(_it);
-          }
-          continue;
-        }
-        if (!_it.type || !_it.code) {
-          _itemError = `Ítem [${_i}]: faltan campos obligatorios (type, code). Recibido: ${JSON.stringify(_it)}`;
-          break;
-        }
-        if (!_validTypes.includes(_it.type)) {
-          _itemError = `Ítem [${_i}]: type inválido "${_it.type}". Valores válidos: REQ · TKT · DISC · INC · PRB · CHG`;
-          break;
-        }
-        // REQ-[pendiente-ID]: ítems ITIL (INC/PRB/KE/CHG) — ciclo de vida vive en incident_status,
-        // nunca en status. Desvío completo antes de cualquier validación orientada a Scrum.
-        if (_ITIL_TYPES.has(_it.type)) {
-          const _itilResult = _buildItilItem(_it, ckptHeaderRole, _proyectoRawForQueue, ckpt.titulo);
-          if (_itilResult.error) {
-            _itemError = _itilResult.error;
-            break;
-          }
-          tgItems.push(_itilResult.item);
-          continue;
-        }
-        if (!_it.status) {
-          _itemError = `Ítem [${_i}]: faltan campos obligatorios (type, code, status). Recibido: ${JSON.stringify(_it)}`;
-          break;
-        }
-        // INC-parser-status-invalido-omite-item: status 'historico' o inválido para el tipo ya
-        // NO bloquea el CHECKPOINT ni omite el ítem — __BR-Ecosystem §8 declara que Locus "aplica
-        // el ítem pero ignora el campo status". _normSt cae a 'pendiente' (mismo default usado en
-        // el resto del pipeline — ver item.status || 'pendiente' en locus-backlog-item.js) y el
-        // ítem continúa su construcción normal con el resto de sus campos intactos.
-        const _isHistoricoRaw = _it.status.trim().toLowerCase() === 'historico' || _it.status.trim().toLowerCase() === 'histórico';
-        // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
-        let _normSt = _isHistoricoRaw ? null : _canonicalStatus(_it.status, _it.type);
-        if (!_normSt || (!_validStatuses.includes(_normSt) && _normSt !== 'promoted' && _normSt !== 'bloqueado' && _normSt !== 'discovery')) {
-          _blogLog(
-            _isHistoricoRaw ? 'status-historico-emitido' : 'status-invalido-ignorado',
-            _it.code || '[pendiente-ID]',
-            _isHistoricoRaw
-              ? `Status "historico" no es emitible — asignado exclusivamente por Locus al cerrar sprint. Campo ignorado.`
-              : `Status "${_it.status}" inválido para tipo ${_it.type}. Campo ignorado.`,
-            'backlog'
-          );
-          _normSt = 'pendiente';
-        }
-        // T-202606-035: bloqueo sin-sprint + en-revision — BR-Ecosystem §5
-        // T-202606-085: leer sprint_id como fallback cuando sprint no está presente (formato nuevo)
-        // TKT-PARSE4: 'icebox' (Gen1) eliminado — sin sprint = campo vacío o ausente (Q-Backlog/Q-DISC Gen2)
-        const _sprintRaw = (_it.sprint || _it.sprint_id || '').trim().toLowerCase();
-        const _sinSprint = _sprintRaw === '' || _sprintRaw.endsWith('-q-backlog');
-        if (_normSt === 'en-revision' && _sinSprint) {
-          _itemError = `CHECKPOINT bloqueado: ${_it.code || '[pendiente-ID]'} tiene status en-revision sin sprint asignado. Asignar sprint antes de continuar.`;
-          break;
-        }
-        // T-202606-031: validación de rol autorizado para transición R → bloqueado
-        // AC-1: solo 'QA · Finn' puede emitir R con status bloqueado
-        // AC-2: al fallar → advertencia en DocLog con mensaje canónico + omitir cambio de status
-        // AC-3: otros cambios del CHECKPOINT continúan aplicándose (continue, no break)
-        // AC-4: misma validación aplica a ítem R completo (no solo patch) con status: bloqueado
-        if (itemKind(_it) === 'REQ' && _normSt === 'bloqueado') {
-          const _authorizedRole = 'QA · Finn';
-          if (ckptHeaderRole !== _authorizedRole) {
-            _blogLog(
-              'rol-no-autorizado-bloqueado',
-              _it.code || '[pendiente-ID]',
-              `Transición bloqueado en R ${_it.code || '[pendiente-ID]'} rechazada: solo Finn puede mover un R a bloqueado. Origen: ${ckpt ? (ckpt.titulo || '') : ''}`,
-              'backlog'
-            );
-            continue; // AC-2+AC-3: omitir este ítem — resto del CHECKPOINT continúa
-          }
-        }
-        // T-202606-030: bloqueo R sin AC — BR-Ecosystem §5 + BR-Core §8 regla dura
-        // AC-1: R con ac ausente o vacío → acumular en _rsNoAc (AC-3: no break — seguir loop)
-        // AC-2: mensaje canónico con título del R + Origen: [título del CHECKPOINT]
-        // AC-3: acumular todos los Rs sin AC — emitir mensaje consolidado al final del loop
-        if (itemKind(_it) === 'REQ' && (!Array.isArray(_it.ac) || _it.ac.length === 0)) {
-          _rsNoAc.push(`R ${_it.code || '[pendiente-ID]'} "${_it.title || _it.desc || ''}"`);
-          continue;
-        }
-        // T-202606-085: resolver sprint_id y sprint_name antes de construir el ítem
-        const _sprintF = _resolveSprintFields(_it);
-        tgItems.push({
-          type:          _it.type,
-          code:          _it.code,
-          // TKT (REQ-[pendiente-ID] · ref_id+title en 2 archivos): tercer punto de
-          // construcción de tgItems — mismo campo que los otros dos, ver comentario en
-          // _buildTgItemsFromParsed.
-          refId:         _it.ref_id || null,
-          title:         _it.title  || _it.desc  || '',
-          desc:          _it.title  || _it.desc  || '',
-          priority:      _it.priority || 'medium',                             // T-202606-031
-          status:        _normSt,
-          _noStatus:     false,
-          effort:        _it.effort != null ? (parseInt(_it.effort) || null) : null,
-          area:          _it.area   || '',
-          sprint:        _sprintF.sprintAlias,                                 // T-202606-085: alias → _normalizeSprint opera sobre este campo
-          sprint_id:     _sprintF.sprint_id,                                   // T-202606-085
-          sprint_name:   _sprintF.sprint_name,                                 // T-202606-085
-          ac:            Array.isArray(_it.ac) ? _it.ac : [],
-          role:          _it.role   || ckptHeaderRole,
-          discardReason: _it.discard_reason || _it.reason || '',
-          discardRef:    _it.ref    || '',
-          blockedBy:     Array.isArray(_it.blockedBy) ? _it.blockedBy : [],
-          parentId:      _it.parentId || _it.parent || null,  // B-202605-055: schema usa "parent", campo interno es "parentId"
-          origin:        _it.origin   || null,  // R-202605-004: trazabilidad de ítems derivados
-          dependsOn:     Array.isArray(_it.depends_on) ? _it.depends_on : [],  // T-202605-139
-          triggeredBy:   _it.triggered_by  || null,                            // T-202605-139
-          origenDisc:    _it.origen_disc   || null,                            // T-202605-139 // T-[pendiente-ID]: origen_p→origen_disc
-          promovida_a:   _it.promovida_a   || null,                            // T-202605-139
-          intencion:     _it.intencion     || null,                            // T-202606-105
-          no_incluye:    Array.isArray(_it.no_incluye) ? _it.no_incluye : [], // T-202606-105
-          archivos:      Array.isArray(_it.archivos) ? _it.archivos : [],     // T-[pendiente-ID]: BR-Ecosystem v5.2 — archivos reales que el T toca, declarado por Cael en Fase 2
-          // TKT3 (REQ CAEL-0721-01): contract_detail no se propagaba en este sitio (sí en los
-          // otros 2 puntos de construcción) — se perdía entre parseo y mergeBacklogFromTG
-          // específicamente en el path de sesión embebida. Alineado a BR-Execution §2.
-          contract_detail: _it.contract_detail || null,
-          // TKT3 (REQ CAEL-0721-01): kill_criteria/next_role/design_intent/blocked_at/
-          // contract_update nunca se propagaban a tgItem en ninguno de los 3 puntos de
-          // construcción del parser — mismo patrón de pérdida ya corregido para draft
-          // (TKT1/REQ-202607-027) y contract_detail (TKT4/REQ-contract-rename). Sin esta
-          // propagación, _buildCommonItemFields() (locus-backlog-item.js, TKT1 de este mismo
-          // REQ) nunca tiene el dato disponible para persistir, sin importar lo declarado
-          // en el CHECKPOINT.
-          kill_criteria: _it.kill_criteria || null,
-          nextRole:      _it.next_role     || null,
-          designIntent:  _it.design_intent || null,
-          blockedAt:     _it.blocked_at    || null,
-          contract_update: _it.contract_update || null,
-          // TKT1 (REQ-202607-026 · AC1): draft es campo de nivel CHECKPOINT (ckpt.draft), no
-          // del ítem individual — se propaga aquí (path de sesión embebida) para que
-          // mergeBacklogFromTG lo persista en cada ítem nuevo del batch. Sin esta propagación,
-          // un REQ/TKT nuevo se persistía como draft:false por default independiente de lo
-          // declarado en el CHECKPOINT.
-          draft:         ckpt.draft === true,
-          schema_version: _it.schema_version || null                          // T-202606-105
-        });
-        // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
-        // T-202606-158: pasar tgItems para heredar sprint de parent R en mismo CHECKPOINT
-        _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
-        // T-202606-008: alerta DocLog si T tiene contract_update: 'sí' y doc_updates ausente o vacío
-        // AC-1: extraer campo contract_update del ítem T
-        // AC-2: si valor es 'sí' y _rawDocUpdates está vacío → entrada en DocLog
-        // AC-3: si doc_updates tiene al menos una entrada → sin alerta
-        // AC-4: valores 'no' y 'n/a' no activan verificación
-        // AC-5: ingesta continúa en ambos casos — no es bloqueo
-        if (itemKind(_it) === 'TKT' && (_it.contract_update || '').toLowerCase() === 'sí') {
-          const _hasDocUpdates = Array.isArray(ckpt._rawDocUpdates) && ckpt._rawDocUpdates.length > 0;
-          if (!_hasDocUpdates) {
-            _blogLog(
-              'contract-update-sin-doc-update',
-              _it.code || '[pendiente-ID]',
-              `contract_update declarado sí — DOC-UPDATE de module-contracts ausente en CHECKPOINT ${ckpt.titulo || ''}`,
-              'backlog'
-            );
-          }
-        }
-
-        // T-202606-018: advertencia si DISC tiene status promoted sin promovida_a
-        if (itemKind(_it) === 'DISC' && _normSt === 'promoted' && !_it.promovida_a) {
-          _blogLog('promoted-sin-ref', _it.code || '[pendiente-ID]', 'DISC ' + (_it.code || '[pendiente-ID]') + ' con status promoted sin campo promovida_a — trazabilidad incompleta', 'backlog');
-        }
-        // T-202606-014: advertencia si depends_on contiene [pendiente-ID] literal con 2+ ítems nuevos en el CHECKPOINT
-        // INC-parser-tmpslug-mensaje: mensaje recomendaba [tmp:slug] — deprecado desde infra_version 33
-        // (__BR-Ecosystem §4). El motor interno sigue resolviendo vía [tmp:slug] (ver locus-backlog-item.js
-        // L98-100, decisión aceptada de no reescribir el motor) — pero el mensaje dirigido al rol emisor
-        // debe recomendar el mecanismo vigente para declarar en CHECKPOINTs nuevos: ref_id + title.
-        // TKT (ref_id CAEL-0725-03 · DISC nueva de Rune, triggered_by CAEL-0725-01): antes solo
-        // Array.includes('[pendiente-ID]') — igualdad exacta, ninguna variante no canónica
-        // (ej. '[req-nueva-feature]') disparaba esta advertencia. _isNonCanonicalPlaceholder (ahora
-        // exportada de locus-backlog-item.js) amplía la detección sin perder el criterio original —
-        // el literal '[pendiente-ID]' sigue disparando igual (_isNonCanonicalPlaceholder lo excluye
-        // por ser canónico, así que se conserva la condición explícita como segunda rama del some()).
-        if (Array.isArray(_it.depends_on) && _it.depends_on.some(v => v === '[pendiente-ID]' || _isNonCanonicalPlaceholder(v))) {
-          const _newItemCount = _rawItems.filter(i => i.type !== 'patch' && _isPlaceholderCode(i.code || '')).length;
-          if (_newItemCount >= 2) {
-            _blogLog('dep-placeholder-ambiguo', _it.code || '[pendiente-ID]', (_it.code || '[pendiente-ID]') + ' depends_on contiene [pendiente-ID] no resoluble — usar ref_id + title para referencias cruzadas (ver __BR-Ecosystem §4).', 'backlog');
-          }
-        }
+      const _draftGateTypes = ['REQ', 'TKT'];
+      const _hasDraftGatedItem = _rawItems.some(_di => _di && _di.type !== 'patch' && _di.type !== 'patch-intencion' && _draftGateTypes.includes(_di.type));
+      if (_hasDraftGatedItem && ckpt.draftRaw === undefined) {
+        _itemError = 'Campo "draft" ausente — CHECKPOINT no aplicado. Declarar draft: true o false.';
       }
-      // TKT-202606-014 (REQ-202606-003 · TKT4 · AC1/AC2/AC4): gate de bloqueo total —
-      // BR-Ecosystem §8 regla dura: draft obligatorio sin default cuando items incluye
-      // REQ/TKT nuevos o con status declarado — se omite cuando items está vacío, solo
-      // contiene DISC, o solo contiene INC/PRB/KE/CHG (rama Reactiva, sin Fase 5). Usa
-      // draftRaw (AC2 de este mismo TKT, ya presente arriba) para distinguir undefined
-      // (ausente) de false (explícito, AC3).
-      // TKT-202607-003: _draftGateTypes incluía INC y CHG por error — ambos son rama
-      // Reactiva (§4b) y nunca deben gatear sobre draft, igual que PRB y KE (ya excluidos
-      // correctamente). Solo REQ/TKT (rama Planeada) requieren draft obligatorio.
-      const _draftToastKey = `_draftGateToastSeen_${id}`;
+      let _builtResult = { tgItems: [], patchItems: [], patchIntencionItems: [], itemError: null };
       if (!_itemError) {
-        const _draftGateTypes = ['REQ', 'TKT'];
-        const _hasDraftGatedItem = _rawItems.some(_di => _di && _di.type !== 'patch' && _draftGateTypes.includes(_di.type));
-        if (_hasDraftGatedItem && ckpt.draftRaw === undefined) {
-          _itemError = 'Campo "draft" ausente — CHECKPOINT no aplicado. Declarar draft: true o false.';
-          if (!window[_draftToastKey]) {
-            showToast('error', _itemError);
-            window[_draftToastKey] = true;
-          }
-        } else {
-          delete window[_draftToastKey];
-        }
+        _builtResult = _buildTgItemsFromParsed(ckpt, _rawItems);
+        _itemError = _builtResult.itemError;
       }
-      // T-202606-030 fix AC-2+AC-3: emitir _itemError consolidado si hay Rs sin AC
-      // Origen: título del CHECKPOINT — disponible en ckpt.titulo
-      if (!_itemError && _rsNoAc.length > 0) {
-        const _ckptOrigen = ckpt.titulo || '';
-        _itemError = `CHECKPOINT bloqueado: ${_rsNoAc.join(' · ')} no tiene${_rsNoAc.length !== 1 ? 'n' : ''} AC de coherencia de conjunto. Origen: ${_ckptOrigen}. Adjuntar CHECKPOINT corregido antes de continuar.`;
+      // TKT-202607-014 (dep-placeholder-ambiguo): señal exclusiva del path single — evaluada
+      // aquí sobre tgItems ya construidos, sin duplicar dentro de _buildTgItemsFromParsed
+      // (esa señal no forma parte del contrato de esa función, ver module-contracts).
+      if (!_itemError) {
+        const _newItemCount = _rawItems.filter(_ni => _ni.type !== 'patch' && _ni.type !== 'patch-intencion' && _isPlaceholderCode(_ni.code || '')).length;
+        _builtResult.tgItems.forEach(_tg => {
+          if (Array.isArray(_tg.dependsOn) && _tg.dependsOn.some(_dv => _dv === '[pendiente-ID]' || _isNonCanonicalPlaceholder(_dv)) && _newItemCount >= 2) {
+            _blogLog('dep-placeholder-ambiguo', _tg.code || '[pendiente-ID]', (_tg.code || '[pendiente-ID]') + ' depends_on contiene [pendiente-ID] no resoluble — usar ref_id + title para referencias cruzadas (ver __BR-Ecosystem §4).', 'backlog');
+          }
+        });
       }
       if (_itemError) {
         window[`_itemsJsonError_${id}`] = _itemError;
         tgItems = [];
         delete window[`_patchItems_${id}`];
+        delete window[`_patchIntencionItems_${id}`];
       } else {
+        tgItems = _builtResult.tgItems;
+        window[`_patchItems_${id}`] = _builtResult.patchItems;
+        window[`_patchIntencionItems_${id}`] = _builtResult.patchIntencionItems;
         // T-[pendiente-ID] (REQ-contract-rename): campo alineado a BR-Execution §2 —
         // contract_detail reemplaza a contract, sin retrocompatibilidad (BR-Execution §2).
         _rawItems.forEach(it => { if (it.contract_detail) _ctrMergeFromItem(it.code || '[pendiente-ID]', it.contract_detail); });
@@ -3298,6 +3087,11 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
   const patchItems = [];
   const patchIntencionItems = []; // TKT1 (REQ-202607-061): canal propio, separado de patchItems
   let itemError = null;
+  // TKT3 (REQ-202608-107): gate de REQ sin AC — portado desde el loop inline de parsePaste
+  // (_rsNoAc, retirado en TKT2 de este mismo REQ). BR-Ecosystem §5 + BR-Core §8 regla dura:
+  // "R sin AC rechazado por Locus". Acumula todos los REQ sin AC del batch antes de emitir el
+  // error consolidado — no interrumpe el loop en el primero, mismo criterio que _rsNoAc tenía.
+  const _reqsNoAc = [];
 
   for (let i = 0; i < parsedJSON.length; i++) {
     const it = parsedJSON[i];
@@ -3432,6 +3226,14 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
         continue;
       }
     }
+    // TKT3 (REQ-202608-107): REQ sin AC — mismo punto relativo que ocupaba en el loop inline
+    // de parsePaste (después del bloque de REQ+bloqueado, antes de la construcción general del
+    // ítem). Un REQ bloqueado con rol no autorizado ya salió por `continue` en el bloque de
+    // arriba y nunca llega aquí — mismo orden que parsePaste tenía para ese caso combinado.
+    if (itemKind(it) === 'REQ' && (!Array.isArray(it.ac) || it.ac.length === 0)) {
+      _reqsNoAc.push(`R ${it.code || '[pendiente-ID]'} "${it.title || it.desc || ''}"`);
+      continue;
+    }
     // TKT2 (REQ-202607-025): resolver sprint_id/sprint_name — mismo patrón que L942/953-955.
     const _sprintF3b = _resolveSprintFields(it);
     tgItems.push({
@@ -3485,7 +3287,31 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
     if (itemKind(it) === 'DISC' && _normSt3 === 'promoted' && !it.promovida_a) {
       _blogLog('promoted-sin-ref', it.code || '[pendiente-ID]', 'DISC ' + (it.code || '[pendiente-ID]') + ' con status promoted sin campo promovida_a — trazabilidad incompleta', 'backlog');
     }
+    // TKT1 (REQ-202608-107): alerta DocLog si T tiene contract_update: 'sí' y doc_updates
+    // ausente o vacío — mismo check que ya existía solo en parsePaste (~L2224-2240, path
+    // single). Consolida el gate para que el path batch dispare la misma alerta. AC-1..AC-5
+    // idénticos al comentario original.
+    if (itemKind(it) === 'TKT' && (it.contract_update || '').toLowerCase() === 'sí') {
+      const _hasDocUpdates3 = Array.isArray(ckpt._rawDocUpdates) && ckpt._rawDocUpdates.length > 0;
+      if (!_hasDocUpdates3) {
+        _blogLog(
+          'contract-update-sin-doc-update',
+          it.code || '[pendiente-ID]',
+          `contract_update declarado sí — DOC-UPDATE de module-contracts ausente en CHECKPOINT ${ckpt.titulo || ''}`,
+          'backlog'
+        );
+      }
+    }
     _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
+  }
+
+  // TKT3 (REQ-202608-107): consolidar REQ sin AC — mismo criterio que el bloque equivalente
+  // de parsePaste (T-202606-030 fix AC-2+AC-3). Solo se emite si ningún otro itemError ya
+  // interrumpió el loop antes — un break-type error tiene precedencia.
+  if (!itemError && _reqsNoAc.length > 0) {
+    const _ckptOrigen3 = ckpt.titulo || '';
+    itemError = `CHECKPOINT bloqueado: ${_reqsNoAc.join(' · ')} no tiene${_reqsNoAc.length !== 1 ? 'n' : ''} AC de coherencia de conjunto. Origen: ${_ckptOrigen3}. Adjuntar CHECKPOINT corregido antes de continuar.`;
+    tgItems.length = 0;
   }
 
   return { tgItems, patchItems, patchIntencionItems, itemError };

@@ -1,4 +1,8 @@
-// [PP] mod:159 · autor:Rune · 2026-08-04 16:40 UTC-6
+// [PP] mod:160 · autor:Rune · 2026-08-08 15:40 UTC-6
+// TKT3 (parent CAEL-08081500-01, ref_id CAEL-08081500-04): _promoteItem() agrega bloque
+// .promote-modal-info con el mismo aviso de descarte que ya muestra _promoteTktToReq() —
+// antes P→T/R descartaba el DISC origen sin avisarlo. Reutiliza la clase .promote-modal-info
+// ya definida — sin CSS nueva. Cierra Hallazgo F de _Locus-ux-ref.
 // TKT2 (parent: [pendiente-ID] · contract_update: sí, ver _Locus-module-contracts): 
 // _assignPendingIds() distingue ahora, en unresolvedRefs (campos escalares _refFields), entre
 // "código con formato real inexistente" (source:'ref_no_resuelta', sin cambio) y "valor sin
@@ -1703,6 +1707,10 @@ function _promoteItem(code) {
     body.innerHTML = `
       <div class="promote-modal-title" id="promote-modal-title-el">⬆ Promover idea</div>
       <div class="promote-modal-sub">${esc(code)} · ${esc(item.title)}</div>
+      <div class="promote-modal-info">
+        Se creará el ítem elegido heredando los campos de la idea.<br>
+        El DISC origen quedará <strong>descartado</strong> con referencia al ítem nuevo.
+      </div>
       <div class="promote-modal-desc">¿A qué tipo quieres promover esta idea?</div>
       <div class="promote-type-btns">
         <button class="promote-type-btn" id="promote-btn-TKT" data-action="promote-select-type" data-type="TKT">
