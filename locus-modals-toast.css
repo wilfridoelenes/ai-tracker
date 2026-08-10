@@ -1,4 +1,5 @@
-/* [PP] mod:6 · autor:Nova · 2026-07-24 10:05 UTC-6 */
+/* [PP] mod:7 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* REQ CAEL-0724-02 (toast — corrección semántica + render): TKT1 tokens dedicados
    t-confirm (--blue-*)/t-copy (color-mix + --pink), title override incluye t-confirm.
    TKT2 .toast-icon como chip (color-mix currentColor), .toast-progress 2px→3px/opacity .20→.36. */
@@ -40,7 +41,7 @@
   border: 1px solid var(--border2);
   background: var(--surface);
   color: var(--text);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   line-height: 1.6;
   pointer-events: auto;
   cursor: default;
@@ -88,7 +89,7 @@
 }
 
 .toast-icon {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   line-height: 1;
   flex-shrink: 0;
   width: 22px;
@@ -312,7 +313,7 @@
 
 .ckpt-section-header {
   display: flex; align-items: center; gap: 6px;
-  padding: 6px 10px; font-size: var(--text-2xs-plus); font-weight: 700;
+  padding: 6px 10px; font-size: var(--text-xs); font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.06em;
 }
 
@@ -458,7 +459,7 @@
 }
 
 .ckpt-item-arrow {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-family: var(--mono);
   opacity: 0.7;
   color: var(--green-text);
@@ -590,14 +591,14 @@
 /* R-202605-005 · A4-b · ckpt-* */
 
 .ckpt-context {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-secondary);
   padding: 4px 0;
   line-height: 1.5;
 }
 
 .ckpt-decision {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text);
   font-weight: 500;
 }
@@ -609,12 +610,12 @@
 }
 
 .ckpt-item-title {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   flex: 1;
 }
 
 .ckpt-next {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-secondary);
   border-left: 3px solid var(--accent-border);
   padding-left: 8px;
@@ -662,7 +663,7 @@
 
 /* toast-inline-msg — span de texto en modo acción (locus-toast.js) */
 .toast-inline-msg {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text);
   flex: 1;
   min-width: 0;

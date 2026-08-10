@@ -1,4 +1,5 @@
-/* [PP] mod:8 · autor:Nova · 2026-08-02 21:15 UTC-6 */
+/* [PP] mod:9 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* locus-modals-misc.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
 
 /* [PP] mod:7 · autor:Nova · 2026-07-04 UTC-6 */
@@ -27,7 +28,7 @@
 
 .tag-add-btn {
   font-family: var(--mono);
-  font-size: var(--text-3xs);
+  font-size: var(--text-2xs);
   color: var(--text3);
   background: none;
   border: 1px dashed var(--border2);
@@ -162,7 +163,7 @@
 
 .tag-new-input {
   font-family: var(--font-sans);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   flex: 1;
   background: var(--surface2);
   border: 1px solid var(--border2);
@@ -219,7 +220,7 @@
 .toast-type-pill {
   display: inline-flex;
   align-items: center;
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-weight: 600;
   padding: 1px 6px;
   border-radius: var(--radius-sm);
@@ -233,7 +234,7 @@
 .toast-sprint-pill {
   display: inline-flex;
   align-items: center;
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-weight: 500;
   padding: 1px 6px;
   border-radius: var(--radius-sm);
@@ -243,7 +244,7 @@
 }
 
 .toast-auto-hint {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text2);
   opacity: 0.75;
   margin-top: 3px;
@@ -306,7 +307,7 @@
 }
 
 .auth-modal-desc {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text3);
   margin: -4px 0 14px;
 }
@@ -357,7 +358,7 @@
 }
 
 .auth-resend-btn {
-  font-family: var(--font-sans); font-size: var(--text-sm); color: var(--accent);
+  font-family: var(--font-sans); font-size: var(--text-xs); color: var(--accent);
   background: none; border: none; cursor: pointer; text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -476,7 +477,7 @@
   border-radius: var(--radius-sm);
   background: var(--accent-muted, rgb(99 102 241 / 15%));
   color: var(--accent-text);
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-weight: 600;
   cursor: pointer;
 }
@@ -523,7 +524,7 @@
 
 .mdiff-right-banner-icon {
   flex-shrink: 0;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   line-height: 1.4;
 }
 
@@ -584,14 +585,14 @@
 }
 
 .mdiff-code--sm {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--text2);
   font-family: var(--font-mono, monospace);
 }
 
 .mdiff-retro-status {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--amber-text);
 }
 
@@ -619,7 +620,7 @@
 }
 
 .mdiff-right-discard-desc {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text2);
   white-space: nowrap;
   overflow: hidden;
@@ -633,7 +634,7 @@
   border: 1px solid var(--border);
   background: var(--bg2);
   color: var(--text1);
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   cursor: pointer;
 }
 
@@ -711,7 +712,7 @@
 }
 
 .iviz-proj-required-desc {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-secondary, var(--hint));
   line-height: 1.5;
 }
@@ -725,7 +726,7 @@
   border: 1px solid var(--border2);
   background: var(--surface2);
   color: var(--text);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   cursor: pointer;
   outline-offset: 2px;
 }
@@ -737,7 +738,7 @@
 
 /* Empty state — sin proyectos creados */
 .iviz-proj-empty {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text3);
   font-style: italic;
   line-height: 1.5;
@@ -769,7 +770,7 @@
 
 /* Badge de origen en header del overlay — conexión visual con el contexto que lo disparó */
 .item-viz-origin-badge {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-secondary, var(--hint));
   font-weight: 400;
   line-height: 1;
@@ -801,7 +802,7 @@
   border: 1px solid rgb(255 255 255 / 18%);
   background: rgb(255 255 255 / 10%);
   color: inherit;
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-weight: 600;
   cursor: pointer;
   transition: var(--trans-color);
@@ -862,7 +863,7 @@
 }
 
 .shortcuts-restore-btn {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color:var(--text-secondary);
   background:transparent;
   border:1px solid var(--border,rgb(0 0 0 / 12%));
@@ -911,7 +912,7 @@
 }
 
 .sc-group-label {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-weight:700;
   text-transform:uppercase;
   letter-spacing:.6px;
@@ -948,7 +949,7 @@
   align-items:center;
   padding:3px 9px;
   border-radius: var(--radius-xs);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-family:monospace;
   font-weight:600;
   background:var(--bg-subtle);
@@ -965,7 +966,7 @@
 }
 
 .sc-modified-badge {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color:var(--accent-text);
   font-weight:500;
 }
@@ -995,7 +996,7 @@
   padding:3px 7px;
   border:1px solid var(--accent);
   border-radius: var(--radius-xs);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-family:monospace;
   font-weight:600;
   background:var(--bg,#fff);
@@ -1010,7 +1011,7 @@
 }
 
 .sc-save-btn {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   padding:3px 10px;
   border-radius: var(--radius-xs);
   border:none;
@@ -1030,7 +1031,7 @@
 }
 
 .sc-cancel-btn {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   padding:3px 8px;
   border-radius: var(--radius-xs);
   border:1px solid var(--border,rgb(0 0 0 / 12%));
@@ -1092,7 +1093,7 @@
 }
 
 .cmd-palette-esc-hint {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-family:monospace;
   background:var(--bg-subtle);
   border:1px solid var(--border,rgb(0 0 0 / 12%));
@@ -1113,7 +1114,7 @@
 }
 
 .cp-group-label {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-weight:700;
   text-transform:uppercase;
   letter-spacing:.06em;
@@ -1141,7 +1142,7 @@
   border:1px solid var(--border,rgb(0 0 0 / 10%));
   border-radius: var(--radius-sm);
   padding:1px 5px;
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color:var(--text-secondary);
   margin-right:3px;
 }
@@ -1227,7 +1228,7 @@
   display:flex;
   align-items:center;
   gap:6px;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color:var(--text-secondary);
   padding-left:25px;
   margin-top:2px;
@@ -1238,7 +1239,7 @@
   padding:2px 6px;
   border:1px solid var(--border,rgb(0 0 0 / 15%));
   border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   text-align:center;
   background:var(--bg,#fff);
   color:var(--text,#1a1a2e);
@@ -1792,12 +1793,12 @@
 }
 
 .viz-sinc-icon {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   flex-shrink: 0;
 }
 
 .viz-sinc-label {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-muted);
 }
 
@@ -1826,13 +1827,13 @@
 }
 
 .pend-ai-name {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--text);
 }
 
 .pend-empty {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-muted);
   text-align: center;
   padding: 24px 0;
@@ -1859,7 +1860,7 @@
 }
 
 .pend-item-pending {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   flex: 1;
   color: var(--text);
   line-height: 1.4;
@@ -1891,11 +1892,11 @@
 }
 
 .sprint-inline-rt-select {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
 }
 
 .sprint-inline-vt-input {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   padding: 2px 6px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
@@ -2035,7 +2036,7 @@
 /* .quick-field textarea */
 .quick-field textarea {
   font-family: var(--font-sans);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   background: var(--surface2);
   border: 1.5px solid var(--border2);
   border-radius: var(--radius-md);
@@ -2118,7 +2119,7 @@
   border: none;
   cursor: pointer;
   color: var(--text2);
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   padding: 4px 6px;
   border-radius: var(--radius-sm);
   transition: var(--trans-color);
@@ -2141,7 +2142,7 @@
 
 .doc-log-empty {
   color: var(--text3);
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   text-align: center;
   margin-top: 24px;
 }
@@ -2153,7 +2154,7 @@
   align-items: baseline;
   padding: 5px 0;
   border-bottom: 1px solid var(--border);
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
 }
 
 .doc-log-ts {
@@ -2189,7 +2190,7 @@
   padding: 4px 8px;
   cursor: pointer;
   color: var(--text2);
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -2258,7 +2259,7 @@
 
 .clean-project-name {
   color: var(--red);
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   font-weight: 700;
 }
 
@@ -2271,7 +2272,7 @@
 
 /* --- Warning --- */
 .clean-project-warning {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text2);
   background: var(--red-dim);
   border: 1px solid color-mix(in srgb, var(--red) 30%, transparent);
@@ -2327,7 +2328,7 @@
 }
 
 .clean-project-check-desc {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text2);
 }
 
@@ -2342,7 +2343,7 @@
 
 /* --- Label + input confirmación --- */
 .clean-project-confirm-label {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text2);
   line-height: 1.4;
 }

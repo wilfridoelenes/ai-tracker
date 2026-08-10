@@ -1,4 +1,5 @@
-/* [PP] mod:14 · autor:Nova · 2026-08-09 UTC-6 */
+/* [PP] mod:15 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* TKT-[pendiente-ID] (CAEL-FASTTRACK-01): --rsb-width 340→380px + --rsb-width/
    --rsb-strip movidas de #global-radar-sidebar a :root — fuente única, ver nota
    en "Variables radar". Pills de .rsb-header-row2 (.rsb-hdr-counts) ahora caben
@@ -319,7 +320,7 @@
 
 /* Caret para secciones colapsables */
 .rsb-section-caret {
-  font-size: var(--text-3xs);
+  font-size: var(--text-2xs);
   opacity: 0.5;
   transition: transform 0.15s;
   margin-left: -3px;
@@ -404,7 +405,7 @@
 }
 
 .rsb-card-name {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: -0.025em;
   color: var(--text);
@@ -426,7 +427,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   padding: 0;
   opacity: 0.45;
   transition: opacity 0.12s;
@@ -460,7 +461,7 @@
 }
 
 .rsb-session-title {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text2);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -471,7 +472,7 @@
 }
 
 .rsb-session-elapsed {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--amber-text);
   white-space: nowrap;
@@ -502,7 +503,7 @@
   border-radius: var(--radius-xs);
   padding: 3px 8px;
   cursor: pointer;
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--amber-text);
   transition: background 0.12s, border-color 0.12s;
@@ -566,7 +567,7 @@
   border-radius: var(--radius-xs);
   padding: 3px 8px 3px 5px;
   cursor: pointer;
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--accent-text);
   transition: opacity 0.12s, background 0.12s;
@@ -892,13 +893,13 @@ body.radar-sb-collapsed #global-footer {
 }
 
 .rsb-empty-title {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 700;
   color: var(--text);
 }
 
 .rsb-empty-hint {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text3);
   line-height: 1.4;
 }
@@ -983,7 +984,7 @@ body.radar-sb-collapsed #global-footer {
   border: 1px dashed var(--border2);
   border-radius: var(--radius-md);
   color: var(--text3);
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-weight: 600;
   padding: 5px 8px;
   cursor: pointer;
@@ -1051,7 +1052,7 @@ body.radar-sb-collapsed #global-footer {
   border-radius: var(--radius-md);
   background: var(--red, var(--red));
   color: #fff;
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-weight: 700;
   line-height: 1;
   vertical-align: middle;
@@ -1063,7 +1064,7 @@ body.radar-sb-collapsed #global-footer {
   border: 1px solid var(--border, rgb(255 255 255 / 15%));
   border-radius: var(--radius-sm);
   color: var(--text-muted, #999);
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   padding: 2px 6px;
   cursor: pointer;
   transition: border-color .15s, color .15s;
@@ -1156,7 +1157,7 @@ body.radar-sb-collapsed #global-footer {
 }
 
 .rsb-notif-body {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text-muted, #999);
   line-height: 1.35;
   white-space: nowrap;
@@ -1215,7 +1216,7 @@ body.radar-sb-collapsed #global-footer {
 
 /* Inline — dentro de la sección, con ítems */
 .rsb-notif-empty {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text-muted, #999);
   text-align: center;
   padding: 6px 0;
@@ -1227,7 +1228,7 @@ body.radar-sb-collapsed #global-footer {
   align-items: center;
   gap: 6px;
   padding: 8px 4px 6px;
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text3);
 }
 
@@ -1247,7 +1248,7 @@ body.radar-sb-collapsed #global-footer {
 
 .rsb-notif-empty-label {
   color: var(--text3);
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
 }
 
 /* ── Panel config colapsable al pie de la sección ────────────────── */
@@ -1279,7 +1280,7 @@ body.radar-sb-collapsed #global-footer {
 }
 
 .rsb-cfg-arrow {
-  font-size: var(--text-3xs);
+  font-size: var(--text-2xs);
   opacity: 0.6;
   transition: transform .15s;
   flex-shrink: 0;
@@ -1312,7 +1313,7 @@ body.radar-sb-collapsed #global-footer {
 
 .rsb-cfg-label {
   flex: 1;
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text2);
   line-height: 1.3;
   min-width: 0;
@@ -1330,7 +1331,7 @@ body.radar-sb-collapsed #global-footer {
   padding: 2px 4px;
   border: 1px solid var(--radar-card-border, rgb(255 255 255 / 7%));
   border-radius: var(--radius-sm);
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   text-align: center;
   background: var(--radar-card-bg, rgb(255 255 255 / 4%));
   color: var(--text);
@@ -1460,7 +1461,7 @@ body.radar-sb-collapsed #global-footer {
 }
 
 .rsb-notif-hist-text {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-muted, #9ca3af);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1633,7 +1634,7 @@ body.radar-sb-collapsed #global-footer {
 }
 
 .cscard-row-title {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text, #e2e2e2);
   flex: 1;
   white-space: nowrap;

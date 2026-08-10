@@ -1,4 +1,5 @@
-/* [PP] mod:27 · autor:Nova · 2026-08-09 19:05 UTC-6 */
+/* [PP] mod:28 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* TKT3 (REQ-202608-119, DISC-202608-120): familia .validation-result*/.validation-badge*/
    .validation-divider/.blocker-row*/.blocker-chip retirada — código muerto desde que
    TKT-202608-291 eliminó las 3 funciones JS que la poblaban (locus-session-parse.js).
@@ -212,7 +213,7 @@
 .add-modal-actions button,
 .tag-modal-actions button,
 .avatar-modal-actions button {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 500;
   padding: 7px 14px;
   border-radius: var(--radius-md);
@@ -869,7 +870,7 @@
 .avatar-modal-actions {
   gap: 0.5rem;
   display: flex;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
 }
 
 /* .avatar-modal-actions button */
@@ -961,7 +962,7 @@
 
 /* .popup-section-label */
 .popup-section-label {
-  font-size: var(--text-3xs);
+  font-size: var(--text-2xs);
   font-weight: 600;
   margin-bottom: 5px;
   text-transform: uppercase;
@@ -971,7 +972,7 @@
 
 /* .popup-section-val */
 .popup-section-val {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   line-height: 1.7;
   font-family: var(--font-sans);
 }

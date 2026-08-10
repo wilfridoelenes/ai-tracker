@@ -1,4 +1,5 @@
-/* [PP] mod:12 · autor:Nova · 2026-08-06 UTC-6 */
+/* [PP] mod:13 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* Corrección mod:12 (DISC-202608-106): el comentario de mod:5 (abajo) contenía el literal
    `REQ-[pendiente-ID]` sin resolver desde el rename original (2026-07-05) — violación de
    BR-Execution §9, el placeholder nunca fue reemplazado por código real ni acompañado de
@@ -134,7 +135,7 @@
 }
 
 .historico-title {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--text2);
   letter-spacing: 0.06em;
@@ -276,7 +277,7 @@
 }
 
 .historico-se-name {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text2);
   flex: 1;
   min-width: 0;
@@ -316,7 +317,7 @@
 .historico-empty {
   padding: 20px 14px;
   text-align: center;
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text3);
   font-style: italic;
 }
@@ -435,7 +436,7 @@
 }
 
 .historico-row-type {
-  font-size: var(--text-3xs);
+  font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.04em;
   padding: 1px 5px;
@@ -473,7 +474,7 @@
 }
 
 .historico-row-title {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text2);
   flex: 1;
   min-width: 0;
@@ -483,7 +484,7 @@
 }
 
 .historico-row-effort {
-  font-size: var(--text-3xs);
+  font-size: var(--text-2xs);
   color: var(--text3);
   flex-shrink: 0;
   letter-spacing: 1px;
@@ -491,7 +492,7 @@
 }
 
 .historico-row-status {
-  font-size: var(--text-3xs);
+  font-size: var(--text-2xs);
   color: var(--text3);
   flex-shrink: 0;
   text-transform: lowercase;

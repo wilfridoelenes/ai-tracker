@@ -1,4 +1,5 @@
-/* [PP] mod:14 · autor:Nova · 2026-08-03 UTC-6 */
+/* [PP] mod:15 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* TKT-202608-229 (REQ-202608-087): header conjunto del modal de ingesta — .sc-project
    quedaba mal nombrado en ese contexto (mostraba nombre de worker, no proyecto, ver
    TKT-202608-228) y sin tinte de disponibilidad. .msh-worker-name reemplaza .sc-project
@@ -133,7 +134,7 @@
 /* ── sc-project ── */
 
 .sc-project {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 500;
   color: var(--text);
   overflow: hidden;
@@ -143,11 +144,11 @@
 
 /* ── msh-worker-name — header conjunto del modal de ingesta (TKT-202608-229) ── */
 /* Reemplaza .sc-project dentro de #ingest-split-header — mismo token de tamaño que
-   .worker-header .sc-project (var(--text-2xl)/600, locus-sesiones.css) para leer como
+   .worker-header .sc-project (var(--text-xl)/600, locus-sesiones.css) para leer como
    título principal del header compartido, no como metadato secundario. */
 
 .msh-worker-name {
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   font-weight: 600;
   color: var(--text);
   overflow: hidden;
@@ -399,7 +400,7 @@
 }
 
 .sc-stat-lbl {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text3);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -471,7 +472,7 @@
 
 .sc-step.done .sc-step-num {
   border: none;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -513,7 +514,7 @@
   background: var(--c-low-bg);
   border: 0.5px solid var(--c-low-border);
   border-radius: var(--radius-md);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--c-low-text);
   font-weight: 500;
 }
@@ -526,7 +527,7 @@
 }
 
 .sc-success-msg {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--text);
 }
@@ -632,7 +633,7 @@
 .card-hora-input {
   width: 64px;
   flex-shrink: 0;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
   padding: 5px 8px;
   border-radius: var(--radius-sm);

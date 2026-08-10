@@ -1,4 +1,4 @@
-// [PP] mod:141 · autor:Rune · 2026-08-05 14:20 UTC-6
+// [PP] mod:142 · autor:Rune · 2026-08-09 20:15 UTC-6
 // TKT-202608-247 (REQ-202608-097): renderStats() — envuelto en .bl-header-unified > .stats-bar,
 // mismo patrón que Q-Backlog/Discoveries/Histórico. De los 2 early-returns que blanqueaban
 // #stats-bar, solo queda 'sin proyecto activo' (_rsProjId ausente — fuera de scope del TKT,
@@ -695,7 +695,7 @@ export function _updateUndoUI() {
   if (btnR) { btnR.disabled = !_redoTotal; btnR.title = _redoTotal ? `Rehacer (${_redoTotal})  Ctrl+Shift+Z` : 'Sin acciones para rehacer'; }
 }
 
-let backlogSearchQuery = '';
+// TKT-202608-290: backlogSearchQuery retirada — búsqueda local de Backlog eliminada, reemplazada por ⌘K
 
 // T-202606-005 (T2): namespaces de filtro aislados por subtab — q-backlog y qinc tienen su
 // propio state independiente del state global de Backlog (activeTypes/activeStatuses/etc).
@@ -2496,12 +2496,8 @@ export function renderStats() {
   // Universo countable de Backlog
   const countableItems = _getCountableBaseForSubtab('backlog');
 
-  // B-202606-008: incluir búsqueda activa — los contadores deben reflejar
-  // los mismos ítems que aparecen en la lista, incluyendo el filtro de búsqueda.
-  const _q = (backlogSearchQuery || '').trim().toLowerCase();
-  const _matchesSearch = _q
-    ? i => i.code.toLowerCase().includes(_q) || (i.title || '').toLowerCase().includes(_q) || (i.area || '').toLowerCase().includes(_q)
-    : () => true;
+  // TKT-202608-290: _q/_matchesSearch (B-202606-008) retirados — búsqueda local eliminada,
+  // los contadores ya no necesitan combinar con filtro de texto.
 
   const visible = countableItems.filter(i => {
     const type = itemKind(i);
@@ -2517,7 +2513,7 @@ export function renderStats() {
     // ver _subtabNSDefaults, ~L672-680). Founder confirmó el caso real (REQ-202607-022, hijo
     // TKT-202607-086 en pendiente, REQ invisible en Backlog Vista Lista con filtro Pendiente activo).
     const statusOk = i.status === 'bloqueado' || i.status === 'en-proceso' || activeStatuses.has(i.status);
-    return typeOk && statusOk && _matchesSearch(i);
+    return typeOk && statusOk;
   });
 
   // Por prioridad (sobre visibles)
@@ -2700,17 +2696,13 @@ export function clearAllFilters() {
   activeEfforts = new Set([1, 2, 3]); // T-071
   activePriorityFilter = new Set(); // T-202604-357
   _backlogNoAcMode = false; // T-202604-363
-  backlogSearchQuery = '';
   backlogSortMode = 'priority'; // T-202604-424: sprint eliminado como opción de sort
   backlogSortDir = 'desc'; // T-072 — default desc
   const sortDirBtn = document.getElementById('fbar-sort-dir-btn');
   if (sortDirBtn) sortDirBtn.textContent = '↓';
   const searchEl = document.getElementById('search-global');
   if (searchEl) searchEl.value = '';
-  const bsInput = document.getElementById('backlog-search-input');
-  if (bsInput) bsInput.value = '';
-  const bsClear = document.getElementById('backlog-search-clear');
-  if (bsClear) bsClear.classList.remove('visible');
+  // TKT-202608-290: reset de #backlog-search-input/#backlog-search-clear retirado — input eliminado
   const sortSel = document.getElementById('fbar-sort-select');
   if (sortSel && sortSel.value === 'sprint') sortSel.value = 'priority';
   updateTypeFilterUI();
@@ -2922,7 +2914,7 @@ export function getDoneItems(matchesQuery)   { // T-202606-028: computed global 
 export function _getBacklogSortMode()        { return backlogSortMode; }
 export function _getBacklogSortDir()         { return backlogSortDir; }
 export function _getMiViewRoleIndex()        { return _miViewRoleIndex; }
-export function _getBacklogSearchQuery()     { return backlogSearchQuery; }
+// TKT-202608-290: _getBacklogSearchQuery() retirada — sin backlogSearchQuery que exponer
 export function _getCollapsedVersions()      { return collapsedVersions; }
 
 // B-202605-XXX: _migrateItemTypes — stub de compatibilidad para call site en locus-storage.js
@@ -2957,7 +2949,7 @@ function _resetDepsFilter() {
 // Retorna array de { label, removeFn } para cada filtro activo.
 // Estado default: activeStatuses={'pendiente','en-revision'} · activeTypes={TKT,REQ,INC,DISC} ·
 //   activeEfforts={1,2,3} · activePriorityFilter=vacío ·
-//   _backlogNoAcMode=false · _depsFilter=0 · backlogSearchQuery=''
+//   _backlogNoAcMode=false · _depsFilter=0 (búsqueda local retirada, TKT-202608-290)
 function _getActiveFilterChips() {
   const chips = [];
 
@@ -3011,17 +3003,7 @@ function _getActiveFilterChips() {
     }
   });
 
-  // Búsqueda activa
-  if (backlogSearchQuery.length > 0)
-    chips.push({ label: '🔍 "' + backlogSearchQuery + '"', key: 'search', removeFn: () => {
-      backlogSearchQuery = '';
-      const _si = document.getElementById('backlog-search-input');
-      if (_si) _si.value = '';
-      const _sc = document.getElementById('backlog-search-clear');
-      if (_sc) _sc.classList.remove('visible');
-      window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
-      window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
-    }});
+  // TKT-202608-290: chip de búsqueda activa retirado — sin backlogSearchQuery que reflejar
 
   return chips;
 }
@@ -3129,22 +3111,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (_colIcon)  _colIcon.textContent  = '⊞';
   }
 
-  // Búsqueda — B-202605-047: handler inline, no depende de onBacklogSearch global
-  const _inputSearch = document.getElementById('backlog-search-input');
-  if (_inputSearch) _inputSearch.addEventListener('input', function () {
-    backlogSearchQuery = _inputSearch.value.trim().toLowerCase();
-    const _bsClear = document.getElementById('backlog-search-clear');
-    if (_bsClear) _bsClear.classList.toggle('visible', backlogSearchQuery.length > 0);
-    window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
-  });
-
-  const _btnSearchClear = document.getElementById('backlog-search-clear');
-  if (_btnSearchClear) _btnSearchClear.addEventListener('click', function () {
-    backlogSearchQuery = '';
-    if (_inputSearch) _inputSearch.value = '';
-    _btnSearchClear.classList.remove('visible');
-    window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
-  });
+  // TKT-202608-290: listener inline de #backlog-search-input/#backlog-search-clear (B-202605-047)
+  // retirado — búsqueda local de Backlog eliminada, reemplazada por ⌘K.
 
   // Filtros de status
   const _statusMap = {

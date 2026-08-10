@@ -1,4 +1,5 @@
-/* [PP] mod:19 · autor:Nova · 2026-07-31 23:15 UTC-6 */
+/* [PP] mod:20 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* DISC ejecutada: removidas .rm-chip--active y .rm-chip--selected (+ .rm-chip--active
    .rm-chip-mark) — sin consumidor confirmado en JS/HTML (grep completo, 0 matches). */
 /* [PP] mod:13 · autor:Nova · 2026-07-20 16:10 UTC-6 */
@@ -277,7 +278,7 @@
 }
 
 .akpi-label {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -286,7 +287,7 @@
 }
 
 .akpi-value {
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   font-weight: 700;
   color: var(--text);
   line-height: 1.1;
@@ -301,7 +302,7 @@
 }
 
 .akpi-unit {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-weight: 500;
   color: var(--text3);
   font-family: var(--mono);
@@ -320,7 +321,7 @@
 }
 
 .akpi-prev {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-family: var(--mono);
   color: var(--text3);
 }
@@ -332,7 +333,7 @@
 }
 
 .akpi-files-unique {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text3);
   font-family: var(--mono);
   margin-top: 2px;
@@ -395,7 +396,7 @@
 }
 
 .akpi-dom-count {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-family: var(--mono, monospace);
   color: var(--text3);
   flex-shrink: 0;
@@ -477,7 +478,7 @@
 }
 
 .streak-card-value {
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   font-weight: 600;
   color: var(--text);
   line-height: 1;
@@ -515,7 +516,7 @@
 }
 
 .streak-timeline-label {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text3);
   font-family: var(--mono);
   margin-top: 6px;
@@ -648,7 +649,7 @@
 }
 
 .heatmap-legend-label {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text2);
   font-family: var(--mono, monospace);
   font-weight: 500;
@@ -692,7 +693,7 @@
 }
 
 .hourly-label {
-  font-size: var(--text-3xs);
+  font-size: var(--text-2xs);
   font-family: var(--mono);
   color: var(--text3);
   white-space: nowrap;
@@ -771,7 +772,7 @@
 
 .child-title {
   flex: 1;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -800,7 +801,7 @@
 }
 
 .pop-reset-disp {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text2);
   font-family: var(--mono);
   flex: 1;
@@ -1197,7 +1198,7 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  font-size: var(--text-3xs);
+  font-size: var(--text-2xs);
   font-weight: 700;
   padding: 1px 5px;
   border-radius: var(--radius-sm);
@@ -1216,7 +1217,7 @@
 
 .sprint-inline-goal-input {
   width: 100%;
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   padding: 3px 6px;
   border: 1px solid var(--border2, rgb(255 255 255 / 12%));
   border-radius: var(--radius-sm);
@@ -1545,7 +1546,7 @@
   border: 1px solid var(--border);
   background: var(--surface2, var(--surface));
   color: var(--text2);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   cursor: pointer;
   transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
   font-family: var(--font, sans-serif);
@@ -1638,7 +1639,7 @@
 /* T-202604-189: Compare project selector */
 .compare-proj-select {
   padding: 5px 10px;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   border-radius: var(--radius-2xl);
   border: 1px solid var(--border);
   background: var(--surface2, var(--surface));
@@ -1678,7 +1679,7 @@
   align-items: center;
   gap: 7px;
   padding: 10px 14px;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--text);
   border-left: 3px solid transparent;
@@ -1724,7 +1725,7 @@
 }
 
 .acmp-metric-label {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text2);
   width: 180px;
   flex-shrink: 0;
@@ -1881,7 +1882,7 @@
   border: 1px solid var(--border);
   background: var(--surface2, var(--surface));
   color: var(--text2);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   font-family: var(--font, sans-serif);
@@ -1926,7 +1927,7 @@
 }
 
 .hourly-hero-badge {
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   line-height: 1;
   flex-shrink: 0;
 }
@@ -2034,7 +2035,7 @@
 }
 
 .akpi-hint {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text3);
   margin-top: 2px;
   font-family: var(--mono, monospace);
@@ -2155,7 +2156,7 @@
 }
 
 .hourly-insight-text {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--text);
   line-height: 1.4;
@@ -2194,7 +2195,7 @@
 
 .hourly-insight-pill-label {
   color: var(--text3);
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -2202,12 +2203,12 @@
 .hourly-insight-pill-val {
   color: var(--text);
   font-weight: 700;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
 }
 
 .hourly-insight-pill-count {
   color: var(--text3);
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
 }
 
 /* ══ END T-202605-454 ══ */
@@ -2259,7 +2260,7 @@
 }
 
 .ct-global-label {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text3);
@@ -2294,7 +2295,7 @@
 }
 
 .ct-trend-label {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text2);
   font-family: var(--mono, monospace);
   display: flex;
@@ -2324,7 +2325,7 @@
 }
 
 .ct-block-header {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text3);
@@ -2365,7 +2366,7 @@
   width: 20px;
   height: 20px;
   border-radius: var(--radius-xs);
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-weight: 700;
   font-family: var(--mono, monospace);
   flex-shrink: 0;
@@ -2453,7 +2454,7 @@
 
 /* Valor en días */
 .ct-type-val {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-family: var(--mono, monospace);
   color: var(--text);
   font-weight: 600;
@@ -2466,7 +2467,7 @@
 }
 
 .ct-days-unit {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text3);
 }
 
@@ -2493,7 +2494,7 @@
 }
 
 .ct-outliers-title {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -2501,7 +2502,7 @@
 }
 
 .ct-outliers-baseline {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   font-family: var(--mono, monospace);
   color: var(--text2);
   background: rgb(239 68 68 / 10%);
@@ -2541,11 +2542,11 @@
 }
 
 .ct-outlier-code {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
 }
 
 .ct-outlier-title {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
@@ -2553,7 +2554,7 @@
 }
 
 .ct-outlier-days {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 700;
   font-family: var(--mono, monospace);
   color: var(--red, var(--red));
@@ -2561,7 +2562,7 @@
 }
 
 .ct-outlier-mult {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-xs);
   color: var(--text3);
   font-family: var(--mono, monospace);
   min-width: 28px;
@@ -2570,7 +2571,7 @@
 
 .ct-no-outliers {
   padding: 12px;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text3);
   text-align: center;
 }
@@ -2652,7 +2653,7 @@
 
 .fcst-hint {
   margin-top: 4px;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text3);
   font-style: italic;
 }

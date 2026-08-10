@@ -1,3 +1,12 @@
+// [PP] mod:68 · autor:Rune · 2026-08-09 19:10 UTC-6
+// TKT3 (REQ-202608-117): openSplitViewRoute(aiId) agregada — nuevo punto de entrada
+// a Split View, reemplaza la llamada directa a _openIngestModal() en el delegador
+// data-action="open-ingest" (locus-sesiones.js). Import dinámico de locus-sesiones.js
+// (mismo patrón (b) ya documentado en este header — evita ciclo ESM, ese módulo ya
+// importa esc() de este archivo). Sin cambio de firma en switchTab/switchSubTab —
+// el shell #modal-split-shell sigue siendo overlay nivel 'panel' de A-09
+// (TKT-202608-283, Nova), no un tab-panel; "ruta" describe el punto de entrada
+// único, no una migración al sistema de tabs.
 // [PP] mod:67 · autor:Rune · 2026-08-06 12:00 UTC-6
 // TKT-202608-263 (REQ-202608-104): agrega wiring btn-export-qinc-full →
 // shell:export-qinc-full — mismo patrón que btn-export-qinc/btn-export-backlog-full.

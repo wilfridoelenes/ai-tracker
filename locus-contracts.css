@@ -1,4 +1,5 @@
-/* [PP] mod:9 · autor:Nova · 2026-07-20 19:10 UTC-6 */
+/* [PP] mod:10 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* TKT-[tmp:tkt-rename-file]: rename de locus-sprint-plan.css → locus-contracts.css.
    Sin cambio de contenido — mismo archivo tras TKT-202607-067 (split que eliminó el
    bloque Sub-tab Plan). Nombre ahora refleja el contenido real: Contratos + AC VIVO. */
@@ -100,7 +101,7 @@
   gap: 6px;
   padding: 5px 7px;
   border-radius: var(--radius-xs);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   line-height: 1.4;
 }
 
@@ -205,7 +206,7 @@
 .acv-edit-ta {
   width: 100%;
   box-sizing: border-box;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-family: var(--font-sans, var(--sans));
   padding: 6px 8px;
   border-radius: var(--radius-xs);
@@ -250,7 +251,7 @@
 }
 
 .acv-empty-msg {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text3);
   margin: 0 0 8px;
   line-height: 1.5;
@@ -419,7 +420,7 @@
 }
 
 .ctr-empty-hint {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text3);
   line-height: 1.6;
   margin: 0;
@@ -551,13 +552,13 @@
 .ctr-fn-list {
   margin: 0;
   padding: 0 0 0 16px;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text2);
   line-height: 1.6;
 }
 
 .ctr-fn-none {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text3);
 }
 

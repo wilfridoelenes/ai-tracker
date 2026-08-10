@@ -1,4 +1,5 @@
-/* [PP] mod:3 · autor:Nova · 2026-07-20 19:10 UTC-6 */
+/* [PP] mod:4 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* TKT1 (REQ corregir-css-purity): header corregido — mod:1 declaraba autor:Rune sobre split
    mecánico de locus-modals.css mod:7 (TKT1 de REQ split, 2026-07-05), sin decisión de estilo
    nueva. Contenido auditado y adoptado sin cambios — solo corrección de atribución. */
@@ -20,7 +21,7 @@
 }
 
 .blind-exhaust-btn {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--red);
   background: var(--red-dim);
@@ -76,7 +77,7 @@
 .blind-exhaust-confirm-btn {
   flex: 1;
   padding: 6px 12px;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 600;
   background: var(--red-dim);
   color: var(--red);

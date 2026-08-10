@@ -1,4 +1,4 @@
-/* [PP] mod:23 · autor:Nova · 2026-08-09 17:40 UTC-6 */
+/* [PP] mod:24 · autor:Nova · 2026-08-09 20:15 UTC-6 */
 /* TKT-202608-282 (REQ-202608-117, TKT1 — patrón A-09, tres niveles nombrados): cierra el
    Hallazgo 4 de _Locus-css-ref (31 peldaños de z-index sin criterio de elección). Se agregan
    3 tokens de nivel — --z-lvl-inline/--z-lvl-panel/--z-lvl-dialogo — con rango propio y sin
@@ -63,14 +63,12 @@
   --text-lg:  20px;
   --text-xl:  24px;
 
-  /* Escala anterior — retirada, conservada como alias exacto del paso más cercano. No hay
-  DISC de retiro emitida todavía para estos 4 nombres — pendiente de acordar con Cael el
-  sprint en que se elimina la referencia directa en los 21 archivos consumidores (recuento
-  corregido, ver _Locus-css-ref §Hallazgo 3). */
-  --text-3xs:      var(--text-2xs); /* antes 8px — bajo el umbral de lectura, colapsa al piso */
-  --text-2xs-plus: var(--text-xs);  /* antes 10px — paso indistinguible, colapsa al vecino superior */
-  --text-sm:       var(--text-xs);  /* antes 14px como paso propio — mod:21 lo fusiona con xs, mismo valor computado (14px), sin cambio para sus consumidores */
-  --text-2xl:      var(--text-xl);  /* antes 22px — sin paso propio en la escala de 6, alias al tope */
+  /* Escala anterior — retirada (TKT-202608-301, REQ-202608-121, DISC-202608-116). Los 4 alias
+  --text-3xs/--text-2xs-plus/--text-sm/--text-2xl ya no se declaran: sus 21+1 consumidores
+  (ver _Locus-css-ref §Hallazgo 3, más locus-cmdk.css agregado a `archivos` en esta misma
+  sesión) referencian ahora directamente --text-2xs/--text-xs/--text-xs/--text-xl. Las 6
+  líneas con fallback numérico embebido detectadas en el mismo Hallazgo (ej.
+  var(--text-sm,13px)) quedan sin tocar — candidato a limpieza aparte, priority: low. */
 
   /* ── Escala display — stat numbers, headings de sección ── */
   --text-display-sm:  17px;  /* heading de sección compacto */

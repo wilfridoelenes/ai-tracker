@@ -1,4 +1,4 @@
-// [PP] mod:164 · autor:Rune · 2026-08-08 22:55 UTC-6
+// [PP] mod:165 · autor:Rune · 2026-08-09 20:15 UTC-6
 // TKT-202608-279 (REQ-202608-113, origen_disc DISC-202608-115): applyPatchesFromTG no
 // normalizaba no_incluye en patch — el catch-all genérico escribía el valor crudo sin
 // validar tipo. Rama propia agregada antes del catch-all: string se normaliza a array
@@ -627,7 +627,7 @@
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _setIncidents, _skelHide, _undoSnapshotItems, _undoSnapshotIncidents, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass, _newBacklogItem, _syncParentRStatus, _computeRStatusFromChildren } from './locus-backlog-core.js'; // TKT1 (REQ CAEL-0720-01): _computeRStatusFromChildren agregada — reutilizada por _checkAndOrphanParentR // TKT2 (REQ-202607-025): _newBacklogItem agregado // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202608-268: _isQDiscActive + QDISC_ACTIVE_LIMIT retirados del import — gate de límite Q-DISC eliminado (infra_version 92, sin tope de entrada), sin caller en este archivo · TKT1 (REQ-202607-021): _syncParentRStatus agregada — reemplaza a _checkAndAdvanceParentR (función local eliminada, duplicaba la misma regla con criterio divergente)
+import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _setIncidents, _skelHide, _undoSnapshotItems, _undoSnapshotIncidents, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass, _newBacklogItem, _syncParentRStatus, _computeRStatusFromChildren } from './locus-backlog-core.js'; // TKT1 (REQ CAEL-0720-01): _computeRStatusFromChildren agregada — reutilizada por _checkAndOrphanParentR // TKT2 (REQ-202607-025): _newBacklogItem agregado // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · TKT-202608-290: _getBacklogSearchQuery retirado del import (búsqueda local eliminada) · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202608-268: _isQDiscActive + QDISC_ACTIVE_LIMIT retirados del import — gate de límite Q-DISC eliminado (infra_version 92, sin tope de entrada), sin caller en este archivo · TKT1 (REQ-202607-021): _syncParentRStatus agregada — reemplaza a _checkAndAdvanceParentR (función local eliminada, duplicaba la misma regla con criterio divergente)
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges · TKT (REQ CAEL-0720-24): setItemParent retirado — función eliminada, sin callers
 import { _normalizeSprint } from './locus-session-parse.js'; // INC — fix producción 2026-07-24: _VALID_INCIDENT_STATUS/_VALID_PRB_STATUS/_VALID_KE_STATUS retirados del import — ninguno se usaba en este archivo (buildIncidentItem/validateIncidentTransitions, únicos consumidores plausibles, ya viven en locus-incidents-item.js desde TKT2 mod:133). _VALID_KE_STATUS dejó de existir como export en TKT1 de CAEL-0724-01 (locus-session-parse.js mod:136) — causaba SyntaxError de módulo ESM al cargar. _VALID_INCIDENT_STATUS/_VALID_PRB_STATUS seguían existiendo pero igual de muertos aquí — mismo patrón de deuda, retirados por consistencia (causa raíz: imports huérfanos post-TKT2, no solo el síntoma que rompió hoy)
 import { _blogLog, _tplKey, getAI, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito // INC-[pendiente-ID] (retiro archivedInSprint): getActiveSprints retirado — sin caller tras eliminar el bloque de escritura de archivedInSprint
@@ -697,7 +697,7 @@ export const TYPE_LABELS = { REQ: 'Requerimiento', TKT: 'Ticket', INC: 'Incident
 const _acReplacedSet = new Set();
 
 // ── Estado del módulo ──────────────────────────────────────────────────────
-// T-202606-099: backlogSearchQuery local eliminado — consumir _getBacklogSearchQuery() desde locus-backlog-core.js
+// TKT-202608-290: búsqueda local de Backlog retirada — reemplazada por ⌘K
 // Filtro de tipo activo
 let currentFilter = 'all';
 // B-202606-023: guard de delegación como variable de módulo — evita que la propiedad DOM
@@ -909,10 +909,7 @@ export function _attachBacklogListDelegation(containerId = 'backlog-list') {
       return;
     }
     // 'es-open-proj-panel' retirado — ver nota INC-202607-079 en el bloque de imports.
-    if (act === 'es-clear-search') {
-      clearBacklogSearch();
-      return;
-    }
+    // TKT-202608-290: acción 'es-clear-search' retirada — clearBacklogSearch()/botón asociado eliminados.
     if (act === 'es-toggle-mike') {
       toggleBacklogMikeMode();
       return;
@@ -2050,25 +2047,9 @@ export function setFilter(f) {
   _markBacklogListDirty(); renderBacklogList();
 }
 
-function onBacklogSearch() {
-  const input = document.getElementById('backlog-search-input');
-  // T-202606-099: valor de búsqueda vive en core — el listener de core actualiza backlogSearchQuery
-  const clearBtn = document.getElementById('backlog-search-clear');
-  if (clearBtn) clearBtn.classList.toggle('visible', !!_getBacklogSearchQuery());
-  updateClearFilterBtn();
-  _markBacklogListDirty(); renderBacklogList();
-  renderStats(); // B-202605-205: actualizar contadores de tipo con búsqueda activa
-}
-
-export function clearBacklogSearch() {
-  const input = document.getElementById('backlog-search-input');
-  if (input) input.value = '';
-  const clearBtn = document.getElementById('backlog-search-clear');
-  if (clearBtn) clearBtn.classList.remove('visible');
-  updateClearFilterBtn();
-  _markBacklogListDirty(); renderBacklogList();
-  renderStats(); // B-202605-205: restaurar contadores al limpiar búsqueda
-}
+// TKT-202608-290: onBacklogSearch()/clearBacklogSearch() retiradas — búsqueda local de
+// Backlog eliminada, reemplazada por ⌘K. Su único call site (data-action="es-clear-search")
+// también fue retirado, ver delegación de data-action arriba en este archivo.
 
 // B-202604-198: Helper — detecta si un code es placeholder (nunca matchear contra backlog)
 export function _isPlaceholderCode(code) {

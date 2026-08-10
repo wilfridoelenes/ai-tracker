@@ -1,4 +1,5 @@
-/* [PP] mod:14 · autor:Nova · 2026-07-24 UTC-6 */
+/* [PP] mod:15 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* TKT2 (REQ CAEL-0724-01): .bl-plan-card--child — sangría visual del TKT bajo su REQ padre
    cuando ambos están renderizados en la misma lista (Q-Backlog o mismo sprint destino).
    Guía vertical vía ::before absoluto (aprovecha position:relative ya declarado en
@@ -103,7 +104,7 @@
 }
 
 .bl-plan-close-btn {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 500;
   color: var(--text2);
   background: var(--surface2);
@@ -165,7 +166,7 @@
 }
 
 .bl-plan-col-title {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;
@@ -264,7 +265,7 @@
 
 /* — Estado vacío en columna — */
 .bl-plan-empty {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text3);
   padding: 20px 12px;
   text-align: center;
@@ -388,7 +389,7 @@
 
 /* — Título de card — */
 .bl-plan-card-title {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text2);
   line-height: 1.35;
   white-space: nowrap;
@@ -403,7 +404,7 @@
 /* — Banner sin sprint destino — */
 .bl-plan-no-sprint {
   margin-top: 12px;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text3);
   text-align: center;
   padding: 12px;
@@ -505,7 +506,7 @@
 /* Empty state cuando no hay sprints abiertos */
 .bl-plan-dest-empty {
   color: var(--text3);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   text-align: center;
   padding: 32px 16px;
   opacity: 0.8;
@@ -650,7 +651,7 @@
 
 /* ── Empty states por scope ── */
 .plan-scope-empty {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text3);
   padding: 12px 16px 16px;
   font-style: italic;
@@ -691,13 +692,13 @@
 }
 
 .sprint-conflict-icon {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   line-height: 1.4;
   flex-shrink: 0;
 }
 
 .sprint-conflict-text {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   line-height: 1.5;
   color: var(--text);
   flex: 1;
@@ -709,7 +710,7 @@
 }
 
 .sprint-conflict-btn {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--amber-text, #f59e0b);
   background: none;
   border: 1px solid rgb(245 158 11 / 30%);

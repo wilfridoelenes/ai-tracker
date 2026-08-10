@@ -1,4 +1,4 @@
-// [PP] mod:109 · autor:Rune · 2026-07-31 22:21 UTC-6
+// [PP] mod:110 · autor:Rune · 2026-08-09 20:15 UTC-6
 // TKT-202607-213 (REQ-202607-083): 2 botones es-open-proj-panel → es-switch-tab data-tab="proyectos"
 // (proj-panel overlay retirado, reutiliza wiring ya existente en el mismo archivo).
 // TKT-202607-186 (REQ-202607-064): stats-bar de Histórico — chip Total agrega
@@ -275,7 +275,7 @@ import { _buildChildMap } from './locus-backlog-hierarchy.js';
 // REQ refactor-zonas TKT5: _zoneStaleness extraído a locus-backlog-zone-engine.js — único uso
 // restante en este archivo es _updateSubtabBadges() (badges qbacklog/qdisc).
 import { _zoneStaleness } from './locus-backlog-zone-engine.js';
-import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshotItems, itemKind, renderStats, renderActiveFilterChips, updateStatusFilterUI, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleVersionCollapse, toggleSectionGroup, getDoneItems, getItems, getIncidents, _computeRStatusFromChildren } from './locus-backlog-core.js'; // TKT2 (REQ CAEL-0720-01): getIncidents + _computeRStatusFromChildren reintroducidas — self-heal de status de REQ en _renderVistaLista, universo completo ITEMS+INCIDENTS · TKT1 REQ unificar chips: renderActiveFilterChips agregada · toggleTypeFilter/toggleStatusFilter/toggleEffortFilter/toggleBacklogNoAcMode huérfanos removidos (inline_fix) · REQ refactor-zonas TKT5: _nsGetStatuses removido — único uso vivía en _renderZonePanel (extraído a zone-engine.js) · TKT-202607-027: _getBacklogKanbanMode removida — ya no exportada desde core.js · TKT2 (REQ CAEL-0720-03): getIncidents (reintroducida arriba por TKT2 CAEL-0720-01) , _nsGetTypes/_nsGetPriority/_nsGetQuery/_nsSetQuery/_nsToggleType/_nsTogglePriority/_nsReset removidos — sin uso tras extraer renderQIncPanel a locus-incidents-render.js
+import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshotItems, itemKind, renderStats, renderActiveFilterChips, updateStatusFilterUI, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getCollapsedVersions, toggleVersionCollapse, toggleSectionGroup, getDoneItems, getItems, getIncidents, _computeRStatusFromChildren } from './locus-backlog-core.js'; // TKT2 (REQ CAEL-0720-01): getIncidents + _computeRStatusFromChildren reintroducidas — self-heal de status de REQ en _renderVistaLista, universo completo ITEMS+INCIDENTS · TKT1 REQ unificar chips: renderActiveFilterChips agregada · toggleTypeFilter/toggleStatusFilter/toggleEffortFilter/toggleBacklogNoAcMode huérfanos removidos (inline_fix) · REQ refactor-zonas TKT5: _nsGetStatuses removido — único uso vivía en _renderZonePanel (extraído a zone-engine.js) · TKT-202607-027: _getBacklogKanbanMode removida — ya no exportada desde core.js · TKT2 (REQ CAEL-0720-03): getIncidents (reintroducida arriba por TKT2 CAEL-0720-01) , _nsGetTypes/_nsGetPriority/_nsGetQuery/_nsSetQuery/_nsToggleType/_nsTogglePriority/_nsReset removidos — sin uso tras extraer renderQIncPanel a locus-incidents-render.js
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, buildBacklogItem } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation · TKT-202607-027: _renderKanban removida — ya no exportada · TKT2 (REQ CAEL-0720-03): buildQIncItem removida — usada solo en renderQIncPanel, ahora en locus-incidents-render.js
 
@@ -638,7 +638,7 @@ function _emptySprintHeaderHtml(sprintId, sprintObj) {
   return html;
 }
 
-function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _matchesQuery, _sortGroup, q, onRendered) {
+function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _matchesQuery, _sortGroup, onRendered) {
   // B-202606-076 / TKT-C1: _isQBacklog/_isQDisc importadas desde locus-backlog-core.js — fuente única.
   // TKT (REQ-[pendiente-ID]): ítems ITIL (INC/PRB/KE/CHG con queue Q-INC) excluidos de #backlog-list —
   // panel dedicado vive en #tab-incidentes (TKT2 REQ CAEL-01: migrado de sub-tab a tab top-level). Filtro legacy por sprint string-match eliminado.
@@ -808,8 +808,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
     const hasFiltersActive = _getActiveTypes().size < 4
       || !_as.has('pendiente')
       || !_as.has('en-revision')
-      || !!q
-      || _getActiveEfforts().size < 3;
+      || _getActiveEfforts().size < 3; // TKT-202608-290: búsqueda local retirada — reemplazada por ⌘K
 
     let emptyIcon = '🔍', emptyTitle = '', emptyHint = '', emptyCTA = '';
     if (!hasItems) {
@@ -844,16 +843,8 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
   // T-202606-092 AC-5: renderArchivoHistorico() ya no se invoca desde aquí — vive en
   // renderHistoricoPanel(), sub-tab dedicado. Antes: renderArchivoHistorico(listEl).
 
-  // search-count
-  const countEl = document.getElementById('search-count');
-  if (countEl) {
-    if (q) {
-      const total = pendienteItems.length + doneItems.length + terminalItems.length;
-      countEl.textContent = `${total} resultado${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`;
-    } else {
-      countEl.textContent = '';
-    }
-  }
+  // TKT-202608-290: bloque de conteo de resultados de búsqueda local retirado — #search-count
+  // ahora es dominio exclusivo del buscador global (locus-ui-shell.js), ver TKT hermano.
 
   _attachBacklogDnD();
   _resetBacklogListDelegation(); // B-202606-023: reset guard antes de re-registrar
@@ -889,22 +880,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
     });
   }
 
-  // search placeholder
-  (function _updateSearchPlaceholder() {
-    const inp = document.getElementById('backlog-search-input');
-    if (!inp) return;
-    const parts = [];
-    const activeSprint = _getActiveSprint();
-    if (activeSprint) parts.push(activeSprint.label || activeSprint.id);
-    if (_getActiveTypes().size < 4) parts.push([..._getActiveTypes()].join('/'));
-    if (_getActivePriorityFilter().size > 0) parts.push('pri:' + [..._getActivePriorityFilter()].join('/'));
-    const scopeCount = pendienteItems.length + doneItems.length + (_getActiveStatuses().has('descartado') ? terminalItems.length : 0);
-    if (parts.length) {
-      inp.placeholder = '🔍 Buscando en ' + parts.join(' · ') + ' · ' + scopeCount + ' ítem' + (scopeCount !== 1 ? 's' : '');
-    } else {
-      inp.placeholder = '🔍 Buscar…';
-    }
-  })();
+  // TKT-202608-290: placeholder dinámico de #backlog-search-input retirado junto con el input.
 
   if (typeof onRendered === 'function') onRendered();
 }
@@ -925,8 +901,7 @@ export function renderBacklogList(onRendered) {
     return;
   }
   _backlogListDirty = false;
-  _skelShow(listEl, 5);
-  const q = _getBacklogSearchQuery();
+  _skelShow(listEl, 5); // TKT-202608-290: lectura de backlogSearchQuery retirada — búsqueda local eliminada
 
   // R-[tmp:toolbar-backlog-redesign]: botones de vista ya son estáticos en HTML — solo actualizar estado
   (function _updateViewBtns() {
@@ -1100,13 +1075,7 @@ export function renderBacklogList(onRendered) {
     filtered = filtered.filter(i => !_hasDepsBlocked(i) && i.status === 'pendiente');
   }
 
-  if (q) {
-    filtered = filtered.filter(i =>
-      i.code.toLowerCase().includes(q) ||
-      i.title.toLowerCase().includes(q) ||
-      (i.area || '').toLowerCase().includes(q)
-    );
-  }
+  // TKT-202608-290: filtro por texto (q) retirado — búsqueda local eliminada, reemplazada por ⌘K
 
   updateClearFilterBtn();
 
@@ -1158,14 +1127,15 @@ export function renderBacklogList(onRendered) {
 
   // T-202604-061: separar done/descartado del resto
   // T-202604-082: modo sprint = agrupado por sprint; otros modos = lista plana
-  // B-202604-131: aplicar filtro de búsqueda a done/descartado cuando q está activo
   // R-202604-091: 'en curso' fusionado — todos los pendiente van juntos, decorador visual separa activos
   // T-202605-135: Ps integradas en pendienteItems — sin sección separada
   // [pendiente-ID]: promovida excluida de pendienteItems — va a terminalItems
   const pendienteItems = filtered.filter(i => i.status !== 'done' && i.status !== 'descartado' && !(itemKind(i) === 'DISC' && i.status === 'promoted')); // TKT-202606-009: Gen2 canónico
-  const _matchesQuery = q
-    ? (i => i.code.toLowerCase().includes(q) || i.title.toLowerCase().includes(q) || (i.area || '').toLowerCase().includes(q))
-    : () => true;
+  // TKT-202608-290: _matchesQuery siempre true — búsqueda local retirada. Se conserva como
+  // parámetro/predicado (en vez de eliminar su hilo por getDoneItems/_renderVistaLista) porque
+  // ambos ya aceptan una función de predicado como contrato estable — cambiar su valor a un
+  // no-op es más seguro que remover la firma en cascada por dos archivos.
+  const _matchesQuery = () => true;
   const doneItems      = _getActiveStatuses().has('done')
     ? getDoneItems(_matchesQuery)  // T-202606-028: reutiliza getDoneItems global — evita getItems().filter() duplicado
     : [];
@@ -1192,7 +1162,7 @@ export function renderBacklogList(onRendered) {
   // pendienteItems ya viene filtrado por _getBacklogNoAcMode() más arriba (L957) — _renderVistaLista
   // no requiere cambio, solo recibe el conjunto ya acotado. TKT-202607-027: Vista Lista es ahora el
   // único modo de render — sin guard de Kanban que evaluar, la llamada es directa e incondicional.
-  _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _matchesQuery, _sortGroup, q, onRendered);
+  _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _matchesQuery, _sortGroup, onRendered);
 
 }
 
