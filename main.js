@@ -1,3 +1,10 @@
+// [PP] mod:23 · autor:Rune · 2026-08-09 21:00 UTC-6
+// TKT-202608-289 (REQ-202608-118): import de side-effect de locus-cmdk.js agregado. El Backlog
+// declaraba este TKT `done`, pero verificado contra main.js real (mod:22) el import nunca
+// existió — _initCmdkListeners() (locus-cmdk.js) jamás se ejecutaba en la app cargada. Mismo
+// patrón de gap ya visto en mod:21 (locus-incidents-render.js) y mod:15 (getIncidents). Sin
+// cambio en opts de _initApp — openCmdk()/closeCmdk() no se inyectan por ciclo, se
+// autorregistran al importar (mismo criterio que locus-backlog-qbacklog.js/qdisc.js abajo).
 // [PP] v0.8.0 · sprint:PP-S-06 · mod:22 · autor:Rune · 2026-07-24 UTC-6
 // INC-[pendiente-ID] (Tab Analytics no renderiza — causa 2, timing async): _markAnalyticsDirty
 // y renderAnalytics importados como named imports (antes solo side-effect) e inyectados en
@@ -62,6 +69,7 @@ import { relDate } from './locus-session-hora.js';
 import './locus-session-save.js';
 import './locus-tags.js';
 import './locus-session-popup.js';
+import './locus-cmdk.js'; // TKT-202608-289 (REQ-202608-118) — side-effect import: registra el listener global de ⌘K al cargar la app
 import './locus-reports.js';
 import './locus-backlog-editor.js';
 import './locus-projects.js';

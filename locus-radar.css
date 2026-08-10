@@ -1,4 +1,8 @@
-/* [PP] mod:13 · autor:Nova · 2026-07-27 UTC-6 */
+/* [PP] mod:14 · autor:Nova · 2026-08-09 UTC-6 */
+/* TKT-[pendiente-ID] (CAEL-FASTTRACK-01): --rsb-width 340→380px + --rsb-width/
+   --rsb-strip movidas de #global-radar-sidebar a :root — fuente única, ver nota
+   en "Variables radar". Pills de .rsb-header-row2 (.rsb-hdr-counts) ahora caben
+   en una línea con el ancho ampliado. */
 /* Fix: .rsb-pin-icon base reordenado antes de .rsb-pin-icon--on/--off — ambos SVGs
    del pin (outline+filled) se mostraban simultáneamente en estado sin fijar porque
    la regla base (misma especificidad, posición posterior en el archivo) ganaba el
@@ -35,6 +39,17 @@
 /* ══ R-202605-113: RADAR SIDEBAR GLOBAL — Jerarquía, auto-hide Dock, cards por estado ══ */
 
 /* ── Variables radar ── */
+
+/* TKT-[pendiente-ID] (CAEL-FASTTRACK-01): --rsb-width/--rsb-strip movidas a :root —
+   antes vivían solo en #global-radar-sidebar, y body.radar-sb-open / #global-footer
+   (fuera del árbol del sidebar, no heredan la custom property) dependían de un
+   fallback hardcodeado (340px/14px) que solo por coincidencia coincidía con el valor
+   real. Declaradas en :root, ambos consumidores resuelven la misma fuente sin
+   fallback duplicado — un solo lugar para cambiar el ancho. */
+:root {
+  --rsb-width: 380px;
+  --rsb-strip: 14px;
+}
 
 :root[data-theme="light"] {
   --radar-card-bg: rgb(0 0 0 / 4%);
@@ -833,23 +848,23 @@
 
 /* ── Push layout completo — body se comprime, todo hereda ── */
 body.radar-sb-open {
-  margin-right: var(--rsb-width, 340px);
+  margin-right: var(--rsb-width);
   transition: margin-right 0.35s var(--ease-out);
 }
 
 body.radar-sb-collapsed {
-  margin-right: var(--rsb-strip, 14px);
+  margin-right: var(--rsb-strip);
   transition: margin-right 0.35s var(--ease-out);
 }
 
 /* footer es fixed — necesita su propio ajuste */
 body.radar-sb-open #global-footer {
-  right: var(--rsb-width, 340px);
+  right: var(--rsb-width);
   transition: right 0.35s var(--ease-out);
 }
 
 body.radar-sb-collapsed #global-footer {
-  right: var(--rsb-strip, 14px);
+  right: var(--rsb-strip);
   transition: right 0.35s var(--ease-out);
 }
 
@@ -1476,8 +1491,6 @@ body.radar-sb-collapsed #global-footer {
    ══════════════════════════════════════════════════════════════════════ */
 
 #global-radar-sidebar {
-  --rsb-width: 340px;
-  --rsb-strip: 14px;
   --rsb-transition: 0.35s var(--ease-out);
 
   position: fixed;
