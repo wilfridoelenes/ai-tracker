@@ -1,4 +1,9 @@
-// [PP] mod:9 · autor:Rune · 2026-08-04 UTC-6
+// [PP] mod:10 · autor:Rune · 2026-08-10 10:00 UTC-6
+// TKT-202608-296 (REQ-202608-118): onContratosSearch()/clearContratosSearch() y su wiring
+//   (#ctr-search-input/#ctr-search-clear) eliminados — buscador local reemplazado por ⌘K.
+//   _ctrSearchQuery se conserva como filtro consumido por renderContratos() — sin fuente
+//   que lo mute desde este cambio, queda inerte (siempre ''). Registrado como deuda, ver
+//   CHECKPOINT de esta sesión.
 // DISC-202608-094 (auditoría del patrón render()-sin-_markTrackerDirty(), origen INC-202608-086):
 //   confirmResetSessions() invocaba render() sin _markTrackerDirty() previo — mismo pintado no-op
 //   silencioso. Import agregado + _markTrackerDirty() antes de render(). contract_update: no.
@@ -134,23 +139,6 @@ function _ctrUpdateBadge() {
 // Estado de búsqueda
 let _ctrSearchQuery = '';
 let _ctrActiveModule = null;
-
-function onContratosSearch() {
-  const inp = document.getElementById('ctr-search-input');
-  _ctrSearchQuery = inp ? inp.value.trim().toLowerCase() : '';
-  const clr = document.getElementById('ctr-search-clear');
-  if (clr) clr.classList.toggle('ctr-search-clear--visible', !!_ctrSearchQuery);
-  renderContratos();
-}
-
-function clearContratosSearch() {
-  _ctrSearchQuery = '';
-  const inp = document.getElementById('ctr-search-input');
-  if (inp) inp.value = '';
-  const clr = document.getElementById('ctr-search-clear');
-  if (clr) clr.classList.remove('ctr-search-clear--visible');
-  renderContratos();
-}
 
 // Determinar si una función es área de riesgo — modificada en últimos 2 sprints activos
 function _ctrIsRisk(fn) {
@@ -448,14 +436,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // sidebar-danger-btn-contratos — Resetear Contratos
   const btnResetContratos = document.getElementById('sidebar-danger-btn-contratos');
   if (btnResetContratos) btnResetContratos.addEventListener('click', resetContratosData);
-
-  // ctr-search-input — oninput búsqueda
-  const ctrSearchInput = document.getElementById('ctr-search-input');
-  if (ctrSearchInput) ctrSearchInput.addEventListener('input', onContratosSearch);
-
-  // ctr-search-clear — limpiar búsqueda
-  const ctrSearchClear = document.getElementById('ctr-search-clear');
-  if (ctrSearchClear) ctrSearchClear.addEventListener('click', clearContratosSearch);
 
   // ── T-202605-033: Migración handlers dinámicos ──
   // ctr-list-panel → delegación para .ctr-module-row (generados dinámicamente por renderContratos)

@@ -1,5 +1,13 @@
+// [PP] mod:192 · autor:Rune · 2026-08-10 UTC-6
+// Gap de código (hallazgo de Finn en auditoría de cierre de INC-202608-104): el propio fix de
+// mod:191 citaba su origen como "INC-[pendiente-ID]" en dos comentarios (header de este archivo
+// y dentro de _processIngestBatch()) pese a que Locus ya había asignado código real
+// (INC-202608-104, confirmado en _PP-incidents.md) — literal nunca actualizado tras la
+// ingesta, violación de BR-Execution §9 (el literal [pendiente-ID] no se persiste en archivo
+// real una vez resuelto). Fix: ambas ocurrencias reemplazadas por INC-202608-104. Sin cambio de
+// comportamiento — solo texto de comentario. contract_update: no.
 // [PP] mod:191 · autor:Rune · 2026-08-10 UTC-6
-// Fix INC-[pendiente-ID] (gap de especificación de TKT-202608-234, hallazgo de sesión de
+// Fix INC-202608-104 (gap de especificación de TKT-202608-234, hallazgo de sesión de
 // soporte): _processIngestBatch() — el guard temprano de batch sin ítems (items:[] en todos
 // los bloques) asumía sin verificar que ningún bloque traía doc_updates sobrevivientes. Un
 // batch de solo doc_updates (ej. DOC-UPDATE aplicado sobre un Doc Ref, sin cambios de
@@ -2670,7 +2678,7 @@ export async function _processIngestBatch() {
     // No cambia el mensaje de bloqueo existente (JSON malformado/sin title, o rechazo por
     // [tmp:slug] duplicado) — esos casos siguen cayendo al warning genérico de abajo, sin
     // alteración.
-    // Fix INC-[pendiente-ID] (gap de especificación de TKT-202608-234, hallazgo de sesión de
+    // Fix INC-202608-104 (gap de especificación de TKT-202608-234, hallazgo de sesión de
     // soporte 2026-08-10): el comentario original de TKT-202608-234 asumía "sin doc_updates ni
     // sprint_proposal que hayan sobrevivido hasta aquí" para todo batch con items:[] en todos
     // los bloques, pero el código nunca verificaba esa condición — solo la infería. Un batch de
