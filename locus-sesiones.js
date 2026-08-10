@@ -1,3 +1,11 @@
+// [PP] mod:63 · autor:Rune · 2026-08-10 06:28 UTC-6
+// TKT-202608-284 (REQ-202608-117): case 'open-ingest' del delegador ahora llama
+// openSplitViewRoute(aiId) (locus-ui-shell.js) en vez de _openIngestModal(aiId)
+// directo — único punto de entrada compartido por la card individual y el atajo
+// 'S' (que simula click sobre worker-header-ingest-btn, mismo delegador). Import
+// añadido al static import de esc() ya existente de locus-ui-shell.js — sin
+// riesgo de ciclo nuevo, misma dirección ya establecida. _openIngestModal()
+// sigue export por si algún otro call site la necesita directo — no se retira.
 // [PP] mod:62 · autor:Rune · 2026-08-04 UTC-6
 // TKT (ref_id CAEL-0804-01, REQ-202608-089): _openIngestModal() resetea ta.value = '' de forma
 // directa (sin evento) cuando el Worker entrante es distinto del que dejó el overlay abierto —
@@ -74,7 +82,7 @@ import { closeLogCard, closePopup, openDetail, startRename, toggleInReview, togg
 // archivo — el botón que la invocaba migró a data-action="es-switch-tab".
 import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, getLastAISession, _findSession, save, getState, saveImmediate, _getCurrentSession, _isInSession, _resetWorker, getActiveSprints, LOCUS_KEYS, getSupabaseContext, _relTs } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
-import { esc } from './locus-ui-shell.js';
+import { esc, openSplitViewRoute } from './locus-ui-shell.js';
 import { archiveAI, closeCardMenu, confirmClear, deleteAI, openAddAI, openAvatarModal, toggleArchivedSection, toggleCardMenu } from './locus-workers.js';
 
 import { downloadReport } from './locus-reports.js';
@@ -1376,9 +1384,10 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'open-correct-hora':
         openCorrectHora(aiId);
         break;
-      // Header — abrir modal de ingesta de CHECKPOINT (CAEL-33)
+      // Header — abrir Split View (CAEL-33) — TKT-202608-284: pasa por openSplitViewRoute()
+      // en vez de _openIngestModal() directo, mismo call site para card individual y atajo 'S'
       case 'open-ingest':
-        _openIngestModal(aiId);
+        openSplitViewRoute(aiId);
         break;
       // Footer — blind exhaust
       case 'confirm-blind-exhaust':

@@ -1,3 +1,18 @@
+// [PP] mod:191 · autor:Rune · 2026-08-10 UTC-6
+// Fix INC-[pendiente-ID] (gap de especificación de TKT-202608-234, hallazgo de sesión de
+// soporte): _processIngestBatch() — el guard temprano de batch sin ítems (items:[] en todos
+// los bloques) asumía sin verificar que ningún bloque traía doc_updates sobrevivientes. Un
+// batch de solo doc_updates (ej. DOC-UPDATE aplicado sobre un Doc Ref, sin cambios de
+// backlog) tomaba la rama de éxito silencioso y retornaba sin invocar processDocUpdate() en
+// ningún punto — el doc_update se perdía sin registrarse en la cola de Locus, y el panel de
+// revisión (showMergeDiffPanel) nunca se activaba porque ese call site vive más abajo,
+// alcanzable solo cuando hay tgItems/patchItems. Fix: antes de tomar la rama de éxito, se
+// recorren metas buscando docUpdates con contenido; si los hay, se procesan aquí mismo vía
+// processDocUpdate() (ya importado, mismo mecanismo que _onApplyBatch más abajo) y el toast
+// final refleja el conteo real. Sin cambio de firma de _processIngestBatch() (sigue sin
+// params, Promise<void>). contract_update: no — función interna sin export, comportamiento
+// nuevo acotado a un caso que antes descartaba datos en silencio, sin afectar los demás
+// branches del guard (sprint_proposal-only, batch inválido, batch con ítems).
 // [PP] mod:190 · autor:Rune · 2026-08-09 UTC-6
 // TKT-202608-278 (REQ-202608-113, origen_disc DISC-202608-115): _buildTgItemsFromParsed
 // coaccionaba no_incluye a [] en silencio cuando el valor entrante no era ya un array —
@@ -2655,7 +2670,36 @@ export async function _processIngestBatch() {
     // No cambia el mensaje de bloqueo existente (JSON malformado/sin title, o rechazo por
     // [tmp:slug] duplicado) — esos casos siguen cayendo al warning genérico de abajo, sin
     // alteración.
+    // Fix INC-[pendiente-ID] (gap de especificación de TKT-202608-234, hallazgo de sesión de
+    // soporte 2026-08-10): el comentario original de TKT-202608-234 asumía "sin doc_updates ni
+    // sprint_proposal que hayan sobrevivido hasta aquí" para todo batch con items:[] en todos
+    // los bloques, pero el código nunca verificaba esa condición — solo la infería. Un batch de
+    // items:[] con doc_updates poblado (ej. "DOC-UPDATE aplicado — [doc].md" sin cambios de
+    // backlog) tomaba esta rama, mostraba el toast de éxito y retornaba sin invocar
+    // processDocUpdate() en ningún punto — el doc_update se perdía en silencio, nunca llegaba a
+    // la cola de DOC-UPDATEs pendientes de Locus. _onApplyBatch (más abajo, dentro del callback
+    // de showMergeDiffPanel) sí procesa m.docUpdates correctamente, pero solo se alcanza cuando
+    // hay tgItems/patchItems — este guard temprano nunca llega ahí. Fix: antes de tomar la rama
+    // de éxito silencioso, se recorren metas buscando docUpdates con contenido; si los hay, se
+    // procesan aquí mismo vía processDocUpdate() (mismo mecanismo que _onApplyBatch, sin
+    // duplicar lógica de merge/patch — no aplica a items del backlog, solo a docs) y el toast
+    // final refleja el conteo real en vez del texto genérico "solo trazabilidad de archivo".
+    const _docUpdatesInMetas = [];
+    (metas || []).forEach(m => {
+      if (m && Array.isArray(m.docUpdates) && m.docUpdates.length) _docUpdatesInMetas.push(...m.docUpdates.map(u => ({ update: u, title: m.titulo || '' })));
+    });
     if (metas.length && !skipped.length) {
+      if (_docUpdatesInMetas.length) {
+        let _applied = 0;
+        _docUpdatesInMetas.forEach(({ update, title }) => {
+          const { conflicto, msg } = processDocUpdate(update, title);
+          if (conflicto && msg) showToast('warn', msg);
+          _applied++;
+        });
+        showToast('success', `${_applied} doc_update${_applied !== 1 ? 's' : ''} registrado${_applied !== 1 ? 's' : ''} · sin cambios de backlog`);
+        ta.value = ''; // batch consumido — mismo criterio que la rama con ítems (línea ~2783)
+        return;
+      }
       showToast('success', `${metas.length} bloque${metas.length !== 1 ? 's' : ''} válido${metas.length !== 1 ? 's' : ''} — sin cambios de backlog, solo trazabilidad de archivo`);
       return;
     }

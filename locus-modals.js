@@ -1,3 +1,21 @@
+// [PP] mod:9 · autor:Rune · 2026-08-06 UTC-6
+// TKT-202608-284 (REQ-202608-117, AC-2): el botón × de #modal-split-shell
+// (#ingest-modal-close-btn) llamaba closeIngestModal() directo — único de los
+// 3 caminos de cierre (×, Escape, backdrop-click) que no pasaba por
+// closeSplitViewRoute() (locus-ui-shell.js mod:69), dejando _activeRoute
+// huérfano tras cerrar con ×. Escape (_escCascade) y backdrop-click ya usan
+// closeSplitViewRoute() desde ese mod. Fix: import de closeSplitViewRoute
+// agregado; el listener de click de ingestModalClose ahora la invoca en vez
+// de closeIngestModal(). closeIngestModal() sigue exportada sin cambio de
+// firma — closeSplitViewRoute() la consume internamente (locus-ui-shell.js),
+// mismo criterio ya vigente. Import circular locus-ui-shell.js↔locus-modals.js
+// (este módulo ya era importado por locus-ui-shell.js desde antes de este TKT;
+// ahora la relación es bidireccional) — seguro por el mismo patrón ya
+// documentado en mod:7 de este archivo y en el header de locus-ui-shell.js:
+// ninguna de las dos funciones se invoca en top-level de su módulo, ambas
+// corren dentro de callbacks de evento, después de que el grafo de módulos ya
+// resolvió. contract_update: sí — ver contract_detail en el CHECKPOINT de esta
+// sesión.
 // [PP] mod:8 · autor:Rune · 2026-07-27 UTC-6
 // INC-202607-059: closeIngestModal() extraída del handler de × (antes inline) — Escape
 // (_escCascade) y backdrop-click sobre #modal-split-shell (ambos en locus-ui-shell.js) la
@@ -52,6 +70,10 @@ import { _registerCoreCallback } from './locus-backlog-core.js';
 
 // Fix de esta sesión: limpieza del panel DIFF al cerrar el shell con × — ver mod:7 arriba.
 import { teardownMergeDiffPanel } from './locus-backlog-merge.js';
+
+// TKT-202608-284 (mod:9): el botón × ahora pasa por closeSplitViewRoute() en vez de
+// closeIngestModal() directo — ver comentario de header.
+import { closeSplitViewRoute } from './locus-ui-shell.js';
 
 // ── Generic confirm/prompt modal (T-090) ──
 // _gconfirmCb: interno del módulo — no expuesto públicamente
@@ -172,7 +194,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (ingestModalClose) {
     // INC-202607-059: lógica de cierre extraída a closeIngestModal() (más arriba en este
     // módulo) — Escape y backdrop-click (locus-ui-shell.js) la reusan en vez de duplicarla.
-    ingestModalClose.addEventListener('click', closeIngestModal);
+    // TKT-202608-284 (mod:9): × ahora pasa por closeSplitViewRoute() — único camino de
+    // cierre que faltaba limpiar _activeRoute (Escape y backdrop-click ya lo hacían).
+    ingestModalClose.addEventListener('click', closeSplitViewRoute);
   }
 
   const gconfirmOverlay = document.getElementById('gconfirm-overlay');

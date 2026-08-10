@@ -1,12 +1,32 @@
-// [PP] mod:68 · autor:Rune · 2026-08-09 19:10 UTC-6
-// TKT3 (REQ-202608-117): openSplitViewRoute(aiId) agregada — nuevo punto de entrada
-// a Split View, reemplaza la llamada directa a _openIngestModal() en el delegador
-// data-action="open-ingest" (locus-sesiones.js). Import dinámico de locus-sesiones.js
-// (mismo patrón (b) ya documentado en este header — evita ciclo ESM, ese módulo ya
-// importa esc() de este archivo). Sin cambio de firma en switchTab/switchSubTab —
-// el shell #modal-split-shell sigue siendo overlay nivel 'panel' de A-09
-// (TKT-202608-283, Nova), no un tab-panel; "ruta" describe el punto de entrada
-// único, no una migración al sistema de tabs.
+// [PP] mod:70 · autor:Rune · 2026-08-10 UTC-6
+// TKT-202608-284 (REQ-202608-117, AC-2 — cierre): corrección al comentario de mod:69
+// abajo — el pendiente ahí atribuía el call site restante de closeIngestModal() directo
+// a locus-backlog-merge.js. Verificado contra código real: ese archivo solo contiene
+// teardownMergeDiffPanel() (panel DIFF interno), no el handler del botón ×. El call
+// site real vivía en locus-modals.js (#ingest-modal-close-btn, mod:8) — corregido ahí
+// en mod:9 de ese archivo: el listener de × ahora invoca closeSplitViewRoute() (este
+// módulo, sin cambio de firma) en vez de closeIngestModal() directo. Los 3 mecanismos
+// de cierre (×, Escape, backdrop-click) pasan ahora por closeSplitViewRoute() de forma
+// uniforme — AC-2 completo. TKT-202608-284 pasa a en-revision en el CHECKPOINT de esta
+// sesión.
+// [PP] mod:69 · autor:Rune · 2026-08-10 06:28 UTC-6
+// TKT-202608-284 (REQ-202608-117): openSplitViewRoute(aiId)/closeSplitViewRoute()
+// implementadas en código real — el header mod:68 anterior describía esta función
+// pero el cuerpo nunca fue escrito (gap detectado por Finn, ver QA bloqueado
+// TKT-202608-284). Ambigüedad de AC-1/AC-2/AC-5 resuelta por Cael antes de esta
+// implementación. _activeRoute + openSplitViewRoute() reemplazan la llamada
+// directa a _openIngestModal() en el delegador data-action="open-ingest"
+// (locus-sesiones.js, mod aparte). Los dos cierres internos de este archivo
+// (_escCascade, click-outside de #modal-split-shell) ahora pasan por
+// closeSplitViewRoute() en vez de closeIngestModal() directo, para no dejar
+// _activeRoute huérfano. Sin cambio de firma en switchTab/switchSubTab — el
+// shell #modal-split-shell sigue siendo overlay nivel 'panel' de A-09
+// (TKT-202608-283, Nova), no un tab-panel. **Pendiente — no incluido en este
+// mod:** el botón × de #modal-split-shell llama closeIngestModal() directo
+// desde locus-backlog-merge.js (no adjunto en esta sesión) — ese call site
+// sigue sin pasar por closeSplitViewRoute(), _activeRoute queda huérfano en
+// ese camino de cierre hasta que se corrija. TKT-284 NO se declara en-revision
+// por este gap — ver CHECKPOINT.
 // [PP] mod:67 · autor:Rune · 2026-08-06 12:00 UTC-6
 // TKT-202608-263 (REQ-202608-104): agrega wiring btn-export-qinc-full →
 // shell:export-qinc-full — mismo patrón que btn-export-qinc/btn-export-backlog-full.
@@ -328,6 +348,40 @@ export function switchSubTab(sub) {
   }
   // (a) event dispatch — locus-docs.js escucha 'shell:render-docs-onboarding'
   window.dispatchEvent(new CustomEvent('shell:render-docs-onboarding')); // T-202604-204
+}
+
+// ── Split View — ruta propia (TKT-202608-284, REQ-202608-117 A-09) ─────────
+// _activeRoute rastrea si Split View está montado como ruta — permite al patrón
+// A-09 (nivel 'panel') auditar que no se abran dos capas del mismo nivel a la
+// vez. No modifica switchTab/switchSubTab: el tab subyacente nunca cambia
+// durante la apertura de Split View — es overlay de nivel 'panel' (TKT-202608-283,
+// Nova), no una navegación de tab. "Ruta" describe el punto de entrada único,
+// no una migración al sistema de tabs.
+var _activeRoute = null;
+
+export function getActiveRoute() { return _activeRoute; }
+
+// Único punto de entrada a Split View — worker-header-ingest-btn (click directo,
+// case 'open-ingest' del delegador en locus-sesiones.js) y el atajo 'S' (línea
+// ~940 de este archivo, simula click sobre el mismo botón) convergen aquí antes
+// de delegar a _openIngestModal(). Import dinámico de locus-sesiones.js — evita
+// ciclo ESM, ese módulo ya importa esc() de este archivo (patrón (b) documentado
+// en el header de este archivo).
+export async function openSplitViewRoute(aiId) {
+  if (!aiId) return;
+  _activeRoute = 'split-view';
+  const { _openIngestModal } = await import('./locus-sesiones.js');
+  _openIngestModal(aiId);
+}
+
+// Cierre de la ruta — limpia _activeRoute y delega a closeIngestModal() ya
+// existente (locus-modals.js), que remueve la clase 'open' de #modal-split-shell
+// y limpia el panel DIFF si estaba abierto (mismo camino que Escape/click-outside,
+// ver INC-202607-059). No toca switchTab/switchSubTab — el tab de origen se
+// conserva por construcción, nunca cambió durante la apertura.
+export function closeSplitViewRoute() {
+  _activeRoute = null;
+  closeIngestModal();
 }
 
 // ── Theme ──────────────────────────────────────────────────────────────────
@@ -839,7 +893,7 @@ export function _escCascade() {
     // de Revisión ya está abierto). Con solo la columna de ingesta abierta, Escape no hacía
     // nada. closeIngestModal() ya limpia el panel DIFF si estaba abierto (teardownMergeDiffPanel
     // es idempotente) — cubre ambos casos sin duplicar la rama por estado del panel.
-    () => { const el = document.getElementById('modal-split-shell'); if (el && el.classList.contains('open')) { closeIngestModal(); return true; } },
+    () => { const el = document.getElementById('modal-split-shell'); if (el && el.classList.contains('open')) { closeSplitViewRoute(); return true; } },
   ];
   for (const check of _overlayChecks) {
     if (check()) return;
@@ -1582,7 +1636,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // DIFF si estaba abierto — mismo camino que × y Escape.
   const modalSplitShell = document.getElementById('modal-split-shell');
   if (modalSplitShell) modalSplitShell.addEventListener('click', function (e) {
-    if (e.target === this) closeIngestModal();
+    if (e.target === this) closeSplitViewRoute();
   });
 
   // ie-cancel-btn
