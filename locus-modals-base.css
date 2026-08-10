@@ -1,19 +1,21 @@
-/* [PP] mod:25 · autor:Nova · 2026-08-04 UTC-6 */
+/* [PP] mod:27 · autor:Nova · 2026-08-09 19:05 UTC-6 */
+/* TKT3 (REQ-202608-119, DISC-202608-120): familia .validation-result*/.validation-badge*/
+   .validation-divider/.blocker-row*/.blocker-chip retirada — código muerto desde que
+   TKT-202608-291 eliminó las 3 funciones JS que la poblaban (locus-session-parse.js).
+   .validation-force-btn* (contiguo, panel superior) se conserva — feature activa distinta. */
+/* TKT-202608-283 (REQ-202608-117, TKT2): .mss-shell nuevo — retira .modal-split-shell de
+   .modal-overlay (AC1), pasa a nivel 'panel' de A-09 (_Locus-css-ref mod:181). Sin backdrop
+   propio (AC1 — 'panel' es columna persistente, no modal). z-index vía calc(var(--z-lvl-panel)
+   + 700) — mismo offset relativo que tenía --z-overlay (900) antes del cambio, para no alterar
+   el orden de stacking contra dropdown/modal/toast (AC2 solo exige nivel 'panel', no un offset
+   específico — se eligió este para cero regresión de stacking). Layout interno (.mss-box,
+   .mss-content, .mss-col) sin cambio (AC3) — no tocado en este TKT. */
 /* TKT-202607-144 (REQ-202607-046): familia .modal-split (REQ[CAEL-0716-01] → TKT-202607-128)
    retirada — reemplazada por .modal-split-shell/.mss-box/.mss-content/.mss-col/.mss-col--ingest.
    Retiro sin período de gracia (__BR-Execution §2): --split-total-w/-h/-gap/-header-h, la regla
    .modal-overlay.modal-split, #ingest-modal-overlay .modal-split__dialog, .modal-split__col--diff,
    .modal-split__divider. .modal-split__header conservado — reescrito para flujo (no absolute) y
    ahora dueño del botón de cierre del shell. #merge-diff-header oculto (AC2, un solo header). */
-/* TKT1 (REQ CAEL-0724-02, DISC-202607-029): .validation-result-item-type — badge de tipo por
-   fila en #ingest-result-items. Conflicto CSS resuelto en sesión (dueño Nova co-presente, nivel
-   Patch, sin bifurcación — BR-Core Excepción de dueño co-presente): las restricciones
-   originales de Fase 1 asignaban REQ→azul/DISC→púrpura (mapeo BR-Ecosystem §4 sin el swap).
-   El swap DISC↔REQ (locus-backlog-item.css mod:51, TKT1 CAEL-11, founder) ya es el semántico
-   vigente en todo el resto de Locus — REQ→--purple-text, DISC→--blue-text aquí, coherente con
-   .item-type-pill.DISC/.tc-REQ/.qdisc-stat-cell--discovery. Resto de tipos sin cambio respecto
-   al mapeo original de Nova: TKT→--green-text, INC→--red-text, PRB→--amber-text,
-   CHG→--slate-text. Mismo patrón visual que .validation-badge (color-mix + token -text). */
 /* DISC ejecutada: removida .modal--migration — sin consumidor confirmado en JS/HTML. */
 /* [PP] mod:15 · autor:Nova · 2026-07-19 UTC-6 */
 /* Fix cascade: .modal--ingest → .modal.modal--ingest (compound) — la base .modal
@@ -114,6 +116,41 @@
   background: rgb(0 0 0 / 55%);
   padding: 1rem;
   box-sizing: border-box;
+}
+
+/* ══ .mss-shell — TKT-202608-283 (REQ-202608-117, TKT2, Nova): reemplaza .modal-overlay
+   como contenedor exterior de #modal-split-shell (AC1). Sin backdrop — nivel 'panel' de A-09
+   convive con el resto de la interfaz, no la bloquea (_Locus-css-ref mod:181 / _Locus-ux-ref
+   mod:47). Mismo mecanismo de posicionamiento fixed + centrado que .modal-overlay daba (AC3 —
+   el layout interno de .mss-box no cambia), solo se retira `background` y se reemplaza
+   `z-index: var(--z-overlay)` por el cálculo directo sobre --z-lvl-panel (ver header de este
+   archivo). .open/.closing se mantienen con el mismo nombre — TKT3 (routing, Rune) no necesita
+   adaptar su JS de apertura/cierre, solo cambiar la clase base que togglea. ══ */
+.mss-shell {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: calc(var(--z-lvl-panel) + 700);
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.mss-shell.open {
+  display: flex;
+}
+
+.mss-shell.closing {
+  animation: overlay-out 0.2s ease forwards;
+  pointer-events: none;
+}
+
+.mss-shell.closing .mss-box {
+  animation: modal-out 0.18s var(--ease-standard) forwards;
 }
 
 /* --- Animación de entrada para overlay --- */
@@ -680,218 +717,6 @@
 .validation-force-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-.validation-result {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.validation-result-badges {
-  display: flex;
-  gap: 6px;
-}
-
-.validation-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  border-radius: var(--radius-pill);
-  padding: 2px 10px;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.validation-badge i {
-  font-size: var(--text-base);
-}
-
-.validation-badge--success {
-  background: color-mix(in srgb, var(--green) 10%, transparent);
-  color: var(--green-text);
-}
-
-/* Mismatch de proyecto (CAEL-23 AC2) — mismo badge, variante warning en vez de success.
-   Rune la aplica vía classList.replace('validation-badge--success','validation-badge--warning')
-   sobre #ingest-result-badge-project cuando el proyecto del checkpoint no coincide con el Worker activo. */
-.validation-badge--warning {
-  background: color-mix(in srgb, var(--amber) 10%, transparent);
-  color: var(--amber-text);
-}
-
-.validation-result-title {
-  margin: 0;
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--text);
-}
-
-.validation-divider {
-  border: none;
-  border-top: 1px solid var(--border2);
-  margin: 0;
-}
-
-.validation-result-summary {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-}
-
-.validation-result-file {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin: 0;
-  font-size: var(--text-xs);
-  color: var(--text3);
-}
-
-.validation-result-items {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  border-top: 1px solid var(--border2);
-  padding-top: 8px;
-  max-height: 130px;
-  overflow-y: auto;
-}
-
-/* Fila individual — JS-generada (Rune), no estática: existe solo si hay ítems (BR-Execution §5) */
-.validation-result-item {
-  display: flex;
-  justify-content: space-between;
-  font-size: var(--text-xs);
-}
-
-.validation-result-item-left {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-
-.validation-result-item-type {
-  flex-shrink: 0;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.4;
-  padding: 1px 5px;
-  border-radius: var(--radius-pill);
-}
-
-.validation-result-item-type--REQ {
-  background: color-mix(in srgb, var(--purple) 10%, transparent);
-  color: var(--purple-text);
-}
-
-.validation-result-item-type--TKT {
-  background: color-mix(in srgb, var(--green) 10%, transparent);
-  color: var(--green-text);
-}
-
-.validation-result-item-type--DISC {
-  background: color-mix(in srgb, var(--blue) 10%, transparent);
-  color: var(--blue-text);
-}
-
-.validation-result-item-type--INC {
-  background: color-mix(in srgb, var(--red) 10%, transparent);
-  color: var(--red-text);
-}
-
-.validation-result-item-type--PRB {
-  background: color-mix(in srgb, var(--amber) 10%, transparent);
-  color: var(--amber-text);
-}
-
-.validation-result-item-type--CHG {
-  background: color-mix(in srgb, var(--slate) 10%, transparent);
-  color: var(--slate-text);
-}
-
-/* Edge case (AC2, TKT1) — item.type ausente o no reconocido contra _GEN2_TYPES */
-.validation-result-item-type--unknown {
-  background: var(--surface3);
-  color: var(--text3);
-}
-
-.validation-result-item-status {
-  color: var(--text-secondary);
-}
-
-/* CAEL-30 (TKT6) — próximo paso + bloqueantes, entre archivo e ítems (design_intent:
-   wireframe_ingest_validation_result_proximo_paso_bloqueantes). Mismo patrón de fila
-   con border-top que ya separa .validation-result-items del resto del panel. */
-.validation-result-next-step {
-  border-top: 1px solid var(--border2);
-  padding-top: 8px;
-}
-
-.validation-result-next-step-label {
-  margin: 0 0 2px;
-  font-size: var(--text-xs);
-  color: var(--text3);
-  text-transform: lowercase;
-}
-
-.validation-result-next-step-text {
-  margin: 0;
-  font-size: var(--text-base);
-  color: var(--text);
-}
-
-.validation-result-blockers {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  border-top: 1px solid var(--border2);
-  padding-top: 8px;
-}
-
-.validation-result-blockers-label {
-  margin: 0;
-  font-size: var(--text-xs);
-  color: var(--text3);
-  text-transform: lowercase;
-}
-
-.blocker-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--text-sm);
-}
-
-.blocker-row i {
-  font-size: var(--text-base);
-}
-
-/* Estado n/a — mismo par success ya usado en .validation-badge--success */
-.blocker-row--ok {
-  color: var(--green-text);
-}
-
-/* Estado texto libre sin ID — mismo token warning ya usado en .validation-badge--warning */
-.blocker-row--warning {
-  color: var(--amber-text);
-}
-
-.blocker-row--ref {
-  color: var(--text);
-}
-
-/* Chip de referencia a ítem — --bg-accent/--text-accent del wireframe no existen en
-   locus-base.css. Remapeado a var(--surface3)/var(--text3), mismo par ya validado
-   WCAG AA en .pill-project (CAEL-15) para chips de dato pasivo — sin token nuevo. */
-.blocker-chip {
-  display: inline-flex;
-  border-radius: var(--radius-xs);
-  padding: 1px 6px;
-  background: var(--surface3);
-  color: var(--text3);
 }
 
 /* ── ingest-block-preview — TKT-202608-235 (REQ-202608-089) ──

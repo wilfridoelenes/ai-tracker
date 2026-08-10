@@ -1,4 +1,13 @@
-<!-- [PP] mod:182 · autor:Rune · 2026-08-09 UTC-6 -->
+<!-- [PP] mod:184 · autor:Nova · 2026-08-09 18:20 UTC-6 -->
+<!-- TKT-202608-283 (REQ-202608-117, TKT2): #modal-split-shell cambia de clase base
+     .modal-overlay a .mss-shell (locus-modals-base.css mod:26) — retira dependencia de
+     .modal-overlay (AC1). Mismo id, mismo .open/.closing, sin cambio de estructura interna
+     ni de listeners — TKT3 (Rune) no necesita adaptar JS. -->
+<!-- Reaplicado sobre base con colisión de mod: este archivo llegó como mod:182·autor:Rune,
+     pero es la entrega de TKT-202608-289 (link de locus-cmdk.css), no la mía (TKT-202608-292,
+     también asignada mod:182 en paralelo desde el mismo mod:181 base). Se conserva el link de
+     locus-cmdk.css intacto — fuera de scope de este TKT — y se reaplica la eliminación de
+     #ingest-validation-result sobre esta base. Conflicto de paralelismo a señalar a Cael. -->
 <!-- TKT-202608-289 (parent REQ-202608-118) — parte HTML: <link> de locus-cmdk.css agregado —
      el shell estático del modal ⌘K (#cmdk-overlay, TKT2, ya presente en mod:181) quedaba sin
      estilos porque el entregable de Nova (locus-cmdk.css) nunca se enlazó en <head>. Insertado
@@ -1778,8 +1787,8 @@
 <!-- #modal-split-shell — TKT-202607-144 (REQ-202607-046, Nova): shell único —
      reemplaza la coordinación por CSS entre dos overlays fixed independientes
      (familia .modal-split/.mdiff-overlay--docked, REQ[CAEL-0716-01]->TKT-202607-128).
-     Es el único nodo con backdrop/z-index/estado open (clase modal-overlay, mismo
-     mecanismo que cualquier otro modal del ecosistema) — showMergeDiffPanel() y
+     Es el único nodo con z-index/estado open (clase .mss-shell desde TKT-202608-283 —
+     nivel 'panel' de A-09, sin backdrop, ver locus-modals-base.css mod:26) — showMergeDiffPanel() y
      _openIngestModal() operan sobre este ID (ver TKT-202607-145). #merge-diff-overlay
      y #ingest-modal-overlay pasan a regiones internas (AC5) — sin backdrop propio,
      dentro de .mss-box (dialog real: max-width 1600px / 90vh, no reactivo a
@@ -1789,7 +1798,7 @@
      #ingest-modal-close-btn, mismo id, sin cambio de listener). #merge-diff-header
      se oculta vía CSS (locus-modals-base.css) — evita segundo header con chrome
      propio sin tocar el contenido que Rune ya puebla ahí (BR-Execution §5). -->
-<div class="modal-overlay modal-split-shell" id="modal-split-shell"
+<div class="mss-shell modal-split-shell" id="modal-split-shell"
      role="dialog" aria-modal="true" aria-labelledby="ingest-modal-title">
 <div class="mss-box">
 <div class="modal-split__header" id="ingest-split-header">
@@ -1848,8 +1857,11 @@
              "antes de 'Procesar batch'". -->
         <div id="ingest-block-preview-anchor"></div>
 
-        <!-- ingest-validation-panel — CAEL-19 (error/warnings) + CAEL-23 (result). Tres sub-estados
-             mutuamente excluyentes vía is-hidden — shell estático, contenido de texto/lista lo puebla JS (Rune). -->
+        <!-- ingest-validation-panel — CAEL-19 (error/warnings). Dos sub-estados mutuamente
+             excluyentes vía is-hidden — shell estático, contenido de texto lo puebla JS (Rune).
+             TKT-202608-292 (REQ-202608-119): sub-estado .validation-result (#ingest-validation-result,
+             CAEL-23/29/30/31) retirado — inalcanzable desde TKT-202608-277 (ver locus-session-parse.js),
+             sin caller vivo que lo popule ni lo muestre. -->
         <div class="ingest-validation-panel is-hidden" id="ingest-validation-panel" aria-live="polite">
           <div class="validation-error is-hidden" id="ingest-validation-error">
             <p class="validation-msg" id="ingest-validation-error-msg"></p>
@@ -1857,27 +1869,6 @@
           <div class="validation-warnings is-hidden" id="ingest-validation-warnings">
             <p class="validation-msg" id="ingest-validation-warning-msg"></p>
             <button class="validation-force-btn" id="ingest-validation-force-btn" type="button">Procesar de todas formas</button>
-          </div>
-          <div class="validation-result is-hidden" id="ingest-validation-result">
-            <div class="validation-result-badges">
-              <span class="validation-badge validation-badge--success" id="ingest-result-badge-checkpoint"><i class="ti ti-check" aria-hidden="true"></i> Checkpoint</span>
-              <span class="validation-badge validation-badge--success" id="ingest-result-badge-project"></span>
-            </div>
-            <p class="validation-result-title" id="ingest-result-title"></p>
-            <hr class="validation-divider">
-            <p class="validation-result-summary" id="ingest-result-summary"></p>
-            <p class="validation-result-file" id="ingest-result-file"><i class="ti ti-file" aria-hidden="true"></i> <span id="ingest-result-file-name"></span></p>
-            <!-- CAEL-30 (TKT6): shell estático próximo paso + bloqueantes, entre archivo e ítems.
-                 design_intent: wireframe_ingest_validation_result_proximo_paso_bloqueantes.
-                 Filas de .blocker-row son JS-generadas dentro de este contenedor estático — BR-Execution §5. -->
-            <div class="validation-result-next-step is-hidden" id="ingest-result-next-step">
-              <p class="validation-result-next-step-label">próximo paso</p>
-              <p class="validation-result-next-step-text" id="ingest-result-next-step-text"></p>
-            </div>
-            <div class="validation-result-blockers" id="ingest-result-blockers">
-              <p class="validation-result-blockers-label">bloqueantes</p>
-            </div>
-            <div class="validation-result-items" id="ingest-result-items"></div>
           </div>
         </div>
       </div>

@@ -1,4 +1,7 @@
-/* [PP] mod:92 · autor:Nova · 2026-08-04 UTC-6 */
+/* [PP] mod:93 · autor:Nova · 2026-08-09 18:20 UTC-6 */
+/* TKT-202608-283 (REQ-202608-117, TKT2): comentario de #merge-diff-overlay actualizado —
+   #modal-split-shell retiró su backdrop (ver locus-modals-base.css mod:26). Sin cambio de
+   regla CSS en este archivo. */
 /* mod:92 — TKT-202608-240 (REQ Merge Diff Panel — distinguir bloque vacío de referencia sin
    resolver, ref_id CAEL-0804-01, origen DISC-202608-098): dos variantes nuevas en la familia
    .mdiff-ckpt-category — reemplazan la categoría 'lite' fusionada (dos causas distintas bajo
@@ -2154,10 +2157,14 @@
 /* ══ R-202604-071: Merge Diff Panel — rediseño completo two-column ══ */
 /* TKT-202607-144 (REQ-202607-046, Nova): #merge-diff-overlay deja de ser overlay
    independiente (position:fixed + backdrop + apertura/cierre propia). Ahora es una
-   región estática dentro de .mss-content (locus-modals-base.css) — el único backdrop
-   y el único estado open/closing viven en #modal-split-shell. .mdiff-overlay--docked
+   región estática dentro de .mss-content (locus-modals-base.css) — el único
+   estado open/closing vive en #modal-split-shell. .mdiff-overlay--docked
    (REQ[CAEL-0716-01] → TKT-202607-128) retirado sin período de gracia junto con las
-   custom properties --split-total-w/-h/-gap/-header-h que consumía. */
+   custom properties --split-total-w/-h/-gap/-header-h que consumía.
+   Actualización TKT-202608-283 (REQ-202608-117, TKT2): #modal-split-shell retira el
+   backdrop — pasó de .modal-overlay a .mss-shell, nivel 'panel' de A-09, sin fondo
+   oscurecido (locus-modals-base.css mod:26). "El único backdrop" de este párrafo ya
+   no aplica — sigue siendo el único nodo con z-index/estado open. */
 .mdiff-overlay {
   flex: 1 1 auto;
   position: relative;
