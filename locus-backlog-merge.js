@@ -1,4 +1,4 @@
-// [PP] mod:91 · autor:Rune · 2026-08-06 15:05 UTC-6
+// [PP] mod:90 · autor:Rune · 2026-08-11 01:15 UTC-6
 // TKT3 (REQ CAEL-08061000-01): alineación visual con Quick Capture (hint vacío estático
 // "hora de desbloqueo (opcional)" — el label ya decía "Hora de reset", sin cambio ahí) +
 // bloqueo de confirmación cuando la hora excede la ventana de 5h (interpretHora().
@@ -752,7 +752,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     const draftChange = changes.find(c => c.field === 'draft');
     if (!draftChange) return '';
     const isAvalado = draftChange.to === false;
-    const icon = isAvalado ? '<i class="ti ti-shield-check"></i> ' : '';
+    const icon = isAvalado ? '<svg class="ti-svg"><use href="#ti-shield-check"></use></svg> ' : '';
     const label = isAvalado ? 'Avalado' : 'Borrador';
     return `<span class="mdiff-status-chip mdiff-status-chip--${isAvalado ? 'avalado' : 'borrador'}">${icon}${label}</span>`;
   };
@@ -774,7 +774,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
           <span class="mdiff-transition-pill">${toStr}</span>
         </span>`;
       }
-      return `<span class="mdiff-field-patch"><i class="ti ti-pencil"></i>${esc(field)}: ${fromStr} → ${toStr}</span>`;
+      return `<span class="mdiff-field-patch"><svg class="ti-svg"><use href="#ti-pencil"></use></svg>${esc(field)}: ${fromStr} → ${toStr}</span>`;
     }).join('');
     return `<div class="mdiff-field-chips">${parts}</div>`;
   };
@@ -972,7 +972,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       return fromOrder != null && toOrder != null && toOrder < fromOrder;
     })();
     const retrocesoFlagHtml = _isRetroceso
-      ? `<div class="mdiff-retroceso-flag"><i class="ti ti-corner-up-left"></i>Retroceso de status</div>
+      ? `<div class="mdiff-retroceso-flag"><svg class="ti-svg"><use href="#ti-corner-up-left"></use></svg>Retroceso de status</div>
          <div class="mdiff-retroceso-context">${esc(String(_statusChange.from))} → ${esc(String(_statusChange.to))}</div>`
       : '';
     const zoneCardCls = _isRetroceso ? 'mdiff-zone-card mdiff-zone-card--retroceso' : 'mdiff-zone-card';

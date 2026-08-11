@@ -1,4 +1,4 @@
-// [PP] mod:25 · autor:Rune · 2026-07-21 10:20 UTC-6
+// [PP] mod:26 · autor:Rune · 2026-08-11 UTC-6
 // Fix (founder, post-liberación REQ CAEL-0720-01): byType simplificado a {REQ,TKT} — INC/DISC/
 // PRB/KE/CHG removidos, universo real de Histórico no puede contenerlos (ver comentario en
 // locus-backlog-render.js mod:101). Sin retrocompatibilidad con claves muertas.
@@ -330,16 +330,20 @@ function _attachHistoricoChildToggleDelegation(body) {
 }
 
 // TKT3 (REQ CAEL-0720-01, ref_id CAEL-0720-04): wiring del toolbar homologado con Backlog —
-// Colapsar todo + buscador. Idempotente vía _historicoToolbarAttached, mismo patrón que
+// Colapsar todo. Idempotente vía guard _historicoWired en el propio nodo, mismo patrón que
 // _historicoChildDelegationAttached. Llamado por renderHistoricoPanel() (locus-backlog-render.js)
 // después de inyectar #historico-header-unified — el toolbar es estático (vive en el mismo
 // nodo que se recrea en cada render de renderHistoricoPanel), así que los listeners se
-// re-adjuntan sobre los nodos frescos en cada llamada — el guard evita que el LISTENER DE
-// _applyHistoricoSearch se duplique si el caller invoca esta función más de una vez sobre el
-// mismo montaje, no evita el re-wiring entre renders (el nodo #historico-toolbar es reemplazado
-// por completo en cada render, por eso _historicoToolbarAttached se resetea al inicio de cada
-// llamada, a diferencia de _historicoChildDelegationAttached que vive sobre #historico-body,
-// nodo persistente entre renders del mismo montaje del panel).
+// re-adjuntan sobre los nodos frescos en cada llamada — el guard evita duplicar el listener
+// si el caller invoca esta función más de una vez sobre el mismo montaje, no evita el
+// re-wiring entre renders (el nodo #historico-toolbar es reemplazado por completo en cada
+// render, por eso el guard se resetea al inicio de cada llamada, a diferencia de
+// _historicoChildDelegationAttached que vive sobre #historico-body, nodo persistente entre
+// renders del mismo montaje del panel).
+// TKT-202608-299 (REQ-202608-118): buscador local (_applyHistoricoSearch, #historico-search-input,
+// #historico-search-clear) retirado — reemplazado por ⌘K. Markup vivía en locus-backlog-render.js
+// (dentro de _statsBarHtml), no en index.html como declaraba el AC — corregido en implementación,
+// mismo criterio ya documentado abajo para AC3 ("declarado, no silenciado").
 export function _initHistoricoToolbar() {
   const toolbar = document.getElementById('historico-toolbar');
   if (!toolbar) return;
@@ -370,59 +374,6 @@ export function _initHistoricoToolbar() {
       const label = collapseBtn.querySelector('.bl-collapse-btn-label');
       if (label) label.textContent = anyExpanded ? 'Expandir todo' : 'Colapsar todo';
     });
-  }
-
-  const searchInput = document.getElementById('historico-search-input');
-  const searchClear = document.getElementById('historico-search-clear');
-  if (searchInput && !searchInput._historicoWired) {
-    searchInput._historicoWired = true;
-    searchInput.addEventListener('input', () => _applyHistoricoSearch(searchInput.value));
-  }
-  if (searchClear && !searchClear._historicoWired) {
-    searchClear._historicoWired = true;
-    searchClear.addEventListener('click', () => {
-      if (!searchInput) return;
-      searchInput.value = '';
-      _applyHistoricoSearch('');
-      searchInput.focus();
-    });
-  }
-}
-
-// AC3 ajustado en implementación (Rune, mismo criterio que "Decisiones de colocación
-// silenciosas" — declarado, no silenciado): el filtrado opera a nivel de GRUPO de sprint
-// completo, no por fila individual. Ocultar solo las filas .item que no matchean orfanaba
-// hijos visibles bajo un padre R oculto (renderSprintGroup anida R→hijos, la jerarquía no
-// es plana). Un grupo con al menos un match muestra el grupo completo sin filtrar filas
-// internas — evita romper la jerarquía a costa de precisión de filtrado dentro del grupo.
-function _applyHistoricoSearch(query) {
-  const body = document.getElementById('historico-body');
-  if (!body) return;
-  const q = query.trim().toLowerCase();
-  const groups = body.querySelectorAll('.bl-vl-sprint-group');
-  let matchingGroups = 0;
-
-  groups.forEach(group => {
-    const hasMatch = !q || Array.from(group.querySelectorAll('.item')).some(row => {
-      const code = (row.dataset.code || '').toLowerCase();
-      const title = (row.querySelector('.bitem-title')?.textContent || '').toLowerCase();
-      return code.includes(q) || title.includes(q);
-    });
-    group.classList.toggle('is-hidden', !hasMatch);
-    if (hasMatch) matchingGroups++;
-  });
-
-  let emptyMsg = document.getElementById('historico-search-empty');
-  if (!matchingGroups && q) {
-    if (!emptyMsg) {
-      emptyMsg = document.createElement('div');
-      emptyMsg.id = 'historico-search-empty';
-      emptyMsg.className = 'historico-empty';
-      body.appendChild(emptyMsg);
-    }
-    emptyMsg.textContent = `Sin resultados para «${query.trim()}»`;
-  } else if (emptyMsg) {
-    emptyMsg.remove();
   }
 }
 

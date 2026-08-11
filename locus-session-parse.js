@@ -1,4 +1,4 @@
-// [PP] mod:192 · autor:Rune · 2026-08-10 UTC-6
+// [PP] mod:176 · autor:Rune · 2026-08-11 01:15 UTC-6
 // Gap de código (hallazgo de Finn en auditoría de cierre de INC-202608-104): el propio fix de
 // mod:191 citaba su origen como "INC-[pendiente-ID]" en dos comentarios (header de este archivo
 // y dentro de _processIngestBatch()) pese a que Locus ya había asignado código real
@@ -2491,7 +2491,7 @@ export function _renderIngestBlockPreview() {
           const _short = m.title.length > 60 ? m.title.slice(0, 60) + '…' : m.title;
           return `
             <div class="ingest-block-preview-item">
-              <i class="ti ti-file-text ingest-block-preview-icon"></i>
+              <svg class="ti-svg ingest-block-preview-icon"><use href="#ti-file-text"></use></svg>
               <div class="ingest-block-preview-text">
                 <div class="ingest-block-preview-title" title="${esc(m.title)}">${esc(_short)}</div>
                 ${m.meta ? `<div class="ingest-block-preview-meta">${esc(m.meta)}</div>` : ''}

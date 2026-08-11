@@ -1,4 +1,4 @@
-// [PP] mod:4 · autor:Rune · 2026-07-24 09:40 UTC-6
+// [PP] mod:5 · autor:Rune · 2026-08-11 01:15 UTC-6
 // REQ CAEL-0724-02, TKT1: _TOAST_ICONS cubre los 8 tipos — confirm/copy/neutral
 // ya no caen al fallback 'ℹ'. TKT2: dismiss usa ti-x (Tabler, ya cargado en index.html).
 import { esc } from './locus-ui-shell.js';
@@ -62,7 +62,7 @@ export function _toastRender(type, title, body, base, onClick) {
       `<span class="toast-title">${titleHtml}</span>` +
       (bodyHtml ? `<span class="toast-body">${bodyHtml}</span>` : '') +
     `</span>` +
-    `<button class="toast-dismiss" aria-label="Cerrar notificación"><i class="ti ti-x" aria-hidden="true"></i></button>` +
+    `<button class="toast-dismiss" aria-label="Cerrar notificación"><svg class="ti-svg" aria-hidden="true"><use href="#ti-x"></use></svg></button>` +
     progressHtml;
 
   el.querySelector('.toast-dismiss').addEventListener('click', (e) => {

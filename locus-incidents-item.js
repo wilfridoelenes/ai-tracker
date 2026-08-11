@@ -1,4 +1,4 @@
-// [PP] mod:10 · autor:Rune · 2026-08-05 UTC-6
+// [PP] mod:11 · autor:Rune · 2026-08-11 01:15 UTC-6
 // TKT (Nova, análisis visual Q-INC): copyItemHtml pasa a icon-only — retira el label de
 // texto "Copiar ítem" del botón, conserva title/aria-label. Ver comentario inline en la
 // entrega de este mod, más abajo en el archivo.
@@ -8,7 +8,7 @@
 // ya declaraba las reglas :hover/is-copied de .qinc-item-code-chip contra un nodo hijo
 // .qinc-item-code-chip-icon que ningún TKT insertaba en el markup (ver comentario mod:1 de
 // locus-incidents.css y el fix mod:8 de este mismo archivo — el ícono quedó fuera de scope
-// de ambos TKTs). AC1: copyCodeHtml agrega <i class="ti ti-copy qinc-item-code-chip-icon">
+// de ambos TKTs). AC1: copyCodeHtml agrega <svg class="ti-svg qinc-item-code-chip-icon"><use href="#ti-copy"></use></svg> — actualizado TKT-202608-286, antes citaba el markup <i class="ti ti-copy"> (webfont, retirado)
 // como primer hijo del chip, antes del texto del código — mismo patrón ya usado por
 // copyItemHtml (ti-copy) en este archivo. El swap ti-copy↔ti-check de AC2 se resuelve en
 // locus-incidents-render.js (mod:20) — este archivo solo declara el nodo base.
@@ -297,7 +297,7 @@ export function buildQIncItem(item) {
   // abajo) y este chip absorbe el modificador de tipo --inc/--prb/--chg que locus-incidents.css
   // ya declaraba (TKT-202607-160, Nova) pero que ningún caller aplicaba — CSS dejó de estar
   // muerto. title conserva typeLabel (antes solo en el badge) + el hint de copiar.
-  const copyCodeHtml = `<span class="bitem-subline-code qinc-item-code-chip qinc-item-code-chip--${esc(type.toLowerCase())}" data-action="copy-code" data-code="${esc(code)}" data-idx="-1" title="${esc(typeLabel)} · Click para copiar ID"><i class="ti ti-copy qinc-item-code-chip-icon" aria-hidden="true"></i>${esc(code)}</span>`;
+  const copyCodeHtml = `<span class="bitem-subline-code qinc-item-code-chip qinc-item-code-chip--${esc(type.toLowerCase())}" data-action="copy-code" data-code="${esc(code)}" data-idx="-1" title="${esc(typeLabel)} · Click para copiar ID"><svg class="ti-svg qinc-item-code-chip-icon" aria-hidden="true"><use href="#ti-copy"></use></svg>${esc(code)}</span>`;
 
   // TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-06): botón "Copiar ítem" — copia el bloque
   // completo del ítem (mismo formato que _PP-incidents.md §Ítems) sin exportar el archivo
@@ -310,7 +310,7 @@ export function buildQIncItem(item) {
   // visible. CSS ya entregado por Nova (locus-incidents.css mod:11, .qinc-item-copy-btn
   // icon-only 22×22px) — este cambio consume esa regla sin ajuste adicional de estilos.
   const copyItemHtml = `<button type="button" class="qinc-item-copy-btn" data-qi-action="qi-copy-item" data-code="${esc(code)}" title="Copiar ítem completo" aria-label="Copiar contenido completo de ${esc(code)}">
-    <i class="ti ti-copy" aria-hidden="true"></i>
+    <svg class="ti-svg" aria-hidden="true"><use href="#ti-copy"></use></svg>
   </button>`;
 
   // TKT-A (REQ CAEL-0722-01, ref_id CAEL-0722-05): línea meta secundaria — origin_module +
@@ -324,8 +324,8 @@ export function buildQIncItem(item) {
     : '';
   const metaSecondaryHtml = `
   <div class="qinc-item-meta-secondary"${metaSecondaryInteractive}>
-    <span><i class="ti ti-cube qinc-item-meta-secondary-icon" aria-hidden="true"></i>${esc(originModuleVal || 'sin asignar')}</span>
-    <span><i class="ti ti-user qinc-item-meta-secondary-icon" aria-hidden="true"></i>${esc(roleVal || 'sin asignar')}</span>
+    <span><svg class="ti-svg qinc-item-meta-secondary-icon" aria-hidden="true"><use href="#ti-cube"></use></svg>${esc(originModuleVal || 'sin asignar')}</span>
+    <span><svg class="ti-svg qinc-item-meta-secondary-icon" aria-hidden="true"><use href="#ti-user"></use></svg>${esc(roleVal || 'sin asignar')}</span>
   </div>`;
 
   return `

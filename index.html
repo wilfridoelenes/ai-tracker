@@ -1,4 +1,11 @@
-<!-- [PP] mod:187 · autor:Rune · 2026-08-10 10:00 UTC-6 -->
+<!-- [PP] mod:190 · autor:Rune · 2026-08-11 UTC-6 -->
+<!-- TKT-202608-298 (REQ-202608-118): input y botón de búsqueda del sidebar Radar
+     (#rsb-search-input, #rsb-search-clear) retirados — reemplazado por ⌘K. Sin banner huérfano. -->
+<!-- [PP] mod:189 · autor:Rune · 2026-08-11 UTC-6 -->
+<!-- TKT-202608-297 (REQ-202608-118) reaplicado sobre esta versión (mod:188 recibida no
+     reflejaba el fix — discrepancia señalada y resuelta por instrucción del founder):
+     input y botón de búsqueda local del sub-tab Context (#ctx-search-input,
+     #ctx-search-clear) retirados — reemplazado por ⌘K. Sin banner huérfano. -->
 <!-- TKT-202608-283 (REQ-202608-117, TKT2): #modal-split-shell cambia de clase base
      .modal-overlay a .mss-shell (locus-modals-base.css mod:26) — retira dependencia de
      .modal-overlay (AC1). Mismo id, mismo .open/.closing, sin cambio de estructura interna
@@ -311,6 +318,111 @@
 
 </head>
 <body>
+<!-- [PP] mod:1 · autor:Rune · 2026-08-11 01:15 UTC-6 -->
+<!-- TKT-202608-286 (REQ-202608-117, TKT5): sprite SVG local — subset real de
+     clases ti-* consumidas en el proyecto (15, verificado por grep contra los
+     8 archivos reales adjuntos en sesión: index.html · locus-backlog-merge.js ·
+     locus-backlog-zone-engine.js · locus-incidents-item.js · locus-radar.js ·
+     locus-session-parse.js · locus-sprint-planificacion.js · locus-toast.js).
+     Fuente: @tabler/icons v3.46.0 (npm, outline set). Corrección de grounding
+     anterior: turno previo declaró 31 call sites / 16 símbolos sin archivos
+     reales adjuntos — grep real (patrón estático) da 20 call sites / 15
+     símbolos distintos en markup, más ti-check (16º símbolo) — consumidor
+     dinámico vía `use.setAttribute('href', ...)` en el swap de feedback de
+     copiado (locus-backlog-zone-engine.js `_copyCode`), invisible a un grep
+     de `class="ti ti-X"` porque no aparece como clase estática en ningún
+     archivo. No editar a mano — regenerar desde tabler-nodes-outline.json si
+     el subset cambia. -->
+<svg style="display:none" aria-hidden="true">
+  <symbol id="ti-calendar-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 5h9a2 2 0 0 1 2 2v9m-.184 3.839a2 2 0 0 1 -1.816 1.161h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 1.158 -1.815" />
+    <path d="M16 3v4" />
+    <path d="M8 3v1" />
+    <path d="M4 11h7m4 0h5" />
+    <path d="M3 3l18 18" />
+  </symbol>
+  <symbol id="ti-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 12l5 5l10 -10" />
+  </symbol>
+  <symbol id="ti-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667l0 -8.666" />
+    <path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1" />
+  </symbol>
+  <symbol id="ti-corner-up-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 18v-6a3 3 0 0 0 -3 -3h-10l4 4m0 -8l-4 4" />
+  </symbol>
+  <symbol id="ti-cube" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 16.008v-8.018a1.98 1.98 0 0 0 -1 -1.717l-7 -4.008a2.019 2.019 0 0 0 -2 0l-7 4.008c-.619 .355 -1 1.01 -1 1.718v8.018c0 .709 .381 1.363 1 1.717l7 4.008a2.02 2.02 0 0 0 2 0l7 -4.008c.619 -.355 1 -1.01 1 -1.718z" />
+    <path d="M12 22v-10" />
+    <path d="M12 12l8.73 -5.04" />
+    <path d="M3.27 6.96l8.73 5.04" />
+  </symbol>
+  <symbol id="ti-dots" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+    <path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+    <path d="M19 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+  </symbol>
+  <symbol id="ti-drag-drop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 12v-6a2 2 0 1 1 4 0v6" />
+    <path d="M4 10v2a6 6 0 1 0 12 0v-4a2 2 0 1 0 -4 0" />
+    <path d="M12 8v2" />
+    <path d="M10 5v.01" />
+    <path d="M13 5v.01" />
+    <path d="M16 6v.01" />
+    <path d="M18 8v.01" />
+    <path d="M19 11v.01" />
+    <path d="M19 14a7 7 0 0 1 -7 7h-1a8 8 0 0 1 -8 -8" />
+  </symbol>
+  <symbol id="ti-file-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+    <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" />
+    <path d="M9 9l1 0" />
+    <path d="M9 13l6 0" />
+    <path d="M9 17l6 0" />
+  </symbol>
+  <symbol id="ti-git-compare" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 3m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+    <path d="M6 21m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+    <path d="M18 3m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+    <path d="M18 21m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+    <path d="M6 5v6.5c0 .34 .22 .649 .5 .8c1.032 .557 3.316 1.79 5.5 2.955m6 -5.255v-4a1 1 0 0 0 -1.379 -.928l-2.664 1.377" />
+    <path d="M18 19v-6.5c0 -.34 -.22 -.649 -.5 -.8c-1.032 -.557 -3.316 -1.79 -5.5 -2.955" />
+  </symbol>
+  <symbol id="ti-list-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3.5 5.5l1.5 1.5l2.5 -2.5" />
+    <path d="M3.5 11.5l1.5 1.5l2.5 -2.5" />
+    <path d="M3.5 17.5l1.5 1.5l2.5 -2.5" />
+    <path d="M11 6l9 0" />
+    <path d="M11 12l9 0" />
+    <path d="M11 18l9 0" />
+  </symbol>
+  <symbol id="ti-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+    <path d="M13.5 6.5l4 4" />
+  </symbol>
+  <symbol id="ti-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 5l0 14" />
+    <path d="M5 12l14 0" />
+  </symbol>
+  <symbol id="ti-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" />
+    <path d="M21 21l-6.2 -6.2" />
+  </symbol>
+  <symbol id="ti-shield-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11.978 19.6a12.5 12.5 0 0 1 -7.978 -11.13v-4.47a12.5 12.5 0 0 0 8 -3a12.5 12.5 0 0 0 8 3v4.47a12.5 12.5 0 0 1 -.5 3.14" />
+    <path d="M9 12l2 2l4 -4" />
+    <path d="M15 19l2 2l4 -4" />
+  </symbol>
+  <symbol id="ti-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 9m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -4 0" />
+    <path d="M9 6a4 4 0 1 0 4 4" />
+    <path d="M20 5v3" />
+  </symbol>
+  <symbol id="ti-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 6l-12 12" />
+    <path d="M6 6l12 12" />
+  </symbol>
+</svg>
 
 <!-- ═══ SPLASH PEPE ═══ -->
 <div id="pepe-splash">
@@ -453,24 +565,6 @@
     </div>
     <div class="rsb-header-row2" id="rsb-hdr-counts"></div>
   </div>
-  <!-- RADAR SEARCH — Nova UX -->
-  <div class="rsb-search-wrap" id="rsb-search-wrap">
-    <span class="rsb-search-icon">
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/>
-        <line x1="7.9" y1="7.9" x2="10.5" y2="10.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-      </svg>
-    </span>
-    <input
-      class="rsb-search-input"
-      id="rsb-search-input"
-      type="text"
-      placeholder="Buscar Worker…"
-      autocomplete="off"
-    />
-    <button class="rsb-search-clear" id="rsb-search-clear" aria-label="Limpiar búsqueda">×</button>
-  </div>
-  <!-- END RADAR SEARCH -->
   <div class="radar-sidebar-strip" title="Expandir sidebar" role="button" aria-label="Expandir sidebar"></div>
   <div class="radar-sidebar-cards" id="radar-sidebar-cards"></div>
 </div>
@@ -510,9 +604,9 @@
       <button class="worker-header-reset-icon is-hidden" id="worker-header-reset-icon"
         data-action="open-correct-hora" data-ai-id="" title="Corregir hora de desbloqueo">⏰ <span id="worker-header-cd"></span></button>
       <button class="sc-menu-btn" id="worker-header-ingest-btn" data-action="open-ingest" data-ai-id=""
-        title="Pegar CHECKPOINT" aria-label="Pegar CHECKPOINT"><i class="ti ti-plus" aria-hidden="true"></i></button>
+        title="Pegar CHECKPOINT" aria-label="Pegar CHECKPOINT"><svg class="ti-svg" aria-hidden="true"><use href="#ti-plus"></use></svg></button>
       <div class="card-dot-menu" id="worker-header-dotmenu-wrap">
-        <button class="sc-menu-btn" data-action="toggle-card-menu" data-ai-id="" title="Más opciones" aria-label="Más opciones"><i class="ti ti-dots"></i></button>
+        <button class="sc-menu-btn" data-action="toggle-card-menu" data-ai-id="" title="Más opciones" aria-label="Más opciones"><svg class="ti-svg"><use href="#ti-dots"></use></svg></button>
         <div class="card-dot-dropdown" id="worker-header-dotmenu">
           <button class="card-dot-item" data-action="dot-rename" data-ai-id=""><span class="dot-item-icon">✎</span> Renombrar</button>
           <!-- TKT3 (CAEL-0723-04): 'Interrumpir sesión' retirado — ai.interrupted se controla vía
@@ -1073,7 +1167,7 @@
        (Rune) lo muestra cuando el sprint activo tiene 0 ítems. Reusa familia .spt-content-empty
        (mismo recipe que .msc-diff-empty, mod:87). -->
   <div class="spt-content-empty is-hidden" id="spi-content-empty">
-    <i class="ti ti-list-check spt-content-empty-icon" aria-hidden="true"></i>
+    <svg class="ti-svg spt-content-empty-icon" aria-hidden="true"><use href="#ti-list-check"></use></svg>
     <div class="spt-content-empty-title">Sin ítems en este sprint</div>
     <div class="spt-content-empty-hint">Asigná ítems desde Planificar</div>
   </div>
@@ -1156,7 +1250,7 @@
          JS (Rune) lo muestra cuando Q-Backlog no tiene ítems elegibles para el sprint. Reusa
          familia .spt-content-empty (mismo recipe que .msc-diff-empty / #spi-content-empty). -->
     <div class="spt-content-empty is-hidden" id="spp-content-empty">
-      <i class="ti ti-drag-drop spt-content-empty-icon" aria-hidden="true"></i>
+      <svg class="ti-svg spt-content-empty-icon" aria-hidden="true"><use href="#ti-drag-drop"></use></svg>
       <div class="spt-content-empty-title">Sin ítems elegibles para asignar</div>
       <div class="spt-content-empty-hint">Los ítems de Q-Backlog aparecerán aquí para arrastrar al sprint</div>
     </div>
@@ -1332,11 +1426,6 @@
         <button type="button" class="ctx-meta-action-btn ctx-import-btn" title="Re-importar CONTEXT.md">↑ Re-importar</button>
       </div>
 
-      <div class="ctx-search-bar">
-        <input type="text" id="ctx-search-input" class="ctx-search-input" placeholder="🔍 Buscar sección…" autocomplete="off">
-        <button class="ctx-search-clear" id="ctx-search-clear" title="Limpiar">✕</button>
-      </div>
-
       <div id="context-content" class="ctx-sections-wrap"></div>
     </div>
 
@@ -1380,7 +1469,7 @@
 <div id="cmdk-overlay" role="dialog" aria-modal="true" aria-label="Buscador global">
   <div class="cmdk-modal">
     <div class="cmdk-input-row">
-      <i class="ti ti-search cmdk-input-icon"></i>
+      <svg class="ti-svg cmdk-input-icon"><use href="#ti-search"></use></svg>
       <input type="text" id="cmdk-input" placeholder="Buscar por código o título…" autocomplete="off">
       <span class="cmdk-hint-esc">esc</span>
     </div>
@@ -1798,7 +1887,7 @@
   <div class="sc-header-right">
     <span class="sc-badge" id="ingest-split-badge"></span>
   </div>
-  <button class="sc-menu-btn" id="ingest-modal-close-btn" type="button" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button>
+  <button class="sc-menu-btn" id="ingest-modal-close-btn" type="button" aria-label="Cerrar"><svg class="ti-svg" aria-hidden="true"><use href="#ti-x"></use></svg></button>
 </div>
 <div class="mss-content">
 
@@ -1879,7 +1968,7 @@
 <div class="mdiff-overlay" id="merge-diff-overlay">
   <div class="msc-diff-empty">
     <div>
-      <i class="ti ti-git-compare msc-diff-empty-icon" aria-hidden="true"></i>
+      <svg class="ti-svg msc-diff-empty-icon" aria-hidden="true"><use href="#ti-git-compare"></use></svg>
       <p class="msc-diff-empty-title">El panel de revisión aparece aquí</p>
       <p class="msc-diff-empty-hint">Se activa al procesar el batch</p>
     </div>

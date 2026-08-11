@@ -1,4 +1,4 @@
-// [PP] mod:22 · autor:Rune · 2026-08-06 UTC-6
+// [PP] mod:23 · autor:Rune · 2026-08-11 01:30 UTC-6
 // TKT-202608-263 (parent: REQ-202608-104): listener shell:export-qinc-full agregado al final
 // del archivo, mismo patrón que shell:export-qinc — descarga _${prefix}-incidents-full.md vía
 // _generateIncidentsFullMd() (locus-incidents-generator.js mod:15). Import ampliado con
@@ -654,15 +654,20 @@ function _attachQIncDelegation(container) {
       e.stopPropagation();
       const code = copyBtn.dataset.code;
       if (code) {
-        // TKT-202607-161 AC2/AC3: is-copied solo en éxito, is-copy-error en fallo — antes
-        // is-copied se aplicaba de forma incondicional y el fallo quedaba silenciado.
+        // TKT-202608-286 (Finn, gap detectado en QA — no cubierto por AC original de ese TKT):
+        // icon es ahora <svg class="ti-svg qinc-item-code-chip-icon"><use href="#ti-X">
+        // (sprite local, retiró el webfont) — classList.replace('ti-copy','ti-check') ya no
+        // tenía esas clases que reemplazar sobre el <svg> y quedaba como no-op silencioso.
+        // El swap de símbolo se hace sobre el atributo href del <use> anidado. Mismo fix
+        // aplicado en locus-backlog-zone-engine.js _copyCode() — mismo patrón, mismo gap.
         const icon = copyBtn.querySelector('.qinc-item-code-chip-icon');
+        const useEl = icon ? icon.querySelector('use') : null;
         navigator.clipboard.writeText(code).then(() => {
           copyBtn.classList.add('is-copied');
-          if (icon) icon.classList.replace('ti-copy', 'ti-check');
+          if (useEl) useEl.setAttribute('href', '#ti-check');
           setTimeout(() => {
             copyBtn.classList.remove('is-copied');
-            if (icon) icon.classList.replace('ti-check', 'ti-copy');
+            if (useEl) useEl.setAttribute('href', '#ti-copy');
           }, 1500);
         }).catch(() => {
           copyBtn.classList.add('is-copy-error');

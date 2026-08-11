@@ -1,4 +1,4 @@
-// [PP] mod:15 · autor:Rune · 2026-08-06 UTC-6
+// [PP] mod:15 · autor:Rune · 2026-08-11 01:15 UTC-6
 // TKT (founder, sesión directa): fila del grupo de drafts (Pendiente de validación Finn)
 // rediseñada — el chip de tipo (.item-type-pill, solo "REQ"/"TKT") y el código quedaban
 // separados, repitiendo visualmente el tipo (chip "TKT" + texto "TKT-202608-262 · ..."). Se
@@ -194,7 +194,7 @@ function _draftGroupHtml(items) {
   const _row = (item, isChild) => `<div class="qbacklog-draft-row${isChild ? ' qbacklog-draft-row--child' : ''}">
       <button type="button" class="qbacklog-draft-code-chip ${itemKind(item)}" data-copy-code="${item.code}" title="Copiar ${item.code}" aria-label="Copiar código ${item.code}">
         <span class="qbacklog-draft-code-chip-text">${item.code}</span>
-        <i class="ti ti-copy qbacklog-draft-code-chip-icon" aria-hidden="true"></i>
+        <svg class="ti-svg qbacklog-draft-code-chip-icon" aria-hidden="true"><use href="#ti-copy"></use></svg>
       </button>
       <span class="qbacklog-draft-title-text">${(item.title || '').replace(/</g, '&lt;')}</span>
     </div>`;
@@ -236,11 +236,15 @@ function _attachDraftGroupToggle(body) {
     const code = btn.dataset.copyCode;
     if (!code) return;
     const icon = btn.querySelector('.qbacklog-draft-code-chip-icon');
+    // TKT-202608-286: icon es ahora <svg class="ti-svg qbacklog-draft-code-chip-icon">
+    // con un <use href="#ti-X"> anidado — el swap de símbolo se hace sobre ese atributo,
+    // no sobre className (className fijo, solo cambian las clases de estado del botón).
+    const useEl = icon ? icon.querySelector('use') : null;
     try {
       await navigator.clipboard.writeText(code);
       btn.classList.remove('is-copy-error');
       btn.classList.add('is-copied');
-      if (icon) icon.className = 'ti ti-check qbacklog-draft-code-chip-icon';
+      if (useEl) useEl.setAttribute('href', '#ti-check');
     } catch {
       btn.classList.remove('is-copied');
       btn.classList.add('is-copy-error');
@@ -248,7 +252,7 @@ function _attachDraftGroupToggle(body) {
     clearTimeout(btn._copyResetTimer);
     btn._copyResetTimer = setTimeout(() => {
       btn.classList.remove('is-copied', 'is-copy-error');
-      if (icon) icon.className = 'ti ti-copy qbacklog-draft-code-chip-icon';
+      if (useEl) useEl.setAttribute('href', '#ti-copy');
     }, 1500);
   };
   body.addEventListener('click', e => {

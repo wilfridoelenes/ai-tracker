@@ -1,4 +1,4 @@
-// [PP] mod:44 · autor:Rune · 2026-07-31 16:10 UTC-6
+// [PP] mod:45 · autor:Rune · 2026-08-11 01:15 UTC-6
 // INC-[pendiente-ID] (Fast Track — sla_priority medium, un solo archivo, sin lógica de negocio
 // nueva): _updatePlanStatsShell() determinaba isEmpty solo con unassigned.length === 0 (L490
 // anterior) — ignoraba doneUnassigned (ítems Q-Backlog en status done, ya calculado en
@@ -403,7 +403,7 @@ export function _renderPlanningView(listEl, closeCallback) {
   const rightColContent = openSprints.length
     ? openSprints.map(_sprintDestCard).join('')
     : `<div class="spt-content-empty bl-plan-dest-empty">
-        <i class="ti ti-calendar-off spt-content-empty-icon" aria-hidden="true"></i>
+        <svg class="ti-svg spt-content-empty-icon" aria-hidden="true"><use href="#ti-calendar-off"></use></svg>
         <div class="spt-content-empty-title">No hay sprints abiertos</div>
         <div class="spt-content-empty-hint">La apertura de sprint se propone desde Cael — no hay creación manual</div>
       </div>`;

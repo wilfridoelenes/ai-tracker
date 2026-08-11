@@ -1,4 +1,8 @@
-// [PP] mod:110 · autor:Rune · 2026-08-09 20:15 UTC-6
+// [PP] mod:111 · autor:Rune · 2026-08-11 UTC-6
+// TKT-202608-299 (REQ-202608-118): input y botón de búsqueda del toolbar de Histórico
+// (#historico-search-input, #historico-search-clear, .fbar-search-wrap) retirados —
+// reemplazado por ⌘K. .bl-toolbar-spacer retirado junto con ellos (sin nada que espaciar
+// tras la remoción). Botón "Colapsar todo" (.bl-toolbar-group) intacto.
 // TKT-202607-213 (REQ-202607-083): 2 botones es-open-proj-panel → es-switch-tab data-tab="proyectos"
 // (proj-panel overlay retirado, reutiliza wiring ya existente en el mismo archivo).
 // TKT-202607-186 (REQ-202607-064): stats-bar de Histórico — chip Total agrega
@@ -1250,11 +1254,6 @@ export async function renderHistoricoPanel() {
             <span class="bl-collapse-btn-icon">⊟</span>
             <span class="bl-collapse-btn-label">Colapsar todo</span>
           </button>
-        </div>
-        <div class="bl-toolbar-spacer"></div>
-        <div class="fbar-search-wrap">
-          <input class="fbar-search-input" id="historico-search-input" type="text" placeholder="🔍 Buscar en histórico…" autocomplete="off">
-          <button class="fbar-search-clear" id="historico-search-clear" title="Limpiar búsqueda">✕</button>
         </div>
       </div>
     </div>`;

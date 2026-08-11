@@ -1,4 +1,11 @@
-// [PP] mod:16 · autor:Rune · 2026-07-27 UTC-6
+// [PP] mod:18 · autor:Rune · 2026-08-11 UTC-6
+// TKT-202608-298 (REQ-202608-118, DependsOn TKT-202608-297): rsbFilterAIs()/
+// rsbClearSearch() y su wiring #rsb-search-input/#rsb-search-clear eliminados —
+// buscador local de Radar retirado, reemplazado por ⌘K. Impacto lateral resuelto en el
+// mismo archivo: call site interno a rsbFilterAIs() en renderGlobalRadarSidebar()
+// (persistía la query filtrada al re-renderizar) y la variable _rsbSearchQuery retirados
+// junto con la función — no declarado explícitamente en el AC pero necesario para no
+// dejar una referencia rota. Filtro de Workers por pin/colapsar/agotadas sin cambio.
 // TKT2 (REQ CAEL-0722-01): _rsbCfgExpanded, _renderCfgPanel(), _rsbToggleCfg() y la
 // delegación de rsbToggleCfg/cfgReset/cfgSetThreshold/cfgSetEnabled dentro de
 // #global-radar-sidebar retirados — la configuración de alertas migró a modal propio
@@ -187,7 +194,7 @@ function _buildSessionCard(ai, isInterrupted, sessions) {
     : '';
   const meta = isInterrupted
     ? `<span class="rsb-status-badge rsb-status-interrupted">⚡ en curso</span>`
-    : `${_draftBadge}<button class="rsb-card-quick" data-action="open-ingest" data-ai-id="${ai.id}" title="Pegar CHECKPOINT" aria-label="Pegar CHECKPOINT"><i class="ti ti-plus" aria-hidden="true"></i></button>
+    : `${_draftBadge}<button class="rsb-card-quick" data-action="open-ingest" data-ai-id="${ai.id}" title="Pegar CHECKPOINT" aria-label="Pegar CHECKPOINT"><svg class="ti-svg" aria-hidden="true"><use href="#ti-plus"></use></svg></button>
        <button class="rsb-card-quick" data-action="openQuickCapture" data-ai-id="${ai.id}" title="Sesión rápida" aria-label="Sesión rápida">⚡</button>`;
 
   return `<div class="${cls}" data-action="navigateToCard" data-ai-id="${ai.id}" id="rsb-card-${ai.id}">
@@ -224,7 +231,7 @@ function _buildAvailableCard(ai, sessions) {
       <div class="rsb-card-meta">
         ${tsSpan}
         ${localStorage.getItem('draft-' + ai.id) ? `<span id="draft-${ai.id}" class="draft-dot visible" data-action="open-ingest" data-ai-id="${ai.id}" role="button" tabindex="0" title="Borrador pendiente — click para restaurar" aria-label="Borrador pendiente — click para restaurar"></span>` : ''}
-        <button class="rsb-card-quick" data-action="open-ingest" data-ai-id="${ai.id}" title="Pegar CHECKPOINT" aria-label="Pegar CHECKPOINT"><i class="ti ti-plus" aria-hidden="true"></i></button>
+        <button class="rsb-card-quick" data-action="open-ingest" data-ai-id="${ai.id}" title="Pegar CHECKPOINT" aria-label="Pegar CHECKPOINT"><svg class="ti-svg" aria-hidden="true"><use href="#ti-plus"></use></svg></button>
         <button class="rsb-card-quick" data-action="openQuickCapture" data-ai-id="${ai.id}" title="Sesión rápida" aria-label="Sesión rápida">⚡</button>
       </div>
     </div>
@@ -397,7 +404,6 @@ export function renderGlobalRadarSidebar() {
   }
 
   updateTabNotifBadges(_allNotifs);
-  if (_rsbSearchQuery) rsbFilterAIs(_rsbSearchQuery, true);
   } finally {
     _radarDirty = false; // AC-5 T-202605-118: reset en finally
   }
@@ -428,62 +434,6 @@ function _rsbToggleAgotadas() {
   if (!group) return;
   const isNowCollapsed = group.classList.toggle('rsb-section-collapsed');
   localStorage.setItem('rsb-agotadas-collapsed', isNowCollapsed ? '1' : '0');
-}
-
-// ── RADAR SEARCH ──────────────────────────────────────────────────────────────
-
-let _rsbSearchQuery = '';
-
-export function rsbFilterAIs(query, silent) {
-  _rsbSearchQuery = (query || '').trim();
-  const q = _rsbSearchQuery.toLowerCase();
-  const wrap = document.getElementById('rsb-search-wrap');
-  const container = document.getElementById('radar-sidebar-cards');
-  if (!container) return;
-
-  if (wrap) wrap.classList.toggle('rsb-has-value', q.length > 0);
-
-  const cards = container.querySelectorAll('.rsb-card');
-  let visibleCount = 0;
-
-  cards.forEach(card => {
-    const nameEl = card.querySelector('.rsb-card-name');
-    const name = (nameEl ? nameEl.textContent : card.textContent).toLowerCase();
-    const match = !q || name.includes(q);
-    card.classList.toggle('is-hidden', !match);
-    if (match) visibleCount++;
-  });
-
-  // Ocultar secciones cuyos cards estén todos hidden
-  container.querySelectorAll('.radar-sb-section').forEach(section => {
-    const anyVisible = Array.from(section.querySelectorAll('.rsb-card'))
-      .some(c => !c.classList.contains('is-hidden'));
-    section.classList.toggle('is-hidden', !anyVisible);
-  });
-
-  // Empty state de búsqueda
-  let noResults = container.querySelector('.rsb-search-no-results');
-  if (q.length > 0 && visibleCount === 0) {
-    if (!noResults) {
-      noResults = document.createElement('p');
-      noResults.className = 'rsb-search-no-results';
-      noResults.textContent = 'Sin resultados';
-      container.appendChild(noResults);
-    }
-  } else if (noResults) {
-    noResults.remove();
-  }
-
-  if (!silent) {
-    const input = document.getElementById('rsb-search-input');
-    if (input) input.focus();
-  }
-}
-
-export function rsbClearSearch() {
-  const input = document.getElementById('rsb-search-input');
-  if (input) input.value = '';
-  rsbFilterAIs('');
 }
 
 // ── PIN / OFFSET / TOGGLE / INIT ──────────────────────────────────────────────
@@ -587,12 +537,6 @@ export function _initRadarSidebarState() {
 
     const addIaBtn = document.querySelector('.rsb-add-ia-btn');
     if (addIaBtn) addIaBtn.addEventListener('click', openAddAI);
-
-    const searchInput = document.getElementById('rsb-search-input');
-    if (searchInput) searchInput.addEventListener('input', () => rsbFilterAIs(searchInput.value));
-
-    const searchClear = document.getElementById('rsb-search-clear');
-    if (searchClear) searchClear.addEventListener('click', rsbClearSearch);
   }
 }
 
