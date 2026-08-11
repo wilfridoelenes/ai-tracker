@@ -1,4 +1,9 @@
-/* [PP] mod:3 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* [PP] mod:4 · autor:Nova · 2026-08-11 07:10 UTC-6 */
+/* TKT ref_id CAEL-08110700-01 (parent REQ-202608-118): #cmdk-overlay migra de var(--z-modal)
+   (alias legacy) a var(--z-lvl-panel) (token canónico A-09, mismo nivel que .mss-shell / Split
+   View, REQ-202608-117). Cierra deuda técnica: el archivo consumía legacy desde su alta pese a
+   la regla de _Locus-css-ref mod:181 (código nuevo no referencia legacy). No reabre
+   TKT-202608-308 (done, AC original sin corregir) — TKT independiente. */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* Alta del archivo — TKT2 (CAEL-08090300-03, parent REQ CAEL-08090300-01, PP-S-31).
    Shell del modal ⌘K — design_intent: cmdk_borrador_navegacion, aprobado por el founder.
@@ -17,7 +22,7 @@
 #cmdk-overlay {
   position: fixed;
   inset: 0;
-  z-index: var(--z-modal); /* confirmado contra locus-base.css real: 500 — fallback retirado */
+  z-index: var(--z-lvl-panel); /* TKT ref_id CAEL-08110700-01 — nivel 'panel' A-09, mismo que .mss-shell */
   display: none;
   align-items: flex-start;
   justify-content: center;

@@ -322,7 +322,7 @@
 
 </head>
 <body>
-<!-- [PP] mod:1 · autor:Rune · 2026-08-11 01:15 UTC-6 -->
+<!-- [PP] mod:2 · autor:Rune · 2026-08-11 UTC-6 -->
 <!-- TKT-202608-286 (REQ-202608-117, TKT5): sprite SVG local — subset real de
      clases ti-* consumidas en el proyecto (15, verificado por grep contra los
      8 archivos reales adjuntos en sesión: index.html · locus-backlog-merge.js ·
@@ -335,7 +335,13 @@
      dinámico vía `use.setAttribute('href', ...)` en el swap de feedback de
      copiado (locus-backlog-zone-engine.js `_copyCode`), invisible a un grep
      de `class="ti ti-X"` porque no aparece como clase estática en ningún
-     archivo. No editar a mano — regenerar desde tabler-nodes-outline.json si
+     archivo.
+     TKT-202608-313 (REQ-202608-125, TKT1): agregado ti-file-code (17º símbolo)
+     — consumidor: locus-backlog-item.js, `.bitem-subline-archivos` (chip de
+     archivo en subline de card TKT), migrado de webfont a sprite en TKT2 de
+     este mismo REQ. Fuente: @tabler/icons v3.46.0, outline set, mismo
+     lockfile de versión que el resto del sprite.
+     No editar a mano — regenerar desde tabler-nodes-outline.json si
      el subset cambia. -->
 <svg style="display:none" aria-hidden="true">
   <symbol id="ti-calendar-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -376,6 +382,12 @@
     <path d="M18 8v.01" />
     <path d="M19 11v.01" />
     <path d="M19 14a7 7 0 0 1 -7 7h-1a8 8 0 0 1 -8 -8" />
+  </symbol>
+  <symbol id="ti-file-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+    <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2" />
+    <path d="M10 13l-1 2l1 2" />
+    <path d="M14 13l1 2l-1 2" />
   </symbol>
   <symbol id="ti-file-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M14 3v4a1 1 0 0 0 1 1h4" />
