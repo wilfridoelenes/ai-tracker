@@ -1,3 +1,12 @@
+// [PP] mod:71 · autor:Rune · 2026-08-11 UTC-6
+// TKT-202608-300 (AC corregido — patch de Cael): retirados onSearchDispatch()/onSearch()/
+// _toggleSearchScope() + helpers exclusivos (_isDiscardedItem, _TYPE_ICONS, _searchScopeAll) ·
+// wiring de #search-global/#search-global-clear · entrada 'focus-search' de _SHORTCUT_DEFS y su
+// handler Ctrl+F/Cmd+F · listener de click que cerraba #search-unified-results · entrada de
+// #search-unified-results en _escCascade · rama 'toggleSearchScope' de la delegación · bloque
+// de switchTab() que tocaba #search-global/#search-count/#search-unified-results ·
+// 'search-global' retirado del array _searches del shortcut compartido (los demás inputs
+// listados siguen funcionando). ⌘K queda como único punto de entrada de búsqueda global.
 // [PP] mod:70 · autor:Rune · 2026-08-10 UTC-6
 // TKT-202608-284 (REQ-202608-117, AC-2 — cierre): corrección al comentario de mod:69
 // abajo — el pendiente ahí atribuía el call site restante de closeIngestModal() directo
@@ -226,18 +235,6 @@ export function switchTab(tab) {
   }
   // (a) event dispatch — locus-sesiones.js escucha 'shell:stop-sidebar-ticker'
   if (tab !== 'tracker') window.dispatchEvent(new CustomEvent('shell:stop-sidebar-ticker'));
-
-  // Update search placeholder — T-202605-460: conservar término, cerrar panel
-  const si = document.getElementById('search-global');
-  if (si) {
-    si.placeholder = tab === 'tracker' ? 'Buscar sesiones...' : tab === 'backlog' ? 'Buscar ítems...' : 'Buscar...';
-    // Conservar el término visible pero cerrar el panel de resultados
-  }
-  const sc = document.getElementById('search-count');
-  if (sc) sc.textContent = '';
-  // T-202605-460: cerrar panel sin borrar el término del input
-  const _surPanel = document.getElementById('search-unified-results');
-  if (_surPanel) _surPanel.remove();
 
   if (tab === 'tracker') {
     // (a) event dispatch — locus-sesiones.js escucha 'shell:render-tracker'
@@ -537,330 +534,6 @@ export function initInfraVersionHandler() {
   });
 }
 
-// ── Search dispatch (extraído de ai-tracker-checkpoint.js) ────────────────
-
-export function onSearchDispatch() {
-  // T-202604-420: búsqueda global unificada como punto de entrada principal
-  const _surPanel = document.getElementById('search-unified-results');
-  if (_surPanel) _surPanel.remove();
-
-  // Siempre invocar búsqueda global unificada
-  onSearch();
-}
-
-// ── Search (extraído de ai-tracker-ai-notes.js) ───────────────────────────
-
-// T-202604-293: Búsqueda global unificada — IAs + sesiones + notas
-// T-202604-420: Ampliada — Backlog + Proyectos como grupos adicionales
-// B-202605-236: filtro por proyecto activo
-// B-202605-237: highlight del término buscado en resultados
-let _searchScopeAll = false;
-
-function _toggleSearchScope() {
-  _searchScopeAll = !_searchScopeAll;
-  const btn = document.getElementById('search-scope-btn');
-  if (btn) btn.textContent = _searchScopeAll ? '🌐 Todos los proyectos' : '📁 Proyecto activo';
-  onSearch();
-}
-
-// REQ CAEL-búsqueda-tipos TKT1: descartado unificado — INC/PRB/KE usan incident_status,
-// REQ/TKT/DISC/CHG usan status (CHG es excepción de vocabulario, __BR-Ecosystem §4b).
-function _isDiscardedItem(item, kind) {
-  if (kind === 'INC' || kind === 'PRB') return item.incident_status === 'descartado';
-  return item.status === 'descartado';
-}
-
-// REQ CAEL-búsqueda-tipos TKT1: icono canónico por tipo — itemKind(item), nunca code.charAt(0)
-// (anti-pattern Gen1 documentado en _Locus-module-contracts §4). Colores/orden según
-// __BR-Ecosystem §4 — tabla de tipos.
-const _TYPE_ICONS = { REQ: '🔵', TKT: '🟢', DISC: '🟣', INC: '🔴', PRB: '🟠', CHG: '⚪' };
-
-export function onSearch() {
-  const state = getState();
-  const q = (document.getElementById('search-global').value || '').toLowerCase().trim();
-  const countEl = document.getElementById('search-count');
-
-  // Limpiar panel unificado previo
-  const prevPanel = document.getElementById('search-unified-results');
-  if (prevPanel) prevPanel.remove();
-
-  if (!q) {
-    // (a) event dispatch — locus-sesiones.js escucha 'shell:render-tracker'
-    window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-    if (countEl) countEl.textContent = '';
-    return;
-  }
-
-  // B-202605-236: proyecto activo para filtrar sesiones/proyectos
-  const _activeProjId = (!_searchScopeAll && _getActiveProjectFilter()) || null;
-
-  // B-202605-237: helper para resaltar término buscado en texto
-  const _esc = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  function hlText(raw, term) {
-    if (!raw || !term) return _esc(raw || '');
-    const escaped = _esc(raw);
-    const escapedTerm = _esc(term);
-    const re = new RegExp('(' + escapedTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-    return escaped.replace(re, '<mark class="sur-hl">$1</mark>');
-  }
-
-  // ── 1. IAs coincidentes (nombre o notas) ──
-  const aiMatches = (state.ais || []).filter(ai =>
-    !ai.archived &&
-    (ai.name.toLowerCase().includes(q) || (ai.notes || '').toLowerCase().includes(q))
-  );
-
-  // ── 2. Sesiones coincidentes ──
-  const sessMatches = [];
-  (state.projects || []).forEach(proj => {
-    // B-202605-236: filtrar por proyecto activo cuando el scope no es "todos"
-    if (_activeProjId && proj.id !== _activeProjId) return;
-    (proj.sessions || []).forEach(s => {
-      if (
-        s.title.toLowerCase().includes(q) ||
-        (s.summary || '').toLowerCase().includes(q) ||
-        (s.pending || '').toLowerCase().includes(q) ||
-        (s.files || '').toLowerCase().includes(q) ||
-        (s.tags || []).some(tid => {
-          const t = (state.tags || []).find(x => x.id === tid);
-          return t && t.name.toLowerCase().includes(q);
-        })
-      ) {
-        const ai = (state.ais || []).find(a => a.id === s.aiId);
-        sessMatches.push({ sess: s, proj, ai });
-      }
-    });
-  });
-  // Cronológica inversa, máx 30
-  sessMatches.sort((a, b) => parseInt(b.sess.id) - parseInt(a.sess.id));
-  const sessSlice = sessMatches.slice(0, 30);
-
-  // ── 3. REQ CAEL-búsqueda-tipos TKT1+TKT2: Ítems de backlog + incidentes coincidentes (Planeada + Reactiva) ──
-  const _items = _getItemsFn();
-  const _incidents = getIncidents();
-  const typeMatches = [..._items, ..._incidents].filter(item => {
-    const kind = itemKind(item);
-    if (_isDiscardedItem(item, kind)) return false;
-    const titleHit = (item.title || item.desc || '').toLowerCase().includes(q);
-    const codeHit = (item.code || '').toLowerCase().includes(q);
-    const acHit = (item.ac || []).some(a => (typeof a === 'string' ? a : (a.text || '')).toLowerCase().includes(q));
-    const compHit = (item.comportamiento_actual || '').toLowerCase().includes(q);
-    return titleHit || codeHit || acHit || compHit;
-  });
-
-  // ── 5. T-202604-420: Proyectos coincidentes ──
-  const projMatches = (state.projects || []).filter(p =>
-    p.status !== 'archived' &&
-    // B-202605-236: si scope es proyecto activo, solo mostrar ese proyecto
-    (!_activeProjId || p.id === _activeProjId) &&
-    ((p.name || '').toLowerCase().includes(q) || (p.icon || '').toLowerCase().includes(q))
-  );
-
-  const total = aiMatches.length + sessMatches.length;
-  // R-202604-075: contratos en búsqueda global
-  const contratoMatches = searchContratos(q);
-  // B-202605-019: poblar array de acciones para event delegation (delegation usa índice)
-  _surContratoActions = contratoMatches.map(r => r.action);
-  // B-243: búsqueda en contexto del proyecto activo — usa _ctxSections ya cargado
-  const contextMatches = [];
-  if (typeof _ctxSections !== 'undefined' && _ctxSections && _ctxSections.length) {
-    const qNorm = q.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    _ctxSections.forEach(sec => {
-      const titleNorm = sec.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      const bodyNorm  = sec.lines.join('\n').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      if (titleNorm.includes(qNorm) || bodyNorm.includes(qNorm)) {
-        contextMatches.push(sec);
-      }
-    });
-  }
-
-  const totalWithContratos = total + contratoMatches.length + typeMatches.length + projMatches.length + contextMatches.length;
-  if (countEl) countEl.textContent = totalWithContratos
-    ? `${totalWithContratos} resultado${totalWithContratos !== 1 ? 's' : ''} · IAs, sesiones, notas, backlog, proyectos, contexto`
-    : 'Sin resultados';
-
-  // ── Filtrar cards del grid (comportamiento previo) ──
-  state.ais.forEach(ai => {
-    const card = document.getElementById('card-' + ai.id);
-    if (!card) return;
-    const nameMatch = ai.name.toLowerCase().includes(q);
-    const notesMatch = (ai.notes || '').toLowerCase().includes(q);
-    const hasSessMatch = sessMatches.some(({ ai: sai }) => sai && sai.id === ai.id);
-    card.classList.toggle('is-hidden', !(nameMatch || notesMatch || hasSessMatch));
-    const list = card.querySelector('.sess-list');
-    if (!list) return;
-    const matchSessIds = new Set(sessMatches.filter(({ ai: sai }) => sai && sai.id === ai.id).map(({ sess }) => sess.id));
-    list.querySelectorAll('.sess-row').forEach(row => {
-      const sessId = row.dataset.sessId;
-      const match = notesMatch || (sessId && matchSessIds.has(sessId));
-      row.classList.toggle('is-hidden', !match);
-    });
-  });
-
-  // ── Renderizar panel de resultados agrupados ──
-  // INC CAEL-11 · fix: #grid pertenecía a un layout de cards que ya no existe (la app usa
-  // tracker-3col/sidebar/tabs) — el guard cortaba en silencio después de ya haber escrito
-  // countEl.textContent, dejando "N resultados" sin panel visible. Opción C (aprobada por
-  // el founder): ancla al wrapper del input, dropdown posicionado vía CSS (locus-layout.css).
-  const searchAnchor = document.getElementById('header-search-wrap');
-  if (!searchAnchor) return;
-
-  // B-202605-236: scope toggle label
-  const scopeLabel = _activeProjId ? '\u{1F4C1} Proyecto activo' : '\u{1F310} Todos los proyectos';
-
-  let html = '<div class="sur-inner">';
-
-  // B-202605-236: control de scope visible en cabecera del panel
-  html += `<div class="sur-scope-row"><button class="sur-scope-btn" id="search-scope-btn" data-action="toggleSearchScope">${scopeLabel}</button></div>`;
-
-  // Grupo Tipos — REQ CAEL-búsqueda-tipos: unifica rama Planeada (REQ/TKT/DISC) + Reactiva
-  // (INC/PRB/KE/CHG). Siempre primero en la jerarquía de render (TKT3).
-  if (typeMatches.length) {
-    const tSlice = typeMatches.slice(0, 25);
-    const tMore = typeMatches.length - tSlice.length;
-    html += `<div class="sur-group">
-      <div class="sur-group-label">🗃 Ítems (${typeMatches.length})</div>
-      <div class="sur-rows">`;
-    tSlice.forEach(item => {
-      const kind = itemKind(item);
-      const icon = _TYPE_ICONS[kind] || '📌';
-      const isTerminal = (kind === 'INC' || kind === 'PRB') ? item.incident_status === 'closed'
-        : item.status === 'done';
-      const statusLabel = isTerminal ? ' · ✓' : '';
-      html += `<div class="sur-row" data-action="navigateToItem" data-item-code="${_esc(item.code)}">
-        <span class="sur-row-icon">${icon}</span>
-        <div class="sur-row-body">
-          <span class="sur-row-title">${hlText(item.title || item.desc || item.code, q)}</span>
-          <span class="sur-row-sub"><span class="sur-badge">${_esc(item.code)}</span>${statusLabel}</span>
-        </div>
-      </div>`;
-    });
-    if (tMore > 0) {
-      html += `<div class="sur-more">+${tMore} ítem${tMore !== 1 ? 's' : ''} más — usa filtros de Backlog para explorar</div>`;
-    }
-    html += '</div></div>';
-  }
-
-  // Grupo IAs
-  if (aiMatches.length) {
-    html += `<div class="sur-group">
-      <div class="sur-group-label">\u{1F916} IAs (${aiMatches.length})</div>
-      <div class="sur-rows">`;
-    aiMatches.forEach(ai => {
-      const statusDot = ai.status === 'available' ? '\u{1F7E2}' : '\u{1F534}';
-      const noteSnip = ai.notes ? `<span class="sur-meta">${hlText(ai.notes.slice(0, 80), q)}${ai.notes.length > 80 ? '\u2026' : ''}</span>` : '';
-      html += `<div class="sur-row" data-action="navigateToCard" data-ai-id="${ai.id}">
-        <span class="sur-row-icon">${statusDot}</span>
-        <span class="sur-row-title">${hlText(ai.name, q)}</span>
-        ${noteSnip}
-      </div>`;
-    });
-    html += '</div></div>';
-  }
-
-  // Grupo Sesiones
-  if (sessSlice.length) {
-    const moreCount = sessMatches.length - sessSlice.length;
-    html += `<div class="sur-group">
-      <div class="sur-group-label">\u{1F4CB} Sesiones (${sessMatches.length})</div>
-      <div class="sur-rows">`;
-    sessSlice.forEach(({ sess, proj, ai }) => {
-      const aiName = ai ? hlText(ai.name, q) : '\u2014';
-      const projName = proj ? _esc((proj.icon || '\u{1F4C1}') + ' ' + proj.name) : '';
-      const dateLabel = _relDateFn(sess.date, sess.savedAt || sess.createdAt) || sess.dateShort || '';
-      const summSnip = sess.summary ? `<span class="sur-meta">${hlText(sess.summary.slice(0, 80), q)}${sess.summary.length > 80 ? '\u2026' : ''}</span>` : '';
-      html += `<div class="sur-row" data-action="openDetail" data-ai-id="${ai ? ai.id : ''}" data-sess-id="${sess.id}">
-        <span class="sur-row-icon">📄</span>
-        <div class="sur-row-body">
-          <span class="sur-row-title">${hlText(sess.title, q)}</span>
-          <span class="sur-row-sub">${aiName}${projName ? ' · ' + projName : ''}${dateLabel ? ' · ' + dateLabel : ''}</span>
-          ${summSnip}
-        </div>
-      </div>`;
-    });
-    if (moreCount > 0) {
-      html += `<div class="sur-more">+${moreCount} sesión${moreCount !== 1 ? 'es' : ''} más — usa Log para explorar</div>`;
-    }
-    html += '</div></div>';
-  }
-
-  // Grupo Contratos — R-202604-075
-  if (contratoMatches.length) {
-    html += `<div class="sur-group">
-      <div class="sur-group-label">📐 Contratos (${contratoMatches.length})</div>
-      <div class="sur-rows">`;
-    contratoMatches.forEach((r, idx) => {
-      const icon = r.type === 'contrato-modulo' ? '📄' : '⚙';
-      html += `<div class="sur-row" data-action="contratoAction" data-contrato-idx="${idx}">
-        <span class="sur-row-icon">${icon}</span>
-        <div class="sur-row-body">
-          <span class="sur-row-title">${hlText(r.label, q)}</span>
-          <span class="sur-row-sub">${_esc(r.sub)}</span>
-        </div>
-      </div>`;
-    });
-    html += '</div></div>';
-  }
-
-
-  // Grupo Proyectos — T-202604-420
-  if (projMatches.length) {
-    html += `<div class="sur-group">
-      <div class="sur-group-label">📁 Proyectos (${projMatches.length})</div>
-      <div class="sur-rows">`;
-    projMatches.forEach(p => {
-      const sessCount = (p.sessions || []).length;
-      html += `<div class="sur-row" data-action="selectProjectFilter" data-proj-id="${_esc(p.id)}">
-        <span class="sur-row-icon">${_esc(p.icon || '📁')}</span>
-        <div class="sur-row-body">
-          <span class="sur-row-title">${hlText(p.name, q)}</span>
-          <span class="sur-row-sub">${sessCount} sesión${sessCount !== 1 ? 'es' : ''}</span>
-        </div>
-      </div>`;
-    });
-    html += '</div></div>';
-  }
-
-  if (!totalWithContratos) {
-    html += `<div class="sur-empty">Sin resultados para "<strong>${_esc(q)}</strong>"</div>`;
-  }
-
-  // B-243: Grupo Contexto — secciones del sub-tab Contexto que coinciden con la búsqueda
-  if (contextMatches.length) {
-    const ctxSlice = contextMatches.slice(0, 6);
-    const ctxMore  = contextMatches.length - ctxSlice.length;
-    html += `<div class="sur-group">
-      <div class="sur-group-label">📄 Contexto (${contextMatches.length})</div>
-      <div class="sur-rows">`;
-    ctxSlice.forEach(sec => {
-      const secIdx = _ctxSections.indexOf(sec);
-      const snippet = sec.lines.find(l => {
-        const n = l.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        return n.includes(q.normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
-      }) || '';
-      html += `<div class="sur-row" data-action="navigateToContext" data-ctx-idx="${secIdx}">
-        <span class="sur-row-icon">📄</span>
-        <div class="sur-row-body">
-          <span class="sur-row-title">${hlText(sec.title, q)}</span>
-          ${snippet ? `<span class="sur-meta">${hlText(snippet.trim().slice(0, 80), q)}${snippet.trim().length > 80 ? '…' : ''}</span>` : ''}
-        </div>
-      </div>`;
-    });
-    if (ctxMore > 0) {
-      html += `<div class="sur-more">+${ctxMore} sección${ctxMore !== 1 ? 'es' : ''} más — abre Contexto para explorar</div>`;
-    }
-    html += '</div></div>';
-  }
-
-  html += '</div>';
-
-  const panel = document.createElement('div');
-  panel.id = 'search-unified-results';
-  panel.className = 'search-unified-results';
-  panel.innerHTML = html;
-  searchAnchor.insertAdjacentElement('beforeend', panel);
-}
-
 // ── SCB eliminado — REQ relacionado (código no confirmado en este comentario) TKT1. Ver TKT3 para el dock que ocupa el slot. ──
 
 // ── ESC Cascade ────────────────────────────────────────────────────────────
@@ -869,8 +542,6 @@ export function onSearch() {
 // Cascade Escape — cierra en orden de profundidad (más reciente primero)
 export function _escCascade() {
   const _overlayChecks = [
-    // T-202605-460: panel búsqueda global — prioridad más alta
-    () => { const el = document.getElementById('search-unified-results'); if (el) { el.remove(); return true; } },
     // Prioridad alta — modales de confirmación / editing
     () => { const el = document.getElementById('shortcuts-ref-overlay'); if (el && !el.classList.contains('is-hidden')) { closeShortcutsRef(); return true; } },
     () => { const el = document.getElementById('shortcuts-overlay'); if (el && !el.classList.contains('is-hidden')) { closeShortcuts(); return true; } },
@@ -900,15 +571,6 @@ export function _escCascade() {
   }
 }
 
-// ── Click listener — cerrar search-unified-results al click fuera ──────────
-// T-202605-460
-document.addEventListener('click', e => {
-  const panel = document.getElementById('search-unified-results');
-  if (!panel) return;
-  const input = document.getElementById('search-global');
-  if (!panel.contains(e.target) && e.target !== input) panel.remove();
-}, true);
-
 // ── Keydown listener global ────────────────────────────────────────────────
 // T-202604-418: Atajos de teclado globales
 document.addEventListener('keydown', e => {
@@ -922,19 +584,6 @@ document.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && (e.key === '?' || (e.shiftKey && e.key === '/'))) {
     e.preventDefault();
     openShortcutsRef();
-    return;
-  }
-
-  // Ctrl+F / Cmd+F — foco al search global
-  // B-202606-001: ignorar cuando el IDP está abierto
-  if (e.key === 'f' && (e.ctrlKey || e.metaKey)) {
-    const idp = document.getElementById('item-detail-panel');
-    if (idp && !idp.classList.contains('is-hidden')) return;
-    const si = document.getElementById('search-global');
-    if (!si) return;
-    e.preventDefault();
-    si.focus();
-    si.select();
     return;
   }
 
@@ -1009,7 +658,7 @@ document.addEventListener('keydown', e => {
   // propio label en el panel de shortcuts.
   if (_pressedKey === _sk('search')) {
     e.preventDefault();
-    const _searches = ['backlog-search', 'search-global', 'log-search', 'context-search', 'map-search'];
+    const _searches = ['backlog-search', 'log-search', 'context-search', 'map-search'];
     for (const sid of _searches) {
       const sel = document.getElementById(sid);
       if (sel && sel.offsetParent !== null) { sel.focus(); sel.select(); break; }
@@ -1112,7 +761,6 @@ const _SHORTCUT_DEFS = [
   // editables sin rewiring de handler produciría un override cosmético que no cambia el
   // comportamiento real, el mismo tipo de defecto que este TKT existe para cerrar, no repetir.
   { id: 'new-item',      label: 'Nuevo ítem',                     group: 'Acciones',   default: 'Shift+N',         chord: false, fixed: true },
-  { id: 'focus-search',  label: 'Foco en búsqueda global',        group: 'Acciones',   default: 'Ctrl+F / Cmd+F',  chord: false, fixed: true },
   { id: 'open-shortcuts-ref', label: 'Abrir referencia de atajos', group: 'Acciones',  default: 'Cmd+? / Cmd+Shift+/', chord: false, fixed: true },
   { id: 'open-detail',   label: 'Abrir detalle de ítem seleccionado', group: 'Backlog', default: 'Enter',         chord: false, fixed: true },
   { id: 'close-cascade', label: 'Cerrar overlay activo',          group: 'Backlog',    default: 'Esc',             chord: false, fixed: true },
@@ -1352,27 +1000,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const themeBtn = document.getElementById('more-menu-theme');
   if (themeBtn) themeBtn.addEventListener('click', function () { toggleTheme(); });
 
-  // REQ CAEL-12 · TKT1 (CAEL-13): #search-global → onSearchDispatch ya existente (línea 379).
-  // onSearch()/onSearchDispatch() estaban implementados pero sin listener que los invocara
-  // al escribir — gap real detectado en integración, no ambigüedad de AC.
-  const searchInput = document.getElementById('search-global');
-  const searchClearBtn = document.getElementById('search-global-clear');
-  if (searchInput) {
-    searchInput.addEventListener('input', function () {
-      if (searchClearBtn) searchClearBtn.classList.toggle('is-hidden', !searchInput.value);
-      onSearchDispatch();
-    });
-  }
-  if (searchClearBtn) {
-    searchClearBtn.addEventListener('click', function () {
-      if (!searchInput) return;
-      searchInput.value = '';
-      searchClearBtn.classList.add('is-hidden');
-      searchInput.focus();
-      onSearchDispatch();
-    });
-  }
-
   // Botón Shortcuts en more-menu — delegation sobre document en capture
   document.addEventListener('click', function (e) {
     const btn = e.target.closest('#more-menu button');
@@ -1426,8 +1053,6 @@ document.addEventListener('DOMContentLoaded', function () {
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 120);
       }, 80);
-    } else if (action === 'toggleSearchScope') {
-      _toggleSearchScope();
     } else if (action === 'shortcutsStartEdit') {
       _shortcutsStartEdit(row.dataset.scId);
     } else if (action === 'shortcutsResetOne') {

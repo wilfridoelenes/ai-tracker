@@ -1,4 +1,5 @@
-/* [PP] mod:24 · autor:Nova · 2026-08-09 20:15 UTC-6 */
+/* [PP] mod:25 · autor:Nova · 2026-08-10 09:00 UTC-6 */
+/* TKT CAEL-08101200-05 (parent REQ CAEL-08101200-04, origen_disc DISC-202608-118): fallback numérico huérfano de var(--text-3xs/--text-2xs-plus/--text-sm/--text-2xl, N) reemplazado por el token canónico sin segundo argumento — 4 alias retirados en TKT-202608-301. Sin cambio de valor visual buscado (comportamiento inerte del fallback preservado). */
 /* TKT-202608-282 (REQ-202608-117, TKT1 — patrón A-09, tres niveles nombrados): cierra el
    Hallazgo 4 de _Locus-css-ref (31 peldaños de z-index sin criterio de elección). Se agregan
    3 tokens de nivel — --z-lvl-inline/--z-lvl-panel/--z-lvl-dialogo — con rango propio y sin
@@ -67,8 +68,9 @@
   --text-3xs/--text-2xs-plus/--text-sm/--text-2xl ya no se declaran: sus 21+1 consumidores
   (ver _Locus-css-ref §Hallazgo 3, más locus-cmdk.css agregado a `archivos` en esta misma
   sesión) referencian ahora directamente --text-2xs/--text-xs/--text-xs/--text-xl. Las 6
-  líneas con fallback numérico embebido detectadas en el mismo Hallazgo (ej.
-  var(--text-sm,13px)) quedan sin tocar — candidato a limpieza aparte, priority: low. */
+  líneas con fallback numérico embebido detectadas en el mismo Hallazgo — 1 en locus-radar.css,
+  1 en este mismo archivo, 4 en locus-modals-base/misc/toast.css y locus-sesiones-card.css —
+  quedan resueltas por TKT CAEL-08101200-05: mismo criterio, var() sin segundo argumento. */
 
   /* ── Escala display — stat numbers, headings de sección ── */
   --text-display-sm:  17px;  /* heading de sección compacto */
@@ -608,7 +610,7 @@ body {
    de transparent a var(--border) — cada modificador de abajo ya sobreescribe border-color
    con su propio token, este cambio solo cierra el caso de un modificador futuro que no lo
    declare, para que nunca quede con borde transparente/invisible. */
-.diff-chip{display:inline-flex;align-items:center;gap:5px;font-size:var(--text-2xs-plus,10px);font-weight:500;padding:3px 8px;border-radius:999px;border:1px solid var(--border);white-space:nowrap;}
+.diff-chip{display:inline-flex;align-items:center;gap:5px;font-size:var(--text-xs);font-weight:500;padding:3px 8px;border-radius:999px;border:1px solid var(--border);white-space:nowrap;}
 .diff-chip--creado{color:var(--green-text);background:color-mix(in srgb, var(--green) 10%, transparent);border-color:color-mix(in srgb, var(--green) 28%, transparent);}
 .diff-chip--avance{color:var(--blue-text);background:color-mix(in srgb, var(--blue) 10%, transparent);border-color:color-mix(in srgb, var(--blue) 28%, transparent);}
 .diff-chip--actualizado{color:var(--text2);background:var(--surface2);border-color:var(--border);}

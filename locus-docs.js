@@ -1,4 +1,8 @@
-// [PP] mod:29 · autor:Rune · 2026-08-05 UTC-6
+// [PP] mod:30 · autor:Rune · 2026-08-10 UTC-6
+// TKT CAEL-08101200-01 (REQ-202608-118, origen_disc DISC-202608-128): _renderContextSections()
+// pierde el parámetro query — ctx-search-input/ctx-search-clear ya no existen en index.html
+// (retirados, reemplazados por ⌘K), la rama de filtrado y .ctx-search-empty eran inalcanzables.
+// onContextSearch()/clearContextSearch() quedan sin tocar — fuera de scope de este TKT.
 // TKT-202608-237 (REQ-202608-090): renderDocUpdatesResolved() — lee docUpdateResolvedLog
 // (_getDocUpdateResolvedLog(), ya poblado por _pushDocUpdateResolved() desde TKT-202608-236,
 // mod:28) y renderiza #du-resolved-list con la familia .du-resolved-* (locus-docs.css mod:6,
@@ -1334,36 +1338,28 @@ export function renderContext() {
   }
 
   _ctxSections = sections; // cache para búsqueda
-  _renderContextSections(sections, '');
+  _renderContextSections(sections);
 }
 
 // Cache interno de secciones para búsqueda sin re-parsear
 let _ctxSections = [];
 
-function _renderContextSections(sections, query) {
+function _renderContextSections(sections) {
   const el = document.getElementById('context-content');
   if (!el) return;
 
-  const q = query.trim().toLowerCase();
-  const filtered = q
-    ? sections.filter(s => s.title.toLowerCase().includes(q) || s.lines.join('\n').toLowerCase().includes(q))
-    : sections;
-
-  if (!filtered.length) {
-    el.innerHTML = `<div class="ctx-search-empty">Sin resultados para "<strong>${esc(q)}</strong>"</div>`;
-    return;
-  }
+  if (!sections.length) return;
 
   let html = '';
-  filtered.forEach((sec, idx) => {
+  sections.forEach((sec, idx) => {
     const bodyMd = sec.lines.join('\n').trim();
     const bodyHtml = renderContextMd(bodyMd);
     // Secciones modificadas por CHECKPOINT en esta sesión — resaltar
     const isTouched = _contextSectionsTouched.includes('## ' + sec.title);
     const touchedClass = isTouched ? ' ctx-sec-touched' : '';
     const touchedBadge = isTouched ? '<span class="ctx-touched-badge">✎ actualizado</span>' : '';
-    // Primera sección abierta por defecto (solo sin query)
-    const openClass = (!q && idx === 0) ? ' open' : (q ? ' open' : '');
+    // Primera sección abierta por defecto
+    const openClass = idx === 0 ? ' open' : '';
     html += `
       <div class="context-section${openClass}${touchedClass}" id="ctx-sec-${idx}">
         <div class="context-section-header" data-ctx-idx="${idx}">
@@ -1382,7 +1378,7 @@ function onContextSearch() {
   const clear = document.getElementById('ctx-search-clear');
   const q = input ? input.value : '';
   if (clear) clear.classList.toggle('is-hidden', !q);
-  _renderContextSections(_ctxSections, q);
+  _renderContextSections(_ctxSections);
 }
 
 function clearContextSearch() {
@@ -1390,7 +1386,7 @@ function clearContextSearch() {
   const clear = document.getElementById('ctx-search-clear');
   if (input) input.value = '';
   if (clear) clear.classList.add('is-hidden');
-  _renderContextSections(_ctxSections, '');
+  _renderContextSections(_ctxSections);
 }
 
 function contextShowImport() {
