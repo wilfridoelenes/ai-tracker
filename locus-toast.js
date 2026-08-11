@@ -1,6 +1,10 @@
-// [PP] mod:5 · autor:Rune · 2026-08-11 01:15 UTC-6
+// [PP] mod:6 · autor:Rune · 2026-08-10 22:50 UTC-6
 // REQ CAEL-0724-02, TKT1: _TOAST_ICONS cubre los 8 tipos — confirm/copy/neutral
-// ya no caen al fallback 'ℹ'. TKT2: dismiss usa ti-x (Tabler, ya cargado en index.html).
+// ya no caen al fallback 'ℹ'. TKT2: dismiss usa ícono webfont ti-x (Tabler, ya
+// cargado en index.html) — mod:5 lo implementó con sintaxis de SVG sprite
+// (<use href="#ti-x">), símbolo que nunca existió en el proyecto y sin CSS que
+// acote .ti-svg — causaba renderizado al tamaño intrínseco por defecto del
+// navegador. Corregido a la única convención de íconos vigente: <i class="ti ti-x">.
 import { esc } from './locus-ui-shell.js';
 // locus-toast.js
 // Última actualización: 2026-05-19 00:00 UTC-6
@@ -62,7 +66,7 @@ export function _toastRender(type, title, body, base, onClick) {
       `<span class="toast-title">${titleHtml}</span>` +
       (bodyHtml ? `<span class="toast-body">${bodyHtml}</span>` : '') +
     `</span>` +
-    `<button class="toast-dismiss" aria-label="Cerrar notificación"><svg class="ti-svg" aria-hidden="true"><use href="#ti-x"></use></svg></button>` +
+    `<button class="toast-dismiss" aria-label="Cerrar notificación"><i class="ti ti-x" aria-hidden="true"></i></button>` +
     progressHtml;
 
   el.querySelector('.toast-dismiss').addEventListener('click', (e) => {

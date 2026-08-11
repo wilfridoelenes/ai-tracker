@@ -1,4 +1,4 @@
-/* [PP] mod:28 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* [PP] mod:29 · autor:Nova · 2026-08-10 23:55 UTC-6 */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* TKT3 (REQ-202608-119, DISC-202608-120): familia .validation-result*/.validation-badge*/
    .validation-divider/.blocker-row*/.blocker-chip retirada — código muerto desde que
@@ -331,7 +331,7 @@
   background: var(--bg-subtle);
   border: 1px solid var(--border, rgb(0 0 0 / 12%));
   font-family: var(--font-mono, monospace);
-  font-size: var(--text-sm, 13px);
+  font-size: var(--text-xs);
   color: var(--text, #111);
   line-height: 1.5;
 }

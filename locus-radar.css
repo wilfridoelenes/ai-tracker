@@ -1,4 +1,4 @@
-/* [PP] mod:15 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* [PP] mod:16 · autor:Nova · 2026-08-10 23:55 UTC-6 */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* TKT-[pendiente-ID] (CAEL-FASTTRACK-01): --rsb-width 340→380px + --rsb-width/
    --rsb-strip movidas de #global-radar-sidebar a :root — fuente única, ver nota
@@ -1416,7 +1416,7 @@ body.radar-sb-collapsed #global-footer {
 
 /* Pill proyecto: una línea debajo del nombre, tamaño reducido */
 .rsb-card.available .rsb-proj-pill {
-  font-size: var(--text-3xs, 9px);
+  font-size: var(--text-2xs);
   padding: 1px 4px;
 }
 

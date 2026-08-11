@@ -1,4 +1,4 @@
-/* [PP] mod:9 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* [PP] mod:10 · autor:Nova · 2026-08-10 23:55 UTC-6 */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* locus-modals-misc.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
 
@@ -204,7 +204,7 @@
 /* Import toast — estilos para HTML enriquecido generado en backlog.js */
 .toast-import-title {
   font-weight: 600;
-  font-size: var(--text-sm, 12px);
+  font-size: var(--text-xs);
   line-height: 1.4;
   color: var(--text);
   margin-bottom: 4px;

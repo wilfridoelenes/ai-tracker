@@ -1,4 +1,4 @@
-/* [PP] mod:15 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* [PP] mod:16 · autor:Nova · 2026-08-10 23:55 UTC-6 */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* TKT-202608-229 (REQ-202608-087): header conjunto del modal de ingesta — .sc-project
    quedaba mal nombrado en ese contexto (mostraba nombre de worker, no proyecto, ver
@@ -327,7 +327,7 @@
   background: transparent;
   border: none;
   color: var(--text);
-  font-size: var(--text-sm, 13px);
+  font-size: var(--text-xs);
   text-align: left;
   cursor: pointer;
   transition: background var(--trans-fast);
