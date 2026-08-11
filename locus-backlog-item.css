@@ -1,4 +1,4 @@
-/* [PP] mod:94 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* [PP] mod:96 · autor:Nova · 2026-08-10 21:05 UTC-6 */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* TKT-202608-283 (REQ-202608-117, TKT2): comentario de #merge-diff-overlay actualizado —
    #modal-split-shell retiró su backdrop (ver locus-modals-base.css mod:26). Sin cambio de
@@ -514,6 +514,26 @@
   border: 1px solid color-mix(in srgb, var(--blue) 25%, transparent);
   border-radius: var(--radius-sm);
   padding: 1px 5px;
+}
+
+/* TKT-202608-302 (REQ-202608-122): chip de archivos afectados en subline de TKT —
+   mismos tokens que .bitem-subline-area (--text-xs/--text3/--mono/ellipsis), max-width
+   ampliado a 200px por nombre de archivo más largo que un área corta. */
+.bitem-subline-archivos {
+  font-size: var(--text-xs);
+  color: var(--text3);
+  font-family: var(--mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.bitem-subline-archivos .ti {
+  font-size: var(--text-xs);
 }
 
 .bitem-discard-reason {

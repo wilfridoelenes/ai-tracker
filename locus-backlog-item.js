@@ -1,4 +1,4 @@
-// [PP] mod:165 · autor:Rune · 2026-08-09 20:15 UTC-6
+// [PP] mod:166 · autor:Rune · 2026-08-10 20:40 UTC-6
 // TKT-202608-279 (REQ-202608-113, origen_disc DISC-202608-115): applyPatchesFromTG no
 // normalizaba no_incluye en patch — el catch-all genérico escribía el valor crudo sin
 // validar tipo. Rama propia agregada antes del catch-all: string se normaliza a array
@@ -1538,6 +1538,15 @@ export function buildBacklogItem(item, opts = {}) {
   if (item.role) _sublineParts.push(`<span class="bitem-subline-role" title="Rol responsable">${esc(item.role)}</span>`);
   if (item.area) _sublineParts.push(`<span class="bitem-subline-area" title="${esc(item.area)}">${esc(item.area)}</span>`);
   if (item.sprint) _sublineParts.push(`<span class="bitem-subline-sprint">${esc(_sprintDisplay(item.sprint))}</span>`);
+  // TKT-202608-302 (REQ-202608-122): chip de archivos afectados en subline —
+  // mismo principio de "dónde vive el problema" que origin_module en el card de INC,
+  // adaptado a `archivos` (campo propio de TKT, ausente en REQ/DISC — __BR-Ecosystem §5).
+  if (item.archivos && item.archivos.length) {
+    const _archFirst = esc(item.archivos[0]);
+    const _archSuffix = item.archivos.length > 1 ? ` +${item.archivos.length - 1}` : '';
+    const _archTitle = esc(item.archivos.join(', '));
+    _sublineParts.push(`<span class="bitem-subline-archivos" title="${_archTitle}"><i class="ti ti-file-code"></i> ${_archFirst}${_archSuffix}</span>`);
+  }
   const subline = `<div class="bitem-subline">
     ${_sublineParts.join('<span class="bitem-subline-sep">·</span>')}
     ${_discardReasonHtml}
