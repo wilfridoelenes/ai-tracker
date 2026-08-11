@@ -1,4 +1,4 @@
-// [PP] mod:30 · autor:Rune · 2026-08-10 UTC-6
+// [PP] mod:31 · autor:Rune · 2026-08-10 UTC-6
 // TKT CAEL-08101200-01 (REQ-202608-118, origen_disc DISC-202608-128): _renderContextSections()
 // pierde el parámetro query — ctx-search-input/ctx-search-clear ya no existen en index.html
 // (retirados, reemplazados por ⌘K), la rama de filtrado y .ctx-search-empty eran inalcanzables.
@@ -25,7 +25,7 @@
 // renderDocUpdatesPending(). Módulo crítico: locus-storage.js — activar verificación de
 // regresiones en Finn.
 // [PP] mod:27 · autor:Rune · 2026-08-04 UTC-6
-// INC-[pendiente-ID] (founder reporta con capturas: sub-tab DOC-UPDATEs invisible parado en
+// INC histórico — sin CHECKPOINT confirmado (gap documentado — DISC-202608-130) (founder reporta con capturas: sub-tab DOC-UPDATEs invisible parado en
 // Documentos, pese a footer mostrando "4 DOC-UPDATEs sin resolver"). Causa raíz: el fix de
 // mod:26 (INC-202608-087 AC1/AC2) gateaba renderDocUpdatesPending() — única función que
 // quita is-hidden de #sstab-btn-docupdates — a `sub === 'docupdates'` dentro de
@@ -87,7 +87,7 @@
 // lectura del campo existente. No toca _docUpdateStaleness() (locus-sesiones-stats.js) — ese
 // criterio de 14d es intencionalmente distinto, ver comentario en CSS.
 // [PP] mod:19 · autor:Rune · 2026-07-15 UTC-6
-// TKT-[pendiente-ID] (REQ-[pendiente-ID] · createdAt en docUpdateIndex): processDocUpdate()
+// TKT histórico (REQ histórico · sin CHECKPOINT confirmado, gap documentado — DISC-202608-130) · createdAt en docUpdateIndex: processDocUpdate()
 //   agrega createdAt:Date.now() a toda entrada nueva (primera entrada de una key y entradas
 //   de conflicto) — desbloquea el cómputo de vencimiento del DOC-UPDATE. resolveDocUpdate()
 //   no se toca: el spread {...entries[chosenIndex]} ya conserva createdAt sin cambios.
@@ -95,12 +95,12 @@
 //   (ningún consumo actual del campo), antigüedad tratada como "desconocida" hasta que la
 //   entrada se resuelva o expire por ciclo normal del sprint.
 // [PP] mod:16 · autor:Rune · 2026-07-13 UTC-6
-// INC-[pendiente-ID]: import real de APP_VERSION desde locus-workers.js — guard
+// INC histórico — sin CHECKPOINT confirmado (gap documentado — DISC-202608-130): import real de APP_VERSION desde locus-workers.js — guard
 // typeof APP_VERSION !== 'undefined' nunca era true (variable module-privada, sin export
 // hasta este fix). Fallback literal 'v0' retirado — resuelve siempre a un valor real ahora
 // que la cadena de fallback (_effectiveVersion → APP_VERSION) tiene ambos eslabones vivos.
 // [PP] mod:15 · autor:Rune · 2026-07-13 00:50 UTC-6
-// TKT-[pendiente-ID] (REQ-[pendiente-ID] · sidebar DocLog): los 3 botones doc-log-btn-*
+// TKT histórico (REQ histórico · sin CHECKPOINT confirmado, gap documentado — DISC-202608-130) · sidebar DocLog: los 3 botones doc-log-btn-*
 //   (uno por sub-panel: backlog/htmlmap/context) se retiran de sus toolbars — ver index.html.
 //   Se reemplazan por un único #btn-view-doclog en Acciones del sidebar, mostrado/titulado
 //   según el sub-tab activo y abriendo openDocLog(getCurrentSubTab()) — ver _updateSubTabButtons.
@@ -125,7 +125,7 @@ import { closeDocLog, openDocLog, _updateDocLogCount } from './locus-doc-log.js'
 import { _mgGetVersion } from './locus-map-generator.js';
 import { parseHtmlMapMd, renderHtmlMap, updateHtmlMapBanner } from './locus-map-viewer.js';
 import { _blogLog, _docPrefix, _effectiveVersion, _getDocUpdateIndex, _getDocUpdateResolvedLog, _projKey, _setDocUpdateIndex, _setDocUpdateResolvedLog, _tplKey, getActiveProject, saveContextDocs } from './locus-storage.js';
-import { APP_VERSION } from './locus-workers.js'; // INC-[pendiente-ID]: import real — antes typeof-guard muerto sobre variable privada
+import { APP_VERSION } from './locus-workers.js'; // INC histórico — sin CHECKPOINT confirmado (gap documentado — DISC-202608-130): import real — antes typeof-guard muerto sobre variable privada
 
 // T-202606-166: _docPrefix movida a locus-storage.js
 
@@ -235,7 +235,7 @@ export function _updateSubTabButtons(sub) {
     btnExpContratos.disabled = !hasContratos;
     btnExpContratos.title = hasContratos ? 'Exportar Contratos.md' : 'Sin contratos definidos aún';
   }
-  // btn-view-doclog — visible solo en backlog/htmlmap/context (únicos docs con log) — TKT-[pendiente-ID]
+  // btn-view-doclog — visible solo en backlog/htmlmap/context (únicos docs con log) — TKT histórico, sin CHECKPOINT confirmado (gap documentado — DISC-202608-130)
   const btnViewDocLog = document.getElementById('btn-view-doclog');
   if (btnViewDocLog) {
     const docLogTitles = { backlog: 'Historial de acciones del Backlog', htmlmap: 'Historial de acciones del MAP', context: 'Historial de acciones del Context' };
@@ -248,7 +248,7 @@ export function _updateSubTabButtons(sub) {
   }
 
   // AC-3 (T-202606-033): sub docupdates — renderizar al activar.
-  // INC-[pendiente-ID] (derivado de INC-202608-087): gatear esta llamada a
+  // INC histórico — sin CHECKPOINT confirmado (derivado de INC-202608-087, gap documentado — DISC-202608-130): gatear esta llamada a
   // sub === 'docupdates' era circular — #sstab-btn-docupdates nace is-hidden y ese
   // gate es la única vía que lo revela, pero un sub-tab is-hidden no es alcanzable por
   // navegación normal del usuario (solo via switchSubTab programático, ej. el link del
@@ -948,7 +948,7 @@ export function processDocUpdate(update, checkpointTitle) {
 
   if (!index[key]) {
     // Primera entrada para esta key en el sprint — sin conflicto
-    // REQ-[pendiente-ID] (TKT1): createdAt registra el momento exacto de creación de la
+    // REQ histórico — sin CHECKPOINT confirmado (TKT1, gap documentado — DISC-202608-130): createdAt registra el momento exacto de creación de la
     // entrada — base para el cómputo de vencimiento (footer alert prioridad 3 / BR-Ecosystem §3).
     index[key] = [{ contenido, titulo: checkpointTitle, conflicto: false, createdAt: Date.now(), accion, escalateTo }];
     _setDocUpdateIndex(index);
@@ -1482,7 +1482,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const ctxFileInput = document.getElementById('context-file-input');
   if (ctxFileInput) ctxFileInput.addEventListener('change', _importContextMdFromFile);
 
-  // btn-view-doclog (sidebar, único) → openDocLog(sub activo) — TKT-[pendiente-ID]
+  // btn-view-doclog (sidebar, único) → openDocLog(sub activo) — TKT histórico, sin CHECKPOINT confirmado (gap documentado — DISC-202608-130)
   const dlSidebar = document.getElementById('btn-view-doclog');
   if (dlSidebar) dlSidebar.addEventListener('click', () => openDocLog(getCurrentSubTab()));
 
@@ -1580,11 +1580,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 // ── END T-202605-031 locus-docs ──
 
-// ── B-[pendiente-ID]: listener shell:update-subtab-buttons ──────────────────
+// ── B histórico — sin CHECKPOINT confirmado (gap documentado — DISC-202608-130): listener shell:update-subtab-buttons ──
 window.addEventListener('shell:update-subtab-buttons', e => {
   _updateSubTabButtons(e.detail?.sub || 'backlog');
 });
-// ── END B-[pendiente-ID] ──
+// ── END B histórico (DISC-202608-130) ──
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
 // ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
