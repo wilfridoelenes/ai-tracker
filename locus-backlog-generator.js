@@ -1,3 +1,14 @@
+// [PP] mod:59 · autor:Rune · 2026-08-11 02:10 UTC-6
+// TKT-202608-317 (REQ-202608-126, TKT1): AC1 — agregado listener `shell:export-sprints`,
+// simétrico a `shell:export-history`/`shell:export-context` (ver bottom del archivo). Invoca
+// exportSprintsMd() directamente en el mismo scope de módulo — mismo patrón ya vigente para
+// los otros tres listeners `shell:*`, sin import externo (T-202606-055, ciclo con
+// locus-ui-shell.js). No modifica exportSprintsMd() en sí. Hallazgo fuera de scope (no
+// resuelto en este TKT — ver CHECKPOINT): exportSprintsMd() (L307+1, sin `export` delante de
+// `async function`) no coincide con el MAP activo, que la lista como export consumida por
+// múltiples módulos — discrepancia MAP↔código real, no bloqueante para este listener porque el
+// patrón `shell:*` no requiere import externo, pero sí relevante si algún otro módulo intenta
+// `import { exportSprintsMd }` directamente.
 // [PP] mod:58 · autor:Rune · 2026-08-06 UTC-6
 // TKT-202607-143 (DISC-202607-047, ref_id CAEL-0726-01): extraído _withFreshData() — helper interno
 // no exportado que centraliza el par `await _loadFromSupabase(); await refreshHistoricoCache();`
@@ -1619,3 +1630,5 @@ export function exportContextMd() {
 window.addEventListener('shell:export-backlog', (e) => exportBacklogMd((e && e.detail) || {}));
 window.addEventListener('shell:export-history', () => exportFullHistoryMd());
 window.addEventListener('shell:export-context', () => exportContextMd());
+// TKT-202608-317 (REQ-202608-126, TKT1) — AC1: dispara exactamente exportSprintsMd()
+window.addEventListener('shell:export-sprints', () => exportSprintsMd());

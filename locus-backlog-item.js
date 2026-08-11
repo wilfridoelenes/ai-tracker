@@ -1,9 +1,10 @@
-// [PP] mod:167 · autor:Rune · 2026-08-10 21:15 UTC-6
-// TKT (CAEL-08101542-02, parent REQ CAEL-08101542-01): feedback visual de copiado
-// unificado en .bitem-type-code y .item-code-badge — markup del ícono en
-// buildBacklogItem()/_buildChildrenBlock(), swap ti-copy↔ti-check y rama is-copy-error
-// real (execCommand verificado, no asumido) en copyItemCode(). Reaplicado sobre mod:166
-// real (TKT-202608-302, chip de archivos en subline) — la entrega anterior de este TKT
+// [PP] mod:168 · autor:Rune · 2026-08-11 UTC-6
+// TKT-202608-314 (REQ-202608-125, TKT2): 3 call sites migrados de webfont (<i class="ti ti-X">)
+// a sprite SVG local (<svg class="ti-svg"><use href="#ti-X">) — .item-code-badge-icon (L1140),
+// .bitem-subline-archivos (L1555), .bitem-type-code-icon (L1574). copyItemCode() actualizado:
+// el swap de feedback "copiado" ahora intercambia el href del <use> en vez de la clase ti-copy/
+// ti-check, porque el ícono migrado ya no lleva esa clase — mismo timing y resultado visual.
+// TKT-202608-302 (REQ-202608-122, chip de archivos en subline) — la entrega anterior de este TKT
 // se había construido sobre una base mod:165 ya superada; esa versión se descarta, esta
 // es la vigente. Ver bloque inline en la función, más abajo.
 // TKT-202608-279 (REQ-202608-113, origen_disc DISC-202608-115): applyPatchesFromTG no
@@ -1137,7 +1138,7 @@ function _buildChildrenBlock(rCode) {
       <span class="badge ${statusClass(child.status)} badge--sm">${statusLabel(child.status)}</span>
     </div>
     <div class="item-body item-body--child" id="ibody-${cSafeId}">
-      <div id="code-badge-${cSafeId}" data-action="copy-code" data-code="${esc(child.code)}" data-idx="-1" title="Click para copiar ID" class="item-code-badge">${esc(child.code)}<i class="ti ti-copy item-code-badge-icon" aria-hidden="true"></i></div>
+      <div id="code-badge-${cSafeId}" data-action="copy-code" data-code="${esc(child.code)}" data-idx="-1" title="Click para copiar ID" class="item-code-badge">${esc(child.code)}<svg class="ti-svg item-code-badge-icon" aria-hidden="true"><use href="#ti-copy"></use></svg></div>
       <div class="child-meta-row">
         <span class="badge ${badgeClass(child.priority)} badge--sm">${badgeLabel(child.priority)}</span>
         ${child.area ? `<span class="badge badge-area badge--sm">${esc(child.area)}</span>` : ''}
@@ -1552,7 +1553,7 @@ export function buildBacklogItem(item, opts = {}) {
     const _archFirst = esc(item.archivos[0]);
     const _archSuffix = item.archivos.length > 1 ? ` +${item.archivos.length - 1}` : '';
     const _archTitle = esc(item.archivos.join(', '));
-    _sublineParts.push(`<span class="bitem-subline-archivos" title="${_archTitle}"><i class="ti ti-file-code"></i> ${_archFirst}${_archSuffix}</span>`);
+    _sublineParts.push(`<span class="bitem-subline-archivos" title="${_archTitle}"><svg class="ti-svg" aria-hidden="true"><use href="#ti-file-code"></use></svg> ${_archFirst}${_archSuffix}</span>`);
   }
   const subline = `<div class="bitem-subline">
     ${_sublineParts.join('<span class="bitem-subline-sep">·</span>')}
@@ -1571,7 +1572,7 @@ export function buildBacklogItem(item, opts = {}) {
     : esc(item.code || type);
   const typeBlock = type
     ? `<div class="bitem-type-block bitem-type-${type}">
-        <span class="bitem-type-code" data-action="copy-code" data-code="${esc(item.code)}" data-idx="${globalIdx}" title="Click para copiar ID">${_codeDisplay}<i class="ti ti-copy bitem-type-code-icon" aria-hidden="true"></i></span>
+        <span class="bitem-type-code" data-action="copy-code" data-code="${esc(item.code)}" data-idx="${globalIdx}" title="Click para copiar ID">${_codeDisplay}<svg class="ti-svg bitem-type-code-icon" aria-hidden="true"><use href="#ti-copy"></use></svg></span>
        </div>`
     : '';
 
@@ -1928,14 +1929,20 @@ function copyItemCode(e, code, idx) {
   // distinto — copyItemToClipboard()). Reemplazado por el mismo mecanismo ya vigente en
   // Q-INC (_attachQIncDelegation, locus-incidents-render.js): swap de clase ti-copy↔ti-check
   // sobre el ícono real declarado en el markup (buildBacklogItem() / _buildChildrenBlock()).
+  // TKT-202608-314 (REQ-202608-125): buildBacklogItem()/_buildChildrenBlock() migraron el
+  // ícono de <i class="ti ti-copy ..."> a <svg><use href="#ti-copy">. El ícono ya no lleva
+  // la clase "ti-copy" — classList.replace('ti-copy','ti-check') dejaba de tener efecto.
+  // El swap ahora opera sobre el atributo href del <use> interno: mismo timing (1500ms),
+  // mismo resultado visual (check verde), mecanismo distinto.
   const icon = btn ? btn.querySelector('.bitem-type-code-icon, .item-code-badge-icon') : null;
+  const iconUse = icon ? icon.querySelector('use') : null;
 
   const _applySuccess = () => {
     if (btn) btn.classList.add('is-copied');
-    if (icon) icon.classList.replace('ti-copy', 'ti-check');
+    if (iconUse) iconUse.setAttribute('href', '#ti-check');
     setTimeout(() => {
       if (btn) btn.classList.remove('is-copied');
-      if (icon) icon.classList.replace('ti-check', 'ti-copy');
+      if (iconUse) iconUse.setAttribute('href', '#ti-copy');
     }, 1500);
   };
 

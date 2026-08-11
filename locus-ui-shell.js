@@ -1,3 +1,7 @@
+// [PP] mod:72 · autor:Rune · 2026-08-11 02:10 UTC-6
+// TKT-202608-317 (REQ-202608-126, TKT1): wired click de #btn-export-sprints →
+// dispatchEvent('shell:export-sprints'), mismo bloque DOMContentLoaded y mismo patrón que
+// btn-export-backlog-full. Consumidor del evento vive en locus-backlog-generator.js (mod:59).
 // [PP] mod:71 · autor:Rune · 2026-08-11 UTC-6
 // TKT-202608-300 (AC corregido — patch de Cael): retirados onSearchDispatch()/onSearch()/
 // _toggleSearchScope() + helpers exclusivos (_isDiscardedItem, _TYPE_ICONS, _searchScopeAll) ·
@@ -1155,6 +1159,14 @@ document.addEventListener('DOMContentLoaded', function () {
   const btnExportBacklogFull = document.getElementById('btn-export-backlog-full');
   if (btnExportBacklogFull) btnExportBacklogFull.addEventListener('click', function () {
     window.dispatchEvent(new CustomEvent('shell:export-history'));
+  });
+
+  // btn-export-sprints — TKT-202608-317 (REQ-202608-126): mismo patrón que
+  // btn-export-backlog-full — dispara shell:export-sprints, consumido en
+  // locus-backlog-generator.js (mod:59) vía exportSprintsMd()
+  const btnExportSprints = document.getElementById('btn-export-sprints');
+  if (btnExportSprints) btnExportSprints.addEventListener('click', function () {
+    window.dispatchEvent(new CustomEvent('shell:export-sprints'));
   });
 
   // btn-import-htmlmap
