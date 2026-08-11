@@ -1,4 +1,4 @@
-// [PP] mod:168 · autor:Rune · 2026-08-11 UTC-6
+// [PP] mod:169 · autor:Rune · 2026-08-11 UTC-6
 // TKT-202608-314 (REQ-202608-125, TKT2): 3 call sites migrados de webfont (<i class="ti ti-X">)
 // a sprite SVG local (<svg class="ti-svg"><use href="#ti-X">) — .item-code-badge-icon (L1140),
 // .bitem-subline-archivos (L1555), .bitem-type-code-icon (L1574). copyItemCode() actualizado:
@@ -684,6 +684,14 @@ import { showToast } from './locus-toast.js';
 
 import { esc, getCurrentTab, switchTab } from './locus-ui-shell.js';
 import { openDetail } from './locus-session-popup.js';
+
+// Nota de archivo — literal "[pendiente-ID]" en comentarios históricos (DISC-202608-131):
+// Comentarios de este archivo que citan el literal "[pendiente-ID]" como parte de un código de
+// ítem (ej. "INC-[pendiente-ID]", "TKT-[pendiente-ID]", "REQ-[pendiente-ID]") documentan qué
+// ítem originó un cambio en el momento de escribirse el comentario — provienen de sesiones
+// anteriores a la Regla dura de __BR-Execution §9 (infra_version 91, "Referencias a ítems del
+// backlog embebidas en código"). No son referencias pendientes de resolución activa ni bloquean
+// aval de Locus — no se reescriben retroactivamente a código real.
 
 // Constantes canónicas del ecosistema — roles disponibles para el select de ítem
 // [tmp:tkt-roles-cleanup]: copia local eliminada — consolidada en locus-backlog-core.js (import), mismo patrón que _getActiveProjectFilter/getProjectById (mod:24)
