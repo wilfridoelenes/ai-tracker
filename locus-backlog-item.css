@@ -1,4 +1,4 @@
-/* [PP] mod:97 · autor:Rune · 2026-08-10 21:20 UTC-6 */
+/* [PP] mod:98 · autor:Nova · 2026-08-11 00:30 UTC-6 */
 /* TKT (CAEL-08101542-02, parent REQ CAEL-08101542-01): feedback visual de copiado en
    .bitem-type-code — ver bloque inline en el selector correspondiente, más abajo.
    Reaplicado sobre mod:96 real (TKT-202608-301, alias de tokens de texto retirados) — la
@@ -572,10 +572,6 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-}
-
-.bitem-subline-archivos .ti {
-  font-size: var(--text-xs);
 }
 
 .bitem-discard-reason {
@@ -5023,8 +5019,9 @@ body {
   border: 1px solid var(--accent);
 }
 
-.mdiff-status-chip--avalado .ti-shield-check {
-  font-size: var(--text-xs);
+.mdiff-status-chip--avalado .ti-svg {
+  width: var(--text-xs);
+  height: var(--text-xs);
 }
 
 /* --- Transición real de status vs patch de campo suelto — AC2 ---------- */
@@ -5061,8 +5058,9 @@ body {
   font-size: var(--text-xs);
 }
 
-.mdiff-field-patch .ti-pencil {
-  font-size: var(--text-xs);
+.mdiff-field-patch .ti-svg {
+  width: var(--text-xs);
+  height: var(--text-xs);
   color: var(--text3);
 }
 
@@ -5085,8 +5083,9 @@ body {
   font-weight: 600;
 }
 
-.mdiff-zone-card--retroceso .mdiff-retroceso-flag .ti-corner-up-left {
-  font-size: var(--text-base);
+.mdiff-zone-card--retroceso .mdiff-retroceso-flag .ti-svg {
+  width: var(--text-base);
+  height: var(--text-base);
 }
 
 .mdiff-zone-card--retroceso .mdiff-retroceso-context {
