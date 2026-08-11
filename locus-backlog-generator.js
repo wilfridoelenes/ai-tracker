@@ -1,3 +1,11 @@
+// [PP] mod:60 · autor:Rune · 2026-08-11 UTC-6
+// TKT origen: CAEL-08111200-01 (origen_disc: DISC-202608-132) — exportSprintsMd() (L318+1)
+// no llevaba `export` delante de `async function`, pese a que el MAP activo
+// (_PP-map-v1.26.0.md L307) la lista como export de locus-backlog-generator.js — discrepancia
+// ya registrada como Hallazgo fuera de scope en TKT-202608-317 (ver bloque mod:59 abajo), cerrada
+// en este TKT. Cambio puntual: agregado `export` — sin tocar el cuerpo de la función ni el resto
+// de exports del archivo. El listener `shell:export-sprints` (bottom del archivo) sigue
+// invocándola en el mismo scope de módulo, sin import — comportamiento intacto.
 // [PP] mod:59 · autor:Rune · 2026-08-11 02:10 UTC-6
 // TKT-202608-317 (REQ-202608-126, TKT1): AC1 — agregado listener `shell:export-sprints`,
 // simétrico a `shell:export-history`/`shell:export-context` (ver bottom del archivo). Invoca
@@ -315,7 +323,7 @@ export async function exportFullHistoryMd() {
 }
 
 // R-202605-132: Export "Por sprint"
-async function exportSprintsMd() {
+export async function exportSprintsMd() {
   // TKT1: backlog vacío ya no bloquea el export — _ob-DocStandards §3 v1.10
   const pfx = _docPrefix();
   const ver = _backlogVersion();
