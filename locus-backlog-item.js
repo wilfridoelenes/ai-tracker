@@ -1,4 +1,9 @@
-// [PP] mod:169 · autor:Rune · 2026-08-11 UTC-6
+// [PP] mod:170 · autor:Rune · 2026-08-11 UTC-6
+// TKT-[pendiente-ID] (Propuesta de mejora #3, mod:59 _Locus-ui-Inventory, parte CSS ya
+// retirada por Nova en locus-sesiones.css mod:51): retirado branch huérfano de
+// item._focusRank en buildBacklogItem() — nunca se asignaba en ningún flujo real, el
+// badge .bitem-focus-rank quedó inalcanzable desde su TKT de origen (T-202604-426).
+// Sin impacto lateral — línea única sin efecto en otros consumidores, sin cambio de firma.
 // TKT-202608-314 (REQ-202608-125, TKT2): 3 call sites migrados de webfont (<i class="ti ti-X">)
 // a sprite SVG local (<svg class="ti-svg"><use href="#ti-X">) — .item-code-badge-icon (L1140),
 // .bitem-subline-archivos (L1555), .bitem-type-code-icon (L1574). copyItemCode() actualizado:
@@ -1547,10 +1552,8 @@ export function buildBacklogItem(item, opts = {}) {
 
   // Subline (area, sprint, role, discard reason, origen_disc, missing warning)
   // CAEL-0720-11 (REQ CAEL-0720-10): item.code retirado de subline — el badge de tipo
-  // pasa a ser la única fuente visible del código (ver typeBlock abajo). focus-rank
-  // se conserva standalone, ya no anidado dentro del span de código.
+  // pasa a ser la única fuente visible del código (ver typeBlock abajo).
   const _sublineParts = [];
-  if (item._focusRank) _sublineParts.push(`<span class="bitem-focus-rank" title="Posición en Focus">#${item._focusRank}</span>`);
   if (item.role) _sublineParts.push(`<span class="bitem-subline-role" title="Rol responsable">${esc(item.role)}</span>`);
   if (item.area) _sublineParts.push(`<span class="bitem-subline-area" title="${esc(item.area)}">${esc(item.area)}</span>`);
   if (item.sprint) _sublineParts.push(`<span class="bitem-subline-sprint">${esc(_sprintDisplay(item.sprint))}</span>`);
