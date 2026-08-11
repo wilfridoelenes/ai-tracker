@@ -1,4 +1,4 @@
-// [PP] mod:158 · autor:Rune · 2026-08-04 UTC-6
+// [PP] mod:159 · autor:Rune · 2026-08-11 17:40 UTC-6
 // TKT-202608-236 (REQ-202608-090): nuevo par getter/setter proj.docUpdateResolvedLog —
 // mismo patrón que _getDocUpdateIndex()/_setDocUpdateIndex() (T-202606-032), array
 // independiente, sin tocar docUpdateIndex. Opción C sobre B en Fase 2 de Cael (CRITERIO DE
@@ -4107,25 +4107,21 @@ export function _getCurrentSession(aiId) {
 // R-202605-050: alias canónico — _getCurrentCheckpoint
 export function _getCurrentCheckpoint(aiId) { return _getCurrentSession(aiId); }
 
-// T-202605-082: _isInSession — fuente de verdad canónica (movida desde locus-sesiones-stats.js)
-// Detecta si una IA está "en sesión": disponible con última sesión sin resetAt ni quickCapture,
-// posterior al resetEpoch del Worker si existe, y posterior a availableSince si existe.
-// B-202605-026: check de resetEpoch — Workers con reset previo no quedan en verde.
-// Fix: availableSince — cubre el caso post-reset donde resetEpoch ya es null.
+// TKT-202608-320 (REQ-202608-127): _isInSession deja de inferir "en sesión" comparando
+// createdAt de la última sesión contra availableSince/resetEpoch — esa inferencia dependía
+// de que la sesión recién creada tuviera createdAt poblado, campo que newSess() nunca
+// declaraba (locus-session-save.js) y que solo se normalizaba vía backfill en merge remoto
+// (_normalizeSessionFields), nunca en el push local. Resultado: el radar no clasificaba
+// "en sesión" ninguna sesión creada localmente hasta el próximo ciclo de sync remoto —
+// determinista, no intermitente (ver diagnóstico previo, sesión de Rune). El estado ahora
+// se escribe explícitamente en el único punto de confirmación del DIFF
+// (_doApplyMergeAndFinish, locus-session-save.js) — esta función pasa a ser un wrapper de
+// lectura directa. No consulta getAllSessions()/createdAt/resetEpoch/availableSince.
+// availableSince se conserva en el modelo solo como metadato informativo del momento de
+// reset (label "disponible desde" en locus-radar.js _buildAvailableCard) — no lo lee más
+// ninguna función de cálculo de estado. Ver _Locus-module-contracts §1.
 export function _isInSession(ai) {
-  if (ai.status !== 'available' || ai.interrupted) return false;
-  const allSess = getAllSessions().filter(s => s.aiId === ai.id);
-  if (!allSess.length) return false;
-  const last = allSess.reduce((a, b) => (parseInt(b.id) || 0) > (parseInt(a.id) || 0) ? b : a);
-  if (!last || last.resetAt || last.quickCapture) return false;
-  const sessTs = last.createdAt || 0;
-  if (ai.resetEpoch) {
-    if (sessTs <= new Date(ai.resetEpoch).getTime()) return false;
-  }
-  if (ai.availableSince) {
-    if (sessTs <= ai.availableSince) return false;
-  }
-  return true;
+  return ai.status === 'in_session' && !ai.interrupted;
 }
 
 // Busca una sesión por id en todos los proyectos — devuelve { proj, sess } o null

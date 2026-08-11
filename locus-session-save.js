@@ -1,4 +1,10 @@
-// [PP] mod:88 · autor:Rune · 2026-08-06 UTC-6
+// [PP] mod:90 · autor:Rune · 2026-08-11 18:05 UTC-6
+// TKT-202608-321 (REQ-202608-127): _doApplyMergeAndFinish() completo envuelto en
+// syncState.withSaveLock() — cierra la ventana de carrera entre el push de newSess y el
+// await saveImmediate() donde un _applyStateRow remoto podía pisar la mutación local antes
+// de persistirla. Import namespace de locus-sync-state.js agregado. Sin cambio de
+// comportamiento fuera de esa ventana. Ver header mod:89 abajo para TKT-202608-320.
+// [PP] mod:89 · autor:Rune · 2026-08-11 17:40 UTC-6
 // TKT CAEL-0805-02 (REQ CAEL-0805-01): badge de status en sidebar Workers quedaba desfasado
 // tras guardar sesión en algunos casos. Causa raíz: `ai` (parámetro de _doApplyMergeAndFinish)
 // es una referencia capturada al abrir saveSession()/_doSaveSession() — si _applyStateData()
@@ -185,6 +191,11 @@ import { stopSessionTimer } from './locus-sesiones-utils.js';
 import { _getLocalStorageUsage } from './locus-sprint-project.js';
 import { _generateBacklogContent, _generateBacklogMd } from './locus-backlog-generator.js';
 import { LOCUS_KEYS, _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, getSupabaseContext, saveImmediate, _mutateSessions } from './locus-storage.js'; // TKT4: _blogLog retirado — DocLog de duplicados ahora vive en _resolveCheckpointBatch (locus-session-parse.js) · TKT1 REQ-sessions-mutator: _mutateSessions agregado · TKT (REQ-[pendiente-ID] · consolidación sprint_proposal): setPendingSprintProposal retirado del import — la persistencia paralela que agregó se revierte, ver header mod nuevo
+// TKT-202608-321 (REQ-202608-127): import namespace — withSaveLock es el único símbolo
+// consumido de este módulo en este archivo. namespace en vez de named import porque
+// locus-sync-state.js expone getters de los 3 ejes (echo/subscripción/save) que no
+// aplican aquí — evita listar 8 símbolos sin uso solo para importar 1.
+import * as syncState from './locus-sync-state.js';
 
 
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
@@ -837,6 +848,19 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
 
 // T-202604-201: segunda mitad de _doSaveSession — ejecutada tras confirmación del panel de diff
 async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, sessId, tgItems, newSess) {
+  // TKT-202608-321 (REQ-202608-127): todo el bloque de mutación + persistencia queda
+  // envuelto en syncState.withSaveLock — antes el lock (vía saveBacklog/saveHistoricoItems,
+  // ver locus-sync-state.js) solo cubría el upsert final dentro de saveImmediate(), dejando
+  // sin protección la ventana entre el push de newSess (línea siguiente) y el await
+  // saveImmediate() más abajo: un _applyStateRow remoto llegando en esa ventana podía
+  // reemplazar state.ais/state.projects con datos stale antes de que la mutación local
+  // (status del worker, push de la sesión, tracker.items) se persistiera — la mutación local
+  // sobrevivía en memoria pero el siguiente save() la pisaba con el snapshot remoto. No
+  // introduce lock nuevo — reutiliza syncState.withSaveLock ya existente (TKT-202607-082).
+  // Fuera de esta ventana de carrera el comportamiento de guardado no cambia (AC2) — el
+  // wrapper solo extiende isSaveInFlight()===true a todo el bloque síncrono+await de esta
+  // función (AC3); no toca el debounce de save() para otros flujos (no_incluye).
+  return syncState.withSaveLock(async () => {
   // B-202605-004: push atómico — la sesión entra en activeProj.sessions solo aquí,
   // después de que el usuario confirmó el panel MergeDiff (o en el fallback directo).
   // Garantiza que cancelar el panel no deja sesiones huérfanas en el array.
@@ -990,7 +1014,18 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
     showToast('error', '⚠ El worker fue eliminado durante la revisión — sesión registrada, sidebar no actualizado');
     return;
   }
-  if (horaResult) { _liveAi.status = 'exhausted'; _liveAi.resetTime = horaResult.hhmm; _liveAi.resetEpoch = horaResult.epoch; }
+  // TKT-202608-320 (REQ-202608-127): la rama sin horaResult ya no deja el status implícito
+  // a cargo de la inferencia de _isInSession() por comparación de timestamps (createdAt vs
+  // availableSince/resetEpoch) — se escribe 'in_session' aquí mismo, en el único punto donde
+  // ya se decide exhausted vs. no-exhausted tras confirmar el DIFF. _isInSession() pasa a leer
+  // este campo directamente (locus-storage.js). Ver _Locus-module-contracts §1.
+  if (horaResult) {
+    _liveAi.status = 'exhausted';
+    _liveAi.resetTime = horaResult.hhmm;
+    _liveAi.resetEpoch = horaResult.epoch;
+  } else {
+    _liveAi.status = 'in_session';
+  }
   _liveAi._parsed = {};
   // T-202604-103: limpiar timer de confirmación si quedó activo
   if (_confirmTimers[id]) { clearTimeout(_confirmTimers[id]); delete _confirmTimers[id]; }
@@ -1117,5 +1152,13 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
     ? 'Sesión guardada · CHECKPOINT en borrador — invisible en vistas activas hasta aval de Finn'
     : (horaResult ? `Sesión guardada · desbloquea a las ${horaResult.label}` : 'Sesión guardada');
   showToast('success', _baseMsg);
+  // TKT-202608-321: cierre del wrapper withSaveLock. requestAnimationFrame() de arriba ya
+  // programó su callback antes de este punto — la promesa de withSaveLock resuelve aquí,
+  // al final del flujo síncrono+await de la función, y el decremento del contador ocurre en
+  // el finally interno de withSaveLock. El callback de rAF sigue ejecutándose en el siguiente
+  // frame, ya fuera de la ventana de carrera que este TKT cierra (AC1) — mergeResult, newSess
+  // y el resto de variables declaradas en este bloque permanecen accesibles ahí por closure
+  // léxico normal, sin relación con cuándo el lock se libera.
+  });
 }
 
