@@ -1,7 +1,10 @@
-// [PP] mod:19 · autor:Rune · 2026-08-11 23:05 UTC-6
-// Fix: botón rsb-card-quick usaba SVG sprite <use href="#ti-plus"> sin símbolo
-// definido ni CSS .ti-svg (mismo patrón que INC de locus-toast.js) — corregido a
-// webfont Tabler <i class="ti ti-plus">, único sistema de íconos vigente.
+// [PP] mod:20 · autor:Rune · 2026-08-11 23:50 UTC-6
+// [CORRECCIÓN — Rune, revierte fix incorrecto de mod:19]: mod:19 cambió el botón
+// rsb-card-quick a webfont asumiendo símbolo inexistente. Falso — #ti-plus sí está
+// definido en el sprite local de index.html (TKT-202608-286, REQ-202608-117 TKT5,
+// que migró 8 archivos de webfont a sprite a propósito). Causa real: ninguna hoja
+// CSS define .ti-svg. Revertido a sprite (patrón vigente). Fix real bloqueado —
+// requiere Nova (INC consolidado, ver CHECKPOINT).
 // TKT-202608-298 (REQ-202608-118, DependsOn TKT-202608-297): rsbFilterAIs()/
 // rsbClearSearch() y su wiring #rsb-search-input/#rsb-search-clear eliminados —
 // buscador local de Radar retirado, reemplazado por ⌘K. Impacto lateral resuelto en el
@@ -197,7 +200,7 @@ function _buildSessionCard(ai, isInterrupted, sessions) {
     : '';
   const meta = isInterrupted
     ? `<span class="rsb-status-badge rsb-status-interrupted">⚡ en curso</span>`
-    : `${_draftBadge}<button class="rsb-card-quick" data-action="open-ingest" data-ai-id="${ai.id}" title="Pegar CHECKPOINT" aria-label="Pegar CHECKPOINT"><i class="ti ti-plus" aria-hidden="true"></i></button>
+    : `${_draftBadge}<button class="rsb-card-quick" data-action="open-ingest" data-ai-id="${ai.id}" title="Pegar CHECKPOINT" aria-label="Pegar CHECKPOINT"><svg class="ti-svg" aria-hidden="true"><use href="#ti-plus"></use></svg></button>
        <button class="rsb-card-quick" data-action="openQuickCapture" data-ai-id="${ai.id}" title="Sesión rápida" aria-label="Sesión rápida">⚡</button>`;
 
   return `<div class="${cls}" data-action="navigateToCard" data-ai-id="${ai.id}" id="rsb-card-${ai.id}">
@@ -234,7 +237,7 @@ function _buildAvailableCard(ai, sessions) {
       <div class="rsb-card-meta">
         ${tsSpan}
         ${localStorage.getItem('draft-' + ai.id) ? `<span id="draft-${ai.id}" class="draft-dot visible" data-action="open-ingest" data-ai-id="${ai.id}" role="button" tabindex="0" title="Borrador pendiente — click para restaurar" aria-label="Borrador pendiente — click para restaurar"></span>` : ''}
-        <button class="rsb-card-quick" data-action="open-ingest" data-ai-id="${ai.id}" title="Pegar CHECKPOINT" aria-label="Pegar CHECKPOINT"><i class="ti ti-plus" aria-hidden="true"></i></button>
+        <button class="rsb-card-quick" data-action="open-ingest" data-ai-id="${ai.id}" title="Pegar CHECKPOINT" aria-label="Pegar CHECKPOINT"><svg class="ti-svg" aria-hidden="true"><use href="#ti-plus"></use></svg></button>
         <button class="rsb-card-quick" data-action="openQuickCapture" data-ai-id="${ai.id}" title="Sesión rápida" aria-label="Sesión rápida">⚡</button>
       </div>
     </div>

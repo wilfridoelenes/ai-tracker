@@ -1,4 +1,4 @@
-/* [PP] mod:25 · autor:Nova · 2026-08-10 09:00 UTC-6 */
+/* [PP] mod:26 · autor:Nova · 2026-08-11 23:55 UTC-6 */
 /* TKT CAEL-08101200-05 (parent REQ CAEL-08101200-04, origen_disc DISC-202608-118): fallback numérico huérfano de var(--text-3xs/--text-2xs-plus/--text-sm/--text-2xl, N) reemplazado por el token canónico sin segundo argumento — 4 alias retirados en TKT-202608-301. Sin cambio de valor visual buscado (comportamiento inerte del fallback preservado). */
 /* TKT-202608-282 (REQ-202608-117, TKT1 — patrón A-09, tres niveles nombrados): cierra el
    Hallazgo 4 de _Locus-css-ref (31 peldaños de z-index sin criterio de elección). Se agregan
@@ -616,3 +616,15 @@ body {
 .diff-chip--actualizado{color:var(--text2);background:var(--surface2);border-color:var(--border);}
 .diff-chip--retroceso{color:var(--c-high-text);background:var(--c-high-bg);border-color:var(--c-high-border);}
 .diff-chip--descarte{color:var(--red-text);background:color-mix(in srgb, var(--red) 10%, transparent);border-color:color-mix(in srgb, var(--red) 28%, transparent);}
+
+/* ── .ti-svg — sprite SVG local de Tabler Icons (INC consolidado, Nova) ──
+   TKT-202608-286 (REQ-202608-117 TKT5) migró 8 archivos de webfont Tabler
+   (<i class="ti ti-*">) a sprite local (<svg class="ti-svg"><use href="#ti-*">)
+   pero nunca declaró la regla base — cada instancia caía al tamaño intrínseco
+   por defecto del navegador (~300×150px), visible como ícono gigante en toast,
+   radar, backlog, incidents, session-parse y sprint-planificacion.
+   width/height:1em hace que el ícono herede el mismo font-size que ya
+   dimensiona a los íconos webfont en cada contexto (ver .toast-dismiss →
+   font-size:var(--text-md) como ejemplo) — mismo comportamiento visual que
+   .ti::before, sin declarar un tamaño fijo que ignore el contexto. ── */
+.ti-svg{width:1em;height:1em;flex-shrink:0;display:inline-block;vertical-align:-0.125em;stroke:currentColor;}
