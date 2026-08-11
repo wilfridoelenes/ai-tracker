@@ -1,4 +1,9 @@
-/* [PP] mod:96 · autor:Nova · 2026-08-10 21:05 UTC-6 */
+/* [PP] mod:97 · autor:Rune · 2026-08-10 21:20 UTC-6 */
+/* TKT (CAEL-08101542-02, parent REQ CAEL-08101542-01): feedback visual de copiado en
+   .bitem-type-code — ver bloque inline en el selector correspondiente, más abajo.
+   Reaplicado sobre mod:96 real (TKT-202608-301, alias de tokens de texto retirados) — la
+   entrega anterior de este TKT se había construido sobre mod:94 ya superado; esa versión
+   se descarta, esta es la vigente. */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* TKT-202608-283 (REQ-202608-117, TKT2): comentario de #merge-diff-overlay actualizado —
    #modal-split-shell retiró su backdrop (ver locus-modals-base.css mod:26). Sin cambio de
@@ -311,15 +316,52 @@
 }
 
 .bitem-type-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-family: var(--mono);
   font-size: var(--text-xs);
   line-height: 1;
   letter-spacing: -0.01em;
   white-space: nowrap;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 0 2px;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
 }
 
 .bitem-type-code-prefix {
   font-weight: 900;
+}
+
+/* CAEL-08101542-02 (REQ CAEL-08101542-01): feedback visual de copiado — mismos tokens y
+   timing (1500ms) ya vigentes en .qinc-item-code-chip (locus-incidents.css) y
+   .qbacklog-draft-code-chip (locus-backlog.css) — sin token de color nuevo, sin borrador
+   visual (reuso 1:1). Ícono oculto por defecto, visible en hover/focus-visible/is-copied/
+   is-copy-error. border:1px solid transparent en reposo (declarado arriba en
+   .bitem-type-code) — el cambio de estado nunca desplaza layout, solo cambia border-color. */
+.bitem-type-code-icon {
+  display: none;
+  font-size: inherit;
+}
+
+.bitem-type-code:hover .bitem-type-code-icon,
+.bitem-type-code:focus-visible .bitem-type-code-icon,
+.bitem-type-code.is-copied .bitem-type-code-icon,
+.bitem-type-code.is-copy-error .bitem-type-code-icon {
+  display: inline-flex;
+}
+
+.bitem-type-code.is-copied {
+  color: var(--green);
+  background: color-mix(in srgb, var(--green) 14%, transparent);
+  border-color: var(--green);
+}
+
+.bitem-type-code.is-copy-error {
+  color: var(--red-text);
+  background: color-mix(in srgb, var(--red-text) 14%, transparent);
+  border-color: var(--red-border);
 }
 
 .bitem-type-TKT {

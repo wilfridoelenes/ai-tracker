@@ -1,4 +1,6 @@
-/* [PP] mod:147 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* [PP] mod:148 · autor:Rune · 2026-08-10 09:40 UTC-6 */
+/* TKT (CAEL-08101542-02, parent REQ CAEL-08101542-01): feedback visual de copiado en
+   .item-code-badge — ver bloque inline en el selector correspondiente. */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* TKT (founder, sesión directa): .qbacklog-draft-code-chip — nuevo. Fusiona .item-type-pill +
    texto de código en un solo chip clickeable dentro de la fila de "Pendiente de validación
@@ -4676,13 +4678,46 @@
 }
 
 .item-code-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   background: var(--bg-subtle);
   padding: 1px 5px;
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   color: var(--text2);
   letter-spacing: 0.02em;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+/* CAEL-08101542-02 (REQ CAEL-08101542-01): feedback visual de copiado en item-code-badge
+   (children block) — mismo patrón que .bitem-type-code (locus-backlog-item.css) y
+   .qinc-item-code-chip (locus-incidents.css). Sin token de color nuevo. border:1px solid
+   transparent ya declarado arriba — is-copied/is-copy-error solo cambian border-color. */
+.item-code-badge-icon {
+  display: none;
+  font-size: inherit;
+}
+
+.item-code-badge:hover .item-code-badge-icon,
+.item-code-badge:focus-visible .item-code-badge-icon,
+.item-code-badge.is-copied .item-code-badge-icon,
+.item-code-badge.is-copy-error .item-code-badge-icon {
+  display: inline-flex;
+}
+
+.item-code-badge.is-copied {
+  color: var(--green);
+  background: color-mix(in srgb, var(--green) 14%, transparent);
+  border-color: var(--green);
+}
+
+.item-code-badge.is-copy-error {
+  color: var(--red-text);
+  background: color-mix(in srgb, var(--red-text) 14%, transparent);
+  border-color: var(--red-border);
 }
 
 .item-type-pill--sm {

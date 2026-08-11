@@ -1,4 +1,11 @@
-// [PP] mod:166 · autor:Rune · 2026-08-10 20:40 UTC-6
+// [PP] mod:167 · autor:Rune · 2026-08-10 21:15 UTC-6
+// TKT (CAEL-08101542-02, parent REQ CAEL-08101542-01): feedback visual de copiado
+// unificado en .bitem-type-code y .item-code-badge — markup del ícono en
+// buildBacklogItem()/_buildChildrenBlock(), swap ti-copy↔ti-check y rama is-copy-error
+// real (execCommand verificado, no asumido) en copyItemCode(). Reaplicado sobre mod:166
+// real (TKT-202608-302, chip de archivos en subline) — la entrega anterior de este TKT
+// se había construido sobre una base mod:165 ya superada; esa versión se descarta, esta
+// es la vigente. Ver bloque inline en la función, más abajo.
 // TKT-202608-279 (REQ-202608-113, origen_disc DISC-202608-115): applyPatchesFromTG no
 // normalizaba no_incluye en patch — el catch-all genérico escribía el valor crudo sin
 // validar tipo. Rama propia agregada antes del catch-all: string se normaliza a array
@@ -1130,7 +1137,7 @@ function _buildChildrenBlock(rCode) {
       <span class="badge ${statusClass(child.status)} badge--sm">${statusLabel(child.status)}</span>
     </div>
     <div class="item-body item-body--child" id="ibody-${cSafeId}">
-      <div id="code-badge-${cSafeId}" data-action="copy-code" data-code="${esc(child.code)}" data-idx="-1" title="Click para copiar ID" class="item-code-badge">${esc(child.code)}</div>
+      <div id="code-badge-${cSafeId}" data-action="copy-code" data-code="${esc(child.code)}" data-idx="-1" title="Click para copiar ID" class="item-code-badge">${esc(child.code)}<i class="ti ti-copy item-code-badge-icon" aria-hidden="true"></i></div>
       <div class="child-meta-row">
         <span class="badge ${badgeClass(child.priority)} badge--sm">${badgeLabel(child.priority)}</span>
         ${child.area ? `<span class="badge badge-area badge--sm">${esc(child.area)}</span>` : ''}
@@ -1564,7 +1571,7 @@ export function buildBacklogItem(item, opts = {}) {
     : esc(item.code || type);
   const typeBlock = type
     ? `<div class="bitem-type-block bitem-type-${type}">
-        <span class="bitem-type-code" data-action="copy-code" data-code="${esc(item.code)}" data-idx="${globalIdx}" title="Click para copiar ID">${_codeDisplay}</span>
+        <span class="bitem-type-code" data-action="copy-code" data-code="${esc(item.code)}" data-idx="${globalIdx}" title="Click para copiar ID">${_codeDisplay}<i class="ti ti-copy bitem-type-code-icon" aria-hidden="true"></i></span>
        </div>`
     : '';
 
@@ -1915,22 +1922,36 @@ function copyItemCode(e, code, idx) {
   e.stopPropagation();
   // e.currentTarget es el listEl cuando se llama desde delegación — usar closest para obtener el badge real
   const btn = e.target.closest('[data-action="copy-code"]');
-  const iconClipboard = btn ? btn.querySelector('.copy-btn-icon--clipboard') : null;
-  const iconCheck     = btn ? btn.querySelector('.copy-btn-icon--check') : null;
+  // CAEL-08101542-02 (REQ CAEL-08101542-01): .bitem-type-code (Backlog list) y
+  // .item-code-badge (children block) — antes buscaban .copy-btn-icon--clipboard/--check,
+  // que no existen en estos dos elementos (esos íconos son del botón "Copiar ítem", componente
+  // distinto — copyItemToClipboard()). Reemplazado por el mismo mecanismo ya vigente en
+  // Q-INC (_attachQIncDelegation, locus-incidents-render.js): swap de clase ti-copy↔ti-check
+  // sobre el ícono real declarado en el markup (buildBacklogItem() / _buildChildrenBlock()).
+  const icon = btn ? btn.querySelector('.bitem-type-code-icon, .item-code-badge-icon') : null;
 
-  const _applyFeedback = () => {
+  const _applySuccess = () => {
     if (btn) btn.classList.add('is-copied');
-    if (iconClipboard) iconClipboard.classList.add('is-hidden');
-    if (iconCheck)     iconCheck.classList.remove('is-hidden');
+    if (icon) icon.classList.replace('ti-copy', 'ti-check');
     setTimeout(() => {
       if (btn) btn.classList.remove('is-copied');
-      if (iconClipboard) iconClipboard.classList.remove('is-hidden');
-      if (iconCheck)     iconCheck.classList.add('is-hidden');
+      if (icon) icon.classList.replace('ti-check', 'ti-copy');
+    }, 1500);
+  };
+
+  // AC3 (CAEL-08101542-02): is-copy-error solo en fallo real — antes el .catch() del
+  // fallback execCommand llamaba _applyFeedback() (éxito) incluso si execCommand también
+  // fallaba, dejando el fallo silenciado. execCommand('copy') devuelve boolean — se verifica
+  // en vez de asumir éxito por no haber lanzado excepción.
+  const _applyError = () => {
+    if (btn) btn.classList.add('is-copy-error');
+    setTimeout(() => {
+      if (btn) btn.classList.remove('is-copy-error');
     }, 1500);
   };
 
   navigator.clipboard.writeText(code).then(() => {
-    _applyFeedback();
+    _applySuccess();
   }).catch(() => {
     // fallback execCommand
     const ta = document.createElement('textarea');
@@ -1938,9 +1959,18 @@ function copyItemCode(e, code, idx) {
     ta.className = 'clipboard-ghost';
     document.body.appendChild(ta);
     ta.select();
-    document.execCommand('copy');
+    let ok = false;
+    try {
+      ok = document.execCommand('copy');
+    } catch (_err) {
+      ok = false;
+    }
     document.body.removeChild(ta);
-    _applyFeedback();
+    if (ok) {
+      _applySuccess();
+    } else {
+      _applyError();
+    }
   });
 }
 
