@@ -1,4 +1,4 @@
-// [PP] mod:170 · autor:Rune · 2026-08-11 UTC-6
+// [PP] mod:171 · autor:Rune · 2026-08-11 UTC-6
 // TKT-[pendiente-ID] (Propuesta de mejora #3, mod:59 _Locus-ui-Inventory, parte CSS ya
 // retirada por Nova en locus-sesiones.css mod:51): retirado branch huérfano de
 // item._focusRank en buildBacklogItem() — nunca se asignaba en ningún flujo real, el
@@ -1407,11 +1407,17 @@ export function buildBacklogItem(item, opts = {}) {
     : `<div class="bitem-ac-block"><div class="bitem-ac-header bitem-ac-header--empty">Sin criterios de aceptación</div></div>`;
 
   // Effort dots — large version for header, styled
-  const effortN = parseInt(item.effort) || 0;
+  // TKT2b (REQ-effort-null, ref_id CAEL-08111600-02, depends_on TKT1b CAEL-08111600-01):
+  // antes: parseInt(null)||0 → effortN:0 y tooltip "Esfuerzo 0/3" — afirmaba un valor que
+  // nunca se estimó (0 no es valor válido del schema, __BR-Ecosystem §5: Effort 1|2|3).
+  const _effortUnset = item.effort == null;
+  const effortN = _effortUnset ? 0 : (parseInt(item.effort) || 0);
   const effortDotsHtml = (() => {
     let d = '';
-    for (let i = 0; i < 3; i++) d += `<span class="bitem-effort-dot${i < effortN ? ' on' : ''}"></span>`;
-    return `<div class="bitem-effort-dots" title="Esfuerzo ${effortN}/3">${d}</div>`;
+    for (let i = 0; i < 3; i++) d += `<span class="bitem-effort-dot${(!_effortUnset && i < effortN) ? ' on' : ''}"></span>`;
+    const cls = _effortUnset ? 'bitem-effort-dots bitem-effort-dots--unset' : 'bitem-effort-dots';
+    const title = _effortUnset ? 'Sin estimar' : `Esfuerzo ${effortN}/3`;
+    return `<div class="${cls}" title="${title}">${d}</div>`;
   })();
 
   // Priority color

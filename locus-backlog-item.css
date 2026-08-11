@@ -1,4 +1,4 @@
-/* [PP] mod:98 · autor:Nova · 2026-08-11 00:30 UTC-6 */
+/* [PP] mod:99 · autor:Nova · 2026-08-11 15:40 UTC-6 */
 /* TKT (CAEL-08101542-02, parent REQ CAEL-08101542-01): feedback visual de copiado en
    .bitem-type-code — ver bloque inline en el selector correspondiente, más abajo.
    Reaplicado sobre mod:96 real (TKT-202608-301, alias de tokens de texto retirados) — la
@@ -691,6 +691,13 @@
 .bitem-effort-dot.on {
   background: var(--text2);
   border-color: var(--text2);
+}
+
+/* TKT1b (REQ-effort-null, ref_id CAEL-08111600-01): dot punteado en la card principal — mismo criterio que .effort-dots--unset */
+.bitem-effort-dots--unset .bitem-effort-dot {
+  border-style: dashed;
+  border-color: var(--hint);
+  background: transparent;
 }
 
 .item.bitem[data-type="TKT"] .bitem-effort-dot.on {

@@ -1,3 +1,16 @@
+// [PP] mod:61 · autor:Rune · 2026-08-11 UTC-6
+// DISC-202608-133: comentarios con `INC-[pendiente-ID]` sin resolver — hallazgo inicial reportaba
+// 5 ocurrencias de un solo incidente; verificación contra el código real encontró 6 ocurrencias
+// repartidas en 2 incidentes distintos (L42/L129/L137/L288/L1038 y L141 respectivamente), ambos
+// preexistentes a mod:59. Sin ID numérico de tracker disponible para ninguno de los dos — resueltos
+// con slug descriptivo, mismo patrón ya vigente en el archivo (INC-PP-export-confirm-dead-shell
+// L123, INC-PP-no-incluye-forEach L117):
+// - INC-PP-historico-maxid-warmup: gap de maxId sin incluir historico (fix mod:44) + warm-up de
+//   refreshHistoricoCache() faltante en exportBacklogMd() (fix mod:45) — mismo INC, 5 ocurrencias.
+// - INC-PP-sla-priority-camelcase: columna SLA Priority de _buildQIncMd() sin fallback camelCase
+//   (fix mod:44) — 1 ocurrencia.
+// Cambio puntual: reemplazo de texto en comentarios únicamente — sin tocar lógica ni contrato de
+// ninguna función.
 // [PP] mod:60 · autor:Rune · 2026-08-11 UTC-6
 // TKT origen: CAEL-08111200-01 (origen_disc: DISC-202608-132) — exportSprintsMd() (L318+1)
 // no llevaba `export` delante de `async function`, pese a que el MAP activo
@@ -39,7 +52,7 @@
 // getIncidents() / _allItemsWithHistorico(). No comparte el gap — sin cambio en esa función.
 // [PP] mod:54 · autor:Rune · 2026-07-29 UTC-6
 // INC-202607-047 (fix): exportBacklogMd() nunca refrescaba ITEMS/INCIDENTS desde Supabase
-// antes de generar el export — solo llamaba refreshHistoricoCache() (ver INC-[pendiente-ID]
+// antes de generar el export — solo llamaba refreshHistoricoCache() (ver INC-PP-historico-maxid-warmup
 // 2026-07-18, comentario más abajo, que ya cubría el mismo gap para historico). getItems()/
 // getIncidents() leían el array en memoria tal cual estuviera al momento del click, sin pull
 // previo. Con Realtime desactivado en tracker_items/tracker_incidents (_pp-strategy §4,
@@ -126,7 +139,7 @@
 //   exportSprintsMd y el export de CONTEXT (L1425) — los cuatro no hacían nada al click.
 //   Requiere locus-modals.js mod:4 (bodyHtml ahora se renderiza en #gconfirm-body-html).
 // [PP] mod:45 · autor:Rune · 2026-07-18 01:10 UTC-6
-// INC-[pendiente-ID] (contador Últimos IDs desincronizado), 2º fix del mismo INC:
+// INC-PP-historico-maxid-warmup (contador Últimos IDs desincronizado), 2º fix del mismo INC:
 //   exportBacklogMd() no calentaba el cache de historico antes del path sync — verificado en
 //   locus-ui-shell.js que btn-export-backlog dispara 'shell:export-backlog' sin warm-up previo,
 //   a diferencia de exportFullHistoryMd()/exportSprintsMd() en este mismo archivo. Sin visitar
@@ -134,11 +147,11 @@
 //   exportBacklogMd() es async y hace await refreshHistoricoCache() antes de generar, mismo
 //   patrón ya usado por las otras dos funciones de export de este archivo.
 // [PP] mod:44 · autor:Rune · 2026-07-18 00:36 UTC-6
-// INC-[pendiente-ID] (contador Últimos IDs desincronizado): _computeBacklogCounters() escaneaba
+// INC-PP-historico-maxid-warmup (contador Últimos IDs desincronizado): _computeBacklogCounters() escaneaba
 //   solo getItems() para maxId — excluye 'historico' desde T-202606-106, subestimando el
 //   consecutivo real por tipo cuando había REQ/TKT ya archivados tras cierre de sprint. Ahora usa
 //   _allItemsWithHistorico() (mismo universo que ya consume itemC/exportItems en este archivo).
-// TKT-202607-INC-NAMING (INC-[pendiente-ID]): _buildQIncMd() — columna SLA Priority del
+// TKT-202607-INC-NAMING (INC-PP-sla-priority-camelcase): _buildQIncMd() — columna SLA Priority del
 //   backlog exportado leía solo sla_priority (snake), sin fallback a slaPriority (camel).
 //   Un INC recién creado en la sesión activa (aún no hidratado desde Supabase) mostraba '—'
 //   en esa columna del .md que Cael/Rune/Finn cargan al abrir sesión (__OB-Strategy §8).
@@ -285,7 +298,7 @@ export async function exportBacklogMd(opts = {}) {
   // T-202606-069: separador canónico punto — reemplazar _ por . en segmento de versión
   // [tmp:tkt-backlog-gen-housekeeping] AC-5: naming canónico _[PREFIJO]-backlog-v[X].[Y].[Z].md
   const _canonVer = ver => ver.replace(/_/g, '.');
-  // INC-[pendiente-ID] (2026-07-18): _generateBacklogContent() lee _allItemsWithHistorico() →
+  // INC-PP-historico-maxid-warmup (2026-07-18): _generateBacklogContent() lee _allItemsWithHistorico() →
   //   getHistoricoItemsSync() de forma sync. Verificado en locus-ui-shell.js que btn-export-backlog
   //   dispara 'shell:export-backlog' sin ningún warm-up previo del cache — a diferencia de
   //   exportFullHistoryMd()/exportSprintsMd() (mismo archivo), esta función no tenía su propio
@@ -1035,7 +1048,7 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   // Los tres bloques (Estado actual · Índice · Estadísticas) derivan de esta misma llamada.
   // B-202606-005: itemC cuenta desde exportItems para que el índice refleje solo los ítems
   // efectivamente renderizados en ## Ítems. maxId usa _allItemsWithHistorico() para preservar
-  // los contadores máximos de ID sin importar el status del ítem — INC-[pendiente-ID] (2026-07-18):
+  // los contadores máximos de ID sin importar el status del ítem — INC-PP-historico-maxid-warmup (2026-07-18):
   // getItems() excluye 'historico' desde T-202606-106, así que un TKT/REQ archivado tras cierre
   // de sprint quedaba fuera del escaneo y "Últimos IDs" subestimaba el consecutivo real por tipo
   // (ver REQ-202607-015 — TKT-202607-044/045/046/056/057 historico no contaban para maxId.TKT/REQ).

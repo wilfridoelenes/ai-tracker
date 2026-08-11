@@ -1,4 +1,4 @@
-// [PP] mod:13 · autor:Rune · 2026-07-30 20:15 UTC-6
+// [PP] mod:14 · autor:Rune · 2026-08-11 UTC-6
 // TKT3 (REQ-202607-alineacion-qbacklog-qdisc, design_intent: alineacion-render-qbacklog-qdisc):
 // renderQDiscPanel pasa statsBarId:'qdisc-filter-bar' — la stats-bar interactiva (prioridad+
 // área) sale de #qdisc-panel-body (dentro del bloque colapsable Discovery) y pasa a un nodo
@@ -49,16 +49,16 @@ import { _attachBacklogListDelegation, _resetBacklogListDelegation, buildBacklog
 // TKT-202607-010: rellena #qdisc-limit-indicator (shell estático, ver index.html) con el
 // conteo de DISCs activos sobre el límite — mismo universo que _isQDiscActive (excluye
 // descartado/promoted/historico). Color neutro bajo el límite, advertencia al llegar a él.
-// Mejora visual DISC (aprobada por founder): barra de progreso mini junto al texto —
-// mismo dato que ya calculaba, sin cambiar el universo ni el umbral de advertencia.
-// --fill es custom property (CSS Purity: única propiedad permitida en style= embebido).
+// TKT1 (REQ CAEL-08111700-00, ref_id): retirada la barra de progreso mini (pieza 3 de
+// "Mejora visual DISC") — desde infra_version 92 (__BR-Ecosystem §5), Q-DISC no tiene tope
+// de entrada; la barra sugería un límite duro que ya no existe en el modelo de ítems.
+// Se conserva el texto "N / QDISC_ACTIVE_LIMIT" y el toggle de color de advertencia —
+// mismo dato, mismo umbral de aviso, solo sin representación de barra.
 function _renderQDiscLimitIndicator() {
   const el = document.getElementById('qdisc-limit-indicator');
   if (!el) return;
   const count = getItems().filter(_isQDiscActive).length;
-  const pct = Math.min(100, Math.round((count / QDISC_ACTIVE_LIMIT) * 100));
-  el.innerHTML = `<span class="qdisc-limit-text">${count} / ${QDISC_ACTIVE_LIMIT}</span>` +
-    `<span class="qdisc-limit-bar"><span class="qdisc-limit-bar-fill" style="--fill:${pct}%"></span></span>`;
+  el.innerHTML = `<span class="qdisc-limit-text">${count} / ${QDISC_ACTIVE_LIMIT}</span>`;
   el.classList.toggle('qdisc-limit--warn', count >= QDISC_ACTIVE_LIMIT);
 }
 

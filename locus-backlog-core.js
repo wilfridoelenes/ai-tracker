@@ -1,4 +1,4 @@
-// [PP] mod:142 · autor:Rune · 2026-08-09 20:15 UTC-6
+// [PP] mod:143 · autor:Rune · 2026-08-09 20:15 UTC-6
 // TKT-202608-247 (REQ-202608-097): renderStats() — envuelto en .bl-header-unified > .stats-bar,
 // mismo patrón que Q-Backlog/Discoveries/Histórico. De los 2 early-returns que blanqueaban
 // #stats-bar, solo queda 'sin proyecto activo' (_rsProjId ausente — fuera de scope del TKT,
@@ -2317,6 +2317,15 @@ export function _applyDoneStatus(code, authorized) {
   _applyExitAnimOrRender(code);
 }
 export function effortDots(n) {
+  // TKT2 (REQ-effort-null, ref_id CAEL-08111600-02, depends_on TKT1 CAEL-08111600-01):
+  // n == null cubre null y undefined — ítem recién promovido sin effort asignado.
+  // Antes: "i < null" siempre false → 3 dots vacíos, indistinguible de effort:0 (valor
+  // inexistente en el schema, ver __BR-Ecosystem §5 — Effort: 1|2|3).
+  if (n == null) {
+    let h = '';
+    for (let i = 0; i < 3; i++) h += `<div class="effort-dot"></div>`;
+    return `<div class="effort-dots--unset" title="Sin estimar">${h}</div>`;
+  }
   let h = '';
   for (let i = 0; i < 3; i++) h += `<div class="effort-dot${i < n ? ' filled' : ''}"></div>`;
   return h;

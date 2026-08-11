@@ -1,4 +1,4 @@
-/* [PP] mod:149 · autor:Rune · 2026-08-11 UTC-6 */
+/* [PP] mod:152 · autor:Nova · 2026-08-11 UTC-6 */
 /* TKT1 (parent REQ, ref_id CAEL-08111400-01/02 — código real pendiente de confirmar en Locus):
    .sprint-group-active .bl-vl-sprint-header pasa de tinte 8-12% + border-left ámbar a fill
    sólido var(--amber) + var(--on-fill-vivid) — mismo mecanismo de inversión de superficie ya
@@ -1828,6 +1828,13 @@
   border-color: var(--text2);
 }
 
+/* TKT1 (REQ-effort-null, ref_id CAEL-08111600-01): dot punteado — distingue "sin estimar" de "0 puntos llenos" */
+.effort-dots--unset .effort-dot {
+  border-style: dashed;
+  border-color: var(--hint);
+  background: transparent;
+}
+
 /* R-202605-178: modificador — margen superior para empty states dentro de contenedores con scroll */
 .empty-state--mt {
   margin-top: 3rem;
@@ -2024,13 +2031,13 @@
 .item-type-pill.DISC {
   background: rgb(56 189 248 / 15%);
   border: 1px solid var(--blue-text);
-  color: var(--blue);
+  color: var(--blue-text); /* INC-202608-107: color base fallaba contraste en light */
 }
 
 .item-type-pill.INC {
   background: color-mix(in srgb, var(--red) 10%, transparent);
   border: 1px solid var(--red-text);
-  color: var(--red);
+  color: var(--red-text); /* INC-202608-107: color base fallaba contraste en light */
 }
 
 .item-type-pill.TKT {
@@ -2049,13 +2056,13 @@
 .item-type-pill.PRB {
   background: color-mix(in srgb, var(--orange) 10%, transparent);
   border: 1px solid var(--orange-text);
-  color: var(--orange);
+  color: var(--orange-text); /* INC-202608-107: color base fallaba contraste en light */
 }
 
 .item-type-pill.CHG {
   background: color-mix(in srgb, var(--slate) 10%, transparent);
   border: 1px solid var(--slate-text);
-  color: var(--slate);
+  color: var(--slate-text); /* INC-202608-107: color base fallaba contraste en dark */
 }
 
 /* Deprecated — sin call sites activos. Eliminar en sprint siguiente */
@@ -6463,35 +6470,14 @@
    .stats-row--compact si el founder la quiere de vuelta. Nota aparte detectada en el proceso:
    .qdisc-proportion-seg--discovery usaba var(--purple) — mismo gap de mod:55 (DISC→azul) que
    .stat-type-chip.tc-DISC, no corregido aquí porque toda la regla se retira. ══ */
-/* ── Barra de progreso en limit indicator — .qdisc-limit-bar (pieza 3 de "Mejora visual
-   DISC" — piezas 1/2 retiradas arriba, ver nota de retiro) ── */
-/* Complementa el texto "N / 15" ya existente — no lo reemplaza. Mismo umbral de color
-   que .qdisc-limit--warn, aplicado al fill vía currentColor (hereda del texto, sin
-   duplicar el color de advertencia en una segunda variable). */
+/* ── TKT2 (REQ CAEL-08111700-00, ref_id) — retirada la barra de progreso mini que vivía
+   aquí (.qdisc-limit-bar / .qdisc-limit-bar-fill, pieza 3 de "Mejora visual DISC" — piezas
+   1/2 ya retiradas arriba). Desde infra_version 92 (__BR-Ecosystem §5), Q-DISC no tiene
+   tope de entrada — la barra sugería un límite duro inexistente. Se conserva
+   .qdisc-limit-text (contador "N / 15") y el color de advertencia declarado en
+   .qdisc-limit-indicator.qdisc-limit--warn, arriba. ── */
 .qdisc-limit-text {
   white-space: nowrap;
-}
-
-.qdisc-limit-bar {
-  display: inline-block;
-  width: 90px; /* antes 34px */
-  height: 8px; /* antes 4px */
-  border-radius: var(--radius-pill);
-  background: var(--surface3);
-  overflow: hidden;
-}
-
-.qdisc-limit-bar-fill {
-  display: block;
-  height: 100%;
-  width: var(--fill, 0%);
-  background: currentColor;
-  opacity: 0.55;
-  transition: width 0.25s ease;
-}
-
-.qdisc-limit-indicator.qdisc-limit--warn .qdisc-limit-bar-fill {
-  opacity: 0.85;
 }
 
 /* ── 4) Icono en grooming banner — .qdisc-grooming-icon ── */
