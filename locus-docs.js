@@ -1,5 +1,11 @@
-// [PP] mod:35 · autor:Rune · 2026-08-11 17:35 UTC-6
-// Fix inline sobre TKT2 (REQ-vista-consolidada-doc-updates): 4 call sites seguían apuntando
+// [PP] mod:36 · autor:Rune · 2026-08-11 17:52 UTC-6
+// Fix inline #2 sobre INC (colisión TKT2 ↔ TKT-202608-325): los botones de copia individual
+// (data-du-copy-key / data-du-copy-resolved) compartían clase .du-btn-copy-group con el botón
+// de grupo — el listener solo leía dataset.duCopyGroup, así que un click individual entraba al
+// branch de grupo con doc:undefined, copiaba texto vacío y mostraba "Copiado" como falso
+// positivo. Agregada clase .du-btn-copy-single (co-existe con .du-btn-copy-group para heredar
+// estilo — sin tocar .css, ver __BR-Execution §2) + handler propio evaluado antes del de grupo.
+// Fix inline #1 sobre TKT2 (REQ-vista-consolidada-doc-updates): 4 call sites seguían apuntando
 // a funciones retiradas en la consolidación (renderDocUpdatesPending x2 en processDocUpdate,
 // _initDocUpdatesListeners/_initDocUpdatesResolvedListeners en el init del módulo) —
 // ReferenceError en carga de módulo y al crear/actualizar un DOC-UPDATE. Actualizados a
@@ -1180,7 +1186,7 @@ export function renderDocUpdatesUnified() {
             <div class="du-actions">
               <button class="du-btn-apply" data-du-key="${keyAttr}">Aplicar</button>
               <button class="du-btn-discard" data-du-key="${keyAttr}">Descartar</button>
-              <button class="du-btn-copy-group" data-du-copy-key="${keyAttr}" aria-label="Copiar DOC-UPDATE: ${esc(doc)} §${esc(seccion)}">Copiar</button>
+              <button class="du-btn-copy-group du-btn-copy-single" data-du-copy-key="${keyAttr}" aria-label="Copiar DOC-UPDATE: ${esc(doc)} §${esc(seccion)}">Copiar</button>
             </div>
           </div>`;
       }
@@ -1216,7 +1222,7 @@ export function renderDocUpdatesUnified() {
           </div>
           <span class="du-resolved-date">${esc(dateLabel)}</span>
           <span class="du-resolved-badge ${badgeClass}">${badgeLabel}</span>
-          <button class="du-btn-copy-group" data-du-copy-resolved="${copyId}" aria-label="Copiar DOC-UPDATE: ${esc(doc)} §${esc(section)}"${_duResolvedCopyMap[copyId] === null ? ' disabled aria-disabled="true"' : ''}>Copiar</button>
+          <button class="du-btn-copy-group du-btn-copy-single" data-du-copy-resolved="${copyId}" aria-label="Copiar DOC-UPDATE: ${esc(doc)} §${esc(section)}"${_duResolvedCopyMap[copyId] === null ? ' disabled aria-disabled="true"' : ''}>Copiar</button>
         </div>`;
       _addToGroup(doc, entryHtml, false);
     });
@@ -1330,6 +1336,38 @@ function _initDocUpdatesUnifiedListeners() {
     });
 
     list.addEventListener('click', function(e) {
+
+      // Fix inline — TKT-202608-325 AC2: copia individual, cualquier estado (pendiente o
+      // resuelto), solo el content de esa entrada. Clase propia (.du-btn-copy-single) para no
+      // colisionar con el handler de grupo (.du-btn-copy-group) — mismo namespace de clase
+      // previo causaba que el click cayera en el branch de grupo con doc:undefined, copiando
+      // texto vacío con feedback visual falso positivo de "Copiado".
+      const btnCopySingle = e.target.closest('.du-btn-copy-single');
+      if (btnCopySingle) {
+        if (btnCopySingle.disabled) return;
+        let text = '';
+        if (btnCopySingle.dataset.duCopyKey) {
+          const key = btnCopySingle.dataset.duCopyKey;
+          const [doc, seccion] = key.split('::');
+          const index = _getDocUpdateIndex();
+          const entry = (index[key] || [])[0];
+          text = `${doc} §${seccion} — ${entry?.titulo || '—'}\n${entry?.contenido || ''}`;
+        } else if (btnCopySingle.dataset.duCopyResolved) {
+          const copyId = btnCopySingle.dataset.duCopyResolved;
+          text = _duResolvedCopyMap[copyId] || '';
+        }
+        const _duSingleCopyFeedback = ok => {
+          btnCopySingle.classList.remove('is-copied', 'is-copy-error');
+          btnCopySingle.classList.add(ok ? 'is-copied' : 'is-copy-error');
+          setTimeout(() => btnCopySingle.classList.remove('is-copied', 'is-copy-error'), 1500);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(() => _duSingleCopyFeedback(true)).catch(() => _duSingleCopyFeedback(false));
+        } else {
+          _duSingleCopyFeedback(false);
+        }
+        return;
+      }
 
       // TKT-202608-325: "Copiar pendientes" — junta en texto plano las entradas pendientes del
       // doc del grupo (misma fuente que el render, no re-lee el DOM). Feedback visual vía

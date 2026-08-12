@@ -1252,8 +1252,11 @@ async function _saveFlush() {
     _stateDirty = false;
     setSyncStatus('syncing', '⟳ sincronizando');
     try {
+      // TKT2 (CAEL-08111815-01): excluir ais del blob — Workers viven en tracker_workers
+      // desde TKT1, mismo criterio que sprints/sessions (T-202606-005 AC-3, línea siguiente).
+      const { ais: _aisExcluded, ...stateWithoutAis } = state;
       const stateWithoutSessions = {
-        ...state,
+        ...stateWithoutAis,
         // T-202606-005 AC-3: excluir sprints del blob — sprints viven en tracker_sprints
         projects: (state.projects || []).map(p => { const { sessions, sprints, ...rest } = p; return rest; })
       };
@@ -3003,13 +3006,21 @@ async function _applyStateRow(stateRows) {
   // TKT1 · REQ-sprints-migration: carga cross-proyecto en una sola query — ya no depende
   // de que el proyecto activo esté disponible primero.
   await _loadAllProjectsSprintsFromSupabase();
+  // TKT2 (CAEL-08111815-01): tracker_workers es la fuente de verdad de Workers desde TKT1 —
+  // sobreescribe cualquier ais que _applyStateData() haya asignado desde el blob legacy
+  // (filas guardadas antes de este TKT), antes de que el loop de auto-reset de abajo
+  // opere sobre el array correcto.
+  state.ais = await getWorkers();
   let _resetChanged = false;
-  (state?.ais || []).forEach(ai => {
+  for (const ai of (state?.ais || [])) {
     if (ai.status === 'exhausted' && ai.resetTime && _resetExpiredInternal(ai.resetTime, ai.resetEpoch)) {
       _resetWorker(ai);
+      // TKT2 (CAEL-08111815-01): persistir en tracker_workers — save() de abajo ya no
+      // sube ais al blob, así que el reset debe escribirse por su propio canal.
+      await saveWorker(ai);
       _resetChanged = true;
     }
-  });
+  }
   // Persistir availableSince escrito por _resetWorker — sin esto se pierde en el próximo sync
   if (_resetChanged) save();
 }
