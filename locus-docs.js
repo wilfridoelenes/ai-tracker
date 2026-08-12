@@ -1,4 +1,19 @@
-// [PP] mod:33 · autor:Rune · 2026-08-11 UTC-6
+// [PP] mod:34 · autor:Rune · 2026-08-11 17:10 UTC-6
+// TKT2 (REQ-vista-consolidada-doc-updates): renderDocUpdatesPending()/renderDocUpdatesResolved()
+// se consolidan en renderDocUpdatesUnified() — un solo render sobre #du-unified-list (index.html
+// mod:195, TKT1 shell de Nova), con filtro Todos/Pendientes/Resueltos (variable local _duFilter,
+// mismo patrón que currentSubTab de este archivo — sin nuevo import cross-módulo) y búsqueda
+// unificada por doc/section vía #du-unified-search. _updateDocUpdatesBadge()/
+// _updateDocUpdatesResolvedBadge() se consolidan en _updateDocUpdatesUnifiedBadge() — un solo
+// sub-tab (#sstab-btn-docupdates) se revela si hay pendientes O resueltos, reemplaza el gate
+// doble anterior. _initDocUpdatesListeners()/_initDocUpdatesResolvedListeners() se consolidan en
+// _initDocUpdatesUnifiedListeners(). Lógica de conflicto/vencido/Aplicar/Descartar/Copiar-grupo
+// preservada sin cambio de comportamiento — solo cambia el contenedor destino y se agrega
+// filtrado + mezcla con entradas resueltas dentro del mismo grupo por doc. Call sites verificados
+// por grep contra este archivo (único adjunto en la sesión): _updateSubTabButtons, processDocUpdate,
+// init general — sin consumidores externos detectables. module-contracts no estaba adjunto —
+// gap registrado en pendientes, aplicado por Cael en sesión Execution vía Excepción de dueño
+// co-presente.
 // TKT-202608-325 (REQ-202608-129): renderDocUpdatesPending() agrupa las entradas por doc
 // dentro de .du-group (mantiene el sort vencido-first ya existente, solo cambia el
 // contenedor visual). Cada grupo gana .du-btn-copy-group — junta en texto plano las entradas
@@ -270,12 +285,13 @@ export function _updateSubTabButtons(sub) {
   // navegación normal del usuario (solo via switchSubTab programático, ej. el link del
   // footer). Resultado: visitar Dashboard/Documentos/Context nunca disparaba el recálculo,
   // el sub-tab quedaba invisible indefinidamente pese a haber DOC-UPDATEs pendientes
-  // (confirmado: #doc-updates-list existe siempre en el DOM, static markup, independiente
+  // (confirmado: #du-unified-list existe siempre en el DOM, static markup, independiente
   // de qué sub-tab esté activo — seguro llamarlo sin gate). Fix: recalcular en cualquier
   // sub de la familia Proyectos, no solo al activar el sub-tab que el fix debía revelar.
-  if (['dashboard', 'htmlmap', 'context', 'docupdates', 'resueltos', 'contratos'].includes(sub)) {
-    renderDocUpdatesPending();
-    renderDocUpdatesResolved();
+  // TKT2 (REQ-vista-consolidada-doc-updates): 'resueltos' retirado del array — ya no es un
+  // sub-tab alcanzable (sub-tab único #sstab-btn-docupdates, ver index.html mod:195).
+  if (['dashboard', 'htmlmap', 'context', 'docupdates', 'contratos'].includes(sub)) {
+    renderDocUpdatesUnified();
   }
   // Collapse danger body when switching tabs
   const dangerBody = document.getElementById('tpl-danger-body');
@@ -288,16 +304,12 @@ export function _updateSubTabButtons(sub) {
   if (sub === 'docupdates') {
     if (dangerZone) dangerZone.classList.add('is-hidden');
   }
-  // sub-tab resueltos — sin danger zone (mismo criterio que docupdates)
-  if (sub === 'resueltos') {
-    if (dangerZone) dangerZone.classList.add('is-hidden');
-  }
   // Hide actions section label if no buttons visible
   // TKT1 (REQ CAEL-01) inline_fix: dos contenedores comparten .tpl-sidebar-actions
   // (#tpl-toolbar en Backlog, #proj-doc-actions en Proyectos) — resolver por ID según
   // el dominio de `sub`, no por querySelector genérico (tomaba siempre el primer match).
   const actionsSection = document.getElementById(
-    ['htmlmap', 'context', 'docupdates', 'resueltos', 'contratos'].includes(sub) ? 'proj-doc-actions' : 'tpl-toolbar'
+    ['htmlmap', 'context', 'docupdates', 'contratos'].includes(sub) ? 'proj-doc-actions' : 'tpl-toolbar'
   );
   if (actionsSection) {
     const allItems = actionsSection.querySelectorAll('button, .tpl-action-row');
@@ -1022,28 +1034,39 @@ export function resolveDocUpdate(key, chosenIndex) {
 
 // ── T-202606-033: UI de alerta y resolución de conflicto DOC-UPDATE ──────────
 
-// renderDocUpdatesPending — renderiza la lista de DOC-UPDATEs pendientes en #doc-updates-list.
-// Entradas en conflicto muestran bandera visual + títulos de ambos CHECKPOINTs.
-// Botón Aplicar deshabilitado mientras el conflicto no esté resuelto.
-export function renderDocUpdatesPending() {
-  const container = document.getElementById('doc-updates-list');
+// _duFilter — estado local del filtro activo (todos/pendientes/resueltos). Mismo patrón que
+// currentSubTab de este archivo — sin nuevo import cross-módulo para persistirlo.
+let _duFilter = 'todos';
+
+// renderDocUpdatesUnified — une pendientes (docUpdateIndex) y resueltos (docUpdateResolvedLog)
+// en un solo render agrupado por doc sobre #du-unified-list, filtrado por _duFilter y por
+// #du-unified-search (doc/section, case-insensitive). Preserva sin cambio de comportamiento
+// la lógica de conflicto/vencido/Aplicar/Descartar (antes renderDocUpdatesPending) y de badge
+// aplicado/descartado (antes renderDocUpdatesResolved) — solo cambia el contenedor destino y
+// agrega filtrado + mezcla dentro del mismo grupo por doc.
+export function renderDocUpdatesUnified() {
+  const container = document.getElementById('du-unified-list');
   if (!container) return;
 
   const index = _getDocUpdateIndex();
-  // TKT-202607-032 AC-1: entradas con vencido:true se renderizan primero — sort estable,
-  // no altera el orden relativo entre entradas del mismo estado (vencido/no vencido).
-  const keys = Object.keys(index).sort((a, b) => {
+  const resolvedLog = _getDocUpdateResolvedLog();
+  const pendingKeys = Object.keys(index);
+
+  if (!pendingKeys.length && !resolvedLog.length) {
+    container.innerHTML = '<div class="du-empty-state">Sin DOC-UPDATEs en este sprint.</div>';
+    _updateDocUpdatesUnifiedBadge(0, 0);
+    return;
+  }
+
+  const query = (document.getElementById('du-unified-search')?.value || '').trim().toLowerCase();
+
+  // TKT-202607-032 AC-1: entradas con vencido:true primero — sort estable, mismo criterio ya vigente.
+  const sortedPendingKeys = pendingKeys.slice().sort((a, b) => {
     const aVencido = (index[a] || []).some(e => e.vencido === true);
     const bVencido = (index[b] || []).some(e => e.vencido === true);
     if (aVencido === bVencido) return 0;
     return aVencido ? -1 : 1;
   });
-
-  if (!keys.length) {
-    container.innerHTML = '<div class="du-empty-state">Sin DOC-UPDATEs pendientes en este sprint.</div>';
-    _updateDocUpdatesBadge(0, 0);
-    return;
-  }
 
   let conflictCount = 0;
   // TKT-202607-032 AC-2: un banner de bloqueo por entrada vencida — texto literal de
@@ -1051,97 +1074,132 @@ export function renderDocUpdatesPending() {
   // a la lista, no reemplaza el badge por-entrada (.du-meta-vencido) ya existente.
   const vencidoBanners = [];
   // TKT-202608-325 (REQ-202608-129): agrupación por doc — docOrder preserva el orden de
-  // primera aparición dentro del sort ya existente (vencido-first). No reordena entradas
-  // dentro de cada doc, solo las contiene visualmente.
+  // primera aparición. TKT2 (REQ-vista-consolidada-doc-updates): ahora acumula tanto
+  // entradas pendientes como resueltas del mismo doc dentro del mismo grupo.
   const docOrder = [];
   const docGroups = {};
-  keys.forEach(key => {
-    const entries = index[key];
-    const hasConflict = entries.some(e => e.conflicto);
-    if (hasConflict) conflictCount++;
+  const _addToGroup = (doc, html) => {
+    if (!docGroups[doc]) { docGroups[doc] = []; docOrder.push(doc); }
+    docGroups[doc].push(html);
+  };
 
-    const [doc, seccion] = key.split('::');
-    const keyAttr = esc(key);
-    // TKT-CAEL-0717-02 (REQ-CAEL-0717-01): vencido ya viene calculado por
-    // _scmExecuteClose() (locus-backlog-sprints.js, fix TKT-202607-031) — 2+ sprints
-    // cerrados del proyecto desde createdAt. No se recalcula aquí, solo se lee.
-    const isVencido = entries.some(e => e.vencido === true);
-    const vencidoBadgeHtml = isVencido ? '<span class="du-meta-vencido">Vencido</span>' : '';
-    if (isVencido) {
-      vencidoBanners.push(`
-        <div class="du-vencido-banner">
-          <span class="du-vencido-icon">⚠</span>
-          <span class="du-vencido-msg">Bloqueo: DOC-UPDATE ${esc(doc)}§${esc(seccion)} vencido — resolver antes de continuar.</span>
-        </div>`);
-    }
+  // Pendientes — omitidas por completo si el filtro activo es 'resueltos'.
+  if (_duFilter !== 'resueltos') {
+    sortedPendingKeys.forEach(key => {
+      const entries = index[key];
+      const [doc, seccion] = key.split('::');
+      if (query && !doc.toLowerCase().includes(query) && !seccion.toLowerCase().includes(query)) return;
 
-    let entryHtml;
-    if (hasConflict) {
-      // AC-1 + AC-2: bandera visual con mensaje canónico y títulos de los CHECKPOINTs
-      const titulos = entries.map(e => esc(e.titulo || '—'));
-      const optionsHtml = entries.map((e, i) => `
-        <label class="du-conflict-option">
-          <input type="radio" name="du-resolve-${keyAttr}" value="${i}" class="du-conflict-radio">
-          <span class="du-conflict-option-title">${esc(e.titulo || '—')}</span>
-          <span class="du-conflict-option-preview">${esc((e.contenido || '').slice(0, 120))}${(e.contenido || '').length > 120 ? '…' : ''}</span>
-        </label>`).join('');
-      // T-202606-034-2g (revisado): recordatorio de regla transitoria — aplica a todas las entradas, con y sin conflicto
+      const hasConflict = entries.some(e => e.conflicto);
+      if (hasConflict) conflictCount++;
+      const keyAttr = esc(key);
+      // TKT-CAEL-0717-02 (REQ-CAEL-0717-01): vencido ya viene calculado por
+      // _scmExecuteClose() (locus-backlog-sprints.js, fix TKT-202607-031) — 2+ sprints
+      // cerrados del proyecto desde createdAt. No se recalcula aquí, solo se lee.
+      const isVencido = entries.some(e => e.vencido === true);
+      const vencidoBadgeHtml = isVencido ? '<span class="du-meta-vencido">Vencido</span>' : '';
+      if (isVencido) {
+        vencidoBanners.push(`
+          <div class="du-vencido-banner">
+            <span class="du-vencido-icon">⚠</span>
+            <span class="du-vencido-msg">Bloqueo: DOC-UPDATE ${esc(doc)}§${esc(seccion)} vencido — resolver antes de continuar.</span>
+          </div>`);
+      }
 
-      entryHtml = `
-        <div class="du-entry du-entry--conflict" data-du-key="${keyAttr}">
-          <div class="du-conflict-flag">
-            <span class="du-conflict-icon">⚠</span>
-            <span class="du-conflict-msg">Conflicto DOC-UPDATE: <strong>${esc(seccion)}</strong> de <strong>${esc(doc)}</strong> tiene dos propuestas contradictorias — ${titulos[0]} vs ${titulos[titulos.length - 1]}. Resolver antes de aplicar.</span>
+      let entryHtml;
+      if (hasConflict) {
+        // AC-1 + AC-2: bandera visual con mensaje canónico y títulos de los CHECKPOINTs
+        const titulos = entries.map(e => esc(e.titulo || '—'));
+        const optionsHtml = entries.map((e, i) => `
+          <label class="du-conflict-option">
+            <input type="radio" name="du-resolve-${keyAttr}" value="${i}" class="du-conflict-radio">
+            <span class="du-conflict-option-title">${esc(e.titulo || '—')}</span>
+            <span class="du-conflict-option-preview">${esc((e.contenido || '').slice(0, 120))}${(e.contenido || '').length > 120 ? '…' : ''}</span>
+          </label>`).join('');
+        entryHtml = `
+          <div class="du-entry du-entry--conflict" data-du-key="${keyAttr}">
+            <div class="du-conflict-flag">
+              <span class="du-conflict-icon">⚠</span>
+              <span class="du-conflict-msg">Conflicto DOC-UPDATE: <strong>${esc(seccion)}</strong> de <strong>${esc(doc)}</strong> tiene dos propuestas contradictorias — ${titulos[0]} vs ${titulos[titulos.length - 1]}. Resolver antes de aplicar.</span>
+            </div>
+            <div class="du-meta">
+              <span class="du-meta-doc">${esc(doc)}</span>
+              <span class="du-meta-sep">·</span>
+              <span class="du-meta-section">${esc(seccion)}</span>
+              ${vencidoBadgeHtml}
+              <span class="du-resolved-badge du-resolved-badge--pendiente">Pendiente</span>
+            </div>
+            <div class="du-transitorio-note">Regla transitoria activa — verificar que el MD actualizado está adjunto al CHECKPOINT de origen.</div>
+            <div class="du-conflict-options" role="group" aria-label="Elegir propuesta">
+              ${optionsHtml}
+            </div>
+            <div class="du-actions">
+              <button class="du-btn-resolve" data-du-key="${keyAttr}" disabled aria-disabled="true">Resolver conflicto</button>
+              <button class="du-btn-apply is-hidden" data-du-key="${keyAttr}" disabled aria-disabled="true">Aplicar</button>
+            </div>
+          </div>`;
+      } else {
+        // Sin conflicto — botón Aplicar habilitado
+        const entry = entries[0];
+        const _duTransitorioHtml = `<div class="du-transitorio-note">Regla transitoria activa — verificar que el MD actualizado está adjunto al CHECKPOINT de origen.</div>`;
+        entryHtml = `
+          <div class="du-entry" data-du-key="${keyAttr}">
+            <div class="du-meta">
+              <span class="du-meta-doc">${esc(doc)}</span>
+              <span class="du-meta-sep">·</span>
+              <span class="du-meta-section">${esc(seccion)}</span>
+              <span class="du-meta-sep">·</span>
+              <span class="du-meta-titulo">${esc(entry.titulo || '—')}</span>
+              ${vencidoBadgeHtml}
+              <span class="du-resolved-badge du-resolved-badge--pendiente">Pendiente</span>
+            </div>
+            ${_duTransitorioHtml}
+            <div class="du-content-preview">${esc((entry.contenido || '').slice(0, 200))}${(entry.contenido || '').length > 200 ? '…' : ''}</div>
+            <div class="du-actions">
+              <button class="du-btn-apply" data-du-key="${keyAttr}">Aplicar</button>
+              <button class="du-btn-discard" data-du-key="${keyAttr}">Descartar</button>
+            </div>
+          </div>`;
+      }
+      _addToGroup(doc, entryHtml);
+    });
+  }
+
+  // Resueltos — omitidos por completo si el filtro activo es 'pendientes'.
+  if (_duFilter !== 'pendientes') {
+    const sortedResolved = [...resolvedLog].sort((a, b) => (b.resolvedAt || 0) - (a.resolvedAt || 0));
+    sortedResolved.forEach(e => {
+      const doc = e.doc || '—';
+      const section = e.section || '—';
+      if (query && !doc.toLowerCase().includes(query) && !section.toLowerCase().includes(query)) return;
+      const isAplicado = e.action === 'aplicado';
+      const badgeClass = isAplicado ? 'du-resolved-badge--aplicado' : 'du-resolved-badge--descartado';
+      const badgeLabel = isAplicado ? 'Aplicado' : 'Descartado';
+      const dateLabel = e.resolvedAt
+        ? new Date(e.resolvedAt).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+        : '—';
+      const entryHtml = `
+        <div class="du-resolved-entry">
+          <div class="du-resolved-meta">
+            <span class="du-resolved-doc">${esc(doc)}</span>
+            <span class="du-resolved-sep">·</span>
+            <span class="du-resolved-section">${esc(section)}</span>
           </div>
-          <div class="du-meta">
-            <span class="du-meta-doc">${esc(doc)}</span>
-            <span class="du-meta-sep">·</span>
-            <span class="du-meta-section">${esc(seccion)}</span>
-            ${vencidoBadgeHtml}
-          </div>
-          <div class="du-transitorio-note">Regla transitoria activa — verificar que el MD actualizado está adjunto al CHECKPOINT de origen.</div>
-          <div class="du-conflict-options" role="group" aria-label="Elegir propuesta">
-            ${optionsHtml}
-          </div>
-          <div class="du-actions">
-            <button class="du-btn-resolve" data-du-key="${keyAttr}" disabled aria-disabled="true">Resolver conflicto</button>
-            <button class="du-btn-apply is-hidden" data-du-key="${keyAttr}" disabled aria-disabled="true">Aplicar</button>
-          </div>
+          <span class="du-resolved-date">${esc(dateLabel)}</span>
+          <span class="du-resolved-badge ${badgeClass}">${badgeLabel}</span>
         </div>`;
-    } else {
-      // Sin conflicto — botón Aplicar habilitado
-      const entry = entries[0];
-      // T-202606-034-2g: recordatorio de regla transitoria BR-Core §8 — visible en cada entrada
-      // Entrada: DOC-UPDATE pendiente; Salida: recordatorio visible en la tarjeta
-      const _duTransitorioHtml = `<div class="du-transitorio-note">Regla transitoria activa — verificar que el MD actualizado está adjunto al CHECKPOINT de origen.</div>`;
-      entryHtml = `
-        <div class="du-entry" data-du-key="${keyAttr}">
-          <div class="du-meta">
-            <span class="du-meta-doc">${esc(doc)}</span>
-            <span class="du-meta-sep">·</span>
-            <span class="du-meta-section">${esc(seccion)}</span>
-            <span class="du-meta-sep">·</span>
-            <span class="du-meta-titulo">${esc(entry.titulo || '—')}</span>
-            ${vencidoBadgeHtml}
-          </div>
-          ${_duTransitorioHtml}
-          <div class="du-content-preview">${esc((entry.contenido || '').slice(0, 200))}${(entry.contenido || '').length > 200 ? '…' : ''}</div>
-          <div class="du-actions">
-            <button class="du-btn-apply" data-du-key="${keyAttr}">Aplicar</button>
-            <button class="du-btn-discard" data-du-key="${keyAttr}">Descartar</button>
-          </div>
-        </div>`;
-    }
+      _addToGroup(doc, entryHtml);
+    });
+  }
 
-    if (!docGroups[doc]) {
-      docGroups[doc] = [];
-      docOrder.push(doc);
-    }
-    docGroups[doc].push(entryHtml);
-  });
+  if (!docOrder.length) {
+    container.innerHTML = '<div class="du-resolved-search-empty">Sin resultados.</div>';
+    _updateDocUpdatesUnifiedBadge(pendingKeys.length, conflictCount);
+    return;
+  }
 
   // TKT-202608-325: un grupo por doc, con botón "Copiar pendientes" que junta el texto plano
-  // de todas las entradas de ese doc — no toca la lógica de Aplicar/Descartar/conflicto arriba.
+  // de las entradas pendientes de ese doc — no toca la lógica de Aplicar/Descartar/conflicto.
   const groupsHtml = docOrder.map(doc => {
     const docAttr = esc(doc);
     const count = docGroups[doc].length;
@@ -1156,19 +1214,27 @@ export function renderDocUpdatesPending() {
   }).join('');
 
   container.innerHTML = vencidoBanners.join('') + groupsHtml;
-  _updateDocUpdatesBadge(keys.length, conflictCount);
+  _updateDocUpdatesUnifiedBadge(pendingKeys.length, conflictCount);
 }
 
-// _updateDocUpdatesBadge — actualiza el badge del nav btn y el contador de conflictos.
-// INC-202608-087 (auditoría end-to-end footer DOC-UPDATEs, derivada de INC-202608-085):
-// #sstab-btn-docupdates nace is-hidden en index.html y ningún módulo lo revelaba —
-// verificado sin ocurrencias en locus-docs.js, locus-projects.js, locus-ui-shell.js ni
-// locus-contracts.js. Este es el único punto de la app que ya conoce el conteo real de
-// DOC-UPDATEs pendientes (total, recibido de renderDocUpdatesPending()) en cada render —
-// se agrega el toggle del sub-tab aquí en vez de introducir un nuevo call site. sin AC de
-// contrato adicional: no cambia firma, agrega efecto lateral sobre un botón hasta ahora
-// inalcanzable.
-function _updateDocUpdatesBadge(total, conflicts) {
+// setDuFilter — cambia el filtro activo (todos/pendientes/resueltos), refleja estado en las
+// pills (.active + aria-selected) y re-renderiza.
+export function setDuFilter(filter) {
+  if (!['todos', 'pendientes', 'resueltos'].includes(filter)) return;
+  _duFilter = filter;
+  document.querySelectorAll('.hmfilter-pill[data-du-filter]').forEach(p => {
+    const active = p.dataset.duFilter === filter;
+    p.classList.toggle('active', active);
+    p.setAttribute('aria-selected', String(active));
+  });
+  renderDocUpdatesUnified();
+}
+
+// _updateDocUpdatesUnifiedBadge — consolida _updateDocUpdatesBadge()/_updateDocUpdatesResolvedBadge():
+// un solo sub-tab (#sstab-btn-docupdates) se revela si hay pendientes O resueltos — antes dos
+// sub-tabs independientes con su propio gate (INC-202608-087 para docupdates, mismo criterio
+// para resueltos). Badge de conflictos y resumen sin cambio de comportamiento.
+function _updateDocUpdatesUnifiedBadge(pendingTotal, conflicts) {
   const badge = document.getElementById('tpl-badge-docupdates');
   if (badge) {
     badge.textContent = conflicts > 0 ? String(conflicts) : '';
@@ -1181,10 +1247,12 @@ function _updateDocUpdatesBadge(total, conflicts) {
       : '';
     conflictSummary.classList.toggle('is-hidden', conflicts === 0);
   }
-  // INC-202608-087, AC1+AC2: revelar/ocultar el sub-tab según haya o no entradas pendientes.
+  const resolvedTotal = _getDocUpdateResolvedLog().length;
+  // INC-202608-087, AC1+AC2 (extendido): revelar/ocultar el sub-tab único según haya o no
+  // entradas pendientes O resueltas.
   const subTabBtn = document.getElementById('sstab-btn-docupdates');
   if (subTabBtn) {
-    subTabBtn.classList.toggle('is-hidden', total === 0);
+    subTabBtn.classList.toggle('is-hidden', pendingTotal === 0 && resolvedTotal === 0);
   }
 }
 
@@ -1207,168 +1275,116 @@ function _pushDocUpdateResolved(key, action) {
   _setDocUpdateResolvedLog(log);
 }
 
-// _initDocUpdatesListeners — delega clicks en #doc-updates-list.
-function _initDocUpdatesListeners() {
-  const list = document.getElementById('doc-updates-list');
-  if (!list) return;
+// _initDocUpdatesUnifiedListeners — consolida _initDocUpdatesListeners()/
+// _initDocUpdatesResolvedListeners(): delega clicks de conflicto/aplicar/descartar/
+// copiar-grupo sobre #du-unified-list (antes #doc-updates-list), agrega listeners de las
+// pills de filtro (antes inexistentes) y de la búsqueda unificada #du-unified-search
+// (antes #du-resolved-search-input, exclusiva de resueltos).
+function _initDocUpdatesUnifiedListeners() {
+  const list = document.getElementById('du-unified-list');
+  if (list) {
+    // Radio change → habilitar "Resolver conflicto" cuando hay selección
+    list.addEventListener('change', function(e) {
+      const radio = e.target.closest('.du-conflict-radio');
+      if (!radio) return;
+      const entry = radio.closest('.du-entry--conflict');
+      if (!entry) return;
+      const btnResolve = entry.querySelector('.du-btn-resolve');
+      if (btnResolve) {
+        btnResolve.disabled = false;
+        btnResolve.removeAttribute('aria-disabled');
+      }
+    });
 
-  // Radio change → habilitar "Resolver conflicto" cuando hay selección
-  list.addEventListener('change', function(e) {
-    const radio = e.target.closest('.du-conflict-radio');
-    if (!radio) return;
-    const entry = radio.closest('.du-entry--conflict');
-    if (!entry) return;
-    const btnResolve = entry.querySelector('.du-btn-resolve');
-    if (btnResolve) {
-      btnResolve.disabled = false;
-      btnResolve.removeAttribute('aria-disabled');
-    }
+    list.addEventListener('click', function(e) {
+
+      // TKT-202608-325: "Copiar pendientes" — junta en texto plano las entradas pendientes del
+      // doc del grupo (misma fuente que el render, no re-lee el DOM). Feedback visual vía
+      // .is-copied/.is-copy-error, 1500ms — mismo patrón ya vigente en el proyecto.
+      const btnCopyGroup = e.target.closest('.du-btn-copy-group');
+      if (btnCopyGroup) {
+        const doc = btnCopyGroup.dataset.duCopyGroup;
+        const index = _getDocUpdateIndex();
+        const text = Object.keys(index)
+          .filter(key => key.split('::')[0] === doc)
+          .map(key => {
+            const [, seccion] = key.split('::');
+            const entry = (index[key] || [])[0];
+            return `${doc} §${seccion} — ${entry?.titulo || '—'}\n${entry?.contenido || ''}`;
+          })
+          .join('\n\n---\n\n');
+        const _duCopyFeedback = ok => {
+          btnCopyGroup.classList.remove('is-copied', 'is-copy-error');
+          btnCopyGroup.classList.add(ok ? 'is-copied' : 'is-copy-error');
+          setTimeout(() => btnCopyGroup.classList.remove('is-copied', 'is-copy-error'), 1500);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(() => _duCopyFeedback(true)).catch(() => _duCopyFeedback(false));
+        } else {
+          _duCopyFeedback(false);
+        }
+        return;
+      }
+
+      // AC-2: "Resolver conflicto" → elige la propuesta seleccionada, descarta las demás
+      const btnResolve = e.target.closest('.du-btn-resolve');
+      if (btnResolve && !btnResolve.disabled) {
+        const key = btnResolve.dataset.duKey;
+        const entry = btnResolve.closest('.du-entry--conflict');
+        const selected = entry?.querySelector('.du-conflict-radio:checked');
+        if (!selected) return;
+        const chosenIndex = parseInt(selected.value, 10);
+        resolveDocUpdate(key, chosenIndex);
+        showToast('success', 'Conflicto resuelto — propuesta seleccionada lista para aplicar.');
+        renderDocUpdatesUnified();
+        return;
+      }
+
+      // AC-1: "Aplicar" → marca como aplicado y elimina del índice
+      const btnApply = e.target.closest('.du-btn-apply');
+      if (btnApply && !btnApply.disabled) {
+        const key = btnApply.dataset.duKey;
+        const idx = _getDocUpdateIndex();
+        const entry = (idx[key] || [])[0];
+        if (entry) {
+          _blogLog('aplicado', key, entry.titulo || '', 'backlog');
+        }
+        _pushDocUpdateResolved(key, 'aplicado');
+        delete idx[key];
+        _setDocUpdateIndex(idx);
+        showToast('success', 'DOC-UPDATE aplicado y registrado en DocLog.');
+        renderDocUpdatesUnified();
+        return;
+      }
+
+      // "Descartar" → elimina del índice sin aplicar
+      const btnDiscard = e.target.closest('.du-btn-discard');
+      if (btnDiscard) {
+        const key = btnDiscard.dataset.duKey;
+        const idx = _getDocUpdateIndex();
+        const entry = (idx[key] || [])[0];
+        if (entry) {
+          _blogLog('descartado', key, entry.titulo || '', 'backlog');
+        }
+        _pushDocUpdateResolved(key, 'descartado');
+        delete idx[key];
+        _setDocUpdateIndex(idx);
+        showToast('info', 'DOC-UPDATE descartado.');
+        renderDocUpdatesUnified();
+      }
+    });
+  }
+
+  // Pills de filtro Todos/Pendientes/Resueltos
+  document.querySelectorAll('.hmfilter-pill[data-du-filter]').forEach(p => {
+    p.addEventListener('click', () => setDuFilter(p.dataset.duFilter));
   });
 
-  list.addEventListener('click', function(e) {
-
-    // TKT-202608-325: "Copiar pendientes" — junta en texto plano las entradas del doc del
-    // grupo (misma fuente que renderDocUpdatesPending, no re-lee el DOM). Feedback visual
-    // vía .is-copied/.is-copy-error, 1500ms — mismo patrón ya vigente en el proyecto.
-    const btnCopyGroup = e.target.closest('.du-btn-copy-group');
-    if (btnCopyGroup) {
-      const doc = btnCopyGroup.dataset.duCopyGroup;
-      const index = _getDocUpdateIndex();
-      const text = Object.keys(index)
-        .filter(key => key.split('::')[0] === doc)
-        .map(key => {
-          const [, seccion] = key.split('::');
-          const entry = (index[key] || [])[0];
-          return `${doc} §${seccion} — ${entry?.titulo || '—'}\n${entry?.contenido || ''}`;
-        })
-        .join('\n\n---\n\n');
-      const _duCopyFeedback = ok => {
-        btnCopyGroup.classList.remove('is-copied', 'is-copy-error');
-        btnCopyGroup.classList.add(ok ? 'is-copied' : 'is-copy-error');
-        setTimeout(() => btnCopyGroup.classList.remove('is-copied', 'is-copy-error'), 1500);
-      };
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(() => _duCopyFeedback(true)).catch(() => _duCopyFeedback(false));
-      } else {
-        _duCopyFeedback(false);
-      }
-      return;
-    }
-
-    // AC-2: "Resolver conflicto" → elige la propuesta seleccionada, descarta las demás
-    const btnResolve = e.target.closest('.du-btn-resolve');
-    if (btnResolve && !btnResolve.disabled) {
-      const key = btnResolve.dataset.duKey;
-      const entry = btnResolve.closest('.du-entry--conflict');
-      const selected = entry?.querySelector('.du-conflict-radio:checked');
-      if (!selected) return;
-      const chosenIndex = parseInt(selected.value, 10);
-      resolveDocUpdate(key, chosenIndex);
-      showToast('success', 'Conflicto resuelto — propuesta seleccionada lista para aplicar.');
-      renderDocUpdatesPending();
-      return;
-    }
-
-    // AC-1: "Aplicar" → marca como aplicado y elimina del índice
-    const btnApply = e.target.closest('.du-btn-apply');
-    if (btnApply && !btnApply.disabled) {
-      const key = btnApply.dataset.duKey;
-      const idx = _getDocUpdateIndex();
-      const entry = (idx[key] || [])[0];
-      if (entry) {
-        _blogLog('aplicado', key, entry.titulo || '', 'backlog');
-      }
-      _pushDocUpdateResolved(key, 'aplicado');
-      delete idx[key];
-      _setDocUpdateIndex(idx);
-      showToast('success', 'DOC-UPDATE aplicado y registrado en DocLog.');
-      renderDocUpdatesPending();
-      return;
-    }
-
-    // "Descartar" → elimina del índice sin aplicar
-    const btnDiscard = e.target.closest('.du-btn-discard');
-    if (btnDiscard) {
-      const key = btnDiscard.dataset.duKey;
-      const idx = _getDocUpdateIndex();
-      const entry = (idx[key] || [])[0];
-      if (entry) {
-        _blogLog('descartado', key, entry.titulo || '', 'backlog');
-      }
-      _pushDocUpdateResolved(key, 'descartado');
-      delete idx[key];
-      _setDocUpdateIndex(idx);
-      showToast('info', 'DOC-UPDATE descartado.');
-      renderDocUpdatesPending();
-    }
-  });
-}
-
-// renderDocUpdatesResolved — TKT-202608-237: renderiza el log de DOC-UPDATEs ya resueltos
-// (aplicados o descartados) en #du-resolved-list, filtrado por #du-resolved-search-input
-// (doc o sección, case-insensitive). Fuente: docUpdateResolvedLog — poblado por
-// _pushDocUpdateResolved() (TKT-202608-236) al hacer clic en Aplicar/Descartar.
-export function renderDocUpdatesResolved() {
-  const container = document.getElementById('du-resolved-list');
-  if (!container) return;
-
-  const log = _getDocUpdateResolvedLog();
-  _updateDocUpdatesResolvedBadge(log.length);
-
-  if (!log.length) {
-    container.innerHTML = '<div class="du-resolved-empty">Sin DOC-UPDATEs resueltos todavía.</div>';
-    return;
+  // Búsqueda unificada por doc/sección — reemplaza #du-resolved-search-input
+  const searchInput = document.getElementById('du-unified-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => renderDocUpdatesUnified());
   }
-
-  const searchInput = document.getElementById('du-resolved-search-input');
-  const query = (searchInput?.value || '').trim().toLowerCase();
-  const filtered = query
-    ? log.filter(e => (e.doc || '').toLowerCase().includes(query) || (e.section || '').toLowerCase().includes(query))
-    : log;
-
-  if (!filtered.length) {
-    container.innerHTML = '<div class="du-resolved-search-empty">Sin resultados para esta búsqueda.</div>';
-    return;
-  }
-
-  // Más recientes primero
-  const sorted = [...filtered].sort((a, b) => (b.resolvedAt || 0) - (a.resolvedAt || 0));
-
-  container.innerHTML = sorted.map(e => {
-    const isAplicado = e.action === 'aplicado';
-    const badgeClass = isAplicado ? 'du-resolved-badge--aplicado' : 'du-resolved-badge--descartado';
-    const badgeLabel = isAplicado ? 'Aplicado' : 'Descartado';
-    const dateLabel = e.resolvedAt
-      ? new Date(e.resolvedAt).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-      : '—';
-    return `
-      <div class="du-resolved-entry">
-        <div class="du-resolved-meta">
-          <span class="du-resolved-doc">${esc(e.doc || '—')}</span>
-          <span class="du-resolved-sep">·</span>
-          <span class="du-resolved-section">${esc(e.section || '—')}</span>
-        </div>
-        <span class="du-resolved-date">${esc(dateLabel)}</span>
-        <span class="du-resolved-badge ${badgeClass}">${badgeLabel}</span>
-      </div>`;
-  }).join('');
-}
-
-// _updateDocUpdatesResolvedBadge — revela/oculta #sstab-btn-resueltos según haya o no
-// entradas en el log — mismo criterio ya vigente en _updateDocUpdatesBadge para
-// #sstab-btn-docupdates (INC-202608-087), evita reintroducir el mismo bug circular.
-function _updateDocUpdatesResolvedBadge(total) {
-  const subTabBtn = document.getElementById('sstab-btn-resueltos');
-  if (subTabBtn) {
-    subTabBtn.classList.toggle('is-hidden', total === 0);
-  }
-}
-
-// _initDocUpdatesResolvedListeners — búsqueda por doc/sección sobre el log de resueltos.
-function _initDocUpdatesResolvedListeners() {
-  const searchInput = document.getElementById('du-resolved-search-input');
-  if (!searchInput) return;
-  searchInput.addEventListener('input', () => renderDocUpdatesResolved());
 }
 
 // ── END T-202606-033 ──────────────────────────────────────────────────────────

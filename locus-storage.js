@@ -1,4 +1,8 @@
-// [PP] mod:159 · autor:Rune · 2026-08-11 17:40 UTC-6
+// [PP] mod:160 · autor:Rune · 2026-08-11 18:05 UTC-6
+// TKT1 (REQ CAEL-08111600-01): getWorkers()/saveWorker()/_migrateWorkersToTable() sobre
+// tracker_workers — mismo patrón de _upsertSprint()/getAllProjectsSprints() (T-202606-005).
+// No reemplaza state.ais ni getAI() — ningún consumidor migra en este TKT, ver no_incluye
+// del TKT. Migración es herramienta de consola, mismo patrón que verifyConstraintsSync().
 // TKT-202608-236 (REQ-202608-090): nuevo par getter/setter proj.docUpdateResolvedLog —
 // mismo patrón que _getDocUpdateIndex()/_setDocUpdateIndex() (T-202606-032), array
 // independiente, sin tocar docUpdateIndex. Opción C sobre B en Fase 2 de Cael (CRITERIO DE
@@ -4042,6 +4046,107 @@ export async function _upsertSprint(sprintObj, projId) {
     // Actualizar localStorage como caché post-write
     try { localStorage.setItem(lsKey, JSON.stringify(list)); } catch(e) {}
   }
+}
+
+// TKT1 (REQ CAEL-08111600-01 · migración Workers): getWorkers()/saveWorker() sobre
+// tracker_workers — tabla dedicada, mismo patrón de _upsertSprint()/getAllProjectsSprints()
+// de arriba (T-202606-005/REQ-sprints-migration). No reemplaza state.ais ni getAI() en este
+// TKT — ningún consumidor (locus-workers.js, locus-radar.js, locus-sesiones*.js,
+// locus-projects.js, locus-notifications.js, locus-session-save.js) se toca aquí, ver
+// no_incluye del TKT. Lectura/escritura standalone hasta que TKT2 conecte los consumidores.
+
+// Lee todos los Workers del usuario desde tracker_workers. Shape de retorno idéntico al de
+// un elemento de state.ais — mismo criterio de compatibilidad de forma que
+// getAllProjectsSprints()/_loadAllProjectsSprintsFromSupabase(). AC — edge case sin auth:
+// retorna [] — Workers en tracker_state.ais siguen siendo la fuente real de state.ais hasta
+// TKT2, este TKT no introduce un segundo camino de lectura activo en el arranque de la app.
+export async function getWorkers() {
+  if (!_supabase || !_supabaseUser) return [];
+  try {
+    const { data, error } = await _supabase
+      .from('tracker_workers')
+      .select('id,name,avatar,status,reset_time,reset_epoch,available_since,archived,notes,interrupted,show_all,created_at,updated_at')
+      .eq('user_id', _supabaseUser.id);
+    if (error) throw error;
+    // AC: mapear columnas snake_case de tracker_workers al shape camelCase de ai en memoria
+    // (_applyStateData() L3704-3712) — mismo criterio de mapeo que
+    // _loadAllProjectsSprintsFromSupabase() aplica para sprints.
+    return (data || []).map(row => ({
+      id:             row.id,
+      name:           row.name,
+      avatar:         row.avatar || '',
+      status:         row.status || 'available',
+      resetTime:      row.reset_time || '',
+      resetEpoch:     row.reset_epoch != null ? row.reset_epoch : null,
+      availableSince: row.available_since != null ? row.available_since : null,
+      archived:       !!row.archived,
+      notes:          row.notes || '',
+      interrupted:    !!row.interrupted,
+      showAll:        !!row.show_all,
+      sessions:       [] // v3: sesiones nunca viven en el Worker — ver getAllSessions()/getAISessions()
+    }));
+  } catch(err) {
+    // AC — error de Supabase: no se cae la carga de la app por esto — retorna [] y loggea,
+    // mismo criterio que _loadAllProjectsSprintsFromSupabase() mantiene el último cache válido
+    logger.error('[Locus] TKT1 (CAEL-08111600-01): error al cargar tracker_workers', err);
+    showToast('warning', 'No se pudieron cargar los Workers desde tracker_workers');
+    return [];
+  }
+}
+
+// Upsert de un Worker a tracker_workers. Mismo patrón de escritura por-fila que
+// _upsertSprint() — una llamada, una fila, sin reescribir el resto de tracker_workers.
+// Sin auth → no-op silencioso: Workers siguen persistiendo vía state.ais + save() normal
+// hasta TKT2 — este TKT no introduce un segundo camino de escritura activo en el flujo real.
+export async function saveWorker(worker) {
+  if (!_supabase || !_supabaseUser || !worker || !worker.id) return;
+  const row = {
+    id:              worker.id,
+    user_id:         _supabaseUser.id,
+    name:            worker.name || '',
+    avatar:          worker.avatar || null,
+    status:          worker.status || 'available',
+    reset_time:      worker.resetTime || null,
+    reset_epoch:     worker.resetEpoch != null ? worker.resetEpoch : null,
+    available_since: worker.availableSince != null ? worker.availableSince : null,
+    archived:        !!worker.archived,
+    notes:           worker.notes || null,
+    interrupted:     !!worker.interrupted,
+    show_all:        !!worker.showAll,
+    updated_at:      Date.now()
+  };
+  const { error } = await _supabase
+    .from('tracker_workers')
+    .upsert(row, { onConflict: 'id' });
+  if (error) {
+    logger.error('[Locus] TKT1 (CAEL-08111600-01): upsert a tracker_workers falló', error);
+  }
+}
+
+// Script de migración manual — una sola vez, invocado desde consola tras confirmar el DDL.
+// Mismo patrón de "herramienta de consola" que verifyConstraintsSync() (ver arriba, T1b) —
+// no se llama desde ningún flujo de carga automático ni desde _loadFromSupabase(). Lee
+// tracker_state.ais (fuente real hoy) y hace upsert de cada Worker a tracker_workers vía
+// saveWorker() — reintentable sin duplicados porque el upsert es por id (PK real del Worker).
+// AC — sin dato: ais vacío o ausente → 0 filas, sin error.
+export async function _migrateWorkersToTable() {
+  if (!_supabase || !_supabaseUser) {
+    logger.warn('[Locus] _migrateWorkersToTable: sin auth — migración no disponible');
+    return { migrated: 0, total: 0 };
+  }
+  const ais = state?.ais || [];
+  if (!ais.length) {
+    logger.debug('[Locus] _migrateWorkersToTable: state.ais vacío — nada que migrar');
+    return { migrated: 0, total: 0 };
+  }
+  let migrated = 0;
+  for (const ai of ais) {
+    if (!ai.id) continue;
+    await saveWorker(ai);
+    migrated++;
+  }
+  logger.debug(`[Locus] _migrateWorkersToTable: ${migrated}/${ais.length} Workers migrados a tracker_workers.`);
+  return { migrated, total: ais.length };
 }
 
 // T-202606-087: display canónico 'id · nombre' para sprint — usado en card subline e IDP.

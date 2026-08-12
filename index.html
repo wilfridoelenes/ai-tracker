@@ -1,3 +1,8 @@
+<!-- [PP] mod:195 · autor:Rune · 2026-08-11 16:50 UTC-6 -->
+<!-- TKT2 (REQ-vista-consolidada-doc-updates): consolida #sspanel-docupdates + #sspanel-resueltos
+     en un solo sub-panel con filtro por pills (Todos/Pendientes/Resueltos) + buscador —
+     #sstab-btn-resueltos retirado, #doc-updates-list/#du-resolved-list reemplazados por
+     #du-unified-list. Ver locus-docs.js mod:34 para el render/wiring consumidor. -->
 <!-- [PP] mod:194 · autor:Rune · 2026-08-11 16:35 UTC-6 -->
 <!-- TKT-202608-317 (REQ-202608-126, TKT1): agregado #btn-export-sprints en #tpl-toolbar,
      sibling de #btn-export-backlog-full — dispara shell:export-sprints (ver locus-ui-shell.js
@@ -1337,13 +1342,11 @@
     <button class="spt-tab" id="sstab-btn-context" role="tab" aria-selected="false">
       Context<span class="spt-tab-badge" id="tpl-badge-context"></span>
     </button>
+    <!-- REQ-vista-consolidada-doc-updates, TKT2: sub-tab único — antes eran dos
+         (docupdates/resueltos). Visible si hay al menos una entrada pendiente o
+         resuelta — ver _updateDocUpdatesUnifiedBadge() en locus-docs.js. -->
     <button class="spt-tab is-hidden" id="sstab-btn-docupdates" role="tab" aria-selected="false">
       DOC-UPDATEs<span class="spt-tab-badge" id="tpl-badge-docupdates"></span>
-    </button>
-    <!-- TKT-202608-237 (REQ-202608-090): sub-tab Resueltos — mismo patrón is-hidden que
-         docupdates/contratos, visibilidad controlada por JS (locus-docs.js, pendiente). -->
-    <button class="spt-tab is-hidden" id="sstab-btn-resueltos" role="tab" aria-selected="false">
-      Resueltos
     </button>
     <button class="spt-tab is-hidden" id="sstab-btn-contratos" role="tab" aria-selected="false">
       Contratos<span class="spt-tab-badge" id="tpl-badge-contratos"></span>
@@ -1440,25 +1443,26 @@
 
   </div><!-- /sspanel-context -->
 
-  <!-- Sub-panel: DOC-UPDATEs pendientes — migrado desde #tab-backlog (TKT1, REQ CAEL-01) -->
+  <!-- Sub-panel: DOC-UPDATEs — REQ-vista-consolidada-doc-updates (TKT2).
+       Reemplaza los dos sub-panels previos (sspanel-docupdates + sspanel-resueltos,
+       sub-tabs docupdates/resueltos) — un solo panel con filtro por status y buscador.
+       Shell estático (__BR-Execution §5 — existe siempre, contenido lo inyecta JS). -->
   <div class="session-subpanel" id="sspanel-docupdates">
     <div class="du-panel-header">
-      <div class="du-panel-title">DOC-UPDATEs pendientes</div>
+      <div class="du-panel-title">DOC-UPDATEs</div>
       <span class="du-conflict-summary is-hidden" id="du-conflict-summary"></span>
     </div>
-    <div id="doc-updates-list" class="du-list"></div>
-  </div><!-- /sspanel-docupdates -->
-
-  <!-- Sub-panel: DOC-UPDATEs resueltos — TKT-202608-237 (REQ-202608-090).
-       Shell estático (BR-Execution §5 — existe siempre, contenido lo inyecta JS).
-       No_incluye del TKT: filas no interactivas, sin foco propio en .du-resolved-entry. -->
-  <div class="session-subpanel" id="sspanel-resueltos">
-    <div class="du-resolved-toolbar">
-      <input type="text" id="du-resolved-search-input" class="du-resolved-search-input"
-             placeholder="Buscar por doc o sección…" autocomplete="off">
+    <div class="du-unified-toolbar">
+      <div class="hmfilter-pills" role="tablist" aria-label="Filtrar Doc Updates">
+        <button class="hmfilter-pill hmfilter-pill--all active" data-du-filter="todos" role="tab" aria-selected="true">Todos</button>
+        <button class="hmfilter-pill" data-du-filter="pendientes" role="tab" aria-selected="false">Pendientes</button>
+        <button class="hmfilter-pill" data-du-filter="resueltos" role="tab" aria-selected="false">Resueltos</button>
+      </div>
+      <input type="text" id="du-unified-search" class="du-resolved-search-input"
+             placeholder="Buscar doc o sección" autocomplete="off">
     </div>
-    <div id="du-resolved-list" class="du-resolved-list"></div>
-  </div><!-- /sspanel-resueltos -->
+    <div id="du-unified-list" class="du-list" aria-live="polite"></div>
+  </div><!-- /sspanel-docupdates -->
 
   <!-- Sub-panel: Contratos — migrado desde #tab-backlog (TKT1, REQ CAEL-01) -->
   <div class="session-subpanel ctr-layout" id="sspanel-contratos">
