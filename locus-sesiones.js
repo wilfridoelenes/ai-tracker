@@ -1,4 +1,7 @@
-// [PP] mod:64 · autor:Rune · 2026-08-12 06:15 UTC-6
+// [PP] mod:65 · autor:Rune · 2026-08-12 22:10 UTC-6
+// TKT1 (CAEL-08122200-02): selectTrackerAI() rebindea overlay.dataset.aiId del modal de
+// ingesta cuando #modal-split-shell está abierto — cierra misattribution de sesiones al
+// Worker equivocado tras cambiar de selección en el sidebar sin cerrar el modal.
 // TKT2 (CAEL-08111815-01): saveWorker() agregado en _hoyMarkExhausted() y
 // confirmBlindExhaust() — save()/saveImmediate() ya no persisten ais en tracker_state.
 // TKT-202608-284 (REQ-202608-117): case 'open-ingest' del delegador ahora llama
@@ -557,6 +560,18 @@ export function selectTrackerAI(aiId) {
   // T-202606-012 AC-1: si aiId ya es el activo, no hay cambio de selección — retornar sin tocar
   // _trackerHistSelectedSessId ni llamar a render()
   if (_trackerSelectedId === aiId) return;
+  // TKT1 (ref_id CAEL-08122200-02, REQ CAEL-08122200-01): rebind de overlay.dataset.aiId
+  // cuando el modal de ingesta está abierto (#modal-split-shell.open) — sin esto,
+  // handlePaste/handleInput (_openIngestModal, L1256-1257) siguen leyendo el aiId con el
+  // que el modal se abrió, aunque el founder haya cambiado de Worker en el sidebar sin
+  // cerrar/reabrir el modal. Guard exacto: #modal-split-shell ausente → tratado como cerrado,
+  // sin rebind. No toca ta.value ni dispara _maybeRestoreDraft/_renderIngestBlockPreview —
+  // esas rutinas siguen siendo exclusivas del ciclo de apertura en _openIngestModal().
+  const _ingestShellOpen = document.getElementById('modal-split-shell')?.classList.contains('open');
+  if (_ingestShellOpen) {
+    const _ingestOverlay = document.getElementById('ingest-modal-overlay');
+    if (_ingestOverlay) _ingestOverlay.dataset.aiId = aiId;
+  }
   // DUP-05: cerrar preview de sesión al cambiar de Worker
   closePopup();
   // T-202606-012 AC-2: aiId distinto al activo — reset de _trackerHistSelectedSessId antes de render()

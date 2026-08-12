@@ -1,4 +1,5 @@
-<!-- [PP] mod:196 · autor:Rune · 2026-08-12 08:17 UTC-6 -->
+<!-- [PP] mod:197 · autor:Rune · 2026-08-12 09:05 UTC-6 -->
+<!-- TKT-202608-328 (REQ-202608-131, TKT2): migra qdisc-status-chevron (3 ocurrencias) a svg.chevron. -->
 <!-- TKT-202608-327 (REQ-202608-131, TKT1): agrega símbolo #ti-chevron-right al sprite —
      fundación del Patrón A-13 (.chevron único de disclosure, _Locus-css-ref mod:194). -->
 <!-- TKT2 (REQ-vista-consolidada-doc-updates): consolida #sspanel-docupdates + #sspanel-resueltos
@@ -988,14 +989,14 @@
            _renderQDiscStatusGroup() (locus-backlog-qdisc.js) — sin chips, fuera de scope. -->
       <!-- TKT2 (REQ CAEL-04 · design_intent: QDISC-headers-colapsables): tabindex/role/
            aria-expanded para toggle de colapso por click y teclado — ver locus-backlog-qdisc.js
-           _initQDiscStatusToggles(). Chevron con carácter unicode ▾ — mismo precedente que
-           .bl-done-arrow (sin fuente de iconos cargada en el proyecto, ver grep de header). -->
+           _initQDiscStatusToggles(). Chevron migrado a sprite SVG (Patrón A-13, TKT-202608-328,
+           REQ-202608-131) — reemplaza el carácter unicode ▾ previo. -->
       <div class="qdisc-status-group" id="qdisc-discovery-group">
         <div class="qdisc-status-header qdisc-status-header--discovery" tabindex="0" role="button" aria-expanded="true">
           <span class="qdisc-status-title">Discovery</span>
           <span class="qdisc-status-header-meta">
             <span class="qdisc-status-count" id="qdisc-discovery-count">0</span>
-            <span class="qdisc-status-chevron" aria-hidden="true">▾</span>
+            <svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
           </span>
         </div>
         <div class="qdisc-status-body" id="qdisc-panel-body"></div>
@@ -1007,7 +1008,7 @@
           <span class="qdisc-status-title">Promoted</span>
           <span class="qdisc-status-header-meta">
             <span class="qdisc-status-count" id="qdisc-promoted-count">0</span>
-            <span class="qdisc-status-chevron" aria-hidden="true">▾</span>
+            <svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
           </span>
         </div>
         <div class="qdisc-status-body" id="qdisc-promoted-body"></div>
@@ -1017,7 +1018,7 @@
           <span class="qdisc-status-title">Descartadas</span>
           <span class="qdisc-status-header-meta">
             <span class="qdisc-status-count" id="qdisc-descartadas-count">0</span>
-            <span class="qdisc-status-chevron" aria-hidden="true">▾</span>
+            <svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
           </span>
         </div>
         <div class="qdisc-status-body" id="qdisc-descartadas-body"></div>

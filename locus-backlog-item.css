@@ -1,4 +1,10 @@
-/* [PP] mod:100 · autor:Nova · 2026-08-12 07:10 UTC-6 */
+/* [PP] mod:101 · autor:Nova · 2026-08-12 09:40 UTC-6 */
+/* TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog): .mdiff-section-chevron
+   migrado a svg.chevron (Patrón A-13, línea ~2597) — glifo/rotación retirados, color
+   conservado vía currentColor sobre accent-class del header. Corrección de autoría:
+   este entregable se había registrado bajo autor:Rune en la sesión de implementación —
+   corregido a Nova, única rol que escribe .css (BR-Execution §3, CSS Purity). El
+   contenido no cambia, solo la atribución del header. */
 /* TKT-202608-326 (REQ-202608-130, TKT1): .mdiff-docrel-badge — mismas dimensiones de .mdiff-pill
    (base compartida verificada contra código real, línea ~2817) + tono --amber 10%/28% ya vigente
    en .mdiff-pill--retroceso/--warn (_Locus-css-ref mod:191, patrón confirmado idéntico para
@@ -2594,14 +2600,12 @@
   background: var(--surface3);
 }
 
+/* .mdiff-section-chevron migrado a svg.chevron (Patrón A-13, TKT-202608-328) — solo se
+   conserva el hook de color: el chevron hereda el color del header por accent-class
+   (--green/--blue/--accent/--warn/--red/--muted/--pink) vía currentColor. El primitivo
+   .chevron declara color propio (--text3) que rompería esa herencia sin este override. */
 .mdiff-section-chevron {
-  font-size: var(--text-xs);
-  transition: transform 0.18s;
-  display: inline-block;
-}
-
-.mdiff-section-header.is-collapsed .mdiff-section-chevron {
-  transform: rotate(-90deg);
+  color: currentColor;
 }
 
 /* Color accent por tipo de sección */

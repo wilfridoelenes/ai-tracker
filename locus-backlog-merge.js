@@ -1,4 +1,10 @@
-// [PP] mod:91 · autor:Rune · 2026-08-12 07:10 UTC-6
+// [PP] mod:92 · autor:Rune · 2026-08-12 09:40 UTC-6
+// TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog): .mdiff-zone-chevron y
+// .mdiff-section-chevron migrados a svg.chevron (Patrón A-13). Gap de especificación
+// detectado y corregido en sesión — el AC original asumía aria-expanded ya presente
+// en .mdiff-section-header sin cambio de JS; no era así. _mdiffToggleSection() ahora
+// setea aria-expanded en el mismo movimiento que is-collapsed (línea ~1924) — corrección
+// de AC de Cael vía patch sobre TKT-202608-328, sin reabrir Fase 1/intención del REQ.
 // TKT-202608-326 (REQ-202608-130, TKT1): badge `.mdiff-docrel-badge` en cards del panel DIFF
 // para TKT que declaran doc_relevance:{css_ref|ux_ref|ui_inventory: "sí"} sin la confirmación
 // correspondiente (doc_relevance_confirmada), cuando el status transiciona a en-revision/done
@@ -1032,7 +1038,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
           ${_statusChipHtml(changes)}
           ${_docRelBadgeHtml(patchItem.code)}
           <button class="mdiff-zone-chevron" type="button" data-action="mdiff-toggle-zone"
-                  aria-expanded="false" aria-label="Ver detalle del patch de ${esc(patchItem.code)}">▾</button>
+                  aria-expanded="false" aria-label="Ver detalle del patch de ${esc(patchItem.code)}"><svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg></button>
         </div>
         ${retrocesoFlagHtml}
         <div class="mdiff-zone-detail is-hidden">${_transitionOrFieldPatchHtml(changes)}</div>
@@ -1071,8 +1077,8 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   const _section = (id, accentClass, titleHtml, rows, collapsed = false) => `
     <div class="mdiff-section" id="mdiff-sec-${id}">
       <button class="mdiff-section-header mdiff-section-header--${accentClass}${collapsed ? ' is-collapsed' : ''}"
-              data-action="mdiff-toggle-section" type="button">
-        <span class="mdiff-section-chevron">▾</span>
+              data-action="mdiff-toggle-section" type="button" aria-expanded="${collapsed ? 'false' : 'true'}">
+        <svg class="ti-svg chevron mdiff-section-chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
         <span>${titleHtml}</span>
       </button>
       <div class="mdiff-section-body${collapsed ? ' is-hidden' : ''}">${rows}</div>
@@ -1661,7 +1667,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         : 'mdiff-narrative-section';
 
       return `<div class="${_sectionCls}">
-        <button class="mdiff-section-header" data-action="mdiff-toggle-section" type="button">${_attrRow}</button>
+        <button class="mdiff-section-header" data-action="mdiff-toggle-section" type="button" aria-expanded="true">${_attrRow}</button>
         <div class="mdiff-section-body">
           ${_releaseInfo.html}
           ${_narrativeHtml}
@@ -1921,6 +1927,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     const body = btn.nextElementSibling;
     const collapsed = btn.classList.toggle('is-collapsed');
     body.classList.toggle('is-hidden', collapsed);
+    btn.setAttribute('aria-expanded', String(!collapsed));
   };
 
   // Helper: toggle drawer de detalle en una zone-card (TKT2, AC4) — único disparador

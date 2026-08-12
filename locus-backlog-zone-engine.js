@@ -1,4 +1,8 @@
-// [PP] mod:15 · autor:Rune · 2026-08-11 01:15 UTC-6
+// [PP] mod:16 · autor:Rune · 2026-08-12 09:40 UTC-6
+// TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog): .qbacklog-draft-chevron
+// migrado a svg.chevron (Patrón A-13, línea ~212). Color ámbar conservado sin cambio —
+// no_incluye del TKT. Rotación retirada de aquí, gobernada por [aria-expanded] .chevron
+// en locus-base.css (TKT-202608-327).
 // TKT (founder, sesión directa): fila del grupo de drafts (Pendiente de validación Finn)
 // rediseñada — el chip de tipo (.item-type-pill, solo "REQ"/"TKT") y el código quedaban
 // separados, repitiendo visualmente el tipo (chip "TKT" + texto "TKT-202608-262 · ..."). Se
@@ -209,7 +213,7 @@ function _draftGroupHtml(items) {
           <span class="qbacklog-draft-title">Pendiente de validación Finn</span>
           <span class="qbacklog-draft-count">${items.length}</span>
         </div>
-        <span class="qbacklog-draft-chevron">▾</span>
+        <svg class="ti-svg chevron qbacklog-draft-chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
       </div>
       <div class="qbacklog-draft-body">${rows}</div>
     </div>`;

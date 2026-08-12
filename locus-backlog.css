@@ -1,4 +1,10 @@
-/* [PP] mod:152 · autor:Nova · 2026-08-11 UTC-6 */
+/* [PP] mod:153 · autor:Nova · 2026-08-12 09:40 UTC-6 */
+/* TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog): .qdisc-status-chevron,
+   .qbacklog-draft-chevron (rotación) y .bl-r-toggle (glifo ::before + rotación)
+   migrados a svg.chevron (Patrón A-13) — ver líneas ~5745, ~6134, ~6250. Corrección
+   de autoría: entregable registrado bajo autor:Rune en la sesión de implementación —
+   corregido a Nova, única rol que escribe .css (BR-Execution §3, CSS Purity). Contenido
+   sin cambio, solo atribución del header. */
 /* TKT1 (parent REQ, ref_id CAEL-08111400-01/02 — código real pendiente de confirmar en Locus):
    .sprint-group-active .bl-vl-sprint-header pasa de tinte 8-12% + border-left ámbar a fill
    sólido var(--amber) + var(--on-fill-vivid) — mismo mecanismo de inversión de superficie ya
@@ -5742,14 +5748,11 @@
   z-index: var(--z-raised);
 }
 
-.bl-r-toggle::before {
-  content: '▾';
-  font-size: var(--text-xs);
-  line-height: 1;
-  display: block;
-  transition: transform 0.15s var(--ease-out);
-}
-
+/* .bl-r-toggle::before (glifo ▾ + rotación) migrado a svg.chevron (Patrón A-13,
+   TKT-202608-328) — el botón conserva su posicionamiento/color/hover/focus, el chevron
+   ahora vive como hijo <svg> y su rotación la gobierna [aria-expanded="true"] .chevron
+   (locus-base.css), no .collapsed directamente — evita invertir la polaridad del resto
+   del sistema. */
 .bl-r-toggle:hover {
   color: var(--text2);
 }
@@ -5757,11 +5760,6 @@
 .bl-r-toggle:focus-visible {
   outline: 2px solid var(--accent-border);
   border-radius: var(--radius-2xs);
-}
-
-/* Estado colapsado: flecha rotada -90deg */
-.bl-r-toggle.collapsed::before {
-  transform: rotate(-90deg);
 }
 
 /* ── bl-children-wrap: contenedor sangrado de los hijos del R ── */
@@ -5795,8 +5793,7 @@
   .bl-children-wrap {
     transition: none;
   }
-  .bl-r-toggle,
-  .bl-r-toggle::before {
+  .bl-r-toggle {
     transition: none;
   }
 }
@@ -6140,13 +6137,9 @@
   gap: 8px;
 }
 
-.qdisc-status-chevron {
-  transition: transform .15s;
-}
-
-.qdisc-status-group.is-collapsed .qdisc-status-chevron {
-  transform: rotate(-90deg);
-}
+/* .qdisc-status-chevron migrado a svg.chevron (Patrón A-13, TKT-202608-328) — sin color
+   propio previo (los 3 accent-class solo coloreaban .qdisc-status-title/-count), el
+   default --text3 del primitivo no rompe nada. */
 
 /* TKT1 (REQ CAEL-04): colapso instantáneo — sin transition de max-height, fuera de scope
    declarado en no_incluye del TKT. */
@@ -6260,13 +6253,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* .qbacklog-draft-chevron migrado a svg.chevron (Patrón A-13, TKT-202608-328) — color ámbar
+   conservado explícitamente (no_incluye del TKT: "No cambia el color ámbar semántico").
+   Rotación retirada de aquí — ahora gobernada por [aria-expanded="true"] .chevron. */
 .qbacklog-draft-chevron {
-  transition: transform .15s;
   color: var(--amber-text);
-}
-
-.qbacklog-draft-group.is-collapsed .qbacklog-draft-chevron {
-  transform: rotate(-90deg);
 }
 
 .qbacklog-draft-group.is-collapsed .qbacklog-draft-body {

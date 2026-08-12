@@ -1,4 +1,12 @@
-// [PP] mod:171 · autor:Rune · 2026-08-11 UTC-6
+// [PP] mod:172 · autor:Rune · 2026-08-12 09:40 UTC-6
+// TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog — Excepción de resolución
+// directa: hallazgo de código, nivel Patch, sin bifurcación de founder): retirado branch
+// huérfano act==='bl-r-toggle' (línea ~963 original) — sin emisor real de
+// data-action="bl-r-toggle" en todo el codebase (grep verificado), comentario propio
+// citaba un trigger inexistente (~L1173 de locus-backlog-render.js). El trigger real de
+// colapso de hijos de R es vl-toggle-r (locus-backlog-render.js, delegación propia).
+// Mismo patrón de deuda ya resuelto una vez en este archivo (Propuesta de mejora #3,
+// _focusRank, mod:59 _Locus-ui-Inventory) — código muerto tras refactor de handler real.
 // TKT-[pendiente-ID] (Propuesta de mejora #3, mod:59 _Locus-ui-Inventory, parte CSS ya
 // retirada por Nova en locus-sesiones.css mod:51): retirado branch huérfano de
 // item._focusRank en buildBacklogItem() — nunca se asignaba en ningún flujo real, el
@@ -955,26 +963,6 @@ export function _attachBacklogListDelegation(containerId = 'backlog-list') {
     }
     if (act === 'section-group-toggle') {
       toggleSectionGroup(action.dataset.group);
-      return;
-    }
-    // bl-r-toggle — colapsa/expande la lista de TKTs hijos de un REQ en la vista de backlog list
-    // (locus-backlog-render.js ~L1173 emite el trigger + el contenedor #bl-children-[rCode])
-    // Estado persistido en localStorage bajo locus-r-collapsed-[rCode]
-    if (act === 'bl-r-toggle') {
-      e.stopPropagation();
-      const rCode = action.dataset.rCode;
-      if (!rCode) return;
-      const body = document.getElementById('bl-children-' + CSS.escape(rCode));
-      if (!body) return;
-      const isNowCollapsed = !body.classList.contains('collapsed');
-      body.classList.toggle('collapsed', isNowCollapsed);
-      action.classList.toggle('collapsed', isNowCollapsed);
-      const _collapseKey = 'locus-r-collapsed-' + rCode;
-      if (isNowCollapsed) {
-        localStorage.setItem(_collapseKey, '1');
-      } else {
-        localStorage.removeItem(_collapseKey);
-      }
       return;
     }
   }, { signal: _blListAbortCtrl.signal });

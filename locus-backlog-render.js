@@ -1,4 +1,10 @@
-// [PP] mod:111 · autor:Rune · 2026-08-11 UTC-6
+// [PP] mod:112 · autor:Rune · 2026-08-12 09:40 UTC-6
+// TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog): .bl-r-toggle migrado a
+// svg.chevron (Patrón A-13, línea ~574). Fix aplicado en el handler real de la
+// delegación `vl-toggle-r` (línea ~869) — no en el branch `act === 'bl-r-toggle'` de
+// locus-backlog-item.js, que está muerto/inalcanzable (ver Hallazgo fuera de scope en
+// CHECKPOINT de cierre). aria-expanded ahora coherente con el estado inicial de
+// _isRCollapsed y se actualiza en cada toggle (línea ~878).
 // TKT-202608-299 (REQ-202608-118): input y botón de búsqueda del toolbar de Histórico
 // (#historico-search-input, #historico-search-clear, .fbar-search-wrap) retirados —
 // reemplazado por ⌘K. .bl-toolbar-spacer retirado junto con ellos (sin nada que espaciar
@@ -571,7 +577,7 @@ export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
 
         html += `<div class="bl-vl-req" data-r-code="${esc(item.code)}">`;
         html += buildBacklogItem(item);
-        html += `<button class="bl-r-toggle${_isRCollapsed ? ' collapsed' : ''}" data-action="vl-toggle-r" data-r-code="${esc(item.code)}" aria-label="Colapsar/expandir hijos" title="Colapsar/expandir hijos" type="button"></button>`;
+        html += `<button class="bl-r-toggle${_isRCollapsed ? ' collapsed' : ''}" data-action="vl-toggle-r" data-r-code="${esc(item.code)}" aria-label="Colapsar/expandir hijos" title="Colapsar/expandir hijos" type="button" aria-expanded="${_isRCollapsed ? 'false' : 'true'}"><svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg></button>`;
         html += `<div class="bl-vl-req-body${_isRCollapsed ? ' collapsed' : ''}" id="bl-vl-req-body-${esc(item.code)}">`;
         _children.forEach(child => {
           html += `<div class="bl-child-row">${buildBacklogItem(child)}</div>`;
@@ -875,6 +881,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
       const isNowCollapsed = !body.classList.contains('collapsed');
       body.classList.toggle('collapsed', isNowCollapsed);
       btn.classList.toggle('collapsed', isNowCollapsed);
+      btn.setAttribute('aria-expanded', String(!isNowCollapsed));
       const _collapseKey = 'locus-r-collapsed-' + rCode;
       if (isNowCollapsed) {
         localStorage.setItem(_collapseKey, '1');
