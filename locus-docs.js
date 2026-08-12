@@ -1,4 +1,11 @@
-// [PP] mod:32 · autor:Rune · 2026-08-11 19:44 UTC-6
+// [PP] mod:33 · autor:Rune · 2026-08-11 UTC-6
+// TKT-202608-325 (REQ-202608-129): renderDocUpdatesPending() agrupa las entradas por doc
+// dentro de .du-group (mantiene el sort vencido-first ya existente, solo cambia el
+// contenedor visual). Cada grupo gana .du-btn-copy-group — junta en texto plano las entradas
+// pendientes de ese doc y las copia al portapapeles, feedback vía .is-copied/.is-copy-error
+// (1500ms, patrón ya vigente en el proyecto — ver _Locus-css-ref). _initDocUpdatesListeners()
+// gana el handler correspondiente, delegado sobre #doc-updates-list igual que el resto.
+// No toca resolveDocUpdate(), _pushDocUpdateResolved() ni el schema de docUpdateIndex.
 // TKT-202608-324 (REQ-202608-129): _pushDocUpdateResolved() ahora persiste el campo `content`
 // — antes se perdía al resolver (Aplicar/Descartar): docUpdateResolvedLog solo guardaba
 // doc/section/action/resolvedAt, aunque docUpdateIndex[key][0].contenido seguía disponible en
@@ -1043,7 +1050,12 @@ export function renderDocUpdatesPending() {
   // __BR-Ecosystem §5, sin selector de rol (Opción B confirmada por founder). Se antepone
   // a la lista, no reemplaza el badge por-entrada (.du-meta-vencido) ya existente.
   const vencidoBanners = [];
-  const html = keys.map(key => {
+  // TKT-202608-325 (REQ-202608-129): agrupación por doc — docOrder preserva el orden de
+  // primera aparición dentro del sort ya existente (vencido-first). No reordena entradas
+  // dentro de cada doc, solo las contiene visualmente.
+  const docOrder = [];
+  const docGroups = {};
+  keys.forEach(key => {
     const entries = index[key];
     const hasConflict = entries.some(e => e.conflicto);
     if (hasConflict) conflictCount++;
@@ -1063,6 +1075,7 @@ export function renderDocUpdatesPending() {
         </div>`);
     }
 
+    let entryHtml;
     if (hasConflict) {
       // AC-1 + AC-2: bandera visual con mensaje canónico y títulos de los CHECKPOINTs
       const titulos = entries.map(e => esc(e.titulo || '—'));
@@ -1074,7 +1087,7 @@ export function renderDocUpdatesPending() {
         </label>`).join('');
       // T-202606-034-2g (revisado): recordatorio de regla transitoria — aplica a todas las entradas, con y sin conflicto
 
-      return `
+      entryHtml = `
         <div class="du-entry du-entry--conflict" data-du-key="${keyAttr}">
           <div class="du-conflict-flag">
             <span class="du-conflict-icon">⚠</span>
@@ -1095,33 +1108,54 @@ export function renderDocUpdatesPending() {
             <button class="du-btn-apply is-hidden" data-du-key="${keyAttr}" disabled aria-disabled="true">Aplicar</button>
           </div>
         </div>`;
+    } else {
+      // Sin conflicto — botón Aplicar habilitado
+      const entry = entries[0];
+      // T-202606-034-2g: recordatorio de regla transitoria BR-Core §8 — visible en cada entrada
+      // Entrada: DOC-UPDATE pendiente; Salida: recordatorio visible en la tarjeta
+      const _duTransitorioHtml = `<div class="du-transitorio-note">Regla transitoria activa — verificar que el MD actualizado está adjunto al CHECKPOINT de origen.</div>`;
+      entryHtml = `
+        <div class="du-entry" data-du-key="${keyAttr}">
+          <div class="du-meta">
+            <span class="du-meta-doc">${esc(doc)}</span>
+            <span class="du-meta-sep">·</span>
+            <span class="du-meta-section">${esc(seccion)}</span>
+            <span class="du-meta-sep">·</span>
+            <span class="du-meta-titulo">${esc(entry.titulo || '—')}</span>
+            ${vencidoBadgeHtml}
+          </div>
+          ${_duTransitorioHtml}
+          <div class="du-content-preview">${esc((entry.contenido || '').slice(0, 200))}${(entry.contenido || '').length > 200 ? '…' : ''}</div>
+          <div class="du-actions">
+            <button class="du-btn-apply" data-du-key="${keyAttr}">Aplicar</button>
+            <button class="du-btn-discard" data-du-key="${keyAttr}">Descartar</button>
+          </div>
+        </div>`;
     }
 
-    // Sin conflicto — botón Aplicar habilitado
-    const entry = entries[0];
-    // T-202606-034-2g: recordatorio de regla transitoria BR-Core §8 — visible en cada entrada
-    // Entrada: DOC-UPDATE pendiente; Salida: recordatorio visible en la tarjeta
-    const _duTransitorioHtml = `<div class="du-transitorio-note">Regla transitoria activa — verificar que el MD actualizado está adjunto al CHECKPOINT de origen.</div>`;
+    if (!docGroups[doc]) {
+      docGroups[doc] = [];
+      docOrder.push(doc);
+    }
+    docGroups[doc].push(entryHtml);
+  });
+
+  // TKT-202608-325: un grupo por doc, con botón "Copiar pendientes" que junta el texto plano
+  // de todas las entradas de ese doc — no toca la lógica de Aplicar/Descartar/conflicto arriba.
+  const groupsHtml = docOrder.map(doc => {
+    const docAttr = esc(doc);
+    const count = docGroups[doc].length;
     return `
-      <div class="du-entry" data-du-key="${keyAttr}">
-        <div class="du-meta">
-          <span class="du-meta-doc">${esc(doc)}</span>
-          <span class="du-meta-sep">·</span>
-          <span class="du-meta-section">${esc(seccion)}</span>
-          <span class="du-meta-sep">·</span>
-          <span class="du-meta-titulo">${esc(entry.titulo || '—')}</span>
-          ${vencidoBadgeHtml}
+      <div class="du-group" data-du-group="${docAttr}">
+        <div class="du-group-header">
+          <span class="du-group-title">${docAttr} <span class="du-group-count">(${count})</span></span>
+          <button class="du-btn-copy-group" data-du-copy-group="${docAttr}" aria-label="Copiar pendientes de ${docAttr}">Copiar pendientes</button>
         </div>
-        ${_duTransitorioHtml}
-        <div class="du-content-preview">${esc((entry.contenido || '').slice(0, 200))}${(entry.contenido || '').length > 200 ? '…' : ''}</div>
-        <div class="du-actions">
-          <button class="du-btn-apply" data-du-key="${keyAttr}">Aplicar</button>
-          <button class="du-btn-discard" data-du-key="${keyAttr}">Descartar</button>
-        </div>
+        ${docGroups[doc].join('')}
       </div>`;
   }).join('');
 
-  container.innerHTML = vencidoBanners.join('') + html;
+  container.innerHTML = vencidoBanners.join('') + groupsHtml;
   _updateDocUpdatesBadge(keys.length, conflictCount);
 }
 
@@ -1192,6 +1226,34 @@ function _initDocUpdatesListeners() {
   });
 
   list.addEventListener('click', function(e) {
+
+    // TKT-202608-325: "Copiar pendientes" — junta en texto plano las entradas del doc del
+    // grupo (misma fuente que renderDocUpdatesPending, no re-lee el DOM). Feedback visual
+    // vía .is-copied/.is-copy-error, 1500ms — mismo patrón ya vigente en el proyecto.
+    const btnCopyGroup = e.target.closest('.du-btn-copy-group');
+    if (btnCopyGroup) {
+      const doc = btnCopyGroup.dataset.duCopyGroup;
+      const index = _getDocUpdateIndex();
+      const text = Object.keys(index)
+        .filter(key => key.split('::')[0] === doc)
+        .map(key => {
+          const [, seccion] = key.split('::');
+          const entry = (index[key] || [])[0];
+          return `${doc} §${seccion} — ${entry?.titulo || '—'}\n${entry?.contenido || ''}`;
+        })
+        .join('\n\n---\n\n');
+      const _duCopyFeedback = ok => {
+        btnCopyGroup.classList.remove('is-copied', 'is-copy-error');
+        btnCopyGroup.classList.add(ok ? 'is-copied' : 'is-copy-error');
+        setTimeout(() => btnCopyGroup.classList.remove('is-copied', 'is-copy-error'), 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => _duCopyFeedback(true)).catch(() => _duCopyFeedback(false));
+      } else {
+        _duCopyFeedback(false);
+      }
+      return;
+    }
 
     // AC-2: "Resolver conflicto" → elige la propuesta seleccionada, descarta las demás
     const btnResolve = e.target.closest('.du-btn-resolve');
