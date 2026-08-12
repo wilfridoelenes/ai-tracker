@@ -1,4 +1,9 @@
-/* [PP] mod:10 · autor:Nova · 2026-08-11 UTC-6 */
+/* [PP] mod:11 · autor:Nova · 2026-08-12 UTC-6 */
+/* TKT1 (REQ-vista-consolidada-doc-updates, CAEL-08111530-02): .hmfilter-pill gana :focus-visible
+   (gap de accesibilidad, sin regla previa) + .du-resolved-badge--pendiente (completa el set de
+   3 status). Sin componente nuevo — TKT1 reutiliza .hmfilter-pill (filtro), .du-resolved-badge
+   (status), .du-resolved-search-input (buscador) y .du-resolved-search-empty (sin resultados),
+   todos ya existentes en este archivo. Ver CSS dependencies block del CHECKPOINT. */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* TKT-202608-281 (REQ-202608-116, N07 — chip activo: inversión de superficie): mod:7 quedó
    sin bump pese a que este mod entrega la migración de .htmlmap-filter-btn.active al mismo
@@ -273,6 +278,14 @@
 /* B-202604-140: light theme — pill Todos.active fill perceptible sobre --bg blanco */
 :root[data-theme="light"] .hmfilter-pill--all.active {
   background: rgb(93 154 36 / 12%);
+}
+
+/* TKT-[pendiente-ID] (REQ-[pendiente-ID] · CAEL-08111530-02): .hmfilter-pill no tenía estado
+   de foco propio — gap de accesibilidad frente a AC2 (foco visible, contraste ≥4.5:1). Mismo
+   token --accent-border ya usado en inputs de este archivo (.du-resolved-search-input:focus-visible). */
+.hmfilter-pill:focus-visible {
+  outline: 2px solid var(--accent-border);
+  outline-offset: 1px;
 }
 
 .hmfilter-pill.mm-fc-js.active {
@@ -1122,6 +1135,17 @@
 .du-resolved-badge--descartado {
   background: color-mix(in srgb, var(--red) 10%, transparent);
   color: var(--red);
+}
+
+/* TKT-[pendiente-ID] (REQ-[pendiente-ID] · CAEL-08111530-02): variante --pendiente — completa
+   el set de 3 status que la vista consolidada necesita mostrar simultáneamente. Reutiliza
+   --accent, mismo token ya usado como color de "seleccionado" en .hmfilter-pill.active — sin
+   token nuevo. .du-resolved-badge deja de ser exclusivo del sub-tab Resueltos: la clase base
+   (line ~1105) no tiene nada scoped a "resuelto", nombre se conserva por continuidad de la
+   familia — mismo criterio que .du-resolved-search-input, reutilizado sin duplicar selector. */
+.du-resolved-badge--pendiente {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent-text);
 }
 
 /* Empty states — vacío real vs búsqueda sin resultados (AC de TKT2, mensajes distintos) */
