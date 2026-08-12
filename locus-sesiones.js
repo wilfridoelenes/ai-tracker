@@ -1,4 +1,6 @@
-// [PP] mod:63 · autor:Rune · 2026-08-10 06:28 UTC-6
+// [PP] mod:64 · autor:Rune · 2026-08-12 06:15 UTC-6
+// TKT2 (CAEL-08111815-01): saveWorker() agregado en _hoyMarkExhausted() y
+// confirmBlindExhaust() — save()/saveImmediate() ya no persisten ais en tracker_state.
 // TKT-202608-284 (REQ-202608-117): case 'open-ingest' del delegador ahora llama
 // openSplitViewRoute(aiId) (locus-ui-shell.js) en vez de _openIngestModal(aiId)
 // directo — único punto de entrada compartido por la card individual y el atajo
@@ -80,7 +82,7 @@ import { closeLogCard, closePopup, openDetail, startRename, toggleInReview, togg
 // getProjectById · selectProjectFilter consumidas via _sesSPCallbacks registry (registradas
 // por locus-sprint-project en DOMContentLoaded). TKT-202607-213: openProjModal retirada de este
 // archivo — el botón que la invocaba migró a data-action="es-switch-tab".
-import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, getLastAISession, _findSession, save, getState, saveImmediate, _getCurrentSession, _isInSession, _resetWorker, getActiveSprints, LOCUS_KEYS, getSupabaseContext, _relTs } from './locus-storage.js';
+import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, getLastAISession, _findSession, save, getState, saveImmediate, _getCurrentSession, _isInSession, _resetWorker, getActiveSprints, LOCUS_KEYS, getSupabaseContext, _relTs, saveWorker } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 import { esc, openSplitViewRoute } from './locus-ui-shell.js';
 import { archiveAI, closeCardMenu, confirmClear, deleteAI, openAddAI, openAvatarModal, toggleArchivedSection, toggleCardMenu } from './locus-workers.js';
@@ -800,6 +802,8 @@ function _hoyMarkExhausted(id) {
   ai.resetTime = '';
   ai.resetEpoch = null;
   save();
+  // TKT2 (CAEL-08111815-01): save() ya no sube ais — persistir el Worker por su canal propio.
+  saveWorker(ai);
   _markTrackerDirty(); render();
 }
 
@@ -852,6 +856,8 @@ function confirmBlindExhaust(id) {
   saveImmediate().then(() => {
     _markTrackerDirty(); render();
   });
+  // TKT2 (CAEL-08111815-01): saveImmediate() ya no sube ais — persistir el Worker aparte.
+  saveWorker(ai);
   showToast('info', `${ai.name} — agotada sin sesión · desbloqueo a las ${result.label}`);
 }
 

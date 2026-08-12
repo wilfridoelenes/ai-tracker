@@ -1,4 +1,7 @@
-// [PP] mod:5 · autor:Rune · 2026-07-14 UTC-6
+// [PP] mod:6 · autor:Rune · 2026-08-12 06:15 UTC-6
+// TKT2 (CAEL-08111815-01): saveWorker()/deleteWorker() agregados en los 5 sitios de mutación
+// de Worker (avatar, alta, archived, y las dos bajas) — save()/saveImmediate() ya no persisten
+// ais en tracker_state, cada sitio persiste su propio cambio vía el canal dedicado.
 // TKT-[pendiente-ID] (REQ CAEL-01): AVATAR_LOGOS.claude reemplazado — logo oficial
 // de marca (fill="#d97757" fijo) en vez del ícono abstracto circular anterior.
 // [PP] mod:4 · autor:Rune · 2026-07-13 UTC-6
@@ -19,7 +22,7 @@ import { _restoreModalFocus, _saveModalTrigger, closeModal } from './locus-modal
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchTab } from './locus-ui-shell.js';
 
-import { _mutateSessions, getAI, getAISessions, save, saveImmediate, state } from './locus-storage.js';
+import { _mutateSessions, getAI, getAISessions, save, saveImmediate, state, saveWorker, deleteWorker } from './locus-storage.js';
 import { getPopAIId } from './locus-session-popup.js';
 
 // ── AVATAR_LOGOS — fuente de verdad de SVGs de avatares ──
@@ -83,6 +86,8 @@ export function confirmAvatarModal() {
   ai.avatar = AVATAR_LOGOS[selectedAvatarKey] || AVATAR_LOGOS.default;
   closeAvatarModal();
   save();
+  // TKT2 (CAEL-08111815-01): Workers persisten en tracker_workers — save() ya no sube ais.
+  saveWorker(ai);
   window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   if (getPopAIId() === avatarModalAIId) {
     const popAvatar = document.getElementById('pop-avatar');
@@ -121,10 +126,13 @@ export function confirmAddAI() {
     inp.focus(); inp.select();
     return;
   }
-  state.ais.push({ id: 'ai-' + Date.now() + '-' + Math.random().toString(36).slice(2), name, status: 'available', resetTime: '', sessions: [], showAll: false, notes: '', avatar: AVATAR_LOGOS.default }); // B-202605-079: componente random evita colisión en mismo ms
+  const _newAi = { id: 'ai-' + Date.now() + '-' + Math.random().toString(36).slice(2), name, status: 'available', resetTime: '', sessions: [], showAll: false, notes: '', avatar: AVATAR_LOGOS.default }; // B-202605-079: componente random evita colisión en mismo ms
+  state.ais.push(_newAi);
   closeModal('add-modal');
   document.getElementById('add-modal').classList.remove('open');
   save();
+  // TKT2 (CAEL-08111815-01): alta de Worker — persistir la fila nueva en tracker_workers.
+  saveWorker(_newAi);
   if (currentTab !== 'tracker') switchTab('tracker'); else window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   showToast('success', 'IA agregada');
 }
@@ -149,6 +157,9 @@ export function deleteAI(id) {
   } else {
     state.ais = state.ais.filter(a => a.id !== id);
     saveImmediate(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
+    // TKT2 (CAEL-08111815-01): saveImmediate() ya no borra Workers del blob — retirar la
+    // fila de tracker_workers explícitamente (idempotente, mismo criterio que deleteAI()).
+    deleteWorker(id);
   }
 }
 
@@ -258,6 +269,8 @@ export function archiveAI(id) {
   if (!ai) return;
   ai.archived = !ai.archived;
   saveImmediate(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
+  // TKT2 (CAEL-08111815-01): persistir el toggle de archived en tracker_workers.
+  saveWorker(ai);
   showToast('info', ai.archived ? `${ai.name} archivada` : `${ai.name} restaurada`);
 }
 
@@ -312,6 +325,8 @@ export function executeConfirm(id, action) {
   } else if (action === 'delete') {
     state.ais = state.ais.filter(a => a.id !== id);
     saveImmediate(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
+    // TKT2 (CAEL-08111815-01): mismo caso que deleteAI() — baja de Worker vía inline confirm.
+    deleteWorker(id);
   }
 }
 

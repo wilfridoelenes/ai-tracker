@@ -1,4 +1,8 @@
-// [PP] mod:23 · autor:Rune · 2026-08-09 UTC-6
+// [PP] mod:24 · autor:Rune · 2026-08-12 06:15 UTC-6
+// TKT2 (CAEL-08111815-01): saveWorker() agregado en _qcAttemptSave() (tras éxito de
+// saveImmediate(), antes del rollback) y en dismissInterrupted() — save()/saveImmediate()
+// ya no persisten ais en tracker_state. interruptSession() no lleva save propio — su único
+// caller (_qcAttemptSave) ya cubre la persistencia.
 // Fix inline (triggered_by INC-[pendiente-ID]): _qcAttemptSave() mutaba ai.status/resetTime/
 // resetEpoch/interrupted DESPUÉS de que saveImmediate() ya había subido `state` y disparado
 // shell:render-radar — la mutación nunca llegaba a Supabase/localStorage ni al Radar. Movida
@@ -31,7 +35,7 @@ import { showToast, toast } from './locus-toast.js';
 
 import { _horaUpdate, interpretHora } from './locus-session-hora.js';
 
-import { getAI, getActiveProject, getState, save, saveImmediate } from './locus-storage.js';
+import { getAI, getActiveProject, getState, save, saveImmediate, saveWorker } from './locus-storage.js';
 
 import { esc, getCurrentTab, switchTab } from './locus-ui-shell.js';
 
@@ -366,6 +370,10 @@ function _qcAttemptSave(ai, horaResult, wipChecked) {
   saveImmediate().then(() => {
     _qcSaving = false;
     _qcRetryFn = null;
+    // TKT2 (CAEL-08111815-01): saveImmediate() ya no sube ais — persistir el Worker por su
+    // canal propio, solo tras confirmar que el guardado general tuvo éxito (mismo criterio
+    // que el rollback de abajo: no persistir un estado que después se revierte).
+    saveWorker(ai);
 
     // AC edge case: si el usuario cerró el modal manualmente mientras guardaba, no reabrir
     // ni mostrar el toast final — el guardado ya completó, solo faltaba el feedback visual.
@@ -421,7 +429,10 @@ function interruptSession(id) {
 export function dismissInterrupted(id) {
   const ai = getAI(id);
   ai.interrupted = false;
-  save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
+  save();
+  // TKT2 (CAEL-08111815-01): save() ya no sube ais — persistir el Worker por su canal propio.
+  saveWorker(ai);
+  window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   if (getCurrentTab() === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
 }
 

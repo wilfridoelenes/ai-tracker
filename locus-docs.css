@@ -1,4 +1,9 @@
-/* [PP] mod:11 · autor:Nova · 2026-08-12 UTC-6 */
+/* [PP] mod:12 · autor:Nova · 2026-08-12 UTC-6 */
+/* Patch de limpieza (cierre de REQ-vista-consolidada-doc-updates): retirado selector huérfano
+   .du-resolved-list — ver nota inline en su antigua ubicación. Sin cambio visual: el shell que
+   lo consumía ya no existe en index.html (mod:195). .du-btn-copy-single (Rune, fix inline #2,
+   locus-docs.js mod:36) no requiere regla propia — hereda base/hover/is-copied/is-copy-error
+   de .du-btn-copy-group por diseño (co-existe con esa clase en el markup generado). */
 /* TKT1 (REQ-vista-consolidada-doc-updates, CAEL-08111530-02): .hmfilter-pill gana :focus-visible
    (gap de accesibilidad, sin regla previa) + .du-resolved-badge--pendiente (completa el set de
    3 status). Sin componente nuevo — TKT1 reutiliza .hmfilter-pill (filtro), .du-resolved-badge
@@ -1058,15 +1063,9 @@
   background: var(--accent-dim);
 }
 
-/* Lista */
-.du-resolved-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px 16px;
-}
-
-.du-resolved-entry {
+/* .du-resolved-list retirado (Patch, Nova, 2026-08-12): selector huérfano — el shell
+   #du-resolved-list que lo consumía fue retirado de index.html en la consolidación a
+   #du-unified-list (mod:195, Rune). Sin elemento vivo con esta clase — regla muerta. */.du-resolved-entry {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md-plus);

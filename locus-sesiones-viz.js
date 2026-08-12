@@ -1,4 +1,6 @@
-// [PP] mod:11 · autor:Rune · 2026-08-06 15:25 UTC-6
+// [PP] mod:12 · autor:Rune · 2026-08-12 06:15 UTC-6
+// TKT2 (CAEL-08111815-01): saveWorker() agregado en confirmCorrectHora() y
+// unlockNowFromCard() — save() ya no persiste ais en tracker_state.
 // TKT4 (REQ CAEL-08061000-01): confirmCorrectHora() ahora bloquea (antes solo advertía,
 // T-202606-065) cuando interpretHora().withinResetWindow es false — mismo criterio
 // centralizado que TKT1/TKT2/TKT3, reemplaza el umbral duplicado (5*3600000 hardcoded)
@@ -24,7 +26,7 @@ import { switchSubTab, switchTab, esc } from './locus-ui-shell.js';
 
 import { fmt12, interpretHora } from './locus-session-hora.js';
 
-import { getAI, getAISessions, save, _resetWorker } from './locus-storage.js';
+import { getAI, getAISessions, save, _resetWorker, saveWorker } from './locus-storage.js';
 import { dismissInterrupted } from './locus-sesiones-capture.js'; // TKT2 (CAEL-0723-03)
 
 // ── B-202604-094: Corregir hora de desbloqueo desde card ──
@@ -164,7 +166,11 @@ function confirmCorrectHora() {
       if (wipChecked) { ai.interrupted = true; }
       else { dismissInterrupted(id); }
     }
-    _markTrackerDirty(); save(); render();
+    _markTrackerDirty(); save();
+    // TKT2 (CAEL-08111815-01): save() ya no sube ais — persistir el Worker por su canal
+    // propio. dismissInterrupted() (rama else de arriba) ya persiste el suyo por su cuenta.
+    saveWorker(ai);
+    render();
   } else {
     inp.classList.add('error');
     setTimeout(() => inp.classList.remove('error'), 1200);
@@ -185,7 +191,10 @@ function unlockNowFromCard() {
   _correctHoraAIId = null;
   const modal = document.getElementById('gconfirm-overlay');
   if (modal) modal.classList.remove('open');
-  _markTrackerDirty(); save(); render();
+  _markTrackerDirty(); save();
+  // TKT2 (CAEL-08111815-01): save() ya no sube ais — persistir el reset del Worker.
+  saveWorker(ai);
+  render();
 }
 
 // ─── R-202604-036: _showItemVizPanel — visualizador de ítems al parsear paste ───

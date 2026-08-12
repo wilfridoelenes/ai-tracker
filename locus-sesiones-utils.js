@@ -1,4 +1,6 @@
-// [PP] mod:9 · autor:Rune · 2026-07-09 09:20 UTC-6
+// [PP] mod:10 · autor:Rune · 2026-08-12 06:15 UTC-6
+// TKT2 (CAEL-08111815-01): saveWorker() agregado dentro del setInterval de auto-reset —
+// save() de fin de ciclo ya no persiste ais en tracker_state.
 // locus-sesiones-utils.js
 // Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal · Reset de IAs
@@ -6,7 +8,7 @@
 // Debe cargarse ANTES de locus-sesiones.js
 
 import { relDate } from './locus-session-hora.js';
-import { getAI, getAISessions, getActiveProject, getState, save, _resetWorker } from './locus-storage.js';
+import { getAI, getAISessions, getActiveProject, getState, save, _resetWorker, saveWorker } from './locus-storage.js';
 import { switchTab, getCurrentTab } from './locus-ui-shell.js';
 import { showToast } from './locus-toast.js';
 import { renderStatusBar, updateStats } from './locus-sesiones-stats.js';
@@ -388,6 +390,9 @@ setInterval(() => {
     if (_resetExpired(ai.resetTime, ai.resetEpoch)) {
       _resetWorker(ai);
       changed = true;
+      // TKT2 (CAEL-08111815-01): save() de abajo ya no sube ais — persistir cada Worker
+      // reseteado por su canal propio, por fila, en el mismo tick del forEach.
+      saveWorker(ai);
       showToast('info', `${ai.name} ya disponible`);
       return;
     }

@@ -1,4 +1,6 @@
-// [PP] mod:90 · autor:Rune · 2026-08-11 18:05 UTC-6
+// [PP] mod:91 · autor:Rune · 2026-08-12 06:15 UTC-6
+// TKT2 (CAEL-08111815-01): saveWorker(_liveAi) agregado tras el único saveImmediate() de
+// este archivo — excepción de _liveAi.status='in_session' preservada sin cambio de condición.
 // TKT-202608-321 (REQ-202608-127): _doApplyMergeAndFinish() completo envuelto en
 // syncState.withSaveLock() — cierra la ventana de carrera entre el push de newSess y el
 // await saveImmediate() donde un _applyStateRow remoto podía pisar la mutación local antes
@@ -190,7 +192,7 @@ import { _markRadarDirty, renderGlobalRadarSidebar, toggleRadarSidebar } from '.
 import { stopSessionTimer } from './locus-sesiones-utils.js';
 import { _getLocalStorageUsage } from './locus-sprint-project.js';
 import { _generateBacklogContent, _generateBacklogMd } from './locus-backlog-generator.js';
-import { LOCUS_KEYS, _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, getSupabaseContext, saveImmediate, _mutateSessions } from './locus-storage.js'; // TKT4: _blogLog retirado — DocLog de duplicados ahora vive en _resolveCheckpointBatch (locus-session-parse.js) · TKT1 REQ-sessions-mutator: _mutateSessions agregado · TKT (REQ-[pendiente-ID] · consolidación sprint_proposal): setPendingSprintProposal retirado del import — la persistencia paralela que agregó se revierte, ver header mod nuevo
+import { LOCUS_KEYS, _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, getSupabaseContext, saveImmediate, _mutateSessions, saveWorker } from './locus-storage.js'; // TKT4: _blogLog retirado — DocLog de duplicados ahora vive en _resolveCheckpointBatch (locus-session-parse.js) · TKT1 REQ-sessions-mutator: _mutateSessions agregado · TKT (REQ-[pendiente-ID] · consolidación sprint_proposal): setPendingSprintProposal retirado del import — la persistencia paralela que agregó se revierte, ver header mod nuevo
 // TKT-202608-321 (REQ-202608-127): import namespace — withSaveLock es el único símbolo
 // consumido de este módulo en este archivo. namespace en vez de named import porque
 // locus-sync-state.js expone getters de los 3 ejes (echo/subscripción/save) que no
@@ -1051,7 +1053,12 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // el debounce path y reescribir el draft si hay un oninput pendiente en la cola del browser.
   // El rAF post-render ya limpia el textarea y valida el estado final.
   if (_taClear) { _taClear.value = ''; _taClear.classList.remove('ta-has-items'); }
-  await saveImmediate(); _markTrackerDirty(); render();
+  await saveImmediate();
+  // TKT2 (CAEL-08111815-01): excepción preservada del contrato (_Locus-module-contracts
+  // §fila 68) — este sigue siendo el único punto de escritura de 'in_session'. saveImmediate()
+  // ya no sube ais al blob; se agrega saveWorker(_liveAi) sin alterar la condición de arriba.
+  saveWorker(_liveAi);
+  _markTrackerDirty(); render();
   // R-202604-022: alerta de cuota tras guardar
   _checkStorageQuota();
   // B-007: actualizar stat bar y lista backlog siempre al guardar sesión

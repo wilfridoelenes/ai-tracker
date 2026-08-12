@@ -1,8 +1,10 @@
-// [PP] mod:160 · autor:Rune · 2026-08-11 18:05 UTC-6
+// [PP] mod:161 · autor:Rune · 2026-08-12 06:15 UTC-6
 // TKT1 (REQ CAEL-08111600-01): getWorkers()/saveWorker()/_migrateWorkersToTable() sobre
 // tracker_workers — mismo patrón de _upsertSprint()/getAllProjectsSprints() (T-202606-005).
-// No reemplaza state.ais ni getAI() — ningún consumidor migra en este TKT, ver no_incluye
-// del TKT. Migración es herramienta de consola, mismo patrón que verifyConstraintsSync().
+// TKT2 (CAEL-08111815-01): ais excluido del blob de tracker_state (stateWithoutSessions),
+// getWorkers() reemplaza la lectura legacy en _applyStateRow(), saveWorker() cubre el
+// auto-reset interno de este archivo, y deleteWorker() cierra el gap de borrado — ver AC
+// correspondiente. Header no reflejaba estos cambios ya presentes en el cuerpo — corregido.
 // TKT-202608-236 (REQ-202608-090): nuevo par getter/setter proj.docUpdateResolvedLog —
 // mismo patrón que _getDocUpdateIndex()/_setDocUpdateIndex() (T-202606-032), array
 // independiente, sin tocar docUpdateIndex. Opción C sobre B en Fase 2 de Cael (CRITERIO DE
@@ -4131,6 +4133,23 @@ export async function saveWorker(worker) {
     .upsert(row, { onConflict: 'id' });
   if (error) {
     logger.error('[Locus] TKT1 (CAEL-08111600-01): upsert a tracker_workers falló', error);
+  }
+}
+
+// TKT2 (CAEL-08111815-01): saveWorker() es upsert — no borra filas. Gap detectado por Rune
+// durante implementación de locus-workers.js (deleteAI()/executeConfirm('delete') hacen
+// state.ais = state.ais.filter(...) sin contraparte de borrado en tracker_workers). Elimina
+// la fila correspondiente; idempotente — sin error si la fila no existía (mismo criterio de
+// no-op silencioso que saveWorker() sin auth).
+export async function deleteWorker(id) {
+  if (!_supabase || !_supabaseUser || !id) return;
+  const { error } = await _supabase
+    .from('tracker_workers')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', _supabaseUser.id);
+  if (error) {
+    logger.error('[Locus] TKT2 (CAEL-08111815-01): delete en tracker_workers falló', error);
   }
 }
 
