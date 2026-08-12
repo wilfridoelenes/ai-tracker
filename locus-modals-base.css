@@ -792,6 +792,73 @@
   text-overflow: ellipsis;
 }
 
+/* TKT1 (ref_id CAEL-08111800-02, parent REQ ref_id CAEL-08111800-01): variante informativa
+   para el caso puntual de bloque de trazabilidad pura — items:[] + docs_verified presente +
+   sin doc_updates (Excepción de dueño co-presente, __BR-Core OWNERSHIP DE DOCUMENTOS). No
+   contradice el criterio "lectura pasiva, no un resultado clasificado" del comentario de
+   TKT-202608-235 (arriba) — sigue sin existir un sistema general de badges por tipo; esta es
+   la única excepción declarada, para el único caso donde el founder no tiene ninguna otra
+   señal de que el bloque no tocará backlog hasta después de procesarlo (_processIngestBatch
+   retorna con solo un toast efímero en ese caso, sin abrir panel — locus-session-parse.js).
+   Token informativo --blue: mismo criterio que _Locus-css-ref §Patrones ("familia --blue es
+   el token canónico de superficies informativas", ver .qinc-readonly-banner) — pero en
+   variante pill/inline (10%/28%, sin mezcla con --surface), no banner de bloque completo.
+   .qinc-readonly-banner usa 12%/30%+--surface porque ocupa su propio bloque de ancho completo
+   entre #qinc-stats-bar y #qinc-panel-body; acá el contenedor es una fila compacta de lista
+   (.ingest-block-preview-item), así que se reutiliza el patrón 10%/28% transparente ya
+   vigente en este mismo archivo (.validation-warnings .validation-msg,
+   .validation-force-btn), sustituyendo --amber por --blue — mismo mecanismo, tono distinto. */
+.ingest-block-preview-icon--trace {
+  color: var(--blue);
+}
+
+.ingest-block-preview-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ingest-block-preview-title-row .ingest-block-preview-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.ingest-block-preview-tag {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
+  color: var(--blue-text);
+  border: 1px solid color-mix(in srgb, var(--blue) 28%, transparent);
+  white-space: nowrap;
+}
+
+/* Link de origen (REQ/TKT) dentro de .ingest-block-preview-meta — opcional, solo cuando el
+   código se resuelve contra un ítem real (AC "Link de origen" de TKT2). Mismo color
+   informativo que el resto del bloque de trazabilidad — no reusa el estilo de link genérico
+   del panel DIFF (.mdiff-*), esa familia vive en otro modal (Merge Diff Panel, 2+ bloques),
+   no en este preview de textarea. */
+.ingest-block-preview-origin {
+  color: var(--blue-text);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ingest-block-preview-origin:hover {
+  text-decoration: underline;
+}
+
+.ingest-block-preview-origin:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
 .modal-actions--mt {
   margin-top: 16px;
 }
