@@ -1,4 +1,10 @@
-// [PP] mod:90 · autor:Rune · 2026-08-11 01:15 UTC-6
+// [PP] mod:91 · autor:Rune · 2026-08-12 07:10 UTC-6
+// TKT-202608-326 (REQ-202608-130, TKT1): badge `.mdiff-docrel-badge` en cards del panel DIFF
+// para TKT que declaran doc_relevance:{css_ref|ux_ref|ui_inventory: "sí"} sin la confirmación
+// correspondiente (doc_relevance_confirmada), cuando el status transiciona a en-revision/done
+// dentro del MISMO bloque pegado (tgItems + _patchItems ya resueltos en este archivo — no
+// consulta getItems() ni CHECKPOINTs anteriores, no_incluye del TKT). No aplica a REQ
+// (context_strategy queda fuera — se confirma en cierre de REQ, no en este check).
 // TKT3 (REQ CAEL-08061000-01): alineación visual con Quick Capture (hint vacío estático
 // "hora de desbloqueo (opcional)" — el label ya decía "Hora de reset", sin cambio ahí) +
 // bloqueo de confirmación cuando la hora excede la ventana de 5h (interpretHora().
@@ -678,6 +684,46 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // R-202605-148: orden canónico INC → REQ → TKT → DISC para sort dentro de sección
   const _typeOrder = { INC: 0, REQ: 1, TKT: 2, DISC: 3 };
 
+  // TKT-202608-326 (REQ-202608-130, TKT1): mapas construidos una sola vez sobre tgItems
+  // (ítems completos no-patch, ya filtrado en línea ~531) + _patchItems (línea ~530) —
+  // ambos son el objeto crudo parseado del bloque pegado, no el diff calculado. Cruza campos
+  // dentro del mismo bloque exclusivamente — no_incluye del TKT: sin consulta a getItems().
+  const _DOCREL_FIELDS = ['css_ref', 'ux_ref', 'ui_inventory'];
+  const _DOCREL_TARGET_STATUS = ['en-revision', 'done'];
+  // code -> objeto doc_relevance declarado por el TKT en este mismo bloque
+  const _docRelDeclared = {};
+  tgItems.forEach(i => {
+    if (i && i.type === 'TKT' && i.code && i.doc_relevance && typeof i.doc_relevance === 'object') {
+      _docRelDeclared[i.code] = i.doc_relevance;
+    }
+  });
+  // code -> Set de campos confirmados vía type:patch (doc_relevance_confirmada) en este mismo bloque
+  const _docRelConfirmed = {};
+  _patchItems.forEach(p => {
+    if (p && p.code && p.doc_relevance_confirmada && typeof p.doc_relevance_confirmada === 'object') {
+      const set = _docRelConfirmed[p.code] || (_docRelConfirmed[p.code] = new Set());
+      _DOCREL_FIELDS.forEach(f => { if (p.doc_relevance_confirmada[f] === 'sí') set.add(f); });
+    }
+  });
+  // code -> true si el status del ítem llega a en-revision/done dentro de este mismo bloque —
+  // vía el ítem completo (status directo) o vía type:patch con campo status.
+  const _docRelStatusTransitioned = {};
+  tgItems.forEach(i => {
+    if (i && i.type === 'TKT' && i.code && _DOCREL_TARGET_STATUS.includes(i.status)) _docRelStatusTransitioned[i.code] = true;
+  });
+  _patchItems.forEach(p => {
+    if (p && p.code && _DOCREL_TARGET_STATUS.includes(p.status)) _docRelStatusTransitioned[p.code] = true;
+  });
+  // AC2: un único badge listando los campos separados por coma cuando hay más de uno.
+  const _docRelBadgeHtml = code => {
+    const declared = _docRelDeclared[code];
+    if (!declared || !_docRelStatusTransitioned[code]) return '';
+    const confirmed = _docRelConfirmed[code] || new Set();
+    const missing = _DOCREL_FIELDS.filter(f => declared[f] === 'sí' && !confirmed.has(f));
+    if (!missing.length) return '';
+    return `<span class="mdiff-docrel-badge" title="Confirmar doc_relevance_confirmada al cerrar el TKT">doc_relevance sin confirmar — ${esc(missing.join(', '))}</span>`;
+  };
+
   const _pill = (cls, label) =>
     `<span class="mdiff-pill mdiff-pill--${cls}">${label}</span>`;
 
@@ -880,6 +926,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         <div class="mdiff-card-top">
           <span class="mdiff-code mdiff-card-title">${esc(code)}</span>
           ${pillsHtml}
+          ${_docRelBadgeHtml(code)}
           ${_sprintSelect(code, sprintOverride, itemType)}
         </div>
         ${_parentHtml(code, parentOverride)}
@@ -983,6 +1030,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         <div class="mdiff-card-top">
           <span class="mdiff-code mdiff-card-title">${esc(patchItem.code)} · patch</span>
           ${_statusChipHtml(changes)}
+          ${_docRelBadgeHtml(patchItem.code)}
           <button class="mdiff-zone-chevron" type="button" data-action="mdiff-toggle-zone"
                   aria-expanded="false" aria-label="Ver detalle del patch de ${esc(patchItem.code)}">▾</button>
         </div>

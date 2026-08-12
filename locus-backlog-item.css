@@ -1,4 +1,10 @@
-/* [PP] mod:99 · autor:Nova · 2026-08-11 15:40 UTC-6 */
+/* [PP] mod:100 · autor:Nova · 2026-08-12 07:10 UTC-6 */
+/* TKT-202608-326 (REQ-202608-130, TKT1): .mdiff-docrel-badge — mismas dimensiones de .mdiff-pill
+   (base compartida verificada contra código real, línea ~2817) + tono --amber 10%/28% ya vigente
+   en .mdiff-pill--retroceso/--warn (_Locus-css-ref mod:191, patrón confirmado idéntico para
+   "confirmación faltante, no bloqueante" — semántico warning, no informativo). Clase propia y no
+   reuso de .mdiff-pill--warn porque el texto es dinámico por campo (css_ref/ux_ref/ui_inventory),
+   no una etiqueta fija de una palabra. */
 /* TKT (CAEL-08101542-02, parent REQ CAEL-08101542-01): feedback visual de copiado en
    .bitem-type-code — ver bloque inline en el selector correspondiente, más abajo.
    Reaplicado sobre mod:96 real (TKT-202608-301, alias de tokens de texto retirados) — la
@@ -2871,6 +2877,20 @@
   background: color-mix(in srgb, var(--pink) 10%, transparent);
   color: var(--pink-text);
   border: 1px solid color-mix(in srgb, var(--pink) 28%, transparent);
+}
+
+/* TKT-202608-326 (REQ-202608-130, TKT1) — badge de doc_relevance sin confirmar en panel DIFF */
+.mdiff-docrel-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-2xl);
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
+  color: var(--amber-text);
+  border: 1px solid color-mix(in srgb, var(--amber) 28%, transparent);
 }
 
 .mdiff-retroceso-check {
