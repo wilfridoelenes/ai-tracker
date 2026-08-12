@@ -1,4 +1,4 @@
-// [PP] mod:161 · autor:Rune · 2026-08-12 06:15 UTC-6
+// [PP] mod:162 · autor:Rune · 2026-08-12 07:40 UTC-6
 // TKT1 (REQ CAEL-08111600-01): getWorkers()/saveWorker()/_migrateWorkersToTable() sobre
 // tracker_workers — mismo patrón de _upsertSprint()/getAllProjectsSprints() (T-202606-005).
 // TKT2 (CAEL-08111815-01): ais excluido del blob de tracker_state (stateWithoutSessions),
@@ -2921,40 +2921,19 @@ export function _resetWorker(ai) {
   ai.availableSince = Date.now();
 }
 
-// TKT1 (REQ CAEL-0730-01): _autoResetExpiredWorkers — factorizada desde load() y
-// _applyStateRow(), que repetían el mismo forEach. Único caller de _resetWorker() para el
-// "reset automático por cooldown expirado" — no muta nada directamente, delega en
-// _resetWorker() (contrato: _Locus-module-contracts §2, único punto de mutación
-// exhausted → available). No llama save() — responsabilidad del caller, mismo criterio ya
-// vigente en _resetWorker().
-function _autoResetExpiredWorkers() {
-  let changed = false;
-  (state?.ais || []).forEach(ai => {
-    if (ai.status === 'exhausted' && ai.resetTime && _resetExpiredInternal(ai.resetTime, ai.resetEpoch)) {
-      _resetWorker(ai);
-      changed = true;
-    }
-  });
-  return changed;
-}
-
-// TKT1 (REQ CAEL-0730-01): timer local de re-evaluación de cooldown expirado. Antes de este
-// TKT, _resetWorker() solo se disparaba en load() (boot) y en _applyStateRow() (dentro de
-// _loadFromSupabase(), es decir, en eventos de sync/auth) — sin ningún timer periódico, un
-// worker exhausted permanecía clasificado como tal mientras la pestaña seguía abierta e idle
-// después de que su cooldown venciera, sin recarga ni evento de auth que lo corrigiera.
-// Realtime está desactivado (_pp-strategy §4, decisión 2026-07-08) — no hay push del backend
-// que supla este gap. Intervalo de 30s: suficiente para reclasificación oportuna del radar sin
-// overhead relevante — la precisión del countdown visual (rsb-cd-*, getCD) no depende de este
-// timer, solo la transición de status real.
-let _autoResetIntervalId = null;
-function _startAutoResetInterval() {
-  if (_autoResetIntervalId) return; // guard de re-inicialización — mismo patrón _rsbAutoHideInited (locus-radar.js)
-  _autoResetIntervalId = setInterval(() => {
-    if (!_appReady) return; // sin _initApp completo no hay refs válidas para persistir/renderizar
-    if (_autoResetExpiredWorkers()) save();
-  }, 30000);
-}
+// TKT-[pendiente-ID] (limpieza, hallazgo de sesión de auditoría de ciclo de vida de Worker):
+// _autoResetExpiredWorkers() + _startAutoResetInterval() eliminadas — código muerto, sin
+// ningún caller en el repo (verificado por grep antes de retirar). Nacieron en TKT1
+// (REQ CAEL-0730-01) como el primer timer periódico de auto-reset, pero el mecanismo real
+// en producción es el setInterval de locus-sesiones-utils.js (T-058/T-082, cada 1000ms,
+// migrado desde locus-misc-ui.js) — este bloque nunca fue su reemplazo, quedó duplicado y
+// sin invocar. Riesgo que motivó la limpieza: de reconectarse por error, reintroduciría el
+// mismo bug de persistencia que el hallazgo hermano de esta sesión (unlockNowFromPopup) —
+// _autoResetExpiredWorkers() delega en _resetWorker() pero el caller solo llamaba save(),
+// sin saveWorker(), y save()/_saveFlush() excluye ais del blob desde TKT2
+// (CAEL-08111815-01). _resetWorker() se conserva sin cambio — sigue siendo el único punto
+// de mutación exhausted → available, con callers reales en load(), _applyStateRow(),
+// locus-sesiones-utils.js, locus-sesiones-viz.js y locus-session-popup.js.
 
 // R-202605-022 Fase 3 AC-2: lock anti-doble-load — previene cargas concurrentes de _loadFromSupabase.
 // onAuthStateChange(INITIAL_SESSION) + getSession() pueden disparar en paralelo;

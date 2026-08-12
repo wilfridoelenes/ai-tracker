@@ -1,4 +1,4 @@
-// [PP] mod:23 · autor:Rune · 2026-07-27 21:10 UTC-6
+// [PP] mod:24 · autor:Rune · 2026-08-12 07:40 UTC-6
 // INC-202607-002: class="log-scroll-top hidden" → "log-scroll-top is-hidden" — .hidden no
 // tenía regla CSS en ninguna hoja del proyecto; el botón "↑" renderizaba visible por defecto
 // hasta el primer evento de scroll. _logScrollHandler ya togglea is-hidden — sin cambio de
@@ -18,7 +18,7 @@ import { _sessRelTsShared } from './locus-sesiones-utils.js';
 // T-202606-166: _getActiveProjectFilter movida a locus-storage.js
 import { showToast, showToastInline, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab, getCurrentTab } from './locus-ui-shell.js';
-import { _findSession, _findSessionByAI, _getActiveProjectFilter, _mutateSessions, getAI, getAISessions, getActiveTracker, getState, save, saveImmediate, _resetWorker } from './locus-storage.js';
+import { _findSession, _findSessionByAI, _getActiveProjectFilter, _mutateSessions, getAI, getAISessions, getActiveTracker, getState, save, saveImmediate, saveWorker, _resetWorker } from './locus-storage.js';
 
 // TKT0-gen2: deriva tipo Gen2 desde code o campo type — reemplaza code[0]
 function _codeKind(codeOrItem) {
@@ -523,6 +523,11 @@ function unlockNowFromPopup() {
   if (!ai) return;
   _resetWorker(ai);
   save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
+  // TKT-[pendiente-ID] (INC-[pendiente-ID]): save() ya no sube ais al blob de tracker_state
+  // desde la migración a tracker_workers (CAEL-08111815-01) — este sitio quedó fuera del
+  // alcance de ese TKT. Mismo patrón que unlockNowFromCard() (locus-sesiones-viz.js):
+  // persistir el Worker por su canal propio, sin depender de save().
+  saveWorker(ai);
   if (getCurrentTab() === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
   closePopup();
   showToast('success', `${ai.name} marcada como disponible`);
