@@ -1,4 +1,10 @@
-// [PP] mod:34 · autor:Rune · 2026-08-11 17:10 UTC-6
+// [PP] mod:35 · autor:Rune · 2026-08-11 17:35 UTC-6
+// Fix inline sobre TKT2 (REQ-vista-consolidada-doc-updates): 4 call sites seguían apuntando
+// a funciones retiradas en la consolidación (renderDocUpdatesPending x2 en processDocUpdate,
+// _initDocUpdatesListeners/_initDocUpdatesResolvedListeners en el init del módulo) —
+// ReferenceError en carga de módulo y al crear/actualizar un DOC-UPDATE. Actualizados a
+// renderDocUpdatesUnified()/_initDocUpdatesUnifiedListeners(). Mismo archivo, mismo TKT,
+// sin scope nuevo — criterio de fix inline (__BR-Core §7).
 // TKT2 (REQ-vista-consolidada-doc-updates): renderDocUpdatesPending()/renderDocUpdatesResolved()
 // se consolidan en renderDocUpdatesUnified() — un solo render sobre #du-unified-list (index.html
 // mod:195, TKT1 shell de Nova), con filtro Todos/Pendientes/Resueltos (variable local _duFilter,
@@ -983,7 +989,9 @@ export function processDocUpdate(update, checkpointTitle) {
     _blogLog('ckpt-creado', key, checkpointTitle, 'backlog');
     // INC-202608-087: sin este call, el sub-tab/badge no reflejaban la entrada nueva hasta
     // que el sub-tab (hasta ahora inalcanzable) se activara manualmente — círculo cerrado.
-    renderDocUpdatesPending();
+    // TKT2 (REQ-vista-consolidada-doc-updates): call site actualizado a la función unificada —
+    // renderDocUpdatesPending() ya no existe (gap detectado en validación post-TKT2).
+    renderDocUpdatesUnified();
     return { key, conflicto: false, msg: null };
   }
 
@@ -1004,7 +1012,8 @@ export function processDocUpdate(update, checkpointTitle) {
   _blogLog('ckpt-creado', key, 'conflicto: ' + checkpointTitle, 'backlog');
   // INC-202608-087: mismo criterio que la rama sin conflicto — mantener el sub-tab/badge
   // sincronizados con el índice real en cuanto cambia, no solo al activar el sub-tab.
-  renderDocUpdatesPending();
+  // TKT2 (REQ-vista-consolidada-doc-updates): call site actualizado a la función unificada.
+  renderDocUpdatesUnified();
 
   const titulos = existing.map(e => e.titulo).filter(Boolean);
   const msg = 'Conflicto DOC-UPDATE: ' + seccion + ' de ' + doc +
@@ -1641,11 +1650,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // T-202606-033: inicializar listeners de DOC-UPDATEs pendientes
-  _initDocUpdatesListeners();
-
-  // TKT-202608-237: inicializar listener de búsqueda del sub-tab Resueltos
-  _initDocUpdatesResolvedListeners();
+  // T-202606-033 / TKT-202608-237: inicializar listeners de DOC-UPDATEs — TKT2
+  // (REQ-vista-consolidada-doc-updates) consolida _initDocUpdatesListeners()/
+  // _initDocUpdatesResolvedListeners() en una sola función (gap detectado en
+  // validación post-TKT2 — este call site no se había actualizado).
+  _initDocUpdatesUnifiedListeners();
 
   // .conflict-banner-dismiss → remove banner — delegado en #context-conflict-area
   const conflictArea = document.getElementById('context-conflict-area');
