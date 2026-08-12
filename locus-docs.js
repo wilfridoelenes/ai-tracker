@@ -1047,6 +1047,14 @@ export function resolveDocUpdate(key, chosenIndex) {
 // currentSubTab de este archivo — sin nuevo import cross-módulo para persistirlo.
 let _duFilter = 'todos';
 
+// _duResolvedCopyMap — lookup de content por entrada resuelta, reconstruido en cada render de
+// renderDocUpdatesUnified(). Las entradas resueltas no tienen `key` propio en docUpdateIndex
+// (ya fueron eliminadas al resolverse) — se referencian por id sintético `r{idx}` sobre el
+// array ordenado del render actual. INC (TKT-202608-325, AC2/AC4 sin cumplir pese a status
+// done en Locus): botón de copia individual ausente en pendientes y resueltos, sin estado
+// disabled en "Copiar pendientes" con 0 pendientes en el grupo. Fix cierra ambos AC.
+let _duResolvedCopyMap = {};
+
 // renderDocUpdatesUnified — une pendientes (docUpdateIndex) y resueltos (docUpdateResolvedLog)
 // en un solo render agrupado por doc sobre #du-unified-list, filtrado por _duFilter y por
 // #du-unified-search (doc/section, case-insensitive). Preserva sin cambio de comportamiento
@@ -1087,9 +1095,14 @@ export function renderDocUpdatesUnified() {
   // entradas pendientes como resueltas del mismo doc dentro del mismo grupo.
   const docOrder = [];
   const docGroups = {};
-  const _addToGroup = (doc, html) => {
-    if (!docGroups[doc]) { docGroups[doc] = []; docOrder.push(doc); }
+  // TKT-202608-325 AC4: "Copiar pendientes" queda disabled si el doc no tiene ninguna entrada
+  // pendiente bajo el estado real del índice — independiente del filtro activo, para que el
+  // botón no cambie de estado según qué filtro esté seleccionado.
+  const docPendingCount = {};
+  const _addToGroup = (doc, html, isPending) => {
+    if (!docGroups[doc]) { docGroups[doc] = []; docOrder.push(doc); docPendingCount[doc] = 0; }
     docGroups[doc].push(html);
+    if (isPending) docPendingCount[doc] += 1;
   };
 
   // Pendientes — omitidas por completo si el filtro activo es 'resueltos'.
@@ -1167,17 +1180,22 @@ export function renderDocUpdatesUnified() {
             <div class="du-actions">
               <button class="du-btn-apply" data-du-key="${keyAttr}">Aplicar</button>
               <button class="du-btn-discard" data-du-key="${keyAttr}">Descartar</button>
+              <button class="du-btn-copy-group" data-du-copy-key="${keyAttr}" aria-label="Copiar DOC-UPDATE: ${esc(doc)} §${esc(seccion)}">Copiar</button>
             </div>
           </div>`;
       }
-      _addToGroup(doc, entryHtml);
+      _addToGroup(doc, entryHtml, true);
     });
   }
 
   // Resueltos — omitidos por completo si el filtro activo es 'pendientes'.
+  // TKT-202608-325 AC "content de entrada resuelta permanece accesible y copiable": entrada
+  // registrada en _duResolvedCopyMap por id sintético (sin key propia — ya fue eliminada de
+  // docUpdateIndex al resolverse) para que el click handler la recupere sin reconstruir orden.
+  _duResolvedCopyMap = {};
   if (_duFilter !== 'pendientes') {
     const sortedResolved = [...resolvedLog].sort((a, b) => (b.resolvedAt || 0) - (a.resolvedAt || 0));
-    sortedResolved.forEach(e => {
+    sortedResolved.forEach((e, i) => {
       const doc = e.doc || '—';
       const section = e.section || '—';
       if (query && !doc.toLowerCase().includes(query) && !section.toLowerCase().includes(query)) return;
@@ -1187,6 +1205,8 @@ export function renderDocUpdatesUnified() {
       const dateLabel = e.resolvedAt
         ? new Date(e.resolvedAt).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
         : '—';
+      const copyId = `r${i}`;
+      _duResolvedCopyMap[copyId] = e.content ?? null;
       const entryHtml = `
         <div class="du-resolved-entry">
           <div class="du-resolved-meta">
@@ -1196,8 +1216,9 @@ export function renderDocUpdatesUnified() {
           </div>
           <span class="du-resolved-date">${esc(dateLabel)}</span>
           <span class="du-resolved-badge ${badgeClass}">${badgeLabel}</span>
+          <button class="du-btn-copy-group" data-du-copy-resolved="${copyId}" aria-label="Copiar DOC-UPDATE: ${esc(doc)} §${esc(section)}"${_duResolvedCopyMap[copyId] === null ? ' disabled aria-disabled="true"' : ''}>Copiar</button>
         </div>`;
-      _addToGroup(doc, entryHtml);
+      _addToGroup(doc, entryHtml, false);
     });
   }
 
@@ -1212,11 +1233,14 @@ export function renderDocUpdatesUnified() {
   const groupsHtml = docOrder.map(doc => {
     const docAttr = esc(doc);
     const count = docGroups[doc].length;
+    // TKT-202608-325 AC4: disabled + sin evento click cuando el doc no tiene pendientes.
+    const hasPending = (docPendingCount[doc] || 0) > 0;
+    const copyGroupAttrs = hasPending ? '' : ' disabled aria-disabled="true"';
     return `
       <div class="du-group" data-du-group="${docAttr}">
         <div class="du-group-header">
           <span class="du-group-title">${docAttr} <span class="du-group-count">(${count})</span></span>
-          <button class="du-btn-copy-group" data-du-copy-group="${docAttr}" aria-label="Copiar pendientes de ${docAttr}">Copiar pendientes</button>
+          <button class="du-btn-copy-group" data-du-copy-group="${docAttr}" aria-label="Copiar pendientes de ${docAttr}"${copyGroupAttrs}>Copiar pendientes</button>
         </div>
         ${docGroups[doc].join('')}
       </div>`;
