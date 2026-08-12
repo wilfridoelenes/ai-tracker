@@ -1,4 +1,4 @@
-/* [PP] mod:13 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* [PP] mod:14 · autor:Nova · 2026-08-11 16:20 UTC-6 */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* Fix inline (triggered_by: análisis visual Q-INC, DOC-UPDATE _Locus-css-ref mod:168): letter-
    spacing de .qinc-section-header corregido 0.04em → 0.06em — discrepancia detectada al
@@ -500,6 +500,36 @@
    (data-qi-action="qi-export-incidents", dentro de qinc-stats-bar) se elimina en TKT3. Su
    función la asume el toolbar estático #qinc-toolbar (TKT2) con .tpl-action-btn — mismas
    clases que Backlog, sin componente propio que mantener. */
+
+/* ── Banner de solo lectura — .qinc-readonly-banner (REQ-202608-128, TKT ref_id
+   CAEL-08111600-02) ── */
+/* Cierra el gap A-11 de _Locus-ux-ref — Q-INC no comunicaba en pantalla que es un visor sin
+   controles de edición (regla de interacción #3: Q-INC nunca es editor). Vive entre
+   #qinc-stats-bar y #qinc-panel-body en index.html, HTML estático — nunca depende de datos ni
+   de getActiveProject(), no declara data-action, no tiene estados :hover/:focus (no es
+   interactivo). Supuesto declarado: sin _Locus-css-ref adjunto en esta sesión para confirmar el
+   token exacto de tinte informativo — uso var(--accent) al 12% vía color-mix(), consistente con
+   el border sólido var(--accent) ya vigente en .qinc-search-input:focus (línea 496) y
+   .qinc-item-header:focus-visible (línea 543-544, este mismo archivo). Señalar como
+   Hallazgo fuera de scope si difiere del token real cuando el doc esté disponible. */
+.qinc-readonly-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--accent);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.qinc-readonly-banner-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
 
 /* ══════════════════════════════════════════════════════════════
    Q-INC — Badge de navegación + Card / Sección / Badge genérico /

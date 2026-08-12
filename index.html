@@ -1,4 +1,4 @@
-<!-- [PP] mod:193 · autor:Rune · 2026-08-11 00:45 UTC-6 -->
+<!-- [PP] mod:194 · autor:Rune · 2026-08-11 16:35 UTC-6 -->
 <!-- TKT-202608-317 (REQ-202608-126, TKT1): agregado #btn-export-sprints en #tpl-toolbar,
      sibling de #btn-export-backlog-full — dispara shell:export-sprints (ver locus-ui-shell.js
      mod:72 para el wiring y locus-backlog-generator.js mod:59 para el listener consumidor). -->
@@ -1044,6 +1044,14 @@
     <button class="tpl-action-btn" id="btn-export-qinc-full" title="Descargar historial completo de Q-INC como .md">⬇ Historial completo Q-INC</button>
   </div>
   <div class="qinc-stats-bar" id="qinc-stats-bar"></div>
+  <!-- TKT-202608-323 (REQ-202608-128, ref_id CAEL-08111600-02): banner de solo lectura — cierra
+       gap A-11 de _Locus-ux-ref. Estático, sin dependencia de datos ni de getActiveProject(),
+       sin data-action — Q-INC es visor, nunca editor (regla de interacción #3). Entregable de
+       Nova, mod:14 de locus-incidents.css. -->
+  <div class="qinc-readonly-banner" role="note">
+    <svg class="ti-svg qinc-readonly-banner-icon" aria-hidden="true"><use href="#ti-shield-check"></use></svg>
+    <span>Vista de solo lectura — las transiciones se aplican vía CHECKPOINT</span>
+  </div>
   <div id="qinc-panel-body"></div>
 </div><!-- /tab-incidentes -->
 
