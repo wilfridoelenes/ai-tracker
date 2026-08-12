@@ -1,4 +1,4 @@
-// [PP] mod:176 · autor:Rune · 2026-08-11 01:15 UTC-6
+// [PP] mod:177 · autor:Rune · 2026-08-11 20:40 UTC-6
 // Gap de código (hallazgo de Finn en auditoría de cierre de INC-202608-104): el propio fix de
 // mod:191 citaba su origen como "INC-[pendiente-ID]" en dos comentarios (header de este archivo
 // y dentro de _processIngestBatch()) pese a que Locus ya había asignado código real
@@ -996,7 +996,7 @@ export function _splitCheckpointBlocks(text) {
 //   inalcanzable desde la unificación del split view (TKT1-3, mismo REQ).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-hora.js
 
-import { renderStats, getItems, normalizeStatus, itemKind, _GEN2_TYPES } from './locus-backlog-core.js'; // TKT0-gen2: itemKind agregado · TKT1: _GEN2_TYPES (REQ-[pendiente-ID])
+import { renderStats, getItems, getIncidents, normalizeStatus, itemKind, _GEN2_TYPES } from './locus-backlog-core.js'; // TKT0-gen2: itemKind agregado · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · TKT2 (ref_id CAEL-08111800-03, REQ CAEL-08111800-01): getIncidents agregado — resolución de existencia real del código de origen en el badge de trazabilidad (AC "Link de origen"), mismo criterio de doble-fuente ya usado por navigateToItem (locus-item-navigator.js)
 import { _isPlaceholderCode, _isNonCanonicalPlaceholder, applyPatchesFromTG, _assignPendingIds } from './locus-backlog-item.js'; // T-202606-089 AC-3 · TKT3 (REQ CAEL-0716-01): mergeBacklogFromTG retirado del import — sin consumidores directos en este archivo (dry-run per-keystroke ya se había removido antes; dry-run de batch removido en este TKT, ver _processIngestBatch). La persistencia real sigue viva vía _applyCheckpointBatch (locus-session-save.js), que la invoca internamente · TKT (ref_id CAEL-0725-03): _isNonCanonicalPlaceholder agregado — gap paralelo al ya corregido en locus-backlog-item.js (CAEL-0725-01), ver uso en el panel de validación de ingesta más abajo
 import { showMergeDiffPanel } from './locus-backlog-merge.js'; // TKT3 (REQ CAEL-0716-01): chipTonesFromDiff retirado — _processIngestBatch ya no renderiza resumen de chips, invoca showMergeDiffPanel real (mismo panel que el flujo single). Sigue vivo en locus-backlog-merge.js (uso interno propio, L726) — no se elimina de ese archivo
 import { renderBacklogList } from './locus-backlog-render.js';
@@ -1017,6 +1017,7 @@ import { showToast, toast } from './locus-toast.js';
 
 
 import { esc, getCurrentTab } from './locus-ui-shell.js'; // Fix INC-202608-094: getCurrentTab agregado — guard de refresco del tab Sprint en _onApplyBatch
+import { navigateToItem } from './locus-item-navigator.js'; // TKT2 (ref_id CAEL-08111800-03, REQ CAEL-08111800-01): link de origen del badge de trazabilidad — sin ciclo ESM, locus-item-navigator.js no importa este archivo (verificado por grep antes de agregar)
 
 // T-202606-012: _INFRA_VERSION_ACTIVE eliminada — importada como INFRA_VERSION_ACTIVE desde locus-storage.js
 // T-202606-029: INFRA_VERSION_ACTIVE (constante) migrada a getInfraVersionActive() / setInfraVersionActive() — AC-4 de T-202606-027 cerrado
@@ -2435,6 +2436,25 @@ function _updateIngestBlockCount() {
 //   genera fila de preview (AC "estado vacío" se cumple por composición: 0 bloques válidos → []).
 //   Función pura, sin efectos laterales — mismo criterio de pureza que _extractCkptMeta/
 //   _ckptArchivosToNames. contract_update: no — función nueva, sin consumidores externos.
+// TKT2 (ref_id CAEL-08111800-03, parent REQ ref_id CAEL-08111800-01, AC "Extracción de datos"):
+//   patrón del title de un CHECKPOINT de trazabilidad pura ya aplicado fuera de la cola de
+//   doc_updates (Excepción de dueño co-presente, __BR-Core OWNERSHIP DE DOCUMENTOS). Em dash
+//   "—" y "§" literales — mismo carácter que el resto de este archivo usa en comentarios de
+//   la misma naturaleza. Función pura, sin efectos laterales.
+const _TRACE_TITLE_RE = /^DOC-UPDATE aplicado — (.+?) §(.+?) \(([^)]+)\)$/;
+
+// TKT2 (AC "happy path"): trigger de clasificación — items:[] (array vacío, no ausente) +
+//   sin array doc_updates (per schema nunca se emite vacío, BR-Ecosystem §8 — "se omite si no
+//   hay cambios para ningún doc"; el chequeo de ausencia cubre igual el caso defensivo de un
+//   array vacío mal emitido) + docs_verified presente y distinto de 'n/a'. Función pura.
+function _isTraceOnlyBlock(parsed) {
+  if (!Array.isArray(parsed.items) || parsed.items.length !== 0) return false;
+  if (parsed.doc_updates !== undefined) return false;
+  if (typeof parsed.docs_verified !== 'string') return false;
+  const _dv = parsed.docs_verified.trim();
+  return !!_dv && _dv.toLowerCase() !== 'n/a';
+}
+
 function _ingestPreviewMeta(blockText) {
   let parsed;
   try {
@@ -2449,6 +2469,7 @@ function _ingestPreviewMeta(blockText) {
   if (!parsed || typeof parsed !== 'object' || typeof parsed.title !== 'string' || !parsed.title.trim()) {
     return null; // sin title no hay nada verificable como CHECKPOINT — mismo gate de BR-Ecosystem §8
   }
+  const _title = parsed.title.trim();
   // `files` es el campo de nivel-sesión del CHECKPOINT (BR-Ecosystem §8 — "nombre · mod:N ·
   // autor:Rol | ..."), no el `archivos` por-ítem de TKT/REQ individual dentro de items[]. Mismo
   // campo fuente que _ckptArchivosToNames ya consume (ahí vía ckpt.archivos post-parseCheckpoint,
@@ -2458,7 +2479,37 @@ function _ingestPreviewMeta(blockText) {
     const _parts = parsed.files.split('|')[0].split('·').map(s => s.trim());
     if (_parts[0]) meta = _parts[1] ? `${_parts[0]} · ${_parts[1]}` : _parts[0];
   }
-  return { title: parsed.title.trim(), meta };
+
+  // TKT2 (AC "estado de error"): un bloque trace-only cuyo title no matchea el patrón cae al
+  // preview genérico — no lanza excepción, no altera el conteo de bloques detectados (ese
+  // conteo viene de _splitCheckpointBlocks vía _updateIngestBlockCount, no de esta función).
+  if (_isTraceOnlyBlock(parsed)) {
+    const _m = _TRACE_TITLE_RE.exec(_title);
+    if (_m) {
+      const _code = _m[3].trim();
+      // AC "Link de origen": el link solo se renderiza si el código resuelve contra un ítem
+      // real — mismas dos fuentes que navigateToItem() consulta (locus-item-navigator.js),
+      // consultadas acá en modo lectura (sin navegar) para decidir si el link existe.
+      const _originExists = getItems().some(i => i.code === _code) || getIncidents().some(i => i.code === _code);
+      const _tr = typeof parsed.tensions_resolved === 'string' ? parsed.tensions_resolved.trim() : '';
+      return {
+        title: _title,
+        meta,
+        category: 'trazabilidad',
+        trace: {
+          doc: _m[1].trim(),
+          section: `§${_m[2].trim()}`,
+          code: _code,
+          originExists: _originExists,
+          docsVerified: parsed.docs_verified.trim(),
+          tensionsResolved: (_tr && _tr.toLowerCase() !== 'n/a') ? _tr : ''
+        }
+      };
+    }
+    // trace-only por schema pero title no matchea el patrón esperado — fallback a genérico.
+  }
+
+  return { title: _title, meta, category: 'generic' };
 }
 
 // TKT-202608-235 (REQ-202608-089, sprint PP-S-26 · design_intent: ingest_block_preview_mockup,
@@ -2489,6 +2540,28 @@ export function _renderIngestBlockPreview() {
       <div class="ingest-block-preview-list">
         ${_metas.map(m => {
           const _short = m.title.length > 60 ? m.title.slice(0, 60) + '…' : m.title;
+          // TKT2 (ref_id CAEL-08111800-03, parent REQ ref_id CAEL-08111800-01): rama de
+          //   render del bloque de trazabilidad — entregable de Nova (locus-modals-base.css
+          //   mod:30, .ingest-block-preview-icon--trace / .ingest-block-preview-tag /
+          //   .ingest-block-preview-origin). El resto de bloques (category 'generic') sigue
+          //   el markup original sin cambio.
+          if (m.category === 'trazabilidad') {
+            const _t = m.trace;
+            return `
+              <div class="ingest-block-preview-item">
+                <svg class="ti-svg ingest-block-preview-icon ingest-block-preview-icon--trace"><use href="#ti-git-commit"></use></svg>
+                <div class="ingest-block-preview-text">
+                  <div class="ingest-block-preview-title-row">
+                    <div class="ingest-block-preview-title" title="${esc(m.title)}">${esc(_short)}</div>
+                    <span class="ingest-block-preview-tag" aria-label="bloque de trazabilidad — sin cambios de backlog">Trazabilidad</span>
+                  </div>
+                  <div class="ingest-block-preview-meta">${esc(_t.doc)} ${esc(_t.section)}</div>
+                  <div class="ingest-block-preview-meta">docs_verified: ${esc(_t.docsVerified)}</div>
+                  ${_t.tensionsResolved ? `<div class="ingest-block-preview-meta">tensions_resolved: ${esc(_t.tensionsResolved)}</div>` : ''}
+                  ${_t.originExists ? `<a href="#" class="ingest-block-preview-origin" data-code="${esc(_t.code)}">${esc(_t.code)}</a>` : ''}
+                </div>
+              </div>`;
+          }
           return `
             <div class="ingest-block-preview-item">
               <svg class="ti-svg ingest-block-preview-icon"><use href="#ti-file-text"></use></svg>
@@ -2500,6 +2573,18 @@ export function _renderIngestBlockPreview() {
         }).join('')}
       </div>
     </div>`;
+
+  // TKT2 (AC "Link de origen"): binding post-render sobre los nodos recién creados — no hay
+  //   acumulación de listeners entre renders porque _anchor.innerHTML se reasigna completo en
+  //   cada llamada (los nodos anteriores, con sus listeners, se descartan junto con el HTML
+  //   anterior). Mismo criterio de pureza que el resto de esta función: sin listener delegado
+  //   persistente sobre _anchor, que sí acumularía si se registrara aquí en cada llamada.
+  _anchor.querySelectorAll('.ingest-block-preview-origin').forEach(_el => {
+    _el.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigateToItem(_el.dataset.code);
+    });
+  });
 }
 
 // TKT (REQ CAEL-0720-22 · ref_id CAEL-0720-23): _routeParse(id, ta) — punto único de decisión
