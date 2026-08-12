@@ -1,4 +1,4 @@
-/* [PP] mod:9 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* [PP] mod:10 · autor:Nova · 2026-08-11 UTC-6 */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* TKT-202608-281 (REQ-202608-116, N07 — chip activo: inversión de superficie): mod:7 quedó
    sin bump pese a que este mod entrega la migración de .htmlmap-filter-btn.active al mismo
@@ -951,6 +951,69 @@
 /* ── END T-202606-033 ─────────────────────────────────────────────────────── */
 
 /* ── TKT-202608-237: DOC-UPDATEs resueltos — familia du-resolved-* ──────────── */
+
+/* ── TKT-202608-325 (REQ-202608-129): agrupación por doc + copiar pendientes por grupo ── */
+.du-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.du-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 4px;
+}
+
+.du-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.du-group-count {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--text3);
+  font-weight: 400;
+}
+
+/* Reutiliza el mecanismo de feedback de copiado ya vigente en el proyecto —
+   ver _Locus-css-ref, patrón .is-copied/.is-copy-error (1500ms, sin check nuevo). */
+.du-btn-copy-group {
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text2);
+  transition: var(--trans-color);
+}
+
+.du-btn-copy-group:hover {
+  border-color: var(--hint);
+  color: var(--text);
+}
+
+.du-btn-copy-group.is-copied {
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent-text);
+}
+
+.du-btn-copy-group.is-copy-error {
+  border-color: rgb(232 85 85 / 40%);
+  background: rgb(232 85 85 / 10%);
+  color: var(--red);
+}
 
 .du-resolved-toolbar {
   display: flex;

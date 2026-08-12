@@ -1,4 +1,13 @@
-// [PP] mod:31 · autor:Rune · 2026-08-10 UTC-6
+// [PP] mod:32 · autor:Rune · 2026-08-11 19:44 UTC-6
+// TKT-202608-324 (REQ-202608-129): _pushDocUpdateResolved() ahora persiste el campo `content`
+// — antes se perdía al resolver (Aplicar/Descartar): docUpdateResolvedLog solo guardaba
+// doc/section/action/resolvedAt, aunque docUpdateIndex[key][0].contenido seguía disponible en
+// el momento de la llamada (se invoca antes de delete idx[key] en ambos call sites). Fix: la
+// función vuelve a leer _getDocUpdateIndex() — misma referencia viva que el caller, la entrada
+// no fue borrada todavía — y toma contenido ?? null como content. Firma sin cambio
+// ((key, action)) — contract_update: sí solo por el nuevo side effect de lectura declarado en
+// CHECKPOINT, no por cambio de firma. No migra entradas resueltas antes de este TKT (quedan
+// sin content — renderDocUpdatesResolved() no lo lee, sin impacto de render).
 // TKT CAEL-08101200-01 (REQ-202608-118, origen_disc DISC-202608-128): _renderContextSections()
 // pierde el parámetro query — ctx-search-input/ctx-search-clear ya no existen en index.html
 // (retirados, reemplazados por ⌘K), la rama de filtrado y .ctx-search-empty eran inalcanzables.
@@ -1153,8 +1162,14 @@ function _updateDocUpdatesBadge(total, conflicts) {
 // AC de TKT-202608-237 lo consume en la vista renderizada.
 function _pushDocUpdateResolved(key, action) {
   const [doc, section] = key.split('::');
+  // AC happy path / AC estado de error (TKT-202608-324): se relee el índice en vez de recibir
+  // el contenido por parámetro — misma key, misma referencia viva que el caller (llamado
+  // siempre antes de delete idx[key]). Sin entrada en el índice → content: null, sin excepción.
+  const index = _getDocUpdateIndex();
+  const entry = (index[key] || [])[0];
+  const content = entry && typeof entry.contenido !== 'undefined' ? entry.contenido : null;
   const log = _getDocUpdateResolvedLog();
-  log.push({ doc, section, action, resolvedAt: Date.now() });
+  log.push({ doc, section, action, content, resolvedAt: Date.now() });
   _setDocUpdateResolvedLog(log);
 }
 
