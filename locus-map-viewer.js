@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-12 UTC-6
+// [PP] mod:4 · autor:Rune · 2026-08-12 09:00 UTC-6
 import { _skelHide, _skelShow } from './locus-backlog-core.js';
 import { _tplKey } from './locus-storage.js';
 
@@ -151,10 +151,10 @@ function _hmOnSearch(val) {
 // AC-7: abre/cierra el body del módulo correcto por fileId, sincroniza flecha.
 function _hmToggleModule(fileId) {
   const body = document.getElementById('hmmod-body-' + fileId);
-  const arrow = document.getElementById('hmmod-arrow-' + fileId);
+  const header = document.querySelector(`.mm-module-header[data-hmmod="${fileId}"]`);
   if (!body) return;
   const isOpen = body.classList.toggle('mm-open');
-  if (arrow) arrow.classList.toggle('mm-arrow-open', isOpen);
+  if (header) header.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
 }
 
 // ── renderHtmlMap ──────────────────────────────────────────────────────────
@@ -307,12 +307,12 @@ export function renderHtmlMap() {
 
     modulesHtml += `
       <div class="mm-module" id="hmmod-${fileId}">
-        <div class="mm-module-header" data-hmmod="${fileId}">
+        <div class="mm-module-header" data-hmmod="${fileId}" role="button" tabindex="0" aria-expanded="${openByDefault ? 'true' : 'false'}" aria-controls="hmmod-body-${fileId}">
           <span class="mm-file-badge ${fileTypeClass(f)}">${fileTypeLabel(f)}</span>
           <span class="mm-file-name">${esc(f)}</span>
           <span class="mm-fn-count">${rows.length} fn</span>
           <div class="mm-bar-wrap" title="${rows.length} funciones"><div class="mm-bar-fill" style="--mm-bar-w:${Math.round((rows.length/_maxFnCount)*100)}%;--mm-bar-color:${fileTypeBarColor(f)}"></div></div>
-          <span class="mm-arrow ${openByDefault ? 'mm-arrow-open' : ''}" id="hmmod-arrow-${fileId}">›</span>
+          <svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
         </div>
         <div class="mm-module-body ${openByDefault ? 'mm-open' : ''}" id="hmmod-body-${fileId}">
           <table class="mm-table">

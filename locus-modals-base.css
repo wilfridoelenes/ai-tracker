@@ -1,3 +1,12 @@
+/* [PP] mod:31 · autor:Nova · 2026-08-13 10:05 UTC-6 */
+/* TKT-202608-333 (design_intent: ingest_block_crea_modifica_wireframe): .ingest-block-preview-tag--crea/--modifica.
+   Corrige entrega anterior — el bloque se había descrito por error sobre locus-backlog-item.css, donde
+   .ingest-block-preview-tag no existe. Extiende la clase base real de este archivo (TKT-202608-235) con
+   dos modificadores. Reusa --green-dim/--green-border/--green-text y --accent-dim/--accent-border/
+   --accent-text — mismo vocabulario ya vigente en .mdiff-pill--created/--updated (locus-backlog-item.css,
+   _Locus-css-ref mod:197) — no el patrón color-mix(var(--blue)...) que usa el tag base para su propio caso
+   (trace de trazabilidad pura, TKT-202608-235). Ambos sistemas de badge coexisten en este archivo sin
+   conflicto — cada uno resuelve a tokens completos, ninguno inventado. */
 /* [PP] mod:30 · autor:Nova · 2026-08-11 20:15 UTC-6 */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* TKT3 (REQ-202608-119, DISC-202608-120): familia .validation-result*/.validation-badge*/
@@ -836,6 +845,24 @@
   color: var(--blue-text);
   border: 1px solid color-mix(in srgb, var(--blue) 28%, transparent);
   white-space: nowrap;
+}
+
+/* .ingest-block-preview-tag--crea / --modifica — TKT-202608-333 (design_intent:
+   ingest_block_crea_modifica_wireframe). Modificadores del tag base de arriba — heredan
+   display/padding/font-size/border-radius/white-space, solo sobreescriben color. Distinguen,
+   en el preview de bloques con items clasificables, si el bloque crea ítems nuevos o parchea
+   uno existente (_Locus-ux-ref §A-12, extensión). Mismos tokens que .mdiff-pill--created/
+   --updated (locus-backlog-item.css) — mismo significado semántico, contexto distinto. */
+.ingest-block-preview-tag--crea {
+  background: var(--green-dim);
+  color: var(--green-text);
+  border-color: var(--green-border);
+}
+
+.ingest-block-preview-tag--modifica {
+  background: var(--accent-dim);
+  color: var(--accent-text);
+  border-color: var(--accent-border);
 }
 
 /* Link de origen (REQ/TKT) dentro de .ingest-block-preview-meta — opcional, solo cuando el

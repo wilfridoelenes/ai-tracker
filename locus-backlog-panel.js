@@ -1,4 +1,4 @@
-// [PP] mod:32 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:33 · autor:Rune · 2026-08-12 10:15 UTC-6
 // INC-CAEL-0718-01: agregado window.addEventListener('shell:close-item-panel', closeItemPanel)
 // — el evento que switchTab()/switchSubTab() (locus-ui-shell.js) despachan desde mod:44 nunca
 // tuvo consumidor real. Ver detalle completo junto a closeItemPanel(). Sin cambio de firma,
@@ -478,7 +478,7 @@ function _buildIdpCore(item, type) {
     <div class="idp-section">
       <div class="idp-section-label idp-section-toggle" data-action="idp-toggle-section" role="button" tabindex="0" aria-expanded="false" aria-controls="idp-pre-creation-list">
         <span>Mencionado antes de creación (${preCreationSessions.length})</span>
-        <span class="idp-toggle-arrow">▸</span>
+        <svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
       </div>
       <div class="idp-sessions-list is-hidden" id="idp-pre-creation-list">
         ${preCreationSessions.map(s => _sessChip(s, false)).join('')}
@@ -775,7 +775,7 @@ function _renderItemPanel(item) {
     <div class="idp-section">
       <div class="idp-section-label idp-section-toggle" data-action="idp-toggle-ac" role="button" tabindex="0" aria-expanded="true" aria-controls="idp-ac-list">
         <span>Criterios de aceptación</span>
-        <span class="idp-toggle-arrow" id="idp-ac-arrow">▾</span>
+        <svg class="ti-svg chevron" id="idp-ac-arrow" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
       </div>
       <div class="idp-ac-list" id="idp-ac-list">
         ${item.ac.map(c => `<div class="idp-ac-item"><span class="idp-ac-dot idp-type-${type}"></span>${esc(c)}</div>`).join('')}
@@ -983,7 +983,7 @@ function _buildPanelTimeline(item) {
     <div class="idp-section">
       <div class="idp-section-label idp-section-toggle" data-action="idp-toggle-history" role="button" tabindex="0" aria-expanded="false" aria-controls="idp-hist-body">
         <span>Historial</span>
-        <span class="idp-toggle-arrow" id="idp-hist-arrow">▸</span>
+        <svg class="ti-svg chevron" id="idp-hist-arrow" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
       </div>
       <div class="idp-hist-body is-hidden" id="idp-hist-body">
         <div class="idp-tl-note-row">
@@ -1017,7 +1017,7 @@ function _buildPanelTimeline(item) {
     <div class="idp-section">
       <div class="idp-section-label idp-section-toggle" data-action="idp-toggle-history" role="button" tabindex="0" aria-expanded="false" aria-controls="idp-hist-body">
         <span>Historial <span class="idp-hist-count">${entries.length}</span></span>
-        <span class="idp-toggle-arrow" id="idp-hist-arrow">▸</span>
+        <svg class="ti-svg chevron" id="idp-hist-arrow" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
       </div>
       <div class="idp-hist-body is-hidden" id="idp-hist-body">
         <div class="idp-timeline">${rows}</div>
@@ -1116,10 +1116,8 @@ function _itemPanelNotesDirty() {
 
 function _idpToggleAc() {
   const list = document.getElementById('idp-ac-list');
-  const arrow = document.getElementById('idp-ac-arrow');
   if (!list) return;
   const open = list.classList.toggle('open');
-  if (arrow) arrow.textContent = open ? '▾' : '▸';
   const btn = document.querySelector('[data-action="idp-toggle-ac"]');
   if (btn) btn.setAttribute('aria-expanded', String(open));
 }
@@ -1127,10 +1125,8 @@ function _idpToggleAc() {
 // T-202604-423: toggle sección Historial en Item Detail Panel
 function _idpToggleHistory() {
   const body = document.getElementById('idp-hist-body');
-  const arrow = document.getElementById('idp-hist-arrow');
   if (!body) return;
   const nowHidden = body.classList.toggle('is-hidden');
-  if (arrow) arrow.textContent = nowHidden ? '▸' : '▾';
   const btn = document.querySelector('[data-action="idp-toggle-history"]');
   if (btn) btn.setAttribute('aria-expanded', String(!nowHidden));
 }
@@ -1190,12 +1186,12 @@ function _idpAddNote_fromBtn(code) {
 export function _acvToggle(panelId) {
   const wrap = document.getElementById(panelId);
   if (!wrap) return;
-  const body  = wrap.querySelector('.acv-body');
-  const arrow = wrap.querySelector('.acv-toggle-arrow');
+  const body = wrap.querySelector('.acv-body');
+  const btn  = wrap.querySelector('.acv-toggle');
   if (!body) return;
   const open = !body.classList.contains('acv-body--hidden');
   body.classList.toggle('acv-body--hidden', open);
-  if (arrow) arrow.textContent = open ? '▸' : '▾';
+  if (btn) btn.setAttribute('aria-expanded', String(!open));
 }
 
 export function _acvStartEdit(rowId, code, acIdx) {
@@ -1318,9 +1314,7 @@ function toggleTmplTriggerPanel(btn) {
 function _toggleIdpSection(el) {
   const next = el.nextElementSibling;
   if (next) next.classList.toggle('is-hidden');
-  const arrow = el.querySelector('.idp-toggle-arrow');
   const isHidden = next && next.classList.contains('is-hidden');
-  if (arrow) arrow.textContent = isHidden ? '▸' : '▾';
   el.setAttribute('aria-expanded', isHidden ? 'false' : 'true');
 }
 

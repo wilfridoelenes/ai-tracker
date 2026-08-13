@@ -1,4 +1,4 @@
-/* [PP] mod:12 · autor:Nova · 2026-08-12 UTC-6 */
+/* [PP] mod:13 · autor:Nova · 2026-08-12 09:00 UTC-6 */
 /* Patch de limpieza (cierre de REQ-vista-consolidada-doc-updates): retirado selector huérfano
    .du-resolved-list — ver nota inline en su antigua ubicación. Sin cambio visual: el shell que
    lo consumía ya no existe en index.html (mod:195). .du-btn-copy-single (Rune, fix inline #2,
@@ -429,18 +429,10 @@
   flex-shrink: 0;
 }
 
-.mm-arrow {
-  font-size: var(--text-lg);
-  color: var(--text3);
-  transition: transform 0.2s var(--ease-out);
-  flex-shrink: 0;
-  line-height: 1;
-  transform: rotate(0deg);
-}
-
-.mm-arrow.mm-arrow-open {
-  transform: rotate(90deg);
-}
+/* TKT-202608-329: .mm-arrow / .mm-arrow-open retiradas — reemplazadas por svg.chevron
+   canónico, gobernada por [aria-expanded="true"] .chevron (ver locus-backlog.css).
+   aria-expanded vive ahora en .mm-module-header, no en el ícono — mismo criterio que
+   corrigió la polaridad invertida de bl-r-toggle en TKT2. */
 
 .mm-module-body {
   display: none;

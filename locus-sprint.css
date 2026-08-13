@@ -1,4 +1,6 @@
-/* [PP] mod:70 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* [PP] mod:72 · autor:Rune · 2026-08-13 07:30 UTC-6 */
+/* TKT-202608-332 (REQ-202608-131, TKT6): .sph-collapse-btn::before (glifo ▾ estático) retirado —
+   reemplazado por .sph-collapse-btn .chevron, mismo criterio de rotación que Patrón A-13. */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* TKT-202607-127 (REQ-202607-039): Stats Shell + empty-state — sub-tab Planificar.
    Reuso casi total de TKT-202607-126: .sps-stats-block/.sps-stat-cell (grid+celda base),
@@ -111,11 +113,7 @@
   margin-top: 2px; /* alineación óptica con primera línea de sph-name */
 }
 
-.sph-collapse-btn::before {
-  content: '▾';
-  font-size: var(--text-xs);
-  line-height: 1;
-  display: block;
+.sph-collapse-btn .chevron {
   transition: transform var(--trans-fast);
 }
 
@@ -130,7 +128,7 @@
 }
 
 /* Chevron rotado cuando colapsado (aria-expanded="false") */
-.sph-collapse-btn[aria-expanded="false"]::before {
+.sph-collapse-btn[aria-expanded="false"] .chevron {
   transform: rotate(-90deg);
 }
 
@@ -915,11 +913,7 @@
   border-radius: var(--radius-sm);
 }
 
-.spm-toggle-arrow {
-  font-size: var(--text-xs);
-  color: var(--text3);
-  flex-shrink: 0;
-}
+/* .spm-toggle-arrow retirada TKT-202608-331 — sin consumidor vivo */
 
 .spm-body {
   display: flex;
@@ -2253,11 +2247,7 @@
   color: var(--text3);
 }
 
-.sps-cerrados-chevron {
-  font-size: var(--text-xs);
-  color: var(--text3);
-  flex-shrink: 0;
-}
+/* .sps-cerrados-chevron retirada TKT-202608-331 — sin consumidor vivo */
 
 /* Cuerpo expandible — grid 0fr→1fr controlado por clase .is-expanded en JS
    (gap CSS resuelto — Nova, sesión PP-S-02. Reemplaza style.gridTemplateRows
@@ -2343,7 +2333,6 @@ Clases que Rune necesita consumir en T3–T6:
 - .sps-cerrados-date         — fecha de cierre
 - .sps-cerrados-counts       — wrapper de los 2 conteos (done/descartado)
 - .sps-count-done / -descartado — conteos por estado
-- .sps-cerrados-chevron      — indicador ▲/▼ — swap de texto en JS, sin transform CSS
 - .sps-cerrados-retro        — contenedor colapsable (grid 0fr→1fr vía clase .is-expanded, sin style inline en JS)
 - .sps-cerrados-retro-inner  — overflow:hidden + padding/border-top del contenido de retro
 - .sps-cerrados-retro-body   — texto de retro (<pre>)
@@ -3283,19 +3272,7 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   outline-offset: -2px;
 }
 
-/* Flecha de expansión — rota al expandir */
-
-.bl-sprint-closed-toggle-arrow {
-  font-size: var(--text-2xs);
-  color: var(--text3);
-  flex-shrink: 0;
-  transition: transform var(--trans-fast);
-  display: inline-block;
-}
-
-.bl-sprint-closed-toggle[aria-expanded="true"] .bl-sprint-closed-toggle-arrow {
-  transform: rotate(180deg);
-}
+/* .bl-sprint-closed-toggle-arrow retirada TKT-202608-331 — sin consumidor vivo */
 
 .bl-sprint-closed-toggle-label {
   flex: 1;
@@ -3331,8 +3308,7 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 
 @media (prefers-reduced-motion: reduce) {
   .bl-sprint-trigger-bar-fill,
-  .bl-sprint-trigger-arrow,
-  .bl-sprint-closed-toggle-arrow {
+  .bl-sprint-trigger-arrow {
     transition: none;
   }
 }

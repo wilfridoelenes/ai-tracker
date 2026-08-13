@@ -1,4 +1,4 @@
-/* [PP] mod:101 · autor:Nova · 2026-08-12 09:40 UTC-6 */
+/* [PP] mod:102 · autor:Nova · 2026-08-12 10:15 UTC-6 */
 /* TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog): .mdiff-section-chevron
    migrado a svg.chevron (Patrón A-13, línea ~2597) — glifo/rotación retirados, color
    conservado vía currentColor sobre accent-class del header. Corrección de autoría:
@@ -1318,10 +1318,8 @@
   color: var(--text2);
 }
 
-.idp-toggle-arrow {
-  font-size: var(--text-xs);
-  transition: transform 0.15s;
-}
+/* TKT-202608-330: .idp-toggle-arrow retirada — reemplazada por svg.chevron canónico,
+   gobernada por [aria-expanded="true"] .chevron (ver locus-backlog.css). */
 
 /* Notes */
 .idp-notes-ta {

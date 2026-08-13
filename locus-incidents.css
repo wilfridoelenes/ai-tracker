@@ -1,4 +1,4 @@
-/* [PP] mod:14 · autor:Nova · 2026-08-11 16:20 UTC-6 */
+/* [PP] mod:15 · autor:Rune · 2026-08-13 06:42 UTC-6 */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* Fix inline (triggered_by: análisis visual Q-INC, DOC-UPDATE _Locus-css-ref mod:168): letter-
    spacing de .qinc-section-header corregido 0.04em → 0.06em — discrepancia detectada al
@@ -382,14 +382,8 @@
   outline-offset: 2px;
 }
 
-.qinc-toggle-arrow {
-  font-size: var(--text-xs);
-  transition: transform 0.15s;
-}
-
-.qinc-item-comportamiento-toggle[aria-expanded="true"] .qinc-toggle-arrow {
-  transform: rotate(90deg);
-}
+/* TKT-202608-329: .qinc-toggle-arrow retirada — reemplazada por svg.chevron canónico,
+   gobernada por la regla global [aria-expanded="true"] .chevron (ver locus-backlog.css). */
 
 .qinc-item-comportamiento {
   font-size: var(--text-xs);
@@ -689,15 +683,8 @@
   font-variant-numeric: tabular-nums;
 }
 
-.qinc-section-chevron {
-  font-size: var(--text-xs);
-  transition: transform 150ms ease;
-  transform: rotate(0deg);
-}
-
-.qinc-section-header--collapsed .qinc-section-chevron {
-  transform: rotate(-90deg);
-}
+/* TKT-202608-329: .qinc-section-chevron retirada — reemplazada por svg.chevron canónico,
+   gobernada por la regla global [aria-expanded="true"] .chevron (ver locus-backlog.css). */
 
 .qinc-section-body--collapsed {
   display: none;

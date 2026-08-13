@@ -1,4 +1,4 @@
-/* [PP] mod:4 · autor:Nova · 2026-08-11 07:10 UTC-6 */
+/* [PP] mod:5 · autor:Rune · 2026-08-13 06:42 UTC-6 */
 /* TKT ref_id CAEL-08110700-01 (parent REQ-202608-118): #cmdk-overlay migra de var(--z-modal)
    (alias legacy) a var(--z-lvl-panel) (token canónico A-09, mismo nivel que .mss-shell / Split
    View, REQ-202608-117). Cierra deuda técnica: el archivo consumía legacy desde su alta pese a
@@ -207,6 +207,4 @@
 .cmdk-body[data-state="loading"] .cmdk-group,
 .cmdk-body[data-state="loading"] .cmdk-empty-hint { display: none; }
 
-@media (prefers-reduced-motion: reduce) {
-  .cmdk-section-chevron { transition: none; }
-}
+/* .cmdk-section-chevron retirada TKT-202608-331 — sin consumidor vivo */

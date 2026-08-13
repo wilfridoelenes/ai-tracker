@@ -1,4 +1,4 @@
-/* [PP] mod:51 · autor:Nova · 2026-08-11 UTC-6 */
+/* [PP] mod:53 · autor:Rune · 2026-08-13 06:42 UTC-6 */
 /* TKT-[pendiente-ID] (Propuesta de mejora #3, mod:59 _Locus-ui-Inventory): retirado bloque .bitem-focus-rank (T-202604-426) — código muerto, founder confirmó retiro. Consumidor real nunca existió: item._focusRank no se asigna en ningún branch de buildBacklogItem() — el badge quedó inalcanzable desde su TKT de origen. Parte JS (branch huérfano en locus-backlog-item.js) pendiente de retiro por Rune — fuera de scope de Nova. */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* mod:49 — TKT (origen DISC-202608-093): comentarios de sección L5346/L5446 con literal
@@ -3268,14 +3268,9 @@
   color: var(--text2);
 }
 
-.popup-secondary-toggle .toggle-arrow {
-  transition: transform 0.15s;
-  display: inline-block;
-}
-
-.popup-secondary-toggle.open .toggle-arrow {
-  transform: rotate(90deg);
-}
+/* TKT-202608-329: .toggle-arrow retirada — reemplazada por svg.chevron canónico,
+   gobernada por [aria-expanded="true"] .chevron (ver locus-backlog.css). El toggle ya
+   no depende de .open para la rotación — aria-expanded es la fuente de verdad. */
 
 .popup-secondary-body {
   display: none;
@@ -5242,11 +5237,7 @@ body.body--focus-mode::after {
   flex: 1;
 }
 
-.tpl-notif-toggle-arrow {
-  font-size: var(--text-xs);
-  color: var(--text-secondary, #aaa);
-  transition: transform .15s;
-}
+/* .tpl-notif-toggle-arrow retirada TKT-202608-331 — sin consumidor vivo */
 
 .tpl-notif-cfg-body {
   padding: 4px 8px 8px;

@@ -1,4 +1,4 @@
-// [PP] mod:11 · autor:Rune · 2026-08-11 01:15 UTC-6
+// [PP] mod:12 · autor:Rune · 2026-08-12 09:00 UTC-6
 // TKT (Nova, análisis visual Q-INC): copyItemHtml pasa a icon-only — retira el label de
 // texto "Copiar ítem" del botón, conserva title/aria-label. Ver comentario inline en la
 // entrega de este mod, más abajo en el archivo.
@@ -284,7 +284,7 @@ export function buildQIncItem(item) {
   const comportId = `qinc-comport-${esc(code)}`;
   const comportamientoHtml = comportamiento
     ? `<button type="button" class="qinc-item-comportamiento-toggle" data-qi-action="qi-toggle-comportamiento" aria-expanded="false" aria-controls="${comportId}">
-    <span class="qinc-toggle-arrow">▸</span> Comportamiento actual
+    <svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg> Comportamiento actual
   </button>
   <div class="qinc-item-comportamiento" id="${comportId}">${esc(comportamiento)}</div>`
     : '';

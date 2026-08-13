@@ -1,4 +1,7 @@
-<!-- [PP] mod:197 · autor:Rune · 2026-08-12 09:05 UTC-6 -->
+<!-- [PP] mod:198 · autor:Rune · 2026-08-13 07:30 UTC-6 -->
+<!-- TKT-202608-332 (REQ-202608-131, TKT6): svg.chevron reemplaza el glifo ▾ estático de
+     .sph-collapse-btn::before (Patrón A-13) — mismo sprite y markup que las 13 instancias
+     ya migradas. Ver locus-sprint.css mod:72 para la contraparte de estilos. -->
 <!-- TKT-202608-328 (REQ-202608-131, TKT2): migra qdisc-status-chevron (3 ocurrencias) a svg.chevron. -->
 <!-- TKT-202608-327 (REQ-202608-131, TKT1): agrega símbolo #ti-chevron-right al sprite —
      fundación del Patrón A-13 (.chevron único de disclosure, _Locus-css-ref mod:194). -->
@@ -1104,7 +1107,10 @@
   <!-- Header sprint activo — visible solo cuando hay sprint activo -->
   <div class="sph-header is-hidden" id="sprint-panel-header">
     <!-- T-202606-100: botón colapso + sph-name fuera de sph-inner — siempre visibles -->
-    <button class="sph-collapse-btn" id="sph-collapse-btn" type="button" aria-expanded="true" aria-label="Colapsar header"></button>
+    <!-- TKT-202608-332 (REQ-202608-131, TKT6): svg.chevron reemplaza el glifo ▾ estático
+         de .sph-collapse-btn::before (Patrón A-13) — mismo sprite y markup que las 13
+         familias ya migradas, sin cambio de aria-expanded (ya correcto en este botón). -->
+    <button class="sph-collapse-btn" id="sph-collapse-btn" type="button" aria-expanded="true" aria-label="Colapsar header"><svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg></button>
     <div class="sph-name" id="sph-name"></div>
     <!-- TKT1 (REQ CAEL-0804-01): resumen colapsado — hermano de .sph-inner, no hijo,
          para permanecer visible cuando .sph-inner recibe is-hidden en _sphApplyCollapsed(). -->

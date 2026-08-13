@@ -1,4 +1,4 @@
-/* [PP] mod:11 · autor:Nova · 2026-08-10 11:15 UTC-6 */
+/* [PP] mod:12 · autor:Nova · 2026-08-12 10:15 UTC-6 */
 /* TKT ref:CAEL-08101045-02 (REQ-202608-118, origen DISC-202608-127): .ctr-toolbar y sus
    3 reglas hijas (.ctr-search-input, .ctr-search-clear, .ctr-search-clear--visible)
    retiradas — sin markup en index.html ni consumidor JS desde TKT-202608-296 (verificado
@@ -76,11 +76,8 @@
   background: color-mix(in srgb, var(--border) 40%, transparent);
 }
 
-.acv-toggle-arrow {
-  font-size: var(--text-2xs);
-  transition: transform 0.15s var(--ease-out);
-  display: inline-block;
-}
+/* TKT-202608-330: .acv-toggle-arrow retirada — reemplazada por svg.chevron canónico,
+   gobernada por [aria-expanded="true"] .chevron (ver locus-backlog.css). */
 
 .acv-body {
   padding: 6px 10px 10px;

@@ -1,4 +1,4 @@
-/* [PP] mod:10 · autor:Nova · 2026-08-10 23:55 UTC-6 */
+/* [PP] mod:11 · autor:Nova · 2026-08-12 09:00 UTC-6 */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* locus-modals-misc.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
 
@@ -1761,16 +1761,10 @@
   max-height: 2000px;
 }
 
-.viz-sinc-chevron {
-  transition: transform var(--transition-base);
-  display: inline-block;
-  font-size: var(--text-xs);
-}
-
-.viz-sinc-body--open ~ .viz-sinc-header .viz-sinc-chevron,
-.viz-sinc-group.open .viz-sinc-chevron {
-  transform: rotate(90deg);
-}
+/* TKT-202608-329: .viz-sinc-chevron retirada — reemplazada por svg.chevron canónico,
+   gobernada por [aria-expanded="true"] .chevron (ver locus-backlog.css). El sibling
+   selector previo (.viz-sinc-body--open ~ .viz-sinc-header) dejó de ser necesario —
+   aria-expanded en #viz-sinc-header-btn es ahora la única fuente de verdad. */
 
 .viz-sinc-group {
   border: 1px solid var(--border);

@@ -1,4 +1,4 @@
-/* [PP] mod:153 · autor:Nova · 2026-08-12 09:40 UTC-6 */
+/* [PP] mod:154 · autor:Rune · 2026-08-13 06:42 UTC-6 */
 /* TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog): .qdisc-status-chevron,
    .qbacklog-draft-chevron (rotación) y .bl-r-toggle (glifo ::before + rotación)
    migrados a svg.chevron (Patrón A-13) — ver líneas ~5745, ~6134, ~6250. Corrección
@@ -5210,23 +5210,7 @@
   border-radius: var(--radius-lg);
 }
 
-/* ── bl-vl-req-arrow: flecha indicadora de colapso ── */
-.bl-vl-req-arrow {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-  color: var(--text3);
-  transition: transform 0.15s var(--ease-out), color 0.12s var(--ease-out);
-  transform: rotate(0deg);
-}
-
-.bl-vl-req--collapsed .bl-vl-req-arrow {
-  transform: rotate(-90deg);
-}
-
-.bl-vl-req-header:hover .bl-vl-req-arrow {
-  color: var(--text2);
-}
+/* ── bl-vl-req-arrow: retirada TKT-202608-331 — sin consumidor vivo, migrado a svg.chevron en TKT-202608-328 (.bl-r-toggle) ── */
 
 /* ── bl-vl-req-code: código del R ── */
 .bl-vl-req-code {
@@ -5306,9 +5290,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .bl-vl-req-body {
-    transition: none;
-  }
-  .bl-vl-req-arrow {
     transition: none;
   }
 }

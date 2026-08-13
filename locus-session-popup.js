@@ -1,4 +1,4 @@
-// [PP] mod:24 · autor:Rune · 2026-08-12 07:40 UTC-6
+// [PP] mod:25 · autor:Rune · 2026-08-12 09:00 UTC-6
 // INC-202607-002: class="log-scroll-top hidden" → "log-scroll-top is-hidden" — .hidden no
 // tenía regla CSS en ninguna hoja del proyecto; el botón "↑" renderizaba visible por defecto
 // hasta el primer evento de scroll. _logScrollHandler ya togglea is-hidden — sin cambio de
@@ -105,8 +105,8 @@ export function openDetail(aiId, sessId) {
     const _narBody = _narrativeFields.map(f =>
       `<div class="popup-section popup-section--pt"><div class="popup-section-label">${f.label}</div><div class="popup-section-val popup-section-val--pre">${esc(f.val)}</div></div>`
     ).join('');
-    topFields += `<div class="popup-secondary-toggle${_narClass}" id="pop-nar-toggle" data-popup-action="toggleNar" data-nar-key="${esc(_narKey)}">
-      <span class="toggle-arrow">▶</span>
+    topFields += `<div class="popup-secondary-toggle${_narClass}" id="pop-nar-toggle" role="button" tabindex="0" aria-expanded="${_narOpen ? 'true' : 'false'}" aria-controls="pop-nar-body" data-popup-action="toggleNar" data-nar-key="${esc(_narKey)}">
+      <svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
       <span>Memoria narrativa</span>
     </div>
     <div class="popup-secondary-body${_narClass}" id="pop-nar-body">${_narBody}</div>`;
@@ -192,8 +192,8 @@ export function openDetail(aiId, sessId) {
 
   let midHtml = '';
   if (hasMidContent) {
-    midHtml = `<div class="popup-secondary-toggle${midOpenClass}" id="pop-mid-toggle" data-popup-action="toggleMid" data-sess-id="${esc(sessId)}">
-      <span class="toggle-arrow">▶</span>
+    midHtml = `<div class="popup-secondary-toggle${midOpenClass}" id="pop-mid-toggle" role="button" tabindex="0" aria-expanded="${midOpen ? 'true' : 'false'}" aria-controls="pop-mid-body" data-popup-action="toggleMid" data-sess-id="${esc(sessId)}">
+      <svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
       <span>Archivos · trazabilidad · etiquetas</span>
     </div>
     <div class="popup-secondary-body${midOpenClass}" id="pop-mid-body">${midFields}</div>`;
@@ -336,6 +336,7 @@ export function openDetail(aiId, sessId) {
         const o = sessionStorage.getItem(k) === 'open';
         sessionStorage.setItem(k, o ? 'closed' : 'open');
         _pdNarToggle.classList.toggle('open', !o);
+        _pdNarToggle.setAttribute('aria-expanded', !o ? 'true' : 'false');
         const narBody = document.getElementById('pop-nar-body');
         if (narBody) narBody.classList.toggle('open', !o);
       });
@@ -404,6 +405,7 @@ function togglePopupMid(sessId) {
   if (!toggle || !body) return;
   const isOpen = body.classList.toggle('open');
   toggle.classList.toggle('open', isOpen);
+  toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
   sessionStorage.setItem(`pop-mid-${sessId}`, isOpen ? 'open' : 'closed');
 }
 // T-202604-098: Toggle estado inReview en sesión más reciente

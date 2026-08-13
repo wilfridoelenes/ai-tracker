@@ -1,4 +1,4 @@
-// [PP] mod:172 · autor:Rune · 2026-08-12 09:40 UTC-6
+// [PP] mod:173 · autor:Rune · 2026-08-12 10:15 UTC-6
 // TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog — Excepción de resolución
 // directa: hallazgo de código, nivel Patch, sin bifurcación de founder): retirado branch
 // huérfano act==='bl-r-toggle' (línea ~963 original) — sin emisor real de
@@ -1649,8 +1649,8 @@ export function buildBacklogItem(item, opts = {}) {
         if (!item.ac || !item.ac.length) {
           const _emptyId = `acv-panel-empty-${globalIdx}`;
           return `<div class="acv-wrap acv-wrap--empty" id="${_emptyId}">
-            <button class="acv-toggle" data-action="acv-toggle" data-panel-id="${_emptyId}" title="Revisión de AC">
-              <span class="acv-toggle-arrow">▸</span> Revisión de AC
+            <button class="acv-toggle" data-action="acv-toggle" data-panel-id="${_emptyId}" title="Revisión de AC" aria-expanded="false">
+              <svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg> Revisión de AC
             </button>
             <div class="acv-body acv-body--hidden">
               <p class="acv-empty-msg">Este ítem no tiene AC — agrega criterios antes de implementar.</p>
@@ -1694,8 +1694,8 @@ export function buildBacklogItem(item, opts = {}) {
         const _panelId  = `acv-panel-${globalIdx}`;
         const _revClass = _reviewed ? ' acv-reviewed' : '';
         return `<div class="acv-wrap${_revClass}" id="${_panelId}">
-          <button class="acv-toggle" data-action="acv-toggle" data-panel-id="${_panelId}" title="Revisión de AC">
-            <span class="acv-toggle-arrow">▸</span> Revisión de AC
+          <button class="acv-toggle" data-action="acv-toggle" data-panel-id="${_panelId}" title="Revisión de AC" aria-expanded="false">
+            <svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg> Revisión de AC
           </button>
           <div class="acv-body acv-body--hidden">
             <ul class="acv-list">${_acRows}</ul>

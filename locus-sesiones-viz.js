@@ -1,4 +1,4 @@
-// [PP] mod:12 · autor:Rune · 2026-08-12 06:15 UTC-6
+// [PP] mod:13 · autor:Rune · 2026-08-12 09:00 UTC-6
 // TKT2 (CAEL-08111815-01): saveWorker() agregado en confirmCorrectHora() y
 // unlockNowFromCard() — save() ya no persiste ais en tracker_state.
 // TKT4 (REQ CAEL-08061000-01): confirmCorrectHora() ahora bloquea (antes solo advertía,
@@ -285,11 +285,11 @@ function _itemVizToggleExclude(idx) {
 }
 
 function _itemVizToggleSinCambios() {
-  const body    = document.getElementById('viz-sinc-body');
-  const chevron = document.getElementById('viz-sinc-chevron');
+  const body   = document.getElementById('viz-sinc-body');
+  const header = document.getElementById('viz-sinc-header-btn');
   if (!body) return;
   const open = body.classList.toggle('viz-sinc-body--open');
-  if (chevron) chevron.textContent = open ? '▾' : '▸';
+  if (header) header.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
 function _itemVizNavBacklog(code) {
@@ -454,9 +454,9 @@ function _itemVizRender() {
     const sinCambioRows = sinCambioItems.map(item => _buildRow(item, items.indexOf(item), true)).join('');
     sinCambioGroup = `
       <div class="viz-sinc-group" id="viz-sinc-group">
-        <button class="viz-sinc-header" id="viz-sinc-header-btn">
+        <button class="viz-sinc-header" id="viz-sinc-header-btn" aria-expanded="false" aria-controls="viz-sinc-body">
           <span class="viz-sinc-label">${sinCambioItems.length} ítem${sinCambioItems.length !== 1 ? 's' : ''} ya existen sin cambios — se ignorarán</span>
-          <span class="viz-sinc-chevron" id="viz-sinc-chevron">▸</span>
+          <svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
         </button>
         <div class="viz-sinc-body" id="viz-sinc-body">
           ${sinCambioRows}
