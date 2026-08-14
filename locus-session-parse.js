@@ -1,4 +1,10 @@
-// [PP] mod:179 · autor:Rune · 2026-08-13 UTC-6
+// [PP] mod:180 · autor:Rune · 2026-08-13 UTC-6
+// TKT-202608-333 (REQ-202608-132, AC2/AC3): _ingestPreviewMeta()/_renderIngestBlockPreview() —
+// clasificación crea/modifica sobre items[] + badge correspondiente, consumiendo
+// .ingest-block-preview-tag--crea/--modifica (Nova, locus-modals-base.css mod:32). AC1
+// (render_hint por grupo_visual, _Locus-ckpt-render-ref.md) queda sin implementar — archivo no
+// adjunto en esta sesión, ver blocked_at en el CHECKPOINT. Precedencia 'modifica' sobre 'crea'
+// en bloques mixtos: supuesto declarado por Rune, ver comentario en _ingestPreviewMeta.
 // TKT-202608-336 (REQ-202608-132, AC1/AC2/AC4): _renderIngestBlockPreview() — cada
 // `.ingest-block-preview-item` declara `data-block-idx` (idx del bloque parseado) y
 // `tabindex="0"`. Nuevo binding post-render: click o Enter/Space navega — scrollIntoView +
@@ -2520,6 +2526,37 @@ function _ingestPreviewMeta(blockText) {
     // trace-only por schema pero title no matchea el patrón esperado — fallback a genérico.
   }
 
+  // TKT-202608-333 (REQ-202608-132, AC2/AC3): clasificación crea/modifica. items[] con al
+  //   menos un type:'patch'|'patch-intencion' → 'modifica' — precede a 'crea' si el bloque
+  //   mezcla creación de ítems nuevos con un patch sobre código real ya existente en el mismo
+  //   items[] (permitido por schema, __BR-Ecosystem §8 — "type: patch... se puede mezclar con
+  //   ítems normales en el mismo bloque"). Supuesto declarado por Rune: los dos AC del TKT
+  //   describen escenarios puros (solo-crea / solo-patch), sin cubrir el caso mixto — se
+  //   resuelve dando precedencia a 'modifica' porque tocar un código real ya existente es la
+  //   señal de mayor consecuencia para quien revisa el preview antes de pegar. items[] sin
+  //   type reconocible, o ausente/vacío sin ser trace-only, cae a 'generic' sin cambio.
+  if (Array.isArray(parsed.items) && parsed.items.length) {
+    const _patchItems = parsed.items.filter(it => it && (it.type === 'patch' || it.type === 'patch-intencion'));
+    if (_patchItems.length) {
+      const _codes = [...new Set(_patchItems.map(it => {
+        if (it.code && typeof it.code === 'object') return it.code.ref_id || '?';
+        return typeof it.code === 'string' && it.code ? it.code : '?';
+      }))];
+      const _fieldSet = new Set();
+      _patchItems.forEach(it => {
+        Object.keys(it).forEach(k => { if (k !== 'type' && k !== 'code') _fieldSet.add(k); });
+      });
+      return { title: _title, meta, category: 'modifica', patch: { codes: _codes, fields: [..._fieldSet] } };
+    }
+    const _typesSeen = [];
+    parsed.items.forEach(it => {
+      if (it && typeof it.type === 'string' && !_typesSeen.includes(it.type)) _typesSeen.push(it.type);
+    });
+    if (_typesSeen.length) {
+      return { title: _title, meta, category: 'crea', typesSummary: _typesSeen.join(' + ') };
+    }
+  }
+
   return { title: _title, meta, category: 'generic' };
 }
 
@@ -2583,6 +2620,27 @@ export function _renderIngestBlockPreview() {
                   <div class="ingest-block-preview-meta">docs_verified: ${esc(_t.docsVerified)}</div>
                   ${_t.tensionsResolved ? `<div class="ingest-block-preview-meta">tensions_resolved: ${esc(_t.tensionsResolved)}</div>` : ''}
                   ${_t.originExists ? `<a href="#" class="ingest-block-preview-origin" data-code="${esc(_t.code)}">${esc(_t.code)}</a>` : ''}
+                </div>
+              </div>`;
+          }
+          // TKT-202608-333 (REQ-202608-132, AC2/AC3): badge 'Crea'/'Modifica' — clase base +
+          //   modificador ya entregado por Nova (locus-modals-base.css mod:32,
+          //   .ingest-block-preview-tag--crea/--modifica). Mismo slot que el badge de
+          //   trazabilidad (title-row), mismo patrón visual, categoría mutuamente excluyente.
+          if (m.category === 'crea' || m.category === 'modifica') {
+            const _isCrea = m.category === 'crea';
+            return `
+              <div class="ingest-block-preview-item" data-block-idx="${esc(m.idx)}" tabindex="0">
+                <svg class="ti-svg ingest-block-preview-icon"><use href="#ti-file-text"></use></svg>
+                <div class="ingest-block-preview-text">
+                  <div class="ingest-block-preview-title-row">
+                    <div class="ingest-block-preview-title" title="${esc(m.title)}">${esc(_short)}</div>
+                    <span class="ingest-block-preview-tag ingest-block-preview-tag--${_isCrea ? 'crea' : 'modifica'}">${_isCrea ? 'Crea' : 'Modifica'}</span>
+                  </div>
+                  ${_isCrea
+                    ? `<div class="ingest-block-preview-meta">${esc(m.typesSummary)}</div>`
+                    : `<div class="ingest-block-preview-meta">${esc(m.patch.codes.join(' + '))}</div>${m.patch.fields.length ? `<div class="ingest-block-preview-meta">${esc(m.patch.fields.join(', '))}</div>` : ''}`}
+                  ${m.meta ? `<div class="ingest-block-preview-meta">${esc(m.meta)}</div>` : ''}
                 </div>
               </div>`;
           }
