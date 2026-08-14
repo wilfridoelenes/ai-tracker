@@ -1,4 +1,7 @@
-<!-- [PP] mod:198 · autor:Rune · 2026-08-13 07:30 UTC-6 -->
+<!-- [PP] mod:199 · autor:Rune · 2026-08-13 08:15 UTC-6 -->
+<!-- TKT-[ref_id:CAEL-08131045-01] (REQ-[ref_id:CAEL-08131030-01]): svg.chevron reemplaza el
+     glifo ▾ estático de .bl-done-arrow en #qbacklog-done-header — cuarta instancia del Patrón
+     A-13, mismo markup ya usado en .qdisc-status-header. -->
 <!-- TKT-202608-332 (REQ-202608-131, TKT6): svg.chevron reemplaza el glifo ▾ estático de
      .sph-collapse-btn::before (Patrón A-13) — mismo sprite y markup que las 13 instancias
      ya migradas. Ver locus-sprint.css mod:72 para la contraparte de estilos. -->
@@ -886,7 +889,7 @@
            locus-backlog-zone-engine.js) — mismo patrón que .qdisc-status-group. -->
       <div class="bl-done-group" id="qbacklog-done-group">
         <div class="bl-done-header" id="qbacklog-done-header" tabindex="0" role="button" aria-expanded="true">
-          <span class="bl-done-arrow">▾</span>
+          <svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
           <span class="bl-done-label">Terminados</span>
           <span class="bl-done-count" id="qbacklog-done-count">0</span>
         </div>

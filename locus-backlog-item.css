@@ -1,4 +1,4 @@
-/* [PP] mod:102 · autor:Nova · 2026-08-12 10:15 UTC-6 */
+/* [PP] mod:103 · autor:Nova · 2026-08-12 10:30 UTC-6 */
 /* TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog): .mdiff-section-chevron
    migrado a svg.chevron (Patrón A-13, línea ~2597) — glifo/rotación retirados, color
    conservado vía currentColor sobre accent-class del header. Corrección de autoría:
@@ -3975,6 +3975,17 @@ body {
   border-bottom: 1px solid var(--border);
   padding-bottom: 0.75rem;
   margin-bottom: 0.75rem;
+}
+
+/* TKT-202608-336 (AC4): foco visible en .mdiff-narrative-section — tabindex="-1" agregado
+   por Rune para navegación scroll+foco desde el preview de ingesta (data-block-idx).
+   Mismo tratamiento que .idp-title/.idp-dep-chip--origin — outline var(--accent), 2px,
+   offset 2px, sin caja adicional para no interferir con el framing existente de
+   :not(:only-of-type). Contraste verificado ≥4.5:1 sobre --surface2 (dark y light). */
+.mdiff-narrative-section:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm, 4px);
 }
 
 .mdiff-narrative-header {

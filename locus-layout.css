@@ -1,4 +1,4 @@
-/* [PP] mod:30 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* [PP] mod:31 · autor:Nova · 2026-08-13 10:05 UTC-6 */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* mod:29 — TKT1 CAEL-0805-02 (REQ CAEL-0805-01): unificación de borde/foco/disabled en
    .btn-icon/.btn-ghost/.btn-danger/.btn-danger-ghost. .btn-icon 1.5px→1px reposo (mismo
@@ -513,25 +513,21 @@ button {
   line-height: 1;
 }
 
-.breadcrumb-seg--proj::after {
-  content: '⌄';
+/* TKT-202608-334 (REQ-202608-131): ::after con content:'⌄' retirado — reemplazado
+   por <svg class="chevron chevron--static"> como último hijo de #breadcrumb-proj
+   (index.html). El token genérico vive en locus-base.css (Patrón A-13); este
+   override solo posiciona esa instancia dentro del breadcrumb — mismo spot que
+   ocupaba el pseudo-elemento retirado. */
+.breadcrumb-seg--proj .chevron--static {
   position: absolute;
   right: 4px;
   top: 50%;
-  transform: translateY(-50%);
-  font-size: var(--text-xs);
-  line-height: 1;
-  color: var(--text3);
-  transition: color 0.15s var(--ease-out);
+  transform: translateY(-50%) rotate(90deg);
 }
 
 .breadcrumb-seg--proj:not(:disabled):hover {
   color: var(--accent-text);
   background: var(--accent-dim);
-}
-
-.breadcrumb-seg--proj:not(:disabled):hover::after {
-  color: var(--accent-text);
 }
 
 /* B-202605-518: sin proyecto activo → text-secondary, sin affordance de trigger (nada que abrir) */
@@ -541,7 +537,7 @@ button {
   padding-right: 4px;
 }
 
-.breadcrumb-seg--proj:disabled::after {
+.breadcrumb-seg--proj:disabled .chevron--static {
   display: none;
 }
 

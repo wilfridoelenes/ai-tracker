@@ -1,4 +1,7 @@
-/* [PP] mod:27 · autor:Rune · 2026-08-12 08:17 UTC-6 */
+/* [PP] mod:28 · autor:Nova · 2026-08-13 10:05 UTC-6 */
+/* TKT-202608-334 (REQ-202608-131): agrega .chevron--static — tercera variante del
+   primitivo .chevron, sin hook de disclosure. Ver bloque al final del archivo,
+   dentro del Patrón A-13, junto a .chevron/.chevron--btn. */
 /* TKT-202608-327 (REQ-202608-131, TKT1): agrega .chevron/.chevron--btn — primitivo
    único de disclosure (Patrón A-13, _Locus-css-ref mod:194). Ver bloque al final
    del archivo, junto a .ti-svg. */
@@ -668,6 +671,17 @@ body {
 .chevron--btn:focus-visible{
   outline:2px solid var(--accent);
   outline-offset:2px;
+}
+/* .chevron--static — TKT-202608-334 (REQ-202608-131): tercera variante del primitivo,
+   sin hook de disclosure — reemplaza el glifo ::after '⌄' de .breadcrumb-seg--proj.
+   Reposo = rotate(90deg) fijo (equivalente visual al glifo retirado), sin transition
+   porque nunca alterna estado — el click navega, no despliega. El override de
+   posicionamiento absoluto dentro del breadcrumb vive en locus-layout.css
+   (.breadcrumb-seg--proj .chevron--static), no acá — este archivo declara solo
+   el token genérico del primitivo, igual que .chevron/.chevron--btn. */
+.chevron--static{
+  transform:rotate(90deg);
+  transition:none;
 }
 @media (prefers-reduced-motion: reduce){
   .chevron{transition:none;}

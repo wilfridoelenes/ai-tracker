@@ -1,4 +1,12 @@
-// [PP] mod:92 · autor:Rune · 2026-08-12 09:40 UTC-6
+// [PP] mod:95 · autor:Rune · 2026-08-13 UTC-6
+// TKT-202608-336 (REQ-202608-132, AC1/AC4): cada `.mdiff-narrative-section` generada por
+// _buildAttributedCardsBlock() declara `data-block-idx="${meta.idx}"` (antes solo vivía en
+// el closure de la función) y `tabindex="-1"` — enfocable programáticamente vía `.focus()`
+// desde el handler de scroll del preview de ingesta (locus-session-parse.js mod:179, mismo
+// TKT), sin entrar al tab order propio del panel. Sin colisión de atributo previa
+// (verificado por Finn en Fase 5). Header no se había actualizado pese a que el código ya
+// estaba escrito — corregido en este movimiento (BR-Execution §9). contract_update: no.
+// [PP] mod:94 · autor:Rune · 2026-08-13 UTC-6
 // TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog): .mdiff-zone-chevron y
 // .mdiff-section-chevron migrados a svg.chevron (Patrón A-13). Gap de especificación
 // detectado y corregido en sesión — el AC original asumía aria-expanded ya presente
@@ -1666,7 +1674,17 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         ? 'mdiff-narrative-section mdiff-narrative-section--liberado'
         : 'mdiff-narrative-section';
 
-      return `<div class="${_sectionCls}">
+      // TKT-202608-336 (REQ-202608-132, AC1): data-block-idx expone meta.idx en el DOM — antes
+      //   solo vivía en el closure de esta función. Es el anclaje que _renderIngestBlockPreview()
+      //   (locus-session-parse.js) usa para el scroll de la columna de ingesta hacia la sección
+      //   correspondiente. Sin colisión previa — atributo nuevo, ninguna otra parte del archivo
+      //   lo declaraba (verificado por Finn en Fase 5).
+      // TKT-202608-336 (REQ-202608-132, AC1/AC4): tabindex="-1" — enfocable programáticamente vía
+      //   .focus() desde el handler de scroll del preview de ingesta (locus-session-parse.js),
+      //   sin entrar al tab order propio del panel (mismo criterio que un target de skip-link:
+      //   alcanzable por script, no por Tab secuencial). Atributo de accesibilidad, no de
+      //   presentación — no requiere entregable de Nova ni toca CSS Purity.
+      return `<div class="${_sectionCls}" data-block-idx="${esc(meta.idx)}" tabindex="-1">
         <button class="mdiff-section-header" data-action="mdiff-toggle-section" type="button" aria-expanded="true">${_attrRow}</button>
         <div class="mdiff-section-body">
           ${_releaseInfo.html}

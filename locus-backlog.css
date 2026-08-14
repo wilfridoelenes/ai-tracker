@@ -1,4 +1,4 @@
-/* [PP] mod:154 · autor:Rune · 2026-08-13 06:42 UTC-6 */
+/* [PP] mod:155 · autor:Nova · 2026-08-13 08:10 UTC-6 */
 /* TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog): .qdisc-status-chevron,
    .qbacklog-draft-chevron (rotación) y .bl-r-toggle (glifo ::before + rotación)
    migrados a svg.chevron (Patrón A-13) — ver líneas ~5745, ~6134, ~6250. Corrección
@@ -5020,21 +5020,12 @@
   outline: 2px solid var(--accent);
 }
 
-.bl-done-arrow {
-  font-size: var(--text-xs);
-  color: var(--green-text);
-  flex-shrink: 0;
-  transition: transform 0.15s var(--ease-out);
-  width: 12px;
-  display: inline-block;
-}
-
-/* Mecanismo de colapso unificado con .qdisc-status-group/.qbacklog-draft-group — una sola
-   clase .is-collapsed en el wrapper, cascada CSS en vez de dos clases sueltas togleadas por
-   separado en JS. Ver _attachDoneGroupToggle (locus-backlog-zone-engine.js). */
-.bl-done-group.is-collapsed .bl-done-arrow {
-  transform: rotate(-90deg);
-}
+/* TKT-[ref_id:CAEL-08131045-01] (REQ-[ref_id:CAEL-08131030-01]): .bl-done-arrow migrado a
+   svg.chevron (Patrón A-13) — cuarta instancia, mismo criterio que .qdisc-status-chevron
+   (línea ~6121): sin color propio, rotación gobernada por [aria-expanded="true"] .chevron
+   en vez de la clase .is-collapsed local. .bl-done-group.is-collapsed ya no participa en
+   esta regla — el toggle de _attachDoneGroupToggle (locus-backlog-zone-engine.js) sigue
+   alternando aria-expanded sin cambio de JS. */
 
 .bl-done-count {
   font-size: var(--text-xs);

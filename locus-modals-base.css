@@ -1,4 +1,4 @@
-/* [PP] mod:31 · autor:Nova · 2026-08-13 10:05 UTC-6 */
+/* [PP] mod:32 · autor:Nova · 2026-08-13 10:20 UTC-6 */
 /* TKT-202608-333 (design_intent: ingest_block_crea_modifica_wireframe): .ingest-block-preview-tag--crea/--modifica.
    Corrige entrega anterior — el bloque se había descrito por error sobre locus-backlog-item.css, donde
    .ingest-block-preview-tag no existe. Extiende la clase base real de este archivo (TKT-202608-235) con
@@ -768,6 +768,18 @@
 
 .ingest-block-preview-item:last-child {
   border-bottom: none;
+}
+
+/* TKT-202608-336 (AC4, mitad 2): foco visible en .ingest-block-preview-item — tabindex="0"
+   agregado por Rune para navegación scroll+foco hacia .mdiff-narrative-section (data-block-idx).
+   Reusa el mismo outline ya vigente en .ingest-block-preview-origin (hijo, propósito distinto:
+   link de trazabilidad) — mismo token, mismo radio, consistencia de sistema de diseño dentro
+   del mismo archivo. Contraste var(--accent) sobre --surface2 ya verificado ≥4.5:1 en el TKT
+   que originó el patrón. */
+.ingest-block-preview-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
 }
 
 .ingest-block-preview-icon {

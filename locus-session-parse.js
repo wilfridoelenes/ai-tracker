@@ -1,4 +1,15 @@
-// [PP] mod:177 · autor:Rune · 2026-08-11 20:40 UTC-6
+// [PP] mod:179 · autor:Rune · 2026-08-13 UTC-6
+// TKT-202608-336 (REQ-202608-132, AC1/AC2/AC4): _renderIngestBlockPreview() — cada
+// `.ingest-block-preview-item` declara `data-block-idx` (idx del bloque parseado) y
+// `tabindex="0"`. Nuevo binding post-render: click o Enter/Space navega — scrollIntoView +
+// foco — hasta la `.mdiff-narrative-section[data-block-idx]` correspondiente en
+// locus-backlog-merge.js (ver mod:95 de ese archivo, mismo TKT). Sin match → no-op
+// silencioso, sin excepción (AC2). Guard explícito contra `.ingest-block-preview-origin`
+// para no competir con su listener de navegación propio. Header no se había actualizado
+// pese a que el código ya estaba escrito — corregido en este movimiento (BR-Execution §9).
+// contract_update: no — sin cambio de firma exportada, solo comportamiento interno de la
+// función de render.
+// [PP] mod:178 · autor:Rune · 2026-08-13 UTC-6
 // Gap de código (hallazgo de Finn en auditoría de cierre de INC-202608-104): el propio fix de
 // mod:191 citaba su origen como "INC-[pendiente-ID]" en dos comentarios (header de este archivo
 // y dentro de _processIngestBatch()) pese a que Locus ya había asignado código real
@@ -2526,7 +2537,20 @@ export function _renderIngestBlockPreview() {
   if (!_anchor) return; // anclaje no presente en este modal/vista — no-op, mismo criterio que _updateIngestBlockCount
   const ta = document.getElementById('ingest-ta') /* CAEL-22 */;
   const _blocks = ta ? _splitCheckpointBlocks(ta.value) : [];
-  const _metas = _blocks.map(_ingestPreviewMeta).filter(Boolean);
+  // TKT-202608-336 (REQ-202608-132, AC1): idx preservado desde la posición original en _blocks —
+  //   no el índice post-.filter(Boolean). Mismo criterio que _resolveCheckpointBatch (Paso 1, más
+  //   abajo en este archivo — b.idx es la posición real en el array de bloques sin filtrar, no la
+  //   posición tras descartar los inválidos; divergían en cuanto el batch mezclaba bloques válidos
+  //   e inválidos — Bug 1, ya corregido del lado de locus-backlog-merge.js/_buildAttributedCardsBlock,
+  //   que filtra por meta.idx explícito en vez del índice de iteración de .map()). _splitCheckpointBlocks(ta.value)
+  //   es la misma fuente compartida entre este preview y _resolveCheckpointBatch (vía _processIngestBatch) —
+  //   mismo idx en ambos lados sin recálculo propio.
+  const _metas = _blocks
+    .map((blockText, idx) => {
+      const m = _ingestPreviewMeta(blockText);
+      return m ? { ...m, idx } : null;
+    })
+    .filter(Boolean);
 
   if (!_metas.length) {
     // AC "estado vacío" — 0 bloques válidos → ninguna fila, ningún contenedor fantasma.
@@ -2548,7 +2572,7 @@ export function _renderIngestBlockPreview() {
           if (m.category === 'trazabilidad') {
             const _t = m.trace;
             return `
-              <div class="ingest-block-preview-item">
+              <div class="ingest-block-preview-item" data-block-idx="${esc(m.idx)}" tabindex="0">
                 <svg class="ti-svg ingest-block-preview-icon ingest-block-preview-icon--trace"><use href="#ti-git-commit"></use></svg>
                 <div class="ingest-block-preview-text">
                   <div class="ingest-block-preview-title-row">
@@ -2563,7 +2587,7 @@ export function _renderIngestBlockPreview() {
               </div>`;
           }
           return `
-            <div class="ingest-block-preview-item">
+            <div class="ingest-block-preview-item" data-block-idx="${esc(m.idx)}" tabindex="0">
               <svg class="ti-svg ingest-block-preview-icon"><use href="#ti-file-text"></use></svg>
               <div class="ingest-block-preview-text">
                 <div class="ingest-block-preview-title" title="${esc(m.title)}">${esc(_short)}</div>
@@ -2583,6 +2607,36 @@ export function _renderIngestBlockPreview() {
     _el.addEventListener('click', (e) => {
       e.preventDefault();
       navigateToItem(_el.dataset.code);
+    });
+  });
+
+  // TKT-202608-336 (REQ-202608-132, AC1/AC2/AC4): click o Enter/Space en un ítem del preview
+  //   navega — scrollIntoView + foco — hasta la .mdiff-narrative-section con el mismo
+  //   data-block-idx en el panel DIFF (columna 2/3 del mismo shell #modal-split-shell,
+  //   #merge-diff-overlay — ver index.html; ambas columnas viven en el mismo documento, sin
+  //   iframe, querySelector directo alcanza ambos lados). La sección solo existe tras procesar
+  //   el batch (_buildAttributedCardsBlock(), locus-backlog-merge.js, gate _ckptMetas.length>=2)
+  //   — sin match (batch no procesado aún, o modo single sin agrupación por bloque) → no-op
+  //   silencioso, sin excepción (AC2). Guard: click dentro de .ingest-block-preview-origin no
+  //   dispara este handler — ese nodo ya tiene su propio listener de navegación (arriba) y no
+  //   debe competir con el scroll de bloque. Mismo criterio de pureza de listeners que el resto
+  //   de esta función — sin acumulación entre renders, _anchor.innerHTML se reasigna completo.
+  _anchor.querySelectorAll('.ingest-block-preview-item[data-block-idx]').forEach(_item => {
+    const _scrollToSection = () => {
+      const _section = document.querySelector(`.mdiff-narrative-section[data-block-idx="${_item.dataset.blockIdx}"]`);
+      if (!_section) return; // sin sección correspondiente todavía — no-op silencioso (AC2)
+      _section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      _section.focus({ preventScroll: true });
+    };
+    _item.addEventListener('click', (e) => {
+      if (e.target.closest('.ingest-block-preview-origin')) return; // navegación propia, sin competir
+      _scrollToSection();
+    });
+    _item.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      if (e.target.closest('.ingest-block-preview-origin')) return;
+      e.preventDefault(); // evita scroll de página por Space
+      _scrollToSection();
     });
   });
 }

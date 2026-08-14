@@ -1,6 +1,8 @@
-/* [PP] mod:72 · autor:Rune · 2026-08-13 07:30 UTC-6 */
-/* TKT-202608-332 (REQ-202608-131, TKT6): .sph-collapse-btn::before (glifo ▾ estático) retirado —
-   reemplazado por .sph-collapse-btn .chevron, mismo criterio de rotación que Patrón A-13. */
+/* [PP] mod:73 · autor:Nova · 2026-08-13 08:10 UTC-6 */
+/* TKT-202608-332 (REQ-202608-131, TKT6) — corrección: la entrega anterior (mod:72) agregó
+   transform propio sobre .sph-collapse-btn .chevron, violando el AC "sin transform propio".
+   Retirado — la rotación la gobierna únicamente el primitivo global .chevron / [aria-expanded="true"]
+   .chevron de locus-base.css (TKT-202608-327), sin override local. */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* TKT-202607-127 (REQ-202607-039): Stats Shell + empty-state — sub-tab Planificar.
    Reuso casi total de TKT-202607-126: .sps-stats-block/.sps-stat-cell (grid+celda base),
@@ -113,10 +115,6 @@
   margin-top: 2px; /* alineación óptica con primera línea de sph-name */
 }
 
-.sph-collapse-btn .chevron {
-  transition: transform var(--trans-fast);
-}
-
 .sph-collapse-btn:hover {
   color: var(--text);
   background: var(--surface3);
@@ -125,11 +123,6 @@
 .sph-collapse-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-/* Chevron rotado cuando colapsado (aria-expanded="false") */
-.sph-collapse-btn[aria-expanded="false"] .chevron {
-  transform: rotate(-90deg);
 }
 
 /* Sin sprint activo: sph-header tiene is-hidden — el botón no es accesible ni visible */
