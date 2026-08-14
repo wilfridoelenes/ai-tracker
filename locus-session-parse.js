@@ -1,3 +1,14 @@
+// [PP] mod:181 · autor:Rune · 2026-08-13 UTC-6
+// TKT-202608-340 (REQ-202608-132, depends_on TKT-202608-339): _ingestPreviewMeta()/
+// _renderIngestBlockPreview() — integra renderCkptField (locus-ckpt-render.js) para renderizar
+// cada campo real de items[] contra el catálogo de _Locus-ckpt-render-ref.md. Ramas 'crea' y
+// 'modifica' ahora devuelven `rendered: [{html,hint}]` filtrado (campos sin mapeo → null →
+// descartados, AC4); 'generic' sin cambio (AC5, sin items[] no hay campo que resolver). Para
+// type:'patch'/'patch-intencion' el itemType real del código target no está disponible en el
+// bloque — se consulta el catálogo bajo la clave 'patch'/'patch-intencion' propia (campos de la
+// instrucción misma), no bajo el itemType heredado; resolver campos heredados del target queda
+// fuera de scope (no_incluye del TKT). contract_update: no — renderCkptField no cambia de firma,
+// solo gana un nuevo consumidor.
 // [PP] mod:180 · autor:Rune · 2026-08-13 UTC-6
 // TKT-202608-333 (REQ-202608-132, AC2/AC3): _ingestPreviewMeta()/_renderIngestBlockPreview() —
 // clasificación crea/modifica sobre items[] + badge correspondiente, consumiendo
@@ -1035,6 +1046,7 @@ import { showToast, toast } from './locus-toast.js';
 
 import { esc, getCurrentTab } from './locus-ui-shell.js'; // Fix INC-202608-094: getCurrentTab agregado — guard de refresco del tab Sprint en _onApplyBatch
 import { navigateToItem } from './locus-item-navigator.js'; // TKT2 (ref_id CAEL-08111800-03, REQ CAEL-08111800-01): link de origen del badge de trazabilidad — sin ciclo ESM, locus-item-navigator.js no importa este archivo (verificado por grep antes de agregar)
+import { renderCkptField } from './locus-ckpt-render.js'; // TKT-202608-340 (REQ-202608-132, depends_on TKT-202608-339): motor de render core — sin ciclo ESM, locus-ckpt-render.js es hoja pura sin imports propios (verificado por grep antes de agregar)
 
 // T-202606-012: _INFRA_VERSION_ACTIVE eliminada — importada como INFRA_VERSION_ACTIVE desde locus-storage.js
 // T-202606-029: INFRA_VERSION_ACTIVE (constante) migrada a getInfraVersionActive() / setInfraVersionActive() — AC-4 de T-202606-027 cerrado
@@ -2546,17 +2558,47 @@ function _ingestPreviewMeta(blockText) {
       _patchItems.forEach(it => {
         Object.keys(it).forEach(k => { if (k !== 'type' && k !== 'code') _fieldSet.add(k); });
       });
-      return { title: _title, meta, category: 'modifica', patch: { codes: _codes, fields: [..._fieldSet] } };
+      // TKT-202608-340 (AC2 · AC4): campo real por-ítem renderizado vía renderCkptField, itemType
+      //   resuelto por el `type` del ítem target — para type:'patch'/'patch-intencion' el itemType
+      //   real (REQ/TKT/...) no está disponible en el bloque (patch solo trae `code`), así que el
+      //   catálogo consulta directamente bajo la clave 'patch'/'patch-intencion', que cubre los
+      //   campos comunes de la instrucción misma (type/code/founder_confirmado). Campos target
+      //   heredados (ver _Locus-ckpt-render-ref.md, fila `patch | cualquier campo patcheable...`)
+      //   no se resuelven aquí — requieren conocer el itemType real del código parcheado, fuera
+      //   de scope de este TKT (no_incluye: cambios al motor de render mismo). renderCkptField
+      //   retorna null silenciosamente ante campo no mapeado (AC4) — .filter(Boolean) descarta
+      //   sin lanzar excepción, el resto de campos se renderiza igual.
+      const _renderedFields = _patchItems.flatMap(it => {
+        const _itemType = it.type === 'patch-intencion' ? 'patch-intencion' : 'patch';
+        return Object.keys(it)
+          .filter(k => k !== 'type' && k !== 'code')
+          .map(k => renderCkptField(_itemType, k, it[k]))
+          .filter(Boolean);
+      });
+      return { title: _title, meta, category: 'modifica', patch: { codes: _codes, fields: [..._fieldSet] }, rendered: _renderedFields };
     }
     const _typesSeen = [];
     parsed.items.forEach(it => {
       if (it && typeof it.type === 'string' && !_typesSeen.includes(it.type)) _typesSeen.push(it.type);
     });
     if (_typesSeen.length) {
-      return { title: _title, meta, category: 'crea', typesSummary: _typesSeen.join(' + ') };
+      // TKT-202608-340 (AC1 · AC4): mismo criterio — cada ítem de creación resuelve sus campos
+      //   reales contra el catálogo de su propio itemType. Campos ausentes del catálogo (AC4)
+      //   retornan null y se descartan sin romper el render del resto.
+      const _renderedFields = parsed.items.flatMap(it => {
+        if (!it || typeof it.type !== 'string') return [];
+        return Object.keys(it)
+          .filter(k => k !== 'type' && k !== 'code')
+          .map(k => renderCkptField(it.type, k, it[k]))
+          .filter(Boolean);
+      });
+      return { title: _title, meta, category: 'crea', typesSummary: _typesSeen.join(' + '), rendered: _renderedFields };
     }
   }
 
+  // AC5 — items[] vacío (`[]`, ya cubierto por el guard `.length` de arriba) o ausente cae acá
+  // sin invocar renderCkptField — categoría 'generic', sin campo `rendered`, mismo comportamiento
+  // previo a este TKT. _renderIngestBlockPreview() no requiere `rendered` en esta rama.
   return { title: _title, meta, category: 'generic' };
 }
 
@@ -2629,6 +2671,14 @@ export function _renderIngestBlockPreview() {
           //   trazabilidad (title-row), mismo patrón visual, categoría mutuamente excluyente.
           if (m.category === 'crea' || m.category === 'modifica') {
             const _isCrea = m.category === 'crea';
+            // TKT-202608-340 (AC1/AC2): campos reales renderizados por renderCkptField (motor de
+            //   render, TKT-202608-339) — cada entrada de m.rendered ya trae {html, hint} listo,
+            //   se concatena tal cual. AC4: m.rendered nunca contiene entradas null (.filter(Boolean)
+            //   ya aplicado en _ingestPreviewMeta) — sin guard adicional necesario acá. AC5: bloques
+            //   sin items[] (category 'generic') no llegan a esta rama, sin campo `rendered` que leer.
+            const _renderedHtml = (m.rendered && m.rendered.length)
+              ? `<div class="ingest-block-preview-fields">${m.rendered.map(r => r.html).join('')}</div>`
+              : '';
             return `
               <div class="ingest-block-preview-item" data-block-idx="${esc(m.idx)}" tabindex="0">
                 <svg class="ti-svg ingest-block-preview-icon"><use href="#ti-file-text"></use></svg>
@@ -2641,6 +2691,7 @@ export function _renderIngestBlockPreview() {
                     ? `<div class="ingest-block-preview-meta">${esc(m.typesSummary)}</div>`
                     : `<div class="ingest-block-preview-meta">${esc(m.patch.codes.join(' + '))}</div>${m.patch.fields.length ? `<div class="ingest-block-preview-meta">${esc(m.patch.fields.join(', '))}</div>` : ''}`}
                   ${m.meta ? `<div class="ingest-block-preview-meta">${esc(m.meta)}</div>` : ''}
+                  ${_renderedHtml}
                 </div>
               </div>`;
           }
