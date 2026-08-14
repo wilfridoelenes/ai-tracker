@@ -1,3 +1,11 @@
+// [PP] mod:182 · autor:Rune · 2026-08-13 UTC-6
+// TKT5 (REQ-202608-132, ref_id CAEL-08130100-02): _ingestPreviewMeta() (rama 'crea') agrega
+// `count` — cantidad de ítems del bloque, mismo criterio de membresía que _typesSeen (it &&
+// typeof it.type === 'string'). _renderIngestBlockPreview() lo consume junto a typesSummary,
+// singular '1 ítem' / plural 'N ítems'. Cierra AC3 de coherencia de conjunto de REQ-202608-132
+// (Surface 1 mostraba tipo pero no cantidad — gap declarado por Finn en el cierre del REQ).
+// contract_update: no — campo nuevo interno del objeto de retorno de una función no exportada
+// fuera de este módulo, sin cambio de firma pública.
 // [PP] mod:181 · autor:Rune · 2026-08-13 UTC-6
 // TKT-202608-340 (REQ-202608-132, depends_on TKT-202608-339): _ingestPreviewMeta()/
 // _renderIngestBlockPreview() — integra renderCkptField (locus-ckpt-render.js) para renderizar
@@ -2592,7 +2600,11 @@ function _ingestPreviewMeta(blockText) {
           .map(k => renderCkptField(it.type, k, it[k]))
           .filter(Boolean);
       });
-      return { title: _title, meta, category: 'crea', typesSummary: _typesSeen.join(' + '), rendered: _renderedFields };
+      // TKT5 (REQ-202608-132, AC1): cantidad de ítems del bloque — mismo criterio de membresía que
+      //   _typesSeen (it && typeof it.type === 'string'), no parsed.items.length crudo, para no
+      //   contar entradas malformadas sin type que tampoco aportan a typesSummary/rendered.
+      const _itemCount = parsed.items.filter(it => it && typeof it.type === 'string').length;
+      return { title: _title, meta, category: 'crea', typesSummary: _typesSeen.join(' + '), count: _itemCount, rendered: _renderedFields };
     }
   }
 
@@ -2688,7 +2700,7 @@ export function _renderIngestBlockPreview() {
                     <span class="ingest-block-preview-tag ingest-block-preview-tag--${_isCrea ? 'crea' : 'modifica'}">${_isCrea ? 'Crea' : 'Modifica'}</span>
                   </div>
                   ${_isCrea
-                    ? `<div class="ingest-block-preview-meta">${esc(m.typesSummary)}</div>`
+                    ? `<div class="ingest-block-preview-meta">${esc(m.typesSummary)} · ${m.count === 1 ? '1 ítem' : `${esc(m.count)} ítems`}</div>`
                     : `<div class="ingest-block-preview-meta">${esc(m.patch.codes.join(' + '))}</div>${m.patch.fields.length ? `<div class="ingest-block-preview-meta">${esc(m.patch.fields.join(', '))}</div>` : ''}`}
                   ${m.meta ? `<div class="ingest-block-preview-meta">${esc(m.meta)}</div>` : ''}
                   ${_renderedHtml}

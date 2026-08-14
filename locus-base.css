@@ -1,4 +1,9 @@
-/* [PP] mod:28 · autor:Nova · 2026-08-13 10:05 UTC-6 */
+/* [PP] mod:29 · autor:Nova · 2026-08-13 15:40 UTC-6 */
+/* TKT-202608-343 (REQ-202608-133, TKT1): agrega .chevron--dropdown — token de
+   dropdown-trigger (Patrón A-14, _Locus-css-ref mod:200), rotación 180deg,
+   distinto del disclosure de .chevron (Patrón A-13, rotación 90deg). Ver bloque
+   al final del archivo, justo después de "END Patrón A-13". No migra ningún
+   consumidor todavía (eso es TKT2, TKT-202608-344). */
 /* TKT-202608-334 (REQ-202608-131): agrega .chevron--static — tercera variante del
    primitivo .chevron, sin hook de disclosure. Ver bloque al final del archivo,
    dentro del Patrón A-13, junto a .chevron/.chevron--btn. */
@@ -687,3 +692,17 @@ body {
   .chevron{transition:none;}
 }
 /* ── END Patrón A-13 ── */
+
+/* ── .chevron--dropdown — Patrón A-14, dropdown-trigger (_Locus-css-ref mod:200) ──
+   TKT-202608-343 (REQ-202608-133, TKT1): fundación del token de dropdown-trigger —
+   mismo primitivo .chevron (glifo #ti-chevron-right, reposo rotate(0deg) heredado
+   sin regla propia), rotación distintiva 180deg (vs 90deg de disclosure, Patrón
+   A-13) para diferenciar semánticamente "abre un menú/dropdown" de "expande una
+   fila/sección". Reduced-motion ya cubierto por la regla .chevron{transition:none}
+   de arriba — .chevron--dropdown no declara transition propia. No migra ningún
+   consumidor todavía (eso es TKT2, TKT-202608-344): .proj-filter-btn,
+   .bl-plan-dest-chevron. ── */
+[aria-expanded="true"] .chevron--dropdown{
+  transform:rotate(180deg);
+}
+/* ── END Patrón A-14 ── */

@@ -1,3 +1,12 @@
+// [PP] mod:96 · autor:Rune · 2026-08-13 UTC-6
+// TKT4 (REQ-202608-132, ref_id CAEL-08130100-01): _typeClass — retirada la entrada muerta 'KE'
+// (residuo de la fusión KE→PRB.root_cause_confirmed, infra_version 51). _typeOrder — agregadas
+// PRB:4/CHG:5, antes ausentes y caían al fallback `?? 99` de _sortByType sin posición canónica.
+// Cierra el gap de integración declarado por Finn en el cierre de REQ-202608-132 (AC2 de
+// coherencia de conjunto). Alcance de _typeOrder acotado a los 6 tipos con entrada de diff visual
+// — 'patch'/'patch-intencion' nunca llegan a _sortByType (_patchItems se filtra antes, línea
+// ~307), corrección de alcance respecto al AC1 original declarada en el comentario inline.
+// contract_update: no — variables internas del closure de showMergeDiffPanel, sin firma exportada.
 // [PP] mod:95 · autor:Rune · 2026-08-13 UTC-6
 // TKT-202608-336 (REQ-202608-132, AC1/AC4): cada `.mdiff-narrative-section` generada por
 // _buildAttributedCardsBlock() declara `data-block-idx="${meta.idx}"` (antes solo vivía en
@@ -694,9 +703,21 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // _typeName quedaba sin consumidores tras retirar los 4 spans que lo usaban. _typeClass se
   // conserva — sigue coloreando el borde de acento de cada card por tipo.
   // R-202605-148: clase CSS por tipo — hex fijos de identidad del backlog
-  const _typeClass = { INC: 'mdiff-type--inc', TKT: 'mdiff-type--tkt', REQ: 'mdiff-type--req', DISC: 'mdiff-type--disc', PRB: 'mdiff-type--prb', KE: 'mdiff-type--ke', CHG: 'mdiff-type--chg' };
+  // TKT4 (REQ-202608-132, AC2): 'KE' retirado — entrada muerta desde la fusión KE→PRB.root_cause_confirmed
+  // (infra_version 51), nunca alcanzable porque itemKind() no produce ese valor (mismo residuo ya
+  // limpiado en _isQIncTerminal(), locus-incidents-render.js mod:10). PRB y CHG ya tenían clase
+  // propia y distinta entre sí — sin cambio en esos dos.
+  const _typeClass = { INC: 'mdiff-type--inc', TKT: 'mdiff-type--tkt', REQ: 'mdiff-type--req', DISC: 'mdiff-type--disc', PRB: 'mdiff-type--prb', CHG: 'mdiff-type--chg' };
   // R-202605-148: orden canónico INC → REQ → TKT → DISC para sort dentro de sección
-  const _typeOrder = { INC: 0, REQ: 1, TKT: 2, DISC: 3 };
+  // TKT4 (REQ-202608-132, AC1): PRB/CHG agregados al final — antes ausentes de _typeOrder, caían al
+  // fallback `?? 99` de _sortByType (más abajo en este archivo) sin posición canónica declarada.
+  // Corrección de alcance respecto al AC1 original (Fase 2 de Cael pedía las 8 claves del catálogo
+  // de _Locus-ckpt-render-ref.md incluyendo 'patch'/'patch-intencion') — verificado contra código
+  // real antes de implementar: _patchItems se filtra fuera de tgItems antes de llegar a
+  // _sortByType (línea ~307) y nunca se ordena por este mapa. _typeOrder cubre exclusivamente los
+  // 6 tipos con entrada de diff visual (rama Planeada + Reactiva, __BR-Ecosystem §4b) — el AC se
+  // satisface sobre el alcance real de la función, no sobre las 8 claves del catálogo completo.
+  const _typeOrder = { INC: 0, REQ: 1, TKT: 2, DISC: 3, PRB: 4, CHG: 5 };
 
   // TKT-202608-326 (REQ-202608-130, TKT1): mapas construidos una sola vez sobre tgItems
   // (ítems completos no-patch, ya filtrado en línea ~531) + _patchItems (línea ~530) —
