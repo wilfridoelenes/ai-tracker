@@ -1,3 +1,20 @@
+// [PP] mod:163 · autor:Rune · 2026-08-14 09:10 UTC-6
+// INC-202608-108 (triggered_by: sesión de diagnóstico directo, síntoma reportado por
+// founder — toast de guardado exitoso, status de Worker visualmente sin cambio):
+// saveWorker()/deleteWorker() (TKT1/TKT2 CAEL-08111600-01/CAEL-08111815-01) eran el único
+// par de escrituras a Supabase en este archivo sin envolver en syncState.withSaveLock() —
+// todas las demás (tracker_state/tracker_items/tracker_incidents/tracker_docs/
+// tracker_sessions, TKT-189/190/191/192, REQ-202607-071) ya seguían ese patrón. Causa raíz:
+// syncState.isSaveInFlight() — el guard que _applyStateRow() ya tenía desde mod:154 (ver
+// bloque siguiente) — no reflejaba un upsert de saveWorker() en vuelo, porque esa función
+// nunca incrementaba el contador del lock. Un _loadFromSupabase() disparado durante la
+// ventana entre la mutación en memoria (_liveAi.status=...) y la confirmación del upsert
+// podía pasar el guard, leer tracker_workers antes de que el upsert aterrizara, y
+// sobreescribir state.ais con el status pre-mutación — revirtiendo el cambio en silencio.
+// Fix: ambas funciones envueltas en syncState.withSaveLock(), mismo patrón que el resto del
+// archivo — sin cambio de firma, sin cambio de comportamiento salvo el cierre de la ventana
+// de carrera. Módulo crítico: locus-storage.js — activar verificación de regresiones en Finn.
+//
 // [PP] mod:162 · autor:Rune · 2026-08-12 07:40 UTC-6
 // TKT1 (REQ CAEL-08111600-01): getWorkers()/saveWorker()/_migrateWorkersToTable() sobre
 // tracker_workers — mismo patrón de _upsertSprint()/getAllProjectsSprints() (T-202606-005).
@@ -4107,12 +4124,19 @@ export async function saveWorker(worker) {
     show_all:        !!worker.showAll,
     updated_at:      Date.now()
   };
-  const { error } = await _supabase
-    .from('tracker_workers')
-    .upsert(row, { onConflict: 'id' });
-  if (error) {
-    logger.error('[Locus] TKT1 (CAEL-08111600-01): upsert a tracker_workers falló', error);
-  }
+  // mod:163 (INC-202608-108): upsert envuelto en syncState.withSaveLock() — mismo lock
+  // global reentrante ya usado por tracker_state/tracker_items/tracker_incidents/
+  // tracker_docs/tracker_sessions. Sin este wrap, isSaveInFlight() no reflejaba este upsert
+  // en vuelo y _applyStateRow() (mismo archivo) podía leer tracker_workers stale durante la
+  // ventana, revirtiendo el status recién mutado en memoria.
+  await syncState.withSaveLock(async () => {
+    const { error } = await _supabase
+      .from('tracker_workers')
+      .upsert(row, { onConflict: 'id' });
+    if (error) {
+      logger.error('[Locus] TKT1 (CAEL-08111600-01): upsert a tracker_workers falló', error);
+    }
+  });
 }
 
 // TKT2 (CAEL-08111815-01): saveWorker() es upsert — no borra filas. Gap detectado por Rune
@@ -4122,14 +4146,19 @@ export async function saveWorker(worker) {
 // no-op silencioso que saveWorker() sin auth).
 export async function deleteWorker(id) {
   if (!_supabase || !_supabaseUser || !id) return;
-  const { error } = await _supabase
-    .from('tracker_workers')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', _supabaseUser.id);
-  if (error) {
-    logger.error('[Locus] TKT2 (CAEL-08111815-01): delete en tracker_workers falló', error);
-  }
+  // mod:163 (INC-202608-108): mismo wrap que saveWorker() — consistencia de contrato,
+  // ver invariant de esa función. Sin fix directo reportado para el delete, pero es la
+  // misma clase de ventana (isSaveInFlight() no reflejaba escrituras a tracker_workers).
+  await syncState.withSaveLock(async () => {
+    const { error } = await _supabase
+      .from('tracker_workers')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', _supabaseUser.id);
+    if (error) {
+      logger.error('[Locus] TKT2 (CAEL-08111815-01): delete en tracker_workers falló', error);
+    }
+  });
 }
 
 // Script de migración manual — una sola vez, invocado desde consola tras confirmar el DDL.
