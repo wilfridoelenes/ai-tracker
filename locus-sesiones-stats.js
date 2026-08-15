@@ -1,3 +1,12 @@
+// [PP] mod:33 · autor:Rune · 2026-08-15 16:40 UTC-6
+// origen: CAEL-08151400-02 (REQ CAEL-08151400-01): renderStatusBar() — fallback de #gf-ckpt sin
+// alertas activas reemplaza el título de la última sesión ingerida por un contador de trabajo
+// pendiente sin triage — ítems sin sprint (Q-Backlog+Q-DISC, excluye descartado/promoted/
+// historico) + incidentes no-terminales en Q-INC (mismo criterio st por tipo que incAlert más
+// abajo). 'Todo al día' cuando ambos son 0. Sin onclick — a diferencia del fallback anterior
+// (openDetail), el contador es de solo lectura (design_intent: gf_ckpt_borrador_contador). El
+// bloque de allSess/lastSess que generaba el título fue eliminado, no ocultado — import de
+// openDetail retirado por quedar huérfano (único call site era ese bloque).
 // [PP] mod:32 · autor:Rune · 2026-08-15 16:05 UTC-6
 // INC-202608-118 (Fast Track): _getFooterAlert() — filtro "sin grooming" no excluía DISC
 // status:'promoted', a diferencia de _isQDiscActive (locus-backlog-core.js). Ver fix inline
@@ -64,7 +73,6 @@ import { getItems, getIncidents, itemKind, isSlaClockPaused } from './locus-back
 import { _zoneStaleness } from './locus-backlog-zone-engine.js';
 import { incSlaPriority, incIncidentStatus } from './locus-inc-fields.js';
 // selectTrackerAI y _markTrackerDirty desacoplados vía shell:* events (T-202606-084)
-import { openDetail } from './locus-session-popup.js';
 // T-202606-166: _getActiveProjectFilter y getProjectById movidas a locus-storage.js
 import { _effectiveVersion, _getActiveProjectFilter, _getDocUpdateIndex, _isInSession, getAISessions, getActiveProject, getActiveTracker, getAllSessions, getInfraVersionData, getProjectById, save } from './locus-storage.js';
 
@@ -392,24 +400,19 @@ export function renderStatusBar() {
         return;
       }
 
-      const allSess = getAllSessions().slice().sort((a, b) => {
-        const ta = a.timestamp || a.endTime || a.startTime || 0;
-        const tb = b.timestamp || b.endTime || b.startTime || 0;
-        return tb - ta;
-      });
-      const lastSess = allSess[0] || null;
-      if (lastSess) {
-        const nextStep = lastSess.proximoPaso || '';
-        const texto = nextStep ? nextStep.slice(0, 32) : ((lastSess.title || lastSess.nombre || '').slice(0, 28) || '—');
-        gfCkpt.textContent = (nextStep ? '→ ' : '⏱ ') + texto;
-        gfCkpt.classList.remove('is-hidden');
-        gfCkpt.classList.add('gf-ckpt--link');
-        gfCkpt.onclick = function() {
-          openDetail(lastSess.aiId, lastSess.id);
-        };
-      } else {
-        gfCkpt.classList.add('is-hidden');
-      }
+      // TKT1 (REQ CAEL-08151400-01, ref_id CAEL-08151400-02): contador de pendientes reemplaza
+      // el título de última sesión — ver AC1/AC2/AC3. Solo lectura, sin onclick.
+      const pendItems = (typeof getItems === 'function' ? (getItems() || []) : []).filter(i =>
+        !i.sprint && i.status !== 'descartado' && i.status !== 'promoted' && i.status !== 'historico'
+      ).length;
+      const pendIncs = (typeof getIncidents === 'function' ? (getIncidents() || []) : []).filter(i => {
+        const st = i.type === 'CHG' ? i.status : incIncidentStatus(i);
+        return st !== 'closed' && st !== 'descartado' && st !== 'done';
+      }).length;
+      gfCkpt.textContent = (pendItems > 0 || pendIncs > 0)
+        ? `${pendItems} ITEMS · ${pendIncs} INC pendientes`
+        : 'Todo al día';
+      gfCkpt.classList.remove('is-hidden');
     } catch(e) { gfCkpt.classList.add('is-hidden'); }
   }
 
