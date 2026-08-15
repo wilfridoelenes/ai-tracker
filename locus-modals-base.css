@@ -1,4 +1,4 @@
-/* [PP] mod:32 · autor:Nova · 2026-08-13 10:20 UTC-6 */
+/* [PP] mod:33 · autor:Nova · 2026-08-14 20:05 UTC-6 */
 /* TKT-202608-333 (design_intent: ingest_block_crea_modifica_wireframe): .ingest-block-preview-tag--crea/--modifica.
    Corrige entrega anterior — el bloque se había descrito por error sobre locus-backlog-item.css, donde
    .ingest-block-preview-tag no existe. Extiende la clase base real de este archivo (TKT-202608-235) con
@@ -875,6 +875,74 @@
   background: var(--accent-dim);
   color: var(--accent-text);
   border-color: var(--accent-border);
+}
+
+/* .ingest-block-preview-type / .ingest-block-preview-transition / .ingest-block-preview-tag--high —
+   TKT-202608-352 (REQ-202608-139, design_intent: ingest_preview_itil_badge_transition). Extiende
+   el sistema de .ingest-block-preview-tag (TKT-202608-235/333, arriba) para bloques tipo ITIL
+   (INC/PRB/CHG) — no reactiva .qinc-type-badge (locus-incidents.css): ese sistema vive en el
+   panel Q-INC persistente, este es el preview de textarea antes de procesar el batch, mismo
+   criterio de aislamiento de contexto ya declarado para .ingest-block-preview-origin (arriba,
+   "esa familia vive en otro modal"). Fila superior: badge de tipo fijo (siempre visible en un
+   bloque ITIL, sea creación o patch) + tag --crea/--modifica existente + tag --high condicional
+   comparten la misma fila (.ingest-block-preview-title-row, ya existe). Fila propia debajo del
+   título para la transición completa, cuando el patch toca incident_status/status — no compite
+   por espacio con el resto de chips de "campos actualizados" del panel DIFF real (.mdiff-*),
+   que vive en otro componente (Merge Diff Panel, 2+ bloques) y no se toca en este TKT.
+   Tokens: tipo usa --blue (mismo token informativo que .ingest-block-preview-icon--trace,
+   arriba) — no --accent, para no colisionar visualmente con --modifica. Transición --avance
+   reusa --green-dim/--green-text/--green-border (mismos tokens que --crea, arriba — mismo
+   significado semántico "estado final favorable"). Transición --escalacion usa el patrón
+   color-mix(10%/28%) + --amber-text ya vigente en este archivo (.validation-warnings
+   .validation-msg, .validation-force-btn) — no existe --amber-dim/--amber-border como variable
+   completa en este proyecto, a diferencia de --green-*/--accent-*, así que se compone igual
+   que esos dos casos existentes en vez de asumir tokens inexistentes. --high reusa el mismo
+   patrón color-mix sobre --red — consistente con --red-text ya usado en .validation-error
+   .validation-msg (arriba) para severidad. Flecha de la transición (→) va en el HTML con
+   aria-hidden="true" (Rune) — .ingest-block-preview-transition-arrow es puramente de layout,
+   sin contenido semántico propio. */
+.ingest-block-preview-type {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
+  color: var(--blue-text);
+  border: 1px solid color-mix(in srgb, var(--blue) 28%, transparent);
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.ingest-block-preview-tag--high {
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+  color: var(--red-text);
+  border-color: color-mix(in srgb, var(--red) 28%, transparent);
+}
+
+.ingest-block-preview-transition {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.ingest-block-preview-transition-arrow {
+  flex-shrink: 0;
+  color: var(--text3);
+}
+
+.ingest-block-preview-transition--avance {
+  color: var(--green-text);
+}
+
+.ingest-block-preview-transition--escalacion {
+  color: var(--amber-text);
 }
 
 /* Link de origen (REQ/TKT) dentro de .ingest-block-preview-meta — opcional, solo cuando el
