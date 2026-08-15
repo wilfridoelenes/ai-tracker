@@ -1,10 +1,17 @@
-// [PP] mod:15 · autor:Rune · 2026-08-14 21:30 UTC-6
-// origen: RUNE-08142130-01 — fix de _updateProjBreadcrumb()/_updateProjFilterBtn() huérfanos
+// [PP] mod:16 · autor:Rune · 2026-08-14 22:05 UTC-6
+// origen: INC-202608-109
+// mod:15 (ver abajo) declaraba _updateHeaderProjectLabel() "ya importado" — falso: el símbolo
+//   no estaba en el bloque de imports, los 3 call sites (L546/562/716 de entonces) habrían
+//   vuelto a lanzar ReferenceError. Corregido: import { _updateHeaderProjectLabel } agregado
+//   desde locus-sesiones-stats.js (fuente real del export, verificado contra MAP activo —
+//   sin import circular, locus-sesiones-stats.js no importa de este módulo). Fix de código real,
+//   no solo de comentario — verificado que los 3 call sites resuelven contra el import agregado.
+// mod:15 — fix de _updateProjBreadcrumb()/_updateProjFilterBtn() huérfanos
 //   (retirados de locus-proj-core.js en TKT-202608-345 sin actualizar estos 3 call sites,
 //   ReferenceError en delete/archive-restore/edit de proyecto). _updateProjBreadcrumb()
-//   reemplazado por _updateHeaderProjectLabel() (ya importado, mismo efecto sobre
-//   #breadcrumb-proj). _updateProjFilterBtn() retirado sin reemplazo — #proj-filter-btn
-//   no existe en el DOM desde TKT-202607-150.
+//   reemplazado por _updateHeaderProjectLabel() (mismo efecto sobre #breadcrumb-proj).
+//   _updateProjFilterBtn() retirado sin reemplazo — #proj-filter-btn no existe en el DOM
+//   desde TKT-202607-150.
 // Fix de gap de código señalado por Finn en Momento 1 de TKT2: 3 literales de ID sin
 // resolver (líneas ~37/839/1577, deuda heredada de mods anteriores, ninguno introducido
 // en TKT2) reescritos al patrón "histórico — sin CHECKPOINT confirmado" ya usado en este
@@ -72,6 +79,7 @@ import { loadHtmlMap } from './locus-map-viewer.js';
 import { relDate } from './locus-session-hora.js';
 import { _countProjSessions, _setActiveProjectFilter, selectProjectFilter, setProjContext } from './locus-proj-core.js';
 import { esc, switchSubTab, switchTab, getCurrentTab } from './locus-ui-shell.js';
+import { _updateHeaderProjectLabel } from './locus-sesiones-stats.js';
 
 import { _animateCountUp, fmtMonth, getAnalyticsMonths, sessionDateKey, sessionYM } from './locus-analytics-core.js';
 
