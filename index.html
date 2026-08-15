@@ -1,4 +1,4 @@
-<!-- [PP] mod:200 · autor:Rune · 2026-08-14 21:05 UTC-6 -->
+<!-- [PP] mod:201 · autor:Rune · 2026-08-14 21:45 UTC-6 -->
 <!-- TKT (ref_id CAEL-08142100-02, parent ref_id CAEL-08142100-01): #qbacklog-done-header —
      svg.chevron reordenado al final (antes: primer hijo) y label+count agrupados en
      .bl-done-header-meta, para que .bl-done-header (justify-content:space-between, Nova
@@ -1179,7 +1179,7 @@
        (spi-stat-*) para no colisionar con #sps-stat-* del sub-tab Sprints. Modificadores de color
        solo en en-revision (--amber)/bloqueado (--red) — pendiente/done neutros, AC1. Poblado por
        JS (Rune) — sin datos aún en este entregable. -->
-  <div class="sps-stats-block" id="spi-stats-block">
+  <div class="sps-stats-block spt-stats" id="spi-stats-block">
     <div class="sps-stat-cell">
       <span class="sps-stat-label">Pendiente</span>
       <span class="sps-stat-n" id="spi-stat-pendiente">0</span>
@@ -1262,7 +1262,7 @@
          Modificadores de color solo en asignados (--asignados, azul) y vs velocidad
          (--vs-velocidad, ámbar) — Q-Backlog/effort asignado neutros, AC1. Poblado por JS (Rune)
          dentro de _renderPlanningView() — sin datos aún en este entregable. -->
-    <div class="sps-stats-block" id="spp-stats-block">
+    <div class="sps-stats-block spt-stats" id="spp-stats-block">
       <div class="sps-stat-cell">
         <span class="sps-stat-label">Q-Backlog</span>
         <span class="sps-stat-n" id="spp-stat-qbacklog">0</span>
@@ -1306,7 +1306,7 @@
          #qdisc-stats-block (BR-Execution §5, elemento invariante). Pausados/Cerrados sin
          modificador de color a propósito — ver locus-sprint.css mod:64 comentario junto a
          .sps-status-header--pausados/--cerrados. -->
-    <div class="sps-stats-block" id="sps-stats-block">
+    <div class="sps-stats-block spt-stats" id="sps-stats-block">
       <div class="sps-stat-cell sps-stat-cell--activo">
         <span class="sps-stat-label">Activo</span>
         <span class="sps-stat-n" id="sps-stat-activo">0</span>
@@ -1324,17 +1324,22 @@
         <span class="sps-stat-n" id="sps-stat-cerrados">0</span>
       </div>
     </div>
-    <!-- T-202606-002: encabezado de contexto — visible solo en modo .spt-main-view (ver locus-sprint.js renderSprintTab) -->
-    <div class="spt-context-header" id="spt-context-header">
-      <span class="spt-context-header__icon" aria-hidden="true">⏳</span>
-      <span>Sin sprint activo</span>
+    <!-- TKT2 (REQ CAEL-0814-01, ref_id CAEL-08141400-03): sps-content-empty — reemplaza
+         .spt-context-header (retirado, dead markup sin shell compartido). Mismo recipe que
+         #spi-content-empty/#spp-content-empty (familia .spt-content-empty, Nova TKT1) — is-hidden
+         por defecto, JS (renderSprintTab, rama sin sprint) lo muestra cuando no hay ningún sprint
+         de ningún tipo para el proyecto activo. -->
+    <div class="spt-content-empty is-hidden" id="sps-content-empty">
+      <svg class="ti-svg spt-content-empty-icon" aria-hidden="true"><use href="#ti-calendar-off"></use></svg>
+      <div class="spt-content-empty-title">Sin sprint activo</div>
+      <div class="spt-content-empty-hint">Creá un sprint nuevo para empezar a planificar</div>
     </div>
 
     <!-- TKT2 (REQ histórico — sin CHECKPOINT confirmado · migración Step 0 DIFF → panel Sprint subtab): shell estático —
          botón siempre presente (E-01), panel vacío hasta que JS lo puebla al abrir.
          design_intent: sprint-nuevo-panel-v1 -->
-    <div class="spnp-trigger-row">
-      <button class="spnp-trigger-btn" type="button" id="spnp-trigger-btn"
+    <div class="spnp-trigger-row spt-toolbar">
+      <button class="spnp-trigger-btn btn-primary" type="button" id="spnp-trigger-btn"
               aria-expanded="false" aria-controls="spnp-panel">
         + Sprint nuevo
       </button>

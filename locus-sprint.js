@@ -1,4 +1,4 @@
-// [PP] mod:124 · autor:Rune · 2026-08-03 20:45 UTC-6
+// [PP] mod:125 · autor:Rune · 2026-08-14 21:45 UTC-6
 // TKT-202607-142 (REQ-202607-045, retroactivo — reemplaza TKT-202607-141): retirado el
 // listener 'shell:sprint-render' agregado en mod:120 — dead code, ver bloque en el cuerpo
 // del archivo. TKT-202607-134 (mod:135 de locus-backlog-core.js) ya había renombrado los 3
@@ -373,9 +373,9 @@ function _sphSyncCollapsedPct() {
 function _sptSwitch(subtab, triggerBtn, skipItemsRender = false) {
   _sptActiveSubtab = subtab; // B-202606-065/066: persiste entre renders y recargas de página
   localStorage.setItem(_SPT_SUBTAB_KEY, subtab);
-  // T-202606-042: ocultar header en sub-tab Sprints, visible en Ítems/Planificar
-  const _sphHeader = document.getElementById('sprint-panel-header');
-  if (_sphHeader) _sphHeader.classList.toggle('is-hidden', subtab === 'sprints');
+  // TKT2 (REQ CAEL-0814-01, ref_id CAEL-08141400-03) AC1: el header (.spt-shell) ya no se
+  // oculta al entrar a la sub-tab Sprints — mismo shell visible en las 3 sub-tabs sin
+  // excepción (design_intent: spt_shell_unified_mockup). Reemplaza el toggle de T-202606-042.
   _SPT_PANELS.forEach(s => {
     const panel = document.getElementById('sprint-panel-' + s);
     const btn   = document.getElementById('spt-tab-' + s);
@@ -2064,7 +2064,25 @@ export function renderSprintTab() {
     } else {
       // T-202606-001 AC-1/AC-2: sin sprint activo ni programado — sptNav visible, default 'sprints'.
       // Reemplaza la arquitectura de empty state dedicado (R-202605-006, deprecada).
-      if (header)    header.classList.add('is-hidden');
+      // TKT2 (REQ CAEL-0814-01) AC5: el header (.spt-shell) ya no se oculta en este caso —
+      // queda visible con identity reducida ("Locus › sin sprint"), mismo shell que con
+      // sprint activo. Antes: header.classList.add('is-hidden').
+      if (header) {
+        header.classList.remove('is-hidden');
+        const proj = getActiveProject();
+        const identityChipEl  = _spEl('spt-identity-chip');
+        const identityLabelEl = _spEl('spt-identity-label');
+        if (identityChipEl)  identityChipEl.textContent  = proj ? proj.id : 'Locus';
+        if (identityLabelEl) identityLabelEl.textContent = 'sin sprint';
+        const nameEl = _spEl('sph-name');
+        if (nameEl) nameEl.textContent = '';
+        const goalEl = _spEl('sph-goal');
+        if (goalEl) goalEl.classList.add('is-hidden');
+        const scopeChipEl = _spEl('sph-scope-chip');
+        if (scopeChipEl) scopeChipEl.classList.add('is-hidden');
+        const pendingBadge = _spEl('sph-pending-badge');
+        if (pendingBadge) pendingBadge.classList.add('is-hidden');
+      }
       if (itemsList) itemsList.classList.add('is-hidden');
       if (sptNav)    sptNav.classList.remove('is-hidden');
       const workers    = _spEl('sprint-workers');
@@ -2087,6 +2105,12 @@ export function renderSprintTab() {
       const _hasAnySprint = getActiveSprints().some(function(s) {
         return s.projectId === _activeProjId; // TKT-B1: isHotfix eliminado
       });
+      // TKT2 (REQ CAEL-0814-01) AC4/AC5: #sps-content-empty (familia .spt-content-empty)
+      // reemplaza el antiguo .spt-context-header retirado de index.html — visible solo
+      // cuando no hay ningún sprint de ningún tipo. _hasAnySprint estaba declarada sin
+      // consumidor antes de este TKT (gap señalado por Nova en sesión de diagnóstico).
+      const contentEmptyEl = _spEl('sps-content-empty');
+      if (contentEmptyEl) contentEmptyEl.classList.toggle('is-hidden', _hasAnySprint);
       _sptSwitch('sprints', _spEl('spt-tab-sprints'), true);
       return;
     }
@@ -2110,6 +2134,10 @@ export function renderSprintTab() {
   if (_panelSprintsRestore) {
     _panelSprintsRestore.classList.remove('spt-main-view', 'spt-no-sprints-at-all');
   }
+  // TKT2 (REQ CAEL-0814-01) AC5: hay al menos un sprint (activo o programado) — el
+  // empty-state total de la sub-tab Sprints nunca debe quedar visible en esta rama.
+  const _spsContentEmptyGuard = _spEl('sps-content-empty');
+  if (_spsContentEmptyGuard) _spsContentEmptyGuard.classList.add('is-hidden');
 
   // Header — T-202606-042: remove is-hidden base antes de _sptSwitch para que el toggle por subtab tenga la última palabra
   if (header) {
