@@ -1,3 +1,13 @@
+// [PP] mod:62 · autor:Rune · 2026-08-15 UTC-6
+// RUNE-08151230-01: _isActiveQIncItem() — rama PRB leía i.status en vez de incIncidentStatus(i).
+// PRB no declara `status` (solo CHG lo hace, __BR-Ecosystem §4b) — la comparación siempre daba
+// undefined, ningún PRB activo se reconocía como activo en los 4 call sites de esta función
+// (qIncCount L759, _buildQIncMd L799, exclusión en L1018/L1509). También faltaba
+// 'root_cause_confirmed' en el set comparado — sí es Activo ITIL para PRB (__BR-Ecosystem §5).
+// Fix alinea al criterio ya correcto de _isActiveIncident() en locus-incidents-generator.js.
+// Auditoría de DISC-202608-145 sobre locus-incidents-render.js y locus-incidents-generator.js:
+// ambos ya dispatchean correctamente por tipo desde 2026-07-23 — sin gap encontrado ahí.
+
 // [PP] mod:61 · autor:Rune · 2026-08-11 UTC-6
 // DISC-202608-133: comentarios con `INC-[pendiente-ID]` sin resolver — hallazgo inicial reportaba
 // 5 ocurrencias de un solo incidente; verificación contra el código real encontró 6 ocurrencias
@@ -207,7 +217,12 @@ function _isActiveQIncItem(i) {
   // y locus-backlog-panel.js. PRB/CHG sin cambio — ya correctos leyendo i.status tras TKT1
   // (ref_id CAEL-0722-02, mirror status↔incident_status aplicado en _mapRowToIncident()).
   if (t === 'INC') { const s = incIncidentStatus(i); return !!s && s !== 'closed' && s !== 'descartado'; }
-  if (t === 'PRB') return i.status === 'detected' || i.status === 'in_progress' || i.status === 'resolved';
+  // RUNE-08151230-01: PRB leía i.status (campo inexistente en su schema — PRB usa incident_status,
+  // __BR-Ecosystem §4b, mismo campo que INC) — nunca reconocía un PRB como activo. Ahora usa
+  // incIncidentStatus(i), mismo accessor que la rama INC de arriba. Set de estados activos
+  // alineado al canónico ya correcto en _isActiveIncident() (locus-incidents-generator.js) —
+  // agrega 'root_cause_confirmed', Activo ITIL para PRB per __BR-Ecosystem §5.
+  if (t === 'PRB') { const s = incIncidentStatus(i); return s === 'detected' || s === 'in_progress' || s === 'root_cause_confirmed' || s === 'resolved'; }
   if (t === 'CHG') return i.status === 'pendiente' || i.status === 'en-revision';
   return false;
 }

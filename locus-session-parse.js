@@ -1,3 +1,18 @@
+// [PP] mod:193 · autor:Rune · 2026-08-15 UTC-6
+// INC-[pendiente-ID] (triggered_by INC-202608-113 — founder: worker marcado "Agotada" en la
+// card principal pero el Radar sidebar sigue mostrándolo en "Disponibles" por bastante tiempo).
+// Causa raíz: mod:192 (INC-202608-113) restauró la mutación de ai.status en _onApplyBatch, pero
+// nunca importó nada de locus-radar.js — el único dispatch, 'shell:render-tracker', solo
+// refresca locus-sesiones.js (render()), la card principal. _doApplyMergeAndFinish()
+// (locus-session-save.js) sí importa _markRadarDirty/renderGlobalRadarSidebar y las invoca tras
+// mutar status; ese path histórico dejó de ser el punto de entrada real desde TKT-202608-276,
+// pero el refresco de Radar nunca se replicó al nuevo punto de entrada. Fix: import de
+// _markRadarDirty/renderGlobalRadarSidebar (locus-radar.js — ambas zero-arg, confirmado contra
+// código real antes de invocar, sin ciclo ESM: locus-radar.js no importa de vuelta este
+// archivo); ambas invocadas justo después de saveWorker(), mismo bloque, mismo orden que el
+// flujo single. Sin este fix, el Radar reflejaba el status nuevo solo cuando algún otro trigger
+// no relacionado forzaba su próximo render — nunca instantáneo, comportamiento consistente con
+// "tarda bastante" reportado por el founder, no con un fallo determinístico.
 // [PP] mod:192 · autor:Rune · 2026-08-15 UTC-6
 // INC-[pendiente-ID] (founder: "poner hora de bloqueo en el modal de ingesta no hace nada — el
 // worker se mantiene disponible, solo Quick Capture agota"). Causa raíz: desde TKT-202608-276
@@ -1074,6 +1089,7 @@ import { _checkStorageQuota, _mergeBacklogWithProject, saveSession, _applyCheckp
 import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, getSupabaseContext, save, saveImmediate, saveWorker, _upsertSprint, LOCUS_KEYS, CANONICAL_PROJECTS, _PREFIX_MAP, getInfraVersionData } from './locus-storage.js'; // INC-[pendiente-ID]: saveWorker agregado — persistencia de status exhausted/in_session desde _onApplyBatch, tracker_workers es su único canal (mod:169-171 de _Locus-module-contracts §1)
 // T-202606-029: INFRA_VERSION_ACTIVE (constante) reemplazada por getInfraVersionActive() / setInfraVersionActive() — AC-4 de T-202606-027
 import { showToast, toast } from './locus-toast.js';
+import { _markRadarDirty, renderGlobalRadarSidebar } from './locus-radar.js'; // INC-[pendiente-ID] (triggered_by INC-202608-113): mismas 2 funciones que _doApplyMergeAndFinish (locus-session-save.js) invoca tras mutar ai.status — sin ellas, saveWorker() persiste el status pero el Radar sidebar no se re-renderiza hasta el próximo trigger no relacionado, sin importar zero-arg confirmado contra locus-radar.js real (_markRadarDirty()/renderGlobalRadarSidebar(), ninguna toma parámetros)
 
 
 
@@ -3190,6 +3206,8 @@ export async function _processIngestBatch(id) {
           _liveAiBatch.status = 'in_session';
         }
         saveWorker(_liveAiBatch);
+        _markRadarDirty();
+        renderGlobalRadarSidebar();
       }
     }
     window.dispatchEvent(new CustomEvent('shell:render-tracker'));
