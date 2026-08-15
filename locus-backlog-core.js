@@ -1,3 +1,8 @@
+// [PP] mod:144 · autor:Rune · 2026-08-15 14:20 UTC-6
+// TKT CAEL-08151400-01: _purgeStaleBacklogCache — removido console.log del bloque
+// de purga (>90 días done/descartado). Sin cambio de lógica, firma ni side effects —
+// solo se elimina el mensaje recurrente en consola. saveBacklog() sigue invocándose igual.
+//
 // [PP] mod:143 · autor:Rune · 2026-08-09 20:15 UTC-6
 // TKT-202608-247 (REQ-202608-097): renderStats() — envuelto en .bl-header-unified > .stats-bar,
 // mismo patrón que Q-Backlog/Discoveries/Histórico. De los 2 early-returns que blanqueaban
@@ -1191,7 +1196,8 @@ export function _purgeStaleBacklogCache() {
 
   const purged = before - ITEMS.length;
   if (purged > 0) {
-    console.log(`[AI Tracker] _purgeStaleBacklogCache: ${purged} ítem(s) purgado(s) del caché local (>90 días done/descartado)`);
+    // TKT CAEL-08151400-01: console.log removido — la purga sigue ejecutándose
+    // igual, solo deja de imprimir el mensaje recurrente en consola.
     // B-202605-045: persistir tras mutación para que el estado sea consistente
     saveBacklog();
   }
