@@ -1,4 +1,4 @@
-// [PP] mod:23 · autor:Rune · 2026-08-14 19:05 UTC-6
+// [PP] mod:24 · autor:Rune · 2026-08-14 19:20 UTC-6
 // TKT-202608-345 (REQ-202608-135): retirado el call site de _updateProjBreadcrumb/
 //   _updateProjFilterBtn en el listener DOMContentLoaded de init + ambos símbolos retirados
 //   del import de locus-proj-core.js + comentarios de migración obsoletos que los citaban —
@@ -160,18 +160,9 @@ document.addEventListener('DOMContentLoaded', async function _sprintProjectInit(
 
 // _setActiveProjectFilter — movida a locus-proj-core.js en T-202606-197
 
-// TKT-202608-345: _setClearProjFilter(clearProjectFilter) retirado — el setter dejó de existir
-// en locus-proj-core.js (su único invocador era el botón .proj-filter-clear, ya eliminado).
-// clearProjectFilter() se conserva como export sin consumidor conocido en este repo — deuda
-// registrada en items (DISC, priority low), no se retira sin AC propio.
-export function clearProjectFilter() {
-  _setActiveProjectFilter('');
-  loadBacklog(); loadHtmlMap();
-  window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
-  if (getCurrentTab() === 'analytics') renderAnalytics();
-  renderBacklogList(); renderStats();
-  switchSubTab(getCurrentSubTab());
-}
+// TKT-202608-349 (REQ-202608-136): clearProjectFilter() retirada — grep -rn 'clearProjectFilter'
+// *.js sobre el repo completo confirmó cero call sites externos (solo la definición y comentarios
+// de migración citándola). Código muerto desde TKT-202608-345, sin consumidor real.
 
 // openProjPanel() y renderProjPanel() eliminadas — TKT-202607-213 (REQ-202607-083).
 // Sin call sites reales verificados contra locus-projects.js y locus-proj-core.js —
