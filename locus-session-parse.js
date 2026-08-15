@@ -1,4 +1,6 @@
-// [PP] mod:194 · autor:Rune · 2026-08-15 12:30 UTC-6
+// [PP] mod:196 · autor:Rune · 2026-08-15 17:05 UTC-6
+// INC-202608-120: _buildItilItem() no propagaba refId (it.ref_id) al ítem construido — ver fix
+// inline en el bloque de retorno de esa función, más abajo en este archivo.
 // Fix (reportado por el founder, captura 2026-08-15) — código de ítem pendiente de confirmar en
 // Locus, sin ref_id declarado al crearse (ver BR-Execution §9): _updateIngestBlockCount() pasa de privada a
 // exportada — sin cambio de firma ni de comportamiento interno, mismo cálculo en vivo desde
@@ -1355,6 +1357,15 @@ function _buildItilItem(it, ckptHeaderRole, projectName, ckptTitulo) {
     item: {
       type:               it.type,
       code:               it.code,
+      // INC-202608-120 (hallazgo Rune, triggered_by INC-202608-119): refId no se propagaba en
+      // esta rama — a diferencia de los otros dos sitios de construcción de ítem (L3484/L3546),
+      // que sí copian `refId: it.ref_id || null`. Sin este campo, _assignPendingIds() nunca
+      // seedea slugMap['[tmp:REF_ID]'] para ítems ITIL (INC/PRB/CHG) — un type:patch posterior
+      // en el mismo batch con code:{ref_id,title} apuntando a este ítem cae silenciosamente en
+      // "no existe" (patch.code queda como '[tmp:REF_ID]' sin resolver). Síntoma exacto: un INC
+      // creado con ref_id en el mismo bloque que sus patches de resolved/closed queda en
+      // 'detected' pese a que el bloque completo se pegó junto.
+      refId:              it.ref_id || null,
       title:              it.title || it.desc || '',
       desc:               it.title || it.desc || '',
       priority:           it.priority || 'medium',
@@ -3382,6 +3393,57 @@ function _normalizeNoIncluye(raw, itemCode) {
   return [];
 }
 
+// TKT-A1 (REQ-[pendiente-ID] · origen_disc DISC-202608-148): builder común a las 2 ramas
+// Planeada de _buildTgItemsFromParsed — rol-no-autorizado-bloqueado y general. Antes de este
+// TKT, ambas ramas duplicaban ~30 campos casi idénticos; la rama rol-no-autorizado-bloqueado
+// no propagaba `priority` — se perdía silenciosamente (caía a 'medium' vía buildScrumItem) en
+// todo REQ bloqueado con rol no autorizado, bug confirmado contra código real y contra
+// _Locus-ckpt-render-ref.md (REQ.priority: obligatorio "siempre"). `status` y `role` quedan
+// como parámetros — son el único par de campos donde las 2 ramas divergen intencionalmente
+// (bloqueado fuerza 'pendiente' + rol resuelto; general usa el status/rol declarados). Sin
+// cambio de comportamiento para el resto de campos — mismo default/fallback que cada rama ya
+// tenía antes de este TKT. _buildItilItem() no se toca — familia de validación distinta
+// (incident_status vs status), sin precedente de builder unificado en este módulo.
+function _buildPlaneadaTgItem(it, ckpt, opts) {
+  const _sprintF = _resolveSprintFields(it);
+  return {
+    type:            it.type,
+    code:            it.code,
+    refId:           it.ref_id || null,
+    title:           it.title  || it.desc || '',
+    desc:            it.title  || it.desc || '',
+    priority:        it.priority || 'medium',
+    status:          opts.status,
+    _noStatus:       false,
+    effort:          it.effort != null ? (parseInt(it.effort) || null) : null,
+    area:            it.area   || '',
+    sprint:          _sprintF.sprintAlias,
+    sprint_id:       _sprintF.sprint_id,
+    sprint_name:     _sprintF.sprint_name,
+    ac:              Array.isArray(it.ac) ? it.ac : [],
+    role:            opts.role,
+    discardReason:   it.discard_reason || it.reason || '',
+    discardRef:      it.ref    || '',
+    blockedBy:       Array.isArray(it.blockedBy) ? it.blockedBy : [],
+    promovida_a:     it.promovida_a || null,
+    parentId:        it.parent      || null,
+    dependsOn:       Array.isArray(it.depends_on) ? it.depends_on : [],
+    triggeredBy:     it.triggered_by  || null,
+    origenDisc:      it.origen_disc   || null,
+    intencion:       it.intencion     || null,
+    no_incluye:      _normalizeNoIncluye(it.no_incluye, it.code),
+    contract_detail: it.contract_detail || null,
+    archivos:        Array.isArray(it.archivos) ? it.archivos : [],
+    kill_criteria:   it.kill_criteria || null,
+    nextRole:        it.next_role     || null,
+    designIntent:    it.design_intent || null,
+    blockedAt:       it.blocked_at    || null,
+    contract_update: it.contract_update || null,
+    draft:           ckpt.draft === true,
+    schema_version:  it.schema_version != null ? Number(it.schema_version) : 0
+  };
+}
+
 function _buildTgItemsFromParsed(ckpt, parsedJSON) {
   const _validTypes    = _GEN2_TYPES;
   const _validStatuses = _VALID_STATUSES_GATE;
@@ -3471,59 +3533,9 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
           `Transición bloqueado en R ${it.code || '[pendiente-ID]'} rechazada: solo Finn puede mover un R a bloqueado. Rol resuelto: "${_resolvedRole}". Origen: ${ckpt.titulo || ''}`,
           'backlog'
         );
-        // TKT2 (REQ-202607-025): resolver sprint_id/sprint_name — mismo patrón que L942/953-955.
-        const _sprintF3a = _resolveSprintFields(it);
-        tgItems.push({
-          type:          it.type,
-          code:          it.code,
-          // TKT (REQ-[pendiente-ID] · ref_id+title en 2 archivos): propagar ref_id crudo del
-          // schema del ítem — sin este campo, mergeBacklogFromTG no puede construir el mapa
-          // ref_id→title declarante para normalizar referencias cruzadas en objeto {ref_id,title}.
-          // Opcional — ausente en la mayoría de los ítems, solo presente cuando el rol emisor
-          // anticipó que otro ítem lo referenciaría (ver __BR-Ecosystem §4).
-          refId:         it.ref_id || null,
-          title:         it.title  || it.desc   || '',
-          desc:          it.title  || it.desc   || '',
-          status:        'pendiente',
-          _noStatus:     false,
-          effort:        it.effort != null ? (parseInt(it.effort) || null) : null,
-          area:          it.area   || '',
-          sprint:        _sprintF3a.sprintAlias,
-          sprint_id:     _sprintF3a.sprint_id,
-          sprint_name:   _sprintF3a.sprint_name,
-          ac:            Array.isArray(it.ac) ? it.ac : [],
-          role:          _resolvedRole,
-          // INC-[pendiente-ID]: discard_reason no se propagaba en flujo standalone —
-          // solo leía it.reason (legado). Alineado a _parseSingleItem.
-          discardReason: it.discard_reason || it.reason || '',
-          discardRef:    it.ref    || '',
-          blockedBy:     Array.isArray(it.blockedBy) ? it.blockedBy : [],
-          promovida_a:   it.promovida_a || null,
-          parentId:      it.parent      || null,
-          dependsOn:     Array.isArray(it.depends_on) ? it.depends_on : [],
-          triggeredBy:   it.triggered_by  || null,
-          origenDisc:    it.origen_disc   || null,
-          intencion:     it.intencion     || null,
-          no_incluye:    _normalizeNoIncluye(it.no_incluye, it.code),
-          // T-[pendiente-ID] (REQ-contract-rename, TKT4): contract_detail no se propagaba a
-          // tgItems — se perdía entre el parseo y mergeBacklogFromTG. Alineado a BR-Execution §2.
-          contract_detail: it.contract_detail || null,
-          // TKT3 (REQ CAEL-0721-01): archivos ausente en este sitio (sí presente en el sitio 1,
-          // ~L1483) — inconsistencia entre los 3 puntos de construcción. kill_criteria/next_role/
-          // design_intent/blocked_at/contract_update ausentes en los 3 sitios — mismo patrón de
-          // pérdida ya corregido para draft/contract_detail. Ver comentario extendido en sitio 1.
-          archivos:      Array.isArray(it.archivos) ? it.archivos : [],
-          kill_criteria: it.kill_criteria || null,
-          nextRole:      it.next_role     || null,
-          designIntent:  it.design_intent || null,
-          blockedAt:     it.blocked_at    || null,
-          contract_update: it.contract_update || null,
-          // TKT1 (REQ-202607-026 · AC1): draft es campo de nivel CHECKPOINT (ckpt.draft), no
-          // del ítem individual — se propaga aquí para que mergeBacklogFromTG lo persista en
-          // el ítem nuevo. Mismo patrón de pérdida ya corregido para contract_detail en TKT4.
-          draft:         ckpt.draft === true,
-          schema_version: it.schema_version != null ? Number(it.schema_version) : 0
-        });
+        // TKT-A1 (DISC-202608-148): builder común — ver _buildPlaneadaTgItem(). Cierra el bug
+        // de `priority` ausente en esta rama (confirmado contra código real antes de este TKT).
+        tgItems.push(_buildPlaneadaTgItem(it, ckpt, { status: 'pendiente', role: _resolvedRole }));
         _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
         continue;
       }
@@ -3536,56 +3548,8 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
       _reqsNoAc.push(`R ${it.code || '[pendiente-ID]'} "${it.title || it.desc || ''}"`);
       continue;
     }
-    // TKT2 (REQ-202607-025): resolver sprint_id/sprint_name — mismo patrón que L942/953-955.
-    const _sprintF3b = _resolveSprintFields(it);
-    tgItems.push({
-      type:          it.type,
-      code:          it.code,
-      // TKT (REQ-[pendiente-ID] · ref_id+title en 2 archivos): mismo campo que la rama
-      // rol-no-autorizado-bloqueado arriba — ver ese comentario.
-      refId:         it.ref_id || null,
-      title:         it.title  || it.desc   || '',
-      desc:          it.title  || it.desc   || '',
-      priority:      it.priority || 'medium',
-      status:        _normSt3,
-      _noStatus:     false,
-      effort:        it.effort != null ? (parseInt(it.effort) || null) : null,
-      area:          it.area   || '',
-      sprint:        _sprintF3b.sprintAlias,
-      sprint_id:     _sprintF3b.sprint_id,
-      sprint_name:   _sprintF3b.sprint_name,
-      ac:            Array.isArray(it.ac) ? it.ac : [],
-      role:          it.role   || (ckpt.rol || ''),
-      // INC-[pendiente-ID]: discard_reason no se propagaba en flujo standalone —
-      // solo leía it.reason (legado). Alineado a _parseSingleItem.
-      discardReason: it.discard_reason || it.reason || '',
-      discardRef:    it.ref    || '',
-      blockedBy:     Array.isArray(it.blockedBy) ? it.blockedBy : [],
-      promovida_a:   it.promovida_a || null,
-      parentId:      it.parent      || null,
-      dependsOn:     Array.isArray(it.depends_on) ? it.depends_on : [],
-      triggeredBy:   it.triggered_by  || null,
-      origenDisc:    it.origen_disc   || null,
-      intencion:     it.intencion     || null,
-      no_incluye:    _normalizeNoIncluye(it.no_incluye, it.code),
-      // T-[pendiente-ID] (REQ-contract-rename, TKT4): contract_detail no se propagaba a
-      // tgItems — se perdía entre el parseo y mergeBacklogFromTG. Alineado a BR-Execution §2.
-      contract_detail: it.contract_detail || null,
-      // TKT3 (REQ CAEL-0721-01): archivos ausente en este sitio (sí presente en el sitio 1,
-      // ~L1483) — misma inconsistencia que el sitio 2. kill_criteria/next_role/design_intent/
-      // blocked_at/contract_update ausentes en los 3 sitios. Ver comentario extendido en sitio 1.
-      archivos:      Array.isArray(it.archivos) ? it.archivos : [],
-      kill_criteria: it.kill_criteria || null,
-      nextRole:      it.next_role     || null,
-      designIntent:  it.design_intent || null,
-      blockedAt:     it.blocked_at    || null,
-      contract_update: it.contract_update || null,
-      // TKT1 (REQ-202607-026 · AC1): draft es campo de nivel CHECKPOINT (ckpt.draft), no del
-      // ítem individual — se propaga a cada tgItem para que mergeBacklogFromTG lo persista en
-      // el ítem nuevo. Mismo patrón de pérdida ya corregido para contract_detail en TKT4.
-      draft:         ckpt.draft === true,
-      schema_version: it.schema_version != null ? Number(it.schema_version) : 0
-    });
+    // TKT-A1 (DISC-202608-148): builder común — ver _buildPlaneadaTgItem().
+    tgItems.push(_buildPlaneadaTgItem(it, ckpt, { status: _normSt3, role: it.role || (ckpt.rol || '') }));
     if (itemKind(it) === 'DISC' && _normSt3 === 'promoted' && !it.promovida_a) {
       _blogLog('promoted-sin-ref', it.code || '[pendiente-ID]', 'DISC ' + (it.code || '[pendiente-ID]') + ' con status promoted sin campo promovida_a — trazabilidad incompleta', 'backlog');
     }
