@@ -1,3 +1,11 @@
+// [PP] mod:31 · autor:Rune · 2026-08-15 15:40 UTC-6
+// origen: CAEL-08151030-02 (DISC-202608-146): resueltas 9 referencias de placeholder-de-ítem
+// (8 líneas de comentarios de header/inline, formato "TIPO-pendiente") — reemplazadas por el
+// marcador "histórico — sin CHECKPOINT confirmado", mismo patrón ya usado en el MAP para
+// secciones sin origen recuperable (ver locus-backlog.css / locus-backlog-item.css). Ningún
+// código inventado — el REQ/TKT1/TKT3 original de _getFooterAlert() sigue sin código real
+// confirmable (mismo gap ya señalado en _pp-context §5, no resuelto por este cambio). Edición
+// puramente de comentarios — sin impacto funcional ni de firma.
 // [PP] mod:30 · autor:Rune · 2026-08-15 UTC-6
 // INC-202608-112: _getFooterAlert() excluía ítems terminales leyendo solo incIncidentStatus(i)
 // (campo incident_status) — válido para INC/PRB, pero CHG declara su ciclo de vida en `status`,
@@ -29,7 +37,7 @@
 // 'shell:render-statusbar' ya escuchado en este mismo archivo (línea ~371) — disparado por
 // locus-ui-shell.js al aplicar un nuevo infra_version.
 // [PP] mod:26 · autor:Rune · 2026-07-14 UTC-6
-// TKT-[pendiente-ID] (TKT1+TKT3 · REQ-[pendiente-ID] DOC-UPDATE vencido en footer): agregado
+// TKT histórico — sin CHECKPOINT confirmado (TKT1+TKT3 · REQ histórico — sin CHECKPOINT confirmado DOC-UPDATE vencido en footer): agregado
 //   _docUpdateStaleness() (umbral 14d, mismo criterio que _zoneStaleness) + prioridad 4 en
 //   _getFooterAlert() → { type:'docupdate', targetTab:'proyectos', targetSubTab:'docupdates' }.
 //   INC-202608-087: targetTab corregido de 'backlog' a 'proyectos' — ver header mod:29.
@@ -37,7 +45,7 @@
 //   regresión en inc/sprint/backlog (no declaran targetSubTab). TKT2 (Nova · clase CSS
 //   .gf-ckpt--alert-docupdate) bloqueado — falta _Locus-css-ref.md adjunto en la sesión.
 // [PP] mod:25 · autor:Rune · 2026-07-14 UTC-6
-// INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminado wiring del
+// INC histórico — sin CHECKPOINT confirmado (deprecación Sesiones/Pulso, founder confirmó): eliminado wiring del
 // dot #gf-pulso del footer (import openPulsoPanel + bloque gfPulso en _updateHeaderProjectLabel
 // o función equivalente de footer) — Pulso deprecado. gfProyecto/gfVersion/gfCkpt/gfSyncEl
 // no tocados — responsabilidad mixta de este archivo, solo se removió la porción de Pulso.
@@ -48,7 +56,7 @@
 //   y #breadcrumb-item no existen en el DOM (index.html solo declara #breadcrumb-proj).
 
 import { getItems, getIncidents, itemKind, isSlaClockPaused } from './locus-backlog-core.js'; // TKT2 (REQ CAEL-0723-01, ref_id CAEL-0723-01): isSlaClockPaused agregado — pausa de reloj SLA en _getFooterAlert()
-// REQ-[pendiente-ID] TKT1: _getFooterAlert() consume _zoneStaleness (mismo umbral que Q-DISC/
+// REQ histórico — sin CHECKPOINT confirmado TKT1: _getFooterAlert() consume _zoneStaleness (mismo umbral que Q-DISC/
 // Q-Backlog, ya validado en producción) y los accessors ITIL canónicos camelCase/snake_case.
 import { _zoneStaleness } from './locus-backlog-zone-engine.js';
 import { incSlaPriority, incIncidentStatus } from './locus-inc-fields.js';
@@ -164,7 +172,7 @@ function _getActiveSprintStats() {
   }
 }
 
-// REQ-[pendiente-ID] TKT1: umbral de días para "DOC-UPDATE vencido" — mismo criterio de
+// REQ histórico — sin CHECKPOINT confirmado TKT1: umbral de días para "DOC-UPDATE vencido" — mismo criterio de
 // consistencia que _zoneStaleness (Q-Backlog usa 14d para REQ/TKT). Decisión explícita del
 // founder (opción A del análisis de raíz): días, no "2 sprints" literal de BR-Ecosystem §3 —
 // el auto-descarte a 2 sprints queda fuera de scope, requiere sprint-boundary tracking propio.
@@ -188,7 +196,7 @@ function _docUpdateStaleness() {
   }).length;
 }
 
-// REQ-[pendiente-ID] TKT1 — alerta de salud del proyecto activo para #gf-ckpt.
+// REQ histórico — sin CHECKPOINT confirmado TKT1 — alerta de salud del proyecto activo para #gf-ckpt.
 // AC-1 (happy path INC): INC con sla_priority:high, incident_status no en (closed,descartado)
 //   y slaDeadline vencido → { type:'inc', text, targetTab:'incidentes' }.
 // AC-2 (happy path sprint): sin alerta INC, sprint activo con >=40% de sus REQ/TKT en
@@ -249,7 +257,7 @@ export function _getFooterAlert() {
       return { type: 'backlog', text, targetTab: 'backlog' };
     }
 
-    // REQ-[pendiente-ID] TKT1 — AC prioridad 4 (más baja): DOC-UPDATE vencido — solo se
+    // REQ histórico — sin CHECKPOINT confirmado TKT1 — AC prioridad 4 (más baja): DOC-UPDATE vencido — solo se
     // evalúa si ninguna de las 3 alertas anteriores (inc/sprint/backlog) aplicó.
     const docUpdateStale = _docUpdateStaleness();
     if (docUpdateStale > 0) {
@@ -357,7 +365,7 @@ export function renderStatusBar() {
 
   if (gfCkpt) {
     try {
-      // REQ-[pendiente-ID] TKT3: limpiar clases de estado de un render previo antes de decidir
+      // REQ histórico — sin CHECKPOINT confirmado TKT3: limpiar clases de estado de un render previo antes de decidir
       gfCkpt.classList.remove('gf-ckpt--alert-inc', 'gf-ckpt--alert-sprint', 'gf-ckpt--alert-backlog', 'gf-ckpt--alert-docupdate', 'gf-ckpt--link');
       gfCkpt.onclick = null;
 
@@ -366,7 +374,7 @@ export function renderStatusBar() {
         gfCkpt.textContent = alert.text;
         gfCkpt.classList.remove('is-hidden');
         gfCkpt.classList.add('gf-ckpt--alert-' + alert.type);
-        // TKT3 (REQ-[pendiente-ID]): alert.targetSubTab es opcional — solo 'docupdate' lo declara.
+        // TKT3 (REQ histórico — sin CHECKPOINT confirmado): alert.targetSubTab es opcional — solo 'docupdate' lo declara.
         // Los otros 3 tipos (inc/sprint/backlog) no lo tienen — comportamiento idéntico al previo.
         gfCkpt.onclick = function() {
           switchTab(alert.targetTab);
