@@ -1,3 +1,11 @@
+<!-- [PP] mod:200 · autor:Rune · 2026-08-14 21:05 UTC-6 -->
+<!-- TKT (ref_id CAEL-08142100-02, parent ref_id CAEL-08142100-01): #qbacklog-done-header —
+     svg.chevron reordenado al final (antes: primer hijo) y label+count agrupados en
+     .bl-done-header-meta, para que .bl-done-header (justify-content:space-between, Nova
+     locus-backlog.css) empuje el chevron al extremo derecho — mismo criterio ya aplicado a
+     .bl-active-header/.qbacklog-draft-header. El chevron en sí ya usaba svg.chevron desde
+     mod:199 (TKT-[ref_id:CAEL-08131045-01]) — este cambio es solo de posición/agrupación,
+     no de token. -->
 <!-- [PP] mod:199 · autor:Rune · 2026-08-13 08:15 UTC-6 -->
 <!-- TKT-[ref_id:CAEL-08131045-01] (REQ-[ref_id:CAEL-08131030-01]): svg.chevron reemplaza el
      glifo ▾ estático de .bl-done-arrow en #qbacklog-done-header — cuarta instancia del Patrón
@@ -889,9 +897,11 @@
            locus-backlog-zone-engine.js) — mismo patrón que .qdisc-status-group. -->
       <div class="bl-done-group" id="qbacklog-done-group">
         <div class="bl-done-header" id="qbacklog-done-header" tabindex="0" role="button" aria-expanded="true">
+          <div class="bl-done-header-meta">
+            <span class="bl-done-label">Terminados</span>
+            <span class="bl-done-count" id="qbacklog-done-count">0</span>
+          </div>
           <svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
-          <span class="bl-done-label">Terminados</span>
-          <span class="bl-done-count" id="qbacklog-done-count">0</span>
         </div>
         <div class="bl-done-body" id="qbacklog-done-body"></div>
       </div>

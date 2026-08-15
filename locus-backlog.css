@@ -1,3 +1,12 @@
+/* [PP] mod:157 · autor:Nova · 2026-08-14 21:05 UTC-6 */
+/* TKT (ref_id CAEL-08142100-02, parent ref_id CAEL-08142100-01): .bl-done-header adopta
+   justify-content:space-between + nueva .bl-done-header-meta (agrupa label+count) — mismo
+   patrón ya aplicado a .bl-active-header (mod:156) y ya presente en .qbacklog-draft-header.
+   El svg.chevron de #qbacklog-done-header ya usaba el token (mod:199 de index.html, TKT
+   previo) — este cambio solo corrige la posición: era primer hijo sin agrupar, pasa a ser
+   el último, empujado por el space-between del header padre. .bl-done-count pierde
+   margin-left:auto — huérfano dentro del nuevo contenedor meta, mismo ajuste ya aplicado a
+   .bl-active-count. */
 /* [PP] mod:156 · autor:Nova · 2026-08-14 20:15 UTC-6 */
 /* TKT1 (ref_id CAEL-08142000-02, parent ref_id CAEL-08142000-01): .bl-active-header adopta
    svg.chevron (Patrón A-13) + layout space-between — mismo criterio ya usado en
@@ -5009,6 +5018,7 @@
 .bl-done-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   padding: 8px 14px;
   font-size: var(--text-xs);
@@ -5035,12 +5045,20 @@
    esta regla — el toggle de _attachDoneGroupToggle (locus-backlog-zone-engine.js) sigue
    alternando aria-expanded sin cambio de JS. */
 
+/* TKT (ref_id CAEL-08142100-02, parent ref_id CAEL-08142100-01): agrupa label+count a la
+   izquierda para que .bl-done-header (justify-content:space-between) empuje el chevron al
+   extremo derecho — mismo criterio ya usado en .bl-active-header-meta/.qbacklog-draft-header-meta. */
+.bl-done-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .bl-done-count {
   font-size: var(--text-xs);
   color: var(--green-text);
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
-  margin-left: auto;
 }
 
 .bl-done-body {
