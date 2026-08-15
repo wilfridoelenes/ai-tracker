@@ -1,3 +1,8 @@
+// [PP] mod:26 · autor:Rune · 2026-08-15 · UTC-6
+// INC-ref:CAEL-08151230-01: _qcAttemptSave() — status pasa a exhausted desde cualquier
+// status previo distinto de 'exhausted' (antes: solo desde 'available'). Reaplicado sobre
+// mod:25 real (base anterior usada era obsoleta — señalado por el founder). Ver comentario
+// inline en la función.
 // [PP] mod:25 · autor:Rune · 2026-08-15 14:20 UTC-6
 // Fix INC-[pendiente-ID] (ref_id RUNE-08151420-01): confirmQuickCapture() empujaba `sess`
 // directo a activeProj.sessions — bypasseaba _mutateSessions() (locus-storage.js), único
@@ -370,8 +375,15 @@ function _qcAttemptSave(ai, horaResult, wipChecked) {
   const _prevInterrupted = ai.interrupted;
 
   if (horaResult) {
-    // T-089: solo cambiar status a exhausted si estaba disponible
-    if (ai.status === 'available') ai.status = 'exhausted';
+    // Fix (INC-ref:CAEL-08151230-01): antes solo transicionaba a exhausted si el status
+    // previo era 'available' (T-089) — un Worker en 'in_session' (naranja) que recibía hora
+    // de agotamiento vía Quick Capture quedaba con resetTime/resetEpoch seteados pero
+    // status intacto en 'in_session', por lo que _isInSession() seguía devolviendo true y
+    // el Worker se mostraba activo en vez de agotado (rojo). resetTime/resetEpoch sí se
+    // guardaban en ambos casos — la sesión nunca se perdía, solo el status visual quedaba
+    // desincronizado. Condición ampliada a cualquier status distinto de 'exhausted' —
+    // idempotente, cubre 'available' e 'in_session' por igual.
+    if (ai.status !== 'exhausted') ai.status = 'exhausted';
     ai.resetTime = horaResult.hhmm;
     ai.resetEpoch = horaResult.epoch;
   }
