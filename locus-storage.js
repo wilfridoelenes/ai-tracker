@@ -1,3 +1,22 @@
+// [PP] mod:165 · autor:Rune · 2026-08-14 21:10 UTC-6
+// mod:165: sin cambio funcional — reemplazo de placeholder INC-[pendiente-ID] por código real
+// INC-202608-110 (ya asignado por Locus, ver _PP-incidents.md) en los dos comentarios del fix
+// de mod:164. Ver bloque mod:164 abajo para el fix real.
+//
+// [PP] mod:164 · autor:Rune · 2026-08-14 10:05 UTC-6
+// INC-202608-110 (triggered_by: sesión de diagnóstico directo, founder preguntando por
+// el toast recurrente "_purgeStaleBacklogCache: N ítem(s) purgado(s)"): el trigger de purga
+// de saveBacklog() (ratio localStorage > 0.8) solo invocaba _purgeStaleBacklogCache() —
+// libera únicamente backlog-items-*/backlog-meta-* (~4% del top-10 real medido en campo). El
+// resto de claves derivadas y regenerables desde Supabase (sprints-, tracker-backlog-historico-,
+// CHANGELOG, NOTIF_HISTORY, LOG_FILTERS, PLAN_PREFIX, CTX_DOCS_PREFIX, HM_DOCS_PREFIX) tenían
+// su propia función de limpieza ya escrita — purgeLocalCache(projId), más abajo en este mismo
+// archivo — pero sin ningún caller automático desde su creación, solo uso manual desde consola.
+// Fix: mismo trigger de saveBacklog() ahora invoca también purgeLocalCache(_getActiveProjectFilter()).
+// locus-sessions-{projId} y LOCUS_KEYS.STATE quedan fuera a propósito — purgeLocalCache() ya
+// las excluye por diseño, no se amplía la exclusión. Sin cambio de firma en ninguna función.
+// Módulo crítico: locus-storage.js — activar verificación de regresiones en Finn.
+//
 // [PP] mod:163 · autor:Rune · 2026-08-14 09:10 UTC-6
 // INC-202608-108 (triggered_by: sesión de diagnóstico directo, síntoma reportado por
 // founder — toast de guardado exitoso, status de Worker visualmente sin cambio):
@@ -1938,6 +1957,18 @@ export async function saveBacklog() {
       const purged = _purgeStaleBacklogCache();
       if (purged > 0) showToast('warning', `⚠️ Caché local compacto — ${purged} ítem${purged > 1 ? 's' : ''} archivado${purged > 1 ? 's' : ''} (disponibles en Supabase)`);
     }
+    // INC-202608-110 (mod:164): _purgeStaleBacklogCache() por sí sola solo libera
+    // backlog-items-*/backlog-meta-* — ~4% del top-10 real de localStorage medido en campo.
+    // purgeLocalCache() (declarada más abajo en este mismo archivo) ya cubre el resto de
+    // claves derivadas regenerables desde Supabase (backlog-meta, sprints-, tracker-backlog-historico,
+    // CHANGELOG, NOTIF_HISTORY, LOG_FILTERS, PLAN_PREFIX, CTX_DOCS_PREFIX, HM_DOCS_PREFIX) pero
+    // hasta este fix no tenía ningún caller automático — solo uso manual desde consola.
+    // locus-sessions-{projId} y LOCUS_KEYS.STATE quedan fuera a propósito: purgeLocalCache()
+    // ya las excluye por diseño (STATE es el único fallback real ante pérdida de auth; sessions
+    // no está en su lista de claves) — no se amplía esa exclusión aquí.
+    const _purgeProjId = _getActiveProjectFilter();
+    const _clearedKeys = purgeLocalCache(_purgeProjId);
+    if (_clearedKeys > 0) logger.debug(`[AI Tracker] saveBacklog: purgeLocalCache(${_purgeProjId || 'global'}) liberó ${_clearedKeys} clave(s) derivada(s).`);
   }
 
   // CAEL-0718-11 (TKT2 · REQ CAEL-0718-09): gates de validación de items e incidents
