@@ -1,3 +1,17 @@
+// [PP] mod:64 · autor:Rune · 2026-08-15 UTC-6
+// TKT-202608-351 (REQ-202608-138): botón 'Ver pendientes' en el Paso 2 (DOC-UPDATEs) del
+// modal de cierre de sprint — navega al panel real de pendientes en Documentos. Agregado:
+// _scmGoToDocUpdates() y case 'scm-go-to-doc-updates' en la delegación de #sprint-close-body.
+// _scmStepDocUpdatesHtml() renderiza el botón solo en la rama con pendientes (la rama vacía,
+// más arriba en la función, ya retorna antes sin tocar). AC del REQ nombra el target como
+// '#doc-updates-list' — id retirado desde la unificación de renderDocUpdatesUnified()
+// (locus-docs.js, ver TKT-202608-237/238); el contenedor vigente es '#du-unified-list', mismo
+// elemento funcional. Sin CSS nuevo: reutiliza .scm-docgen-btn (ya usada dos veces en este
+// archivo) y el patrón de arrow-en-texto '→' ya establecido en este mismo módulo (ej.
+// nextBtn.textContent = 'Siguiente →') en vez de un ícono SVG — sin _Locus-css-ref/_Locus-ux-ref
+// adjuntos en esta sesión para validar un símbolo de sprite nuevo. Navegación: mismo patrón
+// switchTab()+setTimeout()+switchSubTab()+scrollIntoView ya usado en locus-ui-shell.js (atajo
+// 'paste-ckpt' y breadcrumb-proj→Documentos/Contexto) — sin mecanismo nuevo.
 // [PP] mod:63 · autor:Rune · 2026-08-08 15:40 UTC-6
 // TKT1 (parent CAEL-08081500-01, ref_id CAEL-08081500-02): _SCM_STEPS reemplaza el mapeo
 // hardcodeado paso→render/indicador/totalSteps, antes triplicado en _scmBack/_scmNext/_scmRender.
@@ -1247,7 +1261,26 @@ function _scmStepDocUpdatesHtml(docUpdates) {
       </div>`;
   }).join('');
 
-  return `<div class="scm-du-list">${rows}</div><div class="scm-du-empty">Resuélvelos desde Doc Log (Tab Documentos) — este paso ya no aplica ni descarta, solo bloquea el cierre mientras queden pendientes.</div>`;
+  return `<div class="scm-du-list">${rows}</div><div class="scm-du-empty">Resuélvelos desde Doc Log (Tab Documentos) — este paso ya no aplica ni descarta, solo bloquea el cierre mientras queden pendientes.</div><div><button class="scm-docgen-btn" data-action="scm-go-to-doc-updates" type="button">Ver pendientes →</button></div>`;
+}
+
+// TKT-202608-351 (REQ-202608-138): botón 'Ver pendientes' del Paso 2 — cierra el modal de
+// cierre de sprint, activa Tab Proyectos ('Documentos') + sub-tab 'docupdates', y hace scroll
+// suave hasta el contenedor real de la lista unificada de DOC-UPDATEs (#du-unified-list, ver
+// renderDocUpdatesUnified() en locus-docs.js). Mismo patrón switchTab()+setTimeout()+
+// switchSubTab()+scrollIntoView ya usado en locus-ui-shell.js (atajo 'paste-ckpt', línea
+// ~675) — el setTimeout da margen a que switchTab() aplique 'active' antes de que
+// switchSubTab()/scrollIntoView operen sobre el sub-tab/contenedor. Llamar de nuevo con el
+// founder ya en Documentos/docupdates es seguro — switchTab()/switchSubTab() son idempotentes
+// (solo re-aplican toggles de clase), no hay doble-render que evitar.
+function _scmGoToDocUpdates() {
+  closeCloseSprintModal();
+  switchTab('proyectos');
+  setTimeout(() => {
+    switchSubTab('docupdates');
+    const el = document.getElementById('du-unified-list');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 80);
 }
 
 // Gate duro de cierre (__BR-Ecosystem §5 Gen2): la única salida válida de un ítem activo
@@ -1826,6 +1859,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // el DOM. Ver _scmUpdateDuNextBtn() para el gate simplificado.
       case 'scm-export-history':
         exportFullHistoryMd();
+        break;
+      case 'scm-go-to-doc-updates':
+        _scmGoToDocUpdates();
         break;
     }
   });
