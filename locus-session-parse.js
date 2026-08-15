@@ -1,3 +1,11 @@
+// [PP] mod:194 · autor:Rune · 2026-08-15 12:30 UTC-6
+// Fix (reportado por el founder, captura 2026-08-15) — código de ítem pendiente de confirmar en
+// Locus, sin ref_id declarado al crearse (ver BR-Execution §9): _updateIngestBlockCount() pasa de privada a
+// exportada — sin cambio de firma ni de comportamiento interno, mismo cálculo en vivo desde
+// #ingest-ta. locus-sesiones.js (_openIngestModal, mod:66) la necesita para resincronizar
+// #ingest-block-count al abrir el modal con textarea vacía — antes solo _renderIngestBlockPreview()
+// corría en ese ciclo, dejando el badge de conteo con el valor del batch anterior. Detalle
+// completo del síntoma y la causa raíz → ver locus-sesiones.js mod:66.
 // [PP] mod:193 · autor:Rune · 2026-08-15 UTC-6
 // INC-[pendiente-ID] (triggered_by INC-202608-113 — founder: worker marcado "Agotada" en la
 // card principal pero el Radar sidebar sigue mostrándolo en "Disponibles" por bastante tiempo).
@@ -2495,7 +2503,15 @@ const _pasteRetry = {};
 // separada de parsePaste — parsePaste conserva su responsabilidad de parseo single-item, ya
 // invocada también desde 4 callbacks de warning (rol ausente/done/discrepancia/duplicado,
 // ~L1639-1743) que no deben recalcular el contador del modal en cada re-intento.
-function _updateIngestBlockCount() {
+// Fix (reportado por el founder, captura 2026-08-15 — código pendiente de confirmar en Locus):
+// exportada — antes privada al módulo.
+// _openIngestModal() (locus-sesiones.js) resetea #ingest-block-preview-anchor vía
+// _renderIngestBlockPreview() al abrir el modal con textarea vacía, pero nunca tenía acceso a
+// esta función para resincronizar #ingest-block-count en el mismo momento — el badge quedaba
+// con el texto del último cómputo (ej. batch previo de otro Worker), visible con la textarea
+// ya vacía. Sin cambio de firma ni de comportamiento interno — mismo cálculo en vivo desde
+// ta.value, solo visibilidad ampliada.
+export function _updateIngestBlockCount() {
   const el = document.getElementById('ingest-block-count');
   if (!el) return;
   const ta = document.getElementById('ingest-ta') /* CAEL-22 */;

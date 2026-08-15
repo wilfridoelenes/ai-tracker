@@ -1,3 +1,16 @@
+// [PP] mod:66 · autor:Rune · 2026-08-15 12:30 UTC-6
+// Fix (reportado por el founder, captura 2026-08-15) — código de ítem pendiente de confirmar en
+// Locus, sin ref_id declarado al crearse (ver BR-Execution §9): modal de ingesta abría con textarea vacía
+// (0 caracteres) mostrando "2 bloques detectados" — conteo stale del batch previo (mismo u otro
+// Worker) nunca resincronizado. Causa raíz: _openIngestModal() llamaba a
+// _renderIngestBlockPreview() en la rama `if (!ta.value)` (mod:62) para limpiar el preview de
+// bloques, pero #ingest-block-count vive en una función separada (_updateIngestBlockCount(),
+// locus-session-parse.js) que era privada al módulo — sin acceso desde aquí, nunca se invocaba
+// en el ciclo de apertura del modal, solo en paste/input. Fix: _updateIngestBlockCount() ahora
+// exportada (ver locus-session-parse.js mod:194) e importada aquí; se invoca junto a
+// _renderIngestBlockPreview() en la misma rama, mismo momento de reset. No toca el camino con
+// mismo aiId (ta.value preservado) ni el camino con draft restaurado (ya sincronizado por
+// handleInput dentro de _maybeRestoreDraft).
 // [PP] mod:65 · autor:Rune · 2026-08-12 22:10 UTC-6
 // TKT1 (CAEL-08122200-02): selectTrackerAI() rebindea overlay.dataset.aiId del modal de
 // ingesta cuando #modal-split-shell está abierto — cierra misattribution de sesiones al
@@ -94,7 +107,7 @@ import { downloadReport } from './locus-reports.js';
 
 import { openQuickCapture } from './locus-sesiones-capture.js'; // T-202606-089 AC-3
 
-import { STATUS_LABELS, handlePaste, handleInput, _processIngestBatch, _renderIngestBlockPreview } from './locus-session-parse.js';
+import { STATUS_LABELS, handlePaste, handleInput, _processIngestBatch, _renderIngestBlockPreview, _updateIngestBlockCount } from './locus-session-parse.js';
 // T-202606-058: registry extraído a locus-sesiones-registry.js (módulo sin dependencias).
 // locus-sprint-project importa _registerSesSPCallback desde registry — no desde aquí.
 import { _sesSPCallbacks } from './locus-sesiones-registry.js';
@@ -1263,7 +1276,13 @@ export function _openIngestModal(aiId) {
     // Worker/sesión anterior porque _renderIngestBlockPreview() nunca corrió en este ciclo de
     // apertura. Limpieza explícita, sin pasar por parsePaste()/handleInput() completo.
     if (!ta.value) {
+      // Fix (reportado por el founder, captura 2026-08-15 — código pendiente de confirmar en
+      // Locus): _renderIngestBlockPreview() ya
+      // limpiaba el preview de bloques, pero #ingest-block-count no se resincronizaba en el
+      // mismo ciclo — quedaba mostrando el conteo del batch anterior (de este u otro Worker)
+      // con la textarea ya vacía. Misma condición de entrada, mismo momento de reset.
       _renderIngestBlockPreview();
+      _updateIngestBlockCount();
     }
     ta.focus();
     if (!ta._ingestWired) {
