@@ -1,4 +1,4 @@
-// [PP] mod:97 · autor:Rune · 2026-08-14 19:45 UTC-6
+// [PP] mod:98 · autor:Rune · 2026-08-18 18:05 UTC-6
 // TKT1 (REQ ref_id CAEL-08141930-01/02): footer del panel DIFF reducido a 2 botones —
 // #mdiff-backlog-btn retirado del template y de su listener; backlogBtn retirado del sync de
 // disabled/blocked en _mdiffUpdateConfirmBtn(). _mdiffDoApply() pierde el parámetro
@@ -2468,7 +2468,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   _mdiffUpdateConfirmBtn();
 
   // ── Handler de aplicar: aplica retrocesos y descartes ──
-  function _mdiffDoApply() {
+  async function _mdiffDoApply() {
     // TKT3 (REQ CAEL-08061000-01): bloquear ANTES de cualquier efecto secundario (retrocesos,
     // descartes, saveBacklog) si la hora excede la ventana de 5h — mismo criterio que
     // interpretHora().withinResetWindow ya aplica en Quick Capture (TKT2) y visualmente en
@@ -2595,7 +2595,15 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
 
     // B-202606-037: pasar horaRaw como argumento de onApply — saveSession resuelve horaResult.
     // T-202606-039: guard — onApply puede ser undefined si el caller no lo provee.
-    if (typeof onApply === 'function') onApply(_horaRaw);
+    // Fix INC-202608-117: await agregado — onApply (_doApplyMergeAndFinish en locus-session-save.js
+    // o _onApplyBatch en locus-session-parse.js, según el flujo) es async y limpia #ingest-ta.value
+    // recién en su propio tramo final, después de su primer await interno (_mergeBacklogWithProject/
+    // _applyCheckpointBatch). Sin este await, switchTab('backlog') (más abajo en esta misma función)
+    // corría de inmediato, en el mismo tick — antes de que onApply llegara a vaciar el textarea — y
+    // su guard de "texto sin guardar" (locus-ui-shell.js switchTab(), lectura directa de #ingest-ta)
+    // encontraba el contenido del CHECKPOINT recién aplicado todavía presente, disparando
+    // window.confirm('Hay texto sin guardar. ¿Salir de todos modos?') en cada guardado exitoso.
+    if (typeof onApply === 'function') await onApply(_horaRaw);
 
     // B-202606-001: aplicar patches después de onApply() — ítems nuevos ya existen en getItems()
     // T-202606-028: propagar ckptHeaderRole — antes el guard de done en R nunca recibía
