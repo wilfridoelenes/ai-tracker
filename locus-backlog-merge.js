@@ -1,3 +1,12 @@
+// [PP] mod:97 · autor:Rune · 2026-08-14 19:45 UTC-6
+// TKT1 (REQ ref_id CAEL-08141930-01/02): footer del panel DIFF reducido a 2 botones —
+// #mdiff-backlog-btn retirado del template y de su listener; backlogBtn retirado del sync de
+// disabled/blocked en _mdiffUpdateConfirmBtn(). _mdiffDoApply() pierde el parámetro
+// andThenGoBacklog — switchTab('backlog')+switchSubTab('backlog') ahora corre incondicional al
+// final de la función. Único listener de guardado restante llama _mdiffDoApply() sin argumento;
+// Enter-to-apply actualizado al mismo call site sin argumento. Sin impacto lateral externo —
+// _mdiffDoApply no está exportada, sin consumidores fuera de este closure.
+// contract_update: no — función interna sin firma exportada.
 // [PP] mod:96 · autor:Rune · 2026-08-13 UTC-6
 // TKT4 (REQ-202608-132, ref_id CAEL-08130100-01): _typeClass — retirada la entrada muerta 'KE'
 // (residuo de la fusión KE→PRB.root_cause_confirmed, infra_version 51). _typeOrder — agregadas
@@ -2172,7 +2181,6 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // Helper: validar pendientes y actualizar panel derecho
   _mdiffUpdateConfirmBtn = function() {
     const applyBtn   = document.getElementById('mdiff-apply-btn');
-    const backlogBtn = document.getElementById('mdiff-backlog-btn');
     if (!applyBtn) return;
 
     // Recoger estado de controles en columna derecha
@@ -2220,10 +2228,6 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     const blocked = retroPendingItems.length > 0 || discardPendingItems.length > 0;
     applyBtn.disabled = blocked;
     applyBtn.classList.toggle('mdiff-apply-blocked', blocked);
-    if (backlogBtn) {
-      backlogBtn.disabled = blocked;
-      backlogBtn.classList.toggle('mdiff-apply-blocked', blocked);
-    }
 
     // Construir contenido de columna derecha
     if (pendingList) {
@@ -2374,7 +2378,6 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       </div>
       <div class="mdiff-footer-actions">
         <button id="mdiff-cancel-btn" class="mdiff-btn mdiff-btn--cancel">✕ Cancelar</button>
-        <button id="mdiff-backlog-btn" class="mdiff-btn mdiff-btn--secondary">Ver Backlog</button>
         <button class="mdiff-btn mdiff-btn--primary" id="mdiff-apply-btn">✓ Guardar sesión</button>
       </div>`;
   }
@@ -2465,7 +2468,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   _mdiffUpdateConfirmBtn();
 
   // ── Handler de aplicar: aplica retrocesos y descartes ──
-  function _mdiffDoApply(andThenGoBacklog) {
+  function _mdiffDoApply() {
     // TKT3 (REQ CAEL-08061000-01): bloquear ANTES de cualquier efecto secundario (retrocesos,
     // descartes, saveBacklog) si la hora excede la ventana de 5h — mismo criterio que
     // interpretHora().withinResetWindow ya aplica en Quick Capture (TKT2) y visualmente en
@@ -2637,10 +2640,8 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       }
     }
 
-    if (andThenGoBacklog) {
-      switchTab('backlog');
-      switchSubTab('backlog');
-    }
+    switchTab('backlog');
+    switchSubTab('backlog');
   }
 
   // Delegation — evita onclick= en HTML dinámico; _mdiff* accesibles via window
@@ -2754,14 +2755,9 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     });
   }
 
-  overlay.querySelector('#mdiff-backlog-btn').addEventListener('click', () => {
-    if (overlay.querySelector('#mdiff-backlog-btn').disabled) return;
-    _mdiffDoApply(true);
-  }, { signal: _mdiffPanelAC.signal });
-
   overlay.querySelector('#mdiff-apply-btn').addEventListener('click', () => {
     if (overlay.querySelector('#mdiff-apply-btn').disabled) return;
-    _mdiffDoApply(false);
+    _mdiffDoApply();
   }, { signal: _mdiffPanelAC.signal });
 
   // Enter → Aplicar (solo si no bloqueado)
@@ -2775,7 +2771,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       if (btn && !btn.disabled) {
         e.preventDefault();
         e.stopPropagation(); // [código no confirmado — TKT-202607-212]: Enter propagado a otros listeners del documento cuando el diff está activo
-        _mdiffDoApply(false);
+        _mdiffDoApply();
       }
     } else if (e.key === 'Escape') {
       // Fix de esta sesión: cleanup consolidado en teardownMergeDiffPanel() — el propio
