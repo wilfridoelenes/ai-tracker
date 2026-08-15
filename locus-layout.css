@@ -1,4 +1,8 @@
-/* [PP] mod:34 · autor:Nova · 2026-08-15 07:45 UTC-6 */
+/* [PP] mod:35 · autor:Nova · 2026-08-15 00:35 UTC-6 */
+/* Corrección de conflicto: .mm-icon duplicado en locus-backlog-item.css (mod:104)
+   imponía font-size:var(--text-xs) (14px), reduciendo los íconos .ti-svg (1em) por
+   debajo de los 18px originales de los SVG inline que reemplazan. Consolidado aquí
+   como única fuente — ver eliminación en locus-backlog-item.css. */
 /* TKT-[ref_id:CAEL-08142310-02] (REQ-[ref_id:CAEL-08142310-01]): .header-inner pasa de
    flex a grid-template-columns: 1fr auto 1fr — .header-zone--nav (columna central, auto)
    queda geométricamente centrada entre .header-zone--brand y .header-zone--utils (ambas
@@ -910,6 +914,7 @@ header {
 .mm-icon {
   display: flex;
   flex-shrink: 0;
+  font-size: 18px;
 }
 
 .more-menu hr.more-menu-sep {

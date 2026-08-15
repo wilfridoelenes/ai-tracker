@@ -1,3 +1,28 @@
+// [PP] mod:192 · autor:Rune · 2026-08-15 UTC-6
+// INC-[pendiente-ID] (founder: "poner hora de bloqueo en el modal de ingesta no hace nada — el
+// worker se mantiene disponible, solo Quick Capture agota"). Causa raíz: desde TKT-202608-276
+// (gate de _routeParse ampliado a >=1 bloque), TODO paste al modal de ingesta —single o
+// batch— pasa por _processIngestBatch()/_onApplyBatch(), nunca por _doApplyMergeAndFinish()
+// (locus-session-save.js, TKT-202608-320/REQ-202608-127), que es el único lugar que escribía
+// ai.status en función de horaResult. _onApplyBatch() ignoraba por completo el parámetro
+// horaRaw que _mdiffDoApply() (locus-backlog-merge.js) ya le pasaba vía onApply(_horaRaw) — el
+// input "Hora de reset" del panel DIFF se mostraba y se leía, pero el valor se descartaba en
+// silencio antes de llegar a ai.status. Tres puntos corregidos: (1) _routeParse(id, ta) propaga
+// id a _processIngestBatch(id) — antes se descartaba; (2) _processIngestBatch(id) declara el
+// parámetro y lo deja en closure para _onApplyBatch; (3) _onApplyBatch(horaRaw) — nuevo bloque
+// antes del dispatch final: con id presente y worker vivo, interpretHora(horaRaw) → exhausted
+// (status/resetTime/resetEpoch) o 'in_session' explícito (mismo criterio que
+// _doApplyMergeAndFinish — nunca deja el status previo intacto), persistido vía saveWorker()
+// (tracker_workers es su único canal de escritura desde TKT1/TKT2, _Locus-module-contracts
+// mod:169-171 — save()/saveImmediate() ya no suben `ais`). Import nuevo: interpretHora
+// (locus-session-hora.js) — el header ya declaraba esa dependencia sin importar nada de ella;
+// ciclo ESM de 3 nodos (session-parse→session-hora→session-save→session-parse) seguro porque
+// interpretHora solo se invoca dentro de un callback en tiempo de ejecución, nunca en top-level
+// de módulo — mismo patrón ya vigente entre locus-session-save.js y locus-session-hora.js.
+// Import nuevo: saveWorker (locus-storage.js). Sin id (caller sin contexto de worker, ej. botón
+// manual #ingest-process-batch-btn si se invoca sin ese contexto) → no toca ningún status, mismo
+// comportamiento silencioso que antes del fix, nunca peor. contract_update: sí —
+// _processIngestBatch(id) cambia de firma (antes sin parámetros).
 // [PP] mod:183 · autor:Rune · 2026-08-14 20:35 UTC-6
 // TKT5 (REQ-202608-132, ref_id CAEL-08130100-02): _ingestPreviewMeta() (rama 'crea') agrega
 // `count` — cantidad de ítems del bloque, mismo criterio de membresía que _typesSeen (it &&

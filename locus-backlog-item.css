@@ -1,4 +1,6 @@
-/* [PP] mod:104 · autor:Nova · 2026-08-15 07:45 UTC-6 */
+/* [PP] mod:105 · autor:Nova · 2026-08-15 00:35 UTC-6 */
+/* .mm-icon duplicado retirado — consolidado en locus-layout.css mod:35 (conflicto
+   de font-size que reducía íconos .ti-svg a 14px, ver INC-202608-111). */
 /* TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog): .mdiff-section-chevron
    migrado a svg.chevron (Patrón A-13, línea ~2597) — glifo/rotación retirados, color
    conservado vía currentColor sobre accent-class del header. Corrección de autoría:
@@ -3342,12 +3344,6 @@ body {
 
 .mm-danger:hover {
   background: var(--c-critical-bg, rgb(248 113 113 / 10%));
-}
-
-.mm-icon {
-  display: inline-block;
-  width: 18px;
-  font-size: var(--text-xs);
 }
 
 .sync-status-dot {
