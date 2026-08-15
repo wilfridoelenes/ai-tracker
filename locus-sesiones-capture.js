@@ -1,4 +1,12 @@
-// [PP] mod:24 · autor:Rune · 2026-08-12 06:15 UTC-6
+// [PP] mod:25 · autor:Rune · 2026-08-15 14:20 UTC-6
+// Fix INC-[pendiente-ID] (ref_id RUNE-08151420-01): confirmQuickCapture() empujaba `sess`
+// directo a activeProj.sessions — bypasseaba _mutateSessions() (locus-storage.js), único
+// punto que marca una sesión dirty para _saveSessions(). Sin esa marca, Quick Capture nunca
+// subía la sesión a Supabase una vez el proyecto ya tenía baseline sincronizado — quedaba
+// viva solo en memoria/localStorage, sin error visible, sin sync cross-device. Import de
+// _mutateSessions agregado; push directo reemplazado por _mutateSessions(activeProj,'add',
+// sess). Mismo patrón ya usado por locus-session-save.js desde REQ-sessions-mutator (TKT1) —
+// nunca replicado a este call site hasta ahora. Ver comentario inline en confirmQuickCapture().
 // TKT2 (CAEL-08111815-01): saveWorker() agregado en _qcAttemptSave() (tras éxito de
 // saveImmediate(), antes del rollback) y en dismissInterrupted() — save()/saveImmediate()
 // ya no persisten ais en tracker_state. interruptSession() no lleva save propio — su único
@@ -35,7 +43,7 @@ import { showToast, toast } from './locus-toast.js';
 
 import { _horaUpdate, interpretHora } from './locus-session-hora.js';
 
-import { getAI, getActiveProject, getState, save, saveImmediate, saveWorker } from './locus-storage.js';
+import { getAI, getActiveProject, getState, save, saveImmediate, saveWorker, _mutateSessions } from './locus-storage.js';
 
 import { esc, getCurrentTab, switchTab } from './locus-ui-shell.js';
 
@@ -313,10 +321,17 @@ function confirmQuickCapture() {
   // que el Hallazgo A-10 señalaba y ya no puede fallar aquí.
   sess.aiId = _quickAIId;
   const activeProj = getActiveProject();
-  if (!activeProj.sessions) activeProj.sessions = [];
-  // TKT1 (CAEL-01): sess se empuja antes del guardado — excepción documentada y sin cambio,
-  // el retry reintenta saveImmediate() sobre el mismo estado, sin reconstruir ni duplicar.
-  activeProj.sessions.push(sess);
+  // Fix INC-[pendiente-ID] (triggered_by hallazgo de diagnóstico, sesión consultiva sin
+  // TKT activo): antes empujaba directo a activeProj.sessions — bypasseaba _mutateSessions(),
+  // el único punto que marca la sesión dirty (locus-storage.js §_dirtySessionIds). Sin esa
+  // marca, _saveSessions() nunca la subía a Supabase una vez que el proyecto ya tenía su
+  // baseline sincronizado (needsBaseline===false) — la sesión quedaba viva solo en memoria
+  // local/localStorage, indefinidamente, sin error visible. locus-session-save.js (modal
+  // normal) ya usa _mutateSessions() desde REQ-sessions-mutator (TKT1) — este mismo patrón
+  // nunca se replicó al call site de Quick Capture. sess se marca dirty antes del guardado —
+  // excepción documentada de TKT1 (CAEL-01) preservada: el retry reintenta saveImmediate()
+  // sobre el mismo estado, sin reconstruir ni duplicar.
+  _mutateSessions(activeProj, 'add', sess);
 
   // TKT2 (parent CAEL-08081500-01, ver _Locus-ux-ref Patrón A-10): mutación del worker
   // (status/resetTime/resetEpoch) e interruptSession() no ocurren aquí — viajan como datos
