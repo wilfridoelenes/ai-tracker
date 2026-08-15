@@ -1,4 +1,9 @@
-// [PP] mod:13 · autor:Rune · 2026-08-12 09:00 UTC-6
+// [PP] mod:14 · autor:Rune · 2026-08-15 14:05 UTC-6
+// INC-ref:RUNE-08151405-01: openCorrectHora() no verificaba ai.status antes de abrir el modal
+//   "Editar worker agotado" — se abría (y confirmCorrectHora() forzaba status:'exhausted'
+//   incondicionalmente al guardar) sobre workers en cualquier estado, incluido in_session.
+//   Fix: guard de status al inicio de openCorrectHora() — bloquea la apertura y avisa por
+//   toast si el worker no está exhausted. No cambia la firma de la función.
 // TKT2 (CAEL-08111815-01): saveWorker() agregado en confirmCorrectHora() y
 // unlockNowFromCard() — save() ya no persiste ais en tracker_state.
 // TKT4 (REQ CAEL-08061000-01): confirmCorrectHora() ahora bloquea (antes solo advertía,
@@ -28,6 +33,7 @@ import { fmt12, interpretHora } from './locus-session-hora.js';
 
 import { getAI, getAISessions, save, _resetWorker, saveWorker } from './locus-storage.js';
 import { dismissInterrupted } from './locus-sesiones-capture.js'; // TKT2 (CAEL-0723-03)
+import { toast } from './locus-toast.js'; // INC-ref:RUNE-08151405-01: guard de status en openCorrectHora
 
 // ── B-202604-094: Corregir hora de desbloqueo desde card ──
 let _correctHoraAIId = null;
@@ -35,6 +41,13 @@ let _correctHoraAIId = null;
 export function openCorrectHora(id) {
   const ai = getAI(id);
   if (!ai) return;
+  // INC-ref:RUNE-08151405-01: este modal fuerza status:'exhausted' al guardar (ver
+  // confirmCorrectHora) — solo aplica a workers ya agotados. Sin este guard, se podía
+  // abrir sobre un worker in_session/available y, al confirmar, corromper su estado.
+  if (ai.status !== 'exhausted') {
+    toast('Este worker no está agotado — no se puede corregir su hora de desbloqueo.');
+    return;
+  }
   _correctHoraAIId = id;
 
   const modal = document.getElementById('gconfirm-overlay');
