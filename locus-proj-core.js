@@ -1,4 +1,8 @@
-// [PP] mod:12 · autor:Rune · 2026-07-15 UTC-6
+// [PP] mod:14 · autor:Rune · 2026-08-14 20:10 UTC-6
+// TKT-202608-346: closeProjPanel — retiradas las 2 líneas huérfanas de #proj-filter-btn
+// (id inexistente en el DOM desde TKT-202607-150, no-op guardado). Línea de
+// #proj-panel-overlay conservada sin cambio. Sin cambio de firma ni de call site
+// (selectProjectFilter sigue invocando closeProjPanel() igual).
 // INC-[pendiente-ID]: getCurrentTab importado — typeof currentTab !== 'undefined' nunca era true
 // (currentTab es var privada de locus-ui-shell.js, no global). Guard "solo renderizar Analytics si
 // tab activo" nunca ejecutaba. Fix: getCurrentTab() real, mismo patrón ya usado en locus-sprint-project.js:143.
@@ -23,7 +27,7 @@
 // NO importa desde locus-projects.js ni locus-sprint-project.js
 
 import { getProjectSessions, save, getProjectById, _getActiveProjectFilter } from './locus-storage.js';
-import { esc, switchSubTab, getCurrentSubTab, getCurrentTab } from './locus-ui-shell.js';
+import { switchSubTab, getCurrentSubTab, getCurrentTab } from './locus-ui-shell.js';
 import { showToast } from './locus-toast.js';
 import { renderAnalytics } from './locus-analytics-render.js';
 import { loadBacklog, renderStats, _registerCoreCallback } from './locus-backlog-core.js';
@@ -36,11 +40,6 @@ import { _syncCleanProjectBtn } from './locus-reports.js';
 
 // ── Filtro de proyecto activo ────────────────────────────────────────────────
 
-// T-202606-006 T3: clearProjectFilter vive en locus-sprint-project — ciclo si se importa directo.
-// locus-sprint-project llama _setClearProjFilter(clearProjectFilter) al cargarse.
-let _clearProjFilterFn = null;
-export function _setClearProjFilter(fn) { _clearProjFilterFn = fn; }
-
 // TKT-CONSOLID-PROJFILTER: _getActiveProjectFilter consolidada en locus-storage.js (dueña
 // de state.projects) — este módulo la re-exporta para no romper los 5 consumidores que
 // importan desde aquí. Ver LMC mod:23/24.
@@ -49,8 +48,6 @@ export { _getActiveProjectFilter };
 export function _setActiveProjectFilter(projId) {
   if (projId) localStorage.setItem('current-project-filter', projId);
   else localStorage.removeItem('current-project-filter');
-  _updateProjBreadcrumb();
-  _updateProjFilterBtn();
   _updateHeaderProjectLabel();
   _syncCleanProjectBtn();
 }
@@ -67,45 +64,10 @@ export function _countProjSessions(proj) {
   return getProjectSessions(proj.id).length;
 }
 
-// ── Breadcrumb y botón de filtro ─────────────────────────────────────────────
-
-export function _updateProjBreadcrumb() {
-  // absorbido por _updateProjFilterBtn — no-op
-}
-
-export function _updateProjFilterBtn() {
-  const btn = document.getElementById('proj-filter-btn');
-  if (!btn) return;
-  const filterId = _getActiveProjectFilter();
-  if (filterId) {
-    const proj = getProjectById(filterId);
-    const avatar = proj
-      ? (proj.icon
-          ? `<span class="proj-filter-icon">${esc(proj.icon)}</span>`
-          : `<span class="proj-filter-initial" style="--proj-color:${proj.color || '#7c6af7'}">${esc((proj.name || 'P')[0].toUpperCase())}</span>`)
-      : '';
-    const name = proj ? esc(proj.name) : 'Proyecto';
-    btn.innerHTML = `${avatar}${name} <span title="Limpiar filtro" class="proj-filter-clear">✕</span>`;
-    btn.classList.add('active');
-    const clearSpan = btn.querySelector('.proj-filter-clear');
-    if (clearSpan) {
-      clearSpan.addEventListener('click', function (e) {
-        e.stopPropagation();
-        if (_clearProjFilterFn) _clearProjFilterFn();
-      });
-    }
-  } else {
-    btn.innerHTML = '📁 Proyectos';
-    btn.classList.remove('active');
-  }
-}
-
 // ── Panel de proyectos ───────────────────────────────────────────────────────
 
 export function closeProjPanel() {
   document.getElementById('proj-panel-overlay')?.classList.remove('open');
-  const btn = document.getElementById('proj-filter-btn');
-  if (btn) btn.classList.remove('active');
 }
 
 // ── Selección de proyecto con efectos secundarios ────────────────────────────

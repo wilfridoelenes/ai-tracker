@@ -1,4 +1,8 @@
-// [PP] mod:21 · autor:Rune · 2026-08-01 UTC-6
+// [PP] mod:23 · autor:Rune · 2026-08-14 19:05 UTC-6
+// TKT-202608-345 (REQ-202608-135): retirado el call site de _updateProjBreadcrumb/
+//   _updateProjFilterBtn en el listener DOMContentLoaded de init + ambos símbolos retirados
+//   del import de locus-proj-core.js + comentarios de migración obsoletos que los citaban —
+//   código muerto, #proj-filter-btn no existe en el DOM desde TKT-202607-150.
 // TKT3 (REQ-202607-083, ref_id CAEL-0801-03) — fix de gap de código señalado por Finn en
 // Momento 1: comentario de línea 34 (mod:17, deuda heredada — incidente ya resuelto en su
 // momento, nunca formalizado como ítem real en Locus) reescrito al patrón "histórico — sin
@@ -56,7 +60,7 @@ import { _syncCleanProjectBtn } from './locus-reports.js';
 import { _blogLog, _effectiveVersion, _offlineQueuePush, _PREFIX_MAP, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getProjectSessions, getState, getSupabaseReadyPromise, getSupabaseUserId, save } from './locus-storage.js';
 import { esc, switchSubTab, switchTab, getCurrentSubTab, getCurrentTab } from './locus-ui-shell.js';
 // Símbolos movidos a locus-proj-core.js en T-202606-197 (opción d — ESM puro)
-import { _getActiveProjectFilter, _setActiveProjectFilter, _updateProjBreadcrumb, _updateProjFilterBtn, _countProjSessions, closeProjPanel, selectProjectFilter, getProjectById, getProjContext, setProjContext, _setClearProjFilter } from './locus-proj-core.js';
+import { _getActiveProjectFilter, _setActiveProjectFilter, _countProjSessions, closeProjPanel, selectProjectFilter, getProjectById, getProjContext, setProjContext } from './locus-proj-core.js';
 
 
 import { renderAnalytics } from './locus-analytics-render.js';
@@ -156,10 +160,10 @@ document.addEventListener('DOMContentLoaded', async function _sprintProjectInit(
 
 // _setActiveProjectFilter — movida a locus-proj-core.js en T-202606-197
 
-// _updateProjBreadcrumb — movida a locus-proj-core.js en T-202606-197
-
-// _updateProjFilterBtn — movida a locus-proj-core.js en T-202606-197
-
+// TKT-202608-345: _setClearProjFilter(clearProjectFilter) retirado — el setter dejó de existir
+// en locus-proj-core.js (su único invocador era el botón .proj-filter-clear, ya eliminado).
+// clearProjectFilter() se conserva como export sin consumidor conocido en este repo — deuda
+// registrada en items (DISC, priority low), no se retira sin AC propio.
 export function clearProjectFilter() {
   _setActiveProjectFilter('');
   loadBacklog(); loadHtmlMap();
@@ -168,7 +172,6 @@ export function clearProjectFilter() {
   renderBacklogList(); renderStats();
   switchSubTab(getCurrentSubTab());
 }
-_setClearProjFilter(clearProjectFilter);
 
 // openProjPanel() y renderProjPanel() eliminadas — TKT-202607-213 (REQ-202607-083).
 // Sin call sites reales verificados contra locus-projects.js y locus-proj-core.js —
@@ -232,8 +235,6 @@ document.addEventListener('DOMContentLoaded', function _sprintProjectUIInit() {
   const _savedTab = localStorage.getItem('active-tab');
   switchTab(_savedTab || 'tracker');
   loadHtmlMap();
-  _updateProjBreadcrumb();
-  _updateProjFilterBtn();
   _updateHeaderProjectLabel();
 
   // Wiring de #proj-panel-overlay retirado — TKT-202607-213 (REQ-202607-083).
@@ -333,8 +334,10 @@ export function _getLocalStorageUsage() {
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
 // Nota T-202606-197: getProjectById · _getActiveProjectFilter · _setActiveProjectFilter ·
-// _updateProjBreadcrumb · _updateProjFilterBtn · _countProjSessions · closeProjPanel ·
+// _countProjSessions · closeProjPanel ·
 // selectProjectFilter · getProjContext · setProjContext — expuestos via locus-proj-core.js
+// TKT-202608-345: _updateProjBreadcrumb y _updateProjFilterBtn retiradas de esta lista —
+// código muerto eliminado (#proj-filter-btn no existe en el DOM desde TKT-202607-150).
 // T-202606-016: funciones de export removidas de window.* — viven en locus-backlog-generator.js
 // B-202606-024: window.clearProjectFilter eliminado — consumida via _setClearProjFilter() callback
 

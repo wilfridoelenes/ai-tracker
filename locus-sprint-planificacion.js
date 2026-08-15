@@ -1,3 +1,15 @@
+// [PP] mod:46 · autor:Rune · 2026-08-14 10:00 UTC-6
+// TKT-202608-344 (TKT2, parent REQ-202608-133, DependsOn: TKT-202608-343 done): migra el
+// chevron del header #bl-plan-done-header (bloque Terminados) de swap de textContent JS
+// (▾/▸) a .chevron--dropdown (Patrón A-14, _Locus-css-ref mod:194/199 — token ya entregado
+// por Nova en TKT1, sin CSS nueva que escribir aquí). El span se reemplaza por
+// svg.chevron.chevron--dropdown.bl-plan-dest-chevron, glifo fijo #ti-chevron-right — la
+// rotación 180deg la gobierna [aria-expanded="true"] .chevron--dropdown en CSS, no JS.
+// _togglePlanDoneGroup() deja de mutar chevron.textContent — solo togglea aria-expanded
+// sobre el header (ya lo hacía). No toca .bl-plan-col-header/.bl-plan-dest-collapse
+// (classList.toggle('is-rotated'), fuera de scope — no_incluye del TKT) ni .proj-filter-btn
+// (código muerto, no existe en el DOM — DISC de la misma tanda, fuera de scope). Sin cambio
+// de firma en ninguna función existente. contract_update: no.
 // [PP] mod:45 · autor:Rune · 2026-08-11 01:15 UTC-6
 // INC-[pendiente-ID] (Fast Track — sla_priority medium, un solo archivo, sin lógica de negocio
 // nueva): _updatePlanStatsShell() determinaba isEmpty solo con unassigned.length === 0 (L490
@@ -389,7 +401,7 @@ export function _renderPlanningView(listEl, closeCallback) {
   const doneBlockHtml = doneUnassigned.length
     ? `<div class="bl-plan-done-group">
         <div class="bl-plan-done-header" role="button" tabindex="0" aria-expanded="${_planDoneExpanded ? 'true' : 'false'}" data-action="bl-plan-done-toggle">
-          <span class="bl-plan-dest-chevron" aria-hidden="true">${_planDoneExpanded ? '▾' : '▸'}</span>
+          <svg class="chevron chevron--dropdown bl-plan-dest-chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
           <span class="bl-plan-col-title">Terminados</span>
           <span class="bl-plan-col-count">${doneUnassigned.length}</span>
         </div>
@@ -678,17 +690,18 @@ export function _attachPlanViewDelegation(listEl) {
 }
 
 // TKT1 (REQ CAEL-0717-01): toggle compartido entre click y keydown — evita duplicar la
-// lógica de aria-expanded/is-hidden/chevron entre los dos listeners de arriba.
+// lógica de aria-expanded/is-hidden entre los dos listeners de arriba.
+// TKT2 (REQ-202608-133/TKT-202608-344): ya no muta el chevron directamente — la rotación
+// la gobierna CSS ([aria-expanded="true"] .chevron--dropdown, Patrón A-14) a partir del
+// aria-expanded que este handler ya togglea sobre headerEl.
 function _togglePlanDoneGroup(headerEl) {
   const group = headerEl.closest('.bl-plan-done-group');
   if (!group) return;
   const body    = group.querySelector('.bl-plan-done-body');
-  const chevron = headerEl.querySelector('.bl-plan-dest-chevron');
   if (!body) return;
   const isHidden = body.classList.contains('is-hidden');
   body.classList.toggle('is-hidden', !isHidden);
   headerEl.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
-  if (chevron) chevron.textContent = isHidden ? '▾' : '▸';
   // TKT2 (REQ CAEL-0717-01): persistir el nuevo estado — sobrevive al próximo re-render
   // disparado por _planDrop().
   _planDoneExpanded = isHidden;

@@ -1,4 +1,4 @@
-/* [PP] mod:20 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* [PP] mod:21 · autor:Nova · 2026-08-14 19:20 UTC-6 */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* DISC ejecutada: removidas .rm-chip--active y .rm-chip--selected (+ .rm-chip--active
    .rm-chip-mark) — sin consumidor confirmado en JS/HTML (grep completo, 0 matches). */
@@ -805,39 +805,6 @@
   color: var(--text2);
   font-family: var(--mono);
   flex: 1;
-}
-
-/* T-077: Botón proyectos en header */
-.proj-filter-btn.active {
-  color: var(--accent-text);
-  border-color: var(--accent);
-  background: var(--accent-dim);
-}
-
-.proj-filter-btn .proj-filter-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: var(--radius-pill);
-  flex-shrink: 0;
-}
-
-.proj-filter-btn .proj-filter-icon {
-  font-size: var(--text-base);
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.proj-filter-btn .proj-filter-initial {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-2xs);
-  font-weight: 700;
-  color: #fff;
-  flex-shrink: 0;
 }
 
 .proj-all-row {

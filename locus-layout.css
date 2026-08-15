@@ -1,4 +1,8 @@
-/* [PP] mod:31 · autor:Nova · 2026-08-13 10:05 UTC-6 */
+/* [PP] mod:32 · autor:Nova · 2026-08-14 20:15 UTC-6 */
+/* TKT-202608-347: retirados los 3 bloques .proj-filter-btn (::after/hover/active, .proj-icon/.proj-label,
+   base) — completa AC1 de TKT-202608-345, que no había persistido en este archivo (mod real 31 pese
+   a mod:32 declarado en sesión anterior). --ease-bounce y --radius-pill verificados con consumidores
+   vivos fuera de estos bloques — sin variable huérfana. */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* mod:29 — TKT1 CAEL-0805-02 (REQ CAEL-0805-01): unificación de borde/foco/disabled en
    .btn-icon/.btn-ghost/.btn-danger/.btn-danger-ghost. .btn-icon 1.5px→1px reposo (mismo
@@ -1010,25 +1014,6 @@ header {
   box-shadow: 0 0 6px var(--accent, var(--purple));
 }
 
-/* 2. Pill proyecto — chevron animado */
-.proj-filter-btn::after {
-  content: '⌄';
-  position: absolute;
-  right: 9px;
-  top: 50%;
-  transform: translateY(-50%) rotate(0deg);
-  font-size: var(--text-xs);
-  line-height: 1;
-  transition: transform 0.18s var(--ease-bounce), color 0.15s var(--ease-out);
-  color: var(--text2);
-}
-
-.proj-filter-btn:hover::after,
-.proj-filter-btn.active::after {
-  transform: translateY(-50%) rotate(-180deg);
-  color: var(--accent-text);
-}
-
 /* 3. Dot sync — pulse cuando sincronizando */
 @keyframes sync-pulse {
   0%, 100% {
@@ -1123,24 +1108,6 @@ header {
 
 .logo-grillo[title] {
   /* tooltip nativo del browser — versión en atributo title */
-}
-
-/* T-383 · Pill proyecto → selector compacto con icono */
-
-.proj-filter-btn .proj-icon {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-pill);
-  margin-right: 5px;
-  flex-shrink: 0;
-  vertical-align: middle;
-  position: relative;
-  top: -1px;
-}
-
-.proj-filter-btn .proj-label {
-  /* visible solo si espacio — truncado por max-width del padre */
 }
 
 .sync-pill::before {
@@ -2021,26 +1988,6 @@ header {
 /* scope: layout */
 .popup, .tg-panel, .pend-panel {
   animation: modalSpring 0.22s var(--ease-spring);
-}
-
-/* .proj-filter-btn — scope: analytics · backlog · layout · proyectos */
-.proj-filter-btn {
-  font-size: var(--text-xs);
-  font-weight: 500;
-  color: var(--text2);
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 5px 12px;
-  cursor: pointer;
-  transition: all 0.12s;
-  display: none;
-  align-items: center;
-  gap: 5px;
-  white-space: nowrap;
-  font-family: var(--font-sans);
-  position: relative;
-  padding-right: 26px;
 }
 
 /* .tab-btn — fuente canónica: locus-layout.css — scope: analytics · backlog · layout · modals */

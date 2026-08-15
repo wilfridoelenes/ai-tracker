@@ -1,4 +1,6 @@
-/* [PP] mod:23 · autor:Nova · 2026-08-11 UTC-6 */
+/* [PP] mod:24 · autor:Nova · 2026-08-14 20:15 UTC-6 */
+/* TKT-202608-347: retirado .proj-filter-clear — completa AC1 de TKT-202608-345, que no
+   había persistido en este archivo (mod real 23 pese a mod:24 declarado en sesión anterior). */
 /* TKT-[pendiente-ID] (Propuesta de mejora #4, mod:59 _Locus-ui-Inventory): retirada familia .qn-delete-* — código muerto, founder confirmó que el borrado de Quick Note nunca quedó conectado (o dejó de estarlo) tras T-202604-270. Retirado: .qn-delete-btn, .qn-delete-btn:hover, .qn-delete-btn.qn-delete-btn--visible, .qn-delete-confirm, .qn-delete-confirm.qn-delete-confirm--visible, .qn-delete-msg. Conservado sin cambio: .qn-header-actions, .qn-close, .btn-danger-sm, .btn-sm, .qn-ref-wrap, .qn-ac-* (autocomplete de referencia — fuera del alcance de esta deuda). */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* INC-202608-081: .proy2-panel-wrap sin cobertura prefers-reduced-motion en su transición
@@ -794,14 +796,6 @@
 .export-confirm-filename code {
   font-family: var(--mono);
   color: var(--text);
-}
-
-/* Project filter button — clear span */
-.proj-filter-clear {
-  margin-left: 4px;
-  opacity: .7;
-  font-size: var(--text-xs);
-  cursor: pointer;
 }
 
 /* proj-all-row separator variant (used in panel) */

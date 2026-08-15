@@ -1,4 +1,10 @@
-// [PP] mod:14 · autor:Rune · 2026-08-01 UTC-6
+// [PP] mod:15 · autor:Rune · 2026-08-14 21:30 UTC-6
+// origen: RUNE-08142130-01 — fix de _updateProjBreadcrumb()/_updateProjFilterBtn() huérfanos
+//   (retirados de locus-proj-core.js en TKT-202608-345 sin actualizar estos 3 call sites,
+//   ReferenceError en delete/archive-restore/edit de proyecto). _updateProjBreadcrumb()
+//   reemplazado por _updateHeaderProjectLabel() (ya importado, mismo efecto sobre
+//   #breadcrumb-proj). _updateProjFilterBtn() retirado sin reemplazo — #proj-filter-btn
+//   no existe en el DOM desde TKT-202607-150.
 // Fix de gap de código señalado por Finn en Momento 1 de TKT2: 3 literales de ID sin
 // resolver (líneas ~37/839/1577, deuda heredada de mods anteriores, ninguno introducido
 // en TKT2) reescritos al patrón "histórico — sin CHECKPOINT confirmado" ya usado en este
@@ -64,7 +70,7 @@ import { _calcRelevanceScore, loadBacklog, getItems} from './locus-backlog-core.
 import { _getActiveSprint } from './locus-backlog-sprints.js';
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { relDate } from './locus-session-hora.js';
-import { _countProjSessions, _setActiveProjectFilter, _updateProjBreadcrumb, _updateProjFilterBtn, selectProjectFilter, setProjContext } from './locus-proj-core.js';
+import { _countProjSessions, _setActiveProjectFilter, selectProjectFilter, setProjContext } from './locus-proj-core.js';
 import { esc, switchSubTab, switchTab, getCurrentTab } from './locus-ui-shell.js';
 
 import { _animateCountUp, fmtMonth, getAnalyticsMonths, sessionDateKey, sessionYM } from './locus-analytics-core.js';
@@ -537,7 +543,7 @@ function _proyDeleteExecute(projId) {
   }
   save();
   renderProyectos();
-  _updateProjBreadcrumb();
+  _updateHeaderProjectLabel();
   showToast('success', `Proyecto eliminado`);
 }
 
@@ -553,8 +559,7 @@ function _projToggleArchive(projId) {
   }
   save();
   renderProyectos();
-  _updateProjBreadcrumb();
-  _updateProjFilterBtn();
+  _updateHeaderProjectLabel();
   showToast('info', !wasArchived ? `"${proj.name}" archivado` : `"${proj.name}" restaurado`);
 }
 
@@ -708,8 +713,7 @@ function _confirmProyPanel() {
   _proyPanelEditId = null;
   _proyPanelTriggerEl = null;
   renderProyectos();
-  _updateProjBreadcrumb();
-  _updateProjFilterBtn();
+  _updateHeaderProjectLabel();
 }
 
 // ── T-057: Vista cronológica ──
