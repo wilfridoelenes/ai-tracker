@@ -1,3 +1,11 @@
+// [PP] mod:30 · autor:Rune · 2026-08-15 UTC-6
+// INC-202608-112: _getFooterAlert() excluía ítems terminales leyendo solo incIncidentStatus(i)
+// (campo incident_status) — válido para INC/PRB, pero CHG declara su ciclo de vida en `status`,
+// no `incident_status` (excepción de vocabulario, __BR-Ecosystem §4b). Un CHG con status:'done'
+// devolvía st===undefined de incIncidentStatus(), nunca calzaba con 'closed'/'descartado', y
+// seguía siendo candidato a "vencido" en el footer aunque estuviera cerrado. Fix: st se resuelve
+// por tipo — i.status para CHG, incIncidentStatus(i) para el resto — y el set de terminales
+// incluye 'done' (terminal exclusivo de CHG, ver __BR-Ecosystem §5 — tabla de estados válidos).
 // [PP] mod:29 · autor:Rune · 2026-08-04 UTC-6
 // INC-202608-087 TKT AC3: _getFooterAlert() declaraba targetTab:'backlog' para la alerta
 // 'docupdate' — incorrecto. El sub-tab #sstab-btn-docupdates vive en Tab Proyectos desde que
@@ -202,8 +210,10 @@ export function _getFooterAlert() {
   try {
     const incs = (typeof getIncidents === 'function' ? getIncidents() : []) || [];
     const incAlert = incs.find(i => {
-      const st = incIncidentStatus(i);
-      if (st === 'closed' || st === 'descartado') return false;
+      // INC-202608-112: CHG usa `status`, no `incident_status` (__BR-Ecosystem §4b) — leer
+      // incIncidentStatus(i) para un CHG siempre da undefined y nunca lo excluye como terminal.
+      const st = i.type === 'CHG' ? i.status : incIncidentStatus(i);
+      if (st === 'closed' || st === 'descartado' || st === 'done') return false;
       if (incSlaPriority(i) !== 'high') return false;
       // TKT2 (REQ CAEL-0723-01, ref_id CAEL-0723-01): derived_items apuntando a REQ/DISC/CHG
       // no-terminal pausa el reloj — no cuenta como vencido aunque slaDeadline ya haya pasado.
