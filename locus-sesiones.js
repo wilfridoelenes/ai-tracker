@@ -1,4 +1,9 @@
-// [PP] mod:66 · autor:Rune · 2026-08-15 12:30 UTC-6
+// [PP] mod:67 · autor:Rune · 2026-08-15 14:20 UTC-6
+// INC-ref:RUNE-08151405-01: causa raíz confirmada — _populateWorkerHeader() ocultaba
+//   correctHoraBtn (dot-correct-hora) con la condición equivocada (isAvail en vez de
+//   state !== 'exhausted'), dejándolo visible en insession e interrupted, no solo en
+//   available. Mismo patrón ya usado por resetIcon/cdInline en esta misma función —
+//   corregido a state !== 'exhausted' para consistencia interna.
 // Fix (reportado por el founder, captura 2026-08-15) — código de ítem pendiente de confirmar en
 // Locus, sin ref_id declarado al crearse (ver BR-Execution §9): modal de ingesta abría con textarea vacía
 // (0 caracteres) mostrando "2 bloques detectados" — conteo stale del batch previo (mismo u otro
@@ -1019,8 +1024,11 @@ function _populateWorkerHeader(ai) {
 
     // corregir-hora (agotada) — TKT3 (CAEL-0723-04): 'interrupt' retirado del dot-menu, el
     // checkbox de WIP en Quick Capture / modal "Editar worker agotado" reemplaza esta acción.
+    // INC-ref:RUNE-08151405-01: condición corregida — antes usaba isAvail (solo ocultaba en
+    // available, quedaba visible en insession/interrupted). Ahora sigue el mismo criterio que
+    // resetIcon/cdInline en esta función: visible únicamente cuando state === 'exhausted'.
     const correctHoraBtn = wrap.querySelector('[data-action="dot-correct-hora"]');
-    if (correctHoraBtn) correctHoraBtn.classList.toggle('is-hidden', isAvail);
+    if (correctHoraBtn) correctHoraBtn.classList.toggle('is-hidden', state !== 'exhausted');
 
     // descargar reporte — deshabilitado con <2 sesiones, igual que buildCard
     const sessTotal = getAISessions(ai.id).length;
