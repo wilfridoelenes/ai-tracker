@@ -1,4 +1,7 @@
-// [PP] mod:33 · autor:Rune · 2026-08-15 16:40 UTC-6
+// [PP] mod:34 · autor:Rune · 2026-08-15 18:20 UTC-6
+// origen: TKT resuelto del grooming de DISC-202608-149 — retiro de 'gf-ckpt--link',
+// literal sin definición CSS ni classList.add() en todo el archivo (solo aparecía en
+// este remove() defensivo). Ver DISC-202608-149 para el hallazgo original.
 // origen: CAEL-08151400-02 (REQ CAEL-08151400-01): renderStatusBar() — fallback de #gf-ckpt sin
 // alertas activas reemplaza el título de la última sesión ingerida por un contador de trabajo
 // pendiente sin triage — ítems sin sprint (Q-Backlog+Q-DISC, excluye descartado/promoted/
@@ -383,7 +386,7 @@ export function renderStatusBar() {
   if (gfCkpt) {
     try {
       // REQ histórico — sin CHECKPOINT confirmado TKT3: limpiar clases de estado de un render previo antes de decidir
-      gfCkpt.classList.remove('gf-ckpt--alert-inc', 'gf-ckpt--alert-sprint', 'gf-ckpt--alert-backlog', 'gf-ckpt--alert-docupdate', 'gf-ckpt--link');
+      gfCkpt.classList.remove('gf-ckpt--alert-inc', 'gf-ckpt--alert-sprint', 'gf-ckpt--alert-backlog', 'gf-ckpt--alert-docupdate');
       gfCkpt.onclick = null;
 
       const alert = _getFooterAlert();

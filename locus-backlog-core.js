@@ -1807,23 +1807,15 @@ export async function _getNextItemCode(typeChar, reservedCodes) {
   return `${typeChar}-${yyyymm}-${nextNum}`;
 }
 
-// B-202606-032: helper compartido — consume _getCountableBase() (T-202606-100)
-// Misma fuente canónica que renderStats() — garantiza universo idéntico entre banner y stats.
-function _getCountableForBanner() {
-  return _getCountableBase();
-}
-
 // T-048: actualizar banner
 export function updateBacklogBanner() {
   const banner    = document.getElementById('backlog-meta-banner');
   const exportBtn = document.getElementById('export-backlog-btn');
-  const gfItems   = document.getElementById('gf-items');
   const _bannProjId = _coreCallbacks.getActiveProjectFilter?.() || localStorage.getItem('current-project-filter') || '';
   if (!_bannProjId || !ITEMS.length) {
     if (!_bannProjId || !ITEMS.length) {
       if (banner)    banner.classList.remove('visible');
       if (exportBtn) exportBtn.classList.add("is-hidden");
-      if (gfItems)   gfItems.classList.add('is-hidden');
       return;
     }
   }
@@ -1834,18 +1826,9 @@ export function updateBacklogBanner() {
   const meta = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
   const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
   el('bmeta-version', meta.version || '—');
-  // T-202606-099: badge de conteo en gf-* — misma lógica que bmeta-total
-  // B-202606-032: usar _getCountableForBanner() — excluye históricos, descartados y sprints cerrados
-  // T-[tmp:tkt-contador-unificado]: contador unificado en #gf-items — mismo criterio de universo que bmeta-total/renderStats()
-  const _bannerBase = _getCountableForBanner();
-  const _countForBanner = _bannerBase.length;
-  const _doneForBanner = _bannerBase.filter(i => i.status === 'done').length;
-  const label = _countForBanner + ' ítem' + (_countForBanner !== 1 ? 's' : '') + ' · ' + _doneForBanner + ' done';
-  if (gfItems)  { gfItems.textContent = label; gfItems.classList.remove('is-hidden'); }
 }
 
 // Actualizar el indicador de importado cada minuto
-// T-[tmp:tkt-contador-unificado]: gate currentTab==='backlog' removido — #gf-items vive en el footer global, visible en todos los tabs
 setInterval(() => {
   updateBacklogBanner();
 }, 60000);
@@ -2398,11 +2381,12 @@ export function isQIncItem(i) {
   return INCIDENT_TYPES.includes(itemKind(i));
 }
 
-// T-202606-100: _getCountableBase() — función canónica compartida entre renderStats() y _getCountableForBanner()
+// T-202606-100: _getCountableBase() — función canónica compartida entre renderStats() y otros consumidores del universo "backlog"
 // Retorna ITEMS filtrado por: _isCountableItem === true · status !== descartado · status !== historico
 //   · sprint no en closedSprintIds · NOT (status === done AND sin sprint o sprint === icebox)
-// renderStats() y updateBacklogBanner()/_getCountableForBanner() consumen este array base
-// antes de aplicar sus propios filtros internos — garantiza universo idéntico entre ambas funciones.
+// renderStats() consume este array base antes de aplicar sus propios filtros internos.
+// TKT (ref_id CAEL-08151900-01): _getCountableForBanner() — antes también consumidor, retirada junto
+//   con #gf-items (footer global, código muerto sin caller tras la eliminación del elemento).
 // T-202606-008 AC2 — único consumidor del universo "backlog": no se modifica ni se extiende a otros subtabs.
 export function _getCountableBase() {
   const closedSprintIds = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
