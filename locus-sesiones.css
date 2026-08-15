@@ -1,4 +1,4 @@
-/* [PP] mod:53 · autor:Rune · 2026-08-13 06:42 UTC-6 */
+/* [PP] mod:54 · autor:Nova · 2026-08-15 07:45 UTC-6 */
 /* TKT-[pendiente-ID] (Propuesta de mejora #3, mod:59 _Locus-ui-Inventory): retirado bloque .bitem-focus-rank (T-202604-426) — código muerto, founder confirmó retiro. Consumidor real nunca existió: item._focusRank no se asigna en ningún branch de buildBacklogItem() — el badge quedó inalcanzable desde su TKT de origen. Parte JS (branch huérfano en locus-backlog-item.js) pendiente de retiro por Rune — fuera de scope de Nova. */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* mod:49 — TKT (origen DISC-202608-093): comentarios de sección L5346/L5446 con literal
@@ -5175,8 +5175,12 @@ body.body--focus-mode #item-detail-panel.open {
 }
 
 /* Indicador sutil — esquina superior derecha */
+/* TKT-[pendiente-ID] (REQ CAEL-08150730-01): glifo ⛶ retirado del content de ::after —
+   el texto 'Focus' se conserva como texto real. ::before independiente (nuevo, no
+   fusionado con el texto) renderiza el ícono vía mask-token --icon-maximize +
+   background-color: currentColor. */
 body.body--focus-mode::after {
-  content: '⛶ Focus';
+  content: 'Focus';
   position: fixed;
   top: 10px;
   right: 14px;
@@ -5186,6 +5190,26 @@ body.body--focus-mode::after {
   pointer-events: none;
   z-index: var(--z-top);
   letter-spacing: 0.04em;
+}
+
+body.body--focus-mode::before {
+  content: '';
+  position: fixed;
+  top: 10px;
+  right: 50px;
+  width: 12px;
+  height: 12px;
+  background-color: var(--hint, #aaa);
+  -webkit-mask-image: var(--icon-maximize);
+  mask-image: var(--icon-maximize);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  pointer-events: none;
+  z-index: var(--z-top);
 }
 
 /* Botón focus activo en la actions bar */
@@ -5451,9 +5475,25 @@ body.body--focus-mode::after {
   border-color: var(--c-high-border);
 }
 
+/* TKT-[pendiente-ID] (REQ CAEL-08150730-01): glifo emoji ⚠️ retirado — reemplazado por
+   mask-token --icon-alert-triangle (locus-base.css) + background-color: currentColor.
+   Hereda color: var(--c-high-text) ya declarado en .plan-file-pill--broken. */
 .plan-file-pill--broken::before,
 .plan-session-deps .plan-file-pill--broken::before {
-  content: '⚠️';
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background-color: currentColor;
+  -webkit-mask-image: var(--icon-alert-triangle);
+  mask-image: var(--icon-alert-triangle);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  vertical-align: middle;
 }
 
 /* END T-202605-513 */

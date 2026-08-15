@@ -1,4 +1,4 @@
-/* [PP] mod:158 · autor:Nova · 2026-08-14 21:30 UTC-6 */
+/* [PP] mod:159 · autor:Nova · 2026-08-15 07:45 UTC-6 */
 /* TKT (ref_id CAEL-08142200-02/03, parent ref_id CAEL-08142200-01): corrección de estructura —
    .bl-active-header-meta/.bl-done-header-meta pasan a agrupar count+chevron a la derecha (antes:
    label+count a la izquierda), y .bl-active-label/.bl-done-label ganan mayúscula (uppercase,
@@ -1662,9 +1662,24 @@
   line-height: 1.5;
 }
 
+/* TKT-[pendiente-ID] (REQ CAEL-08150730-01): glifo ◻ retirado — reemplazado por
+   mask-token --icon-square (locus-base.css) + background-color: currentColor.
+   color: var(--text3) se preserva — currentColor lo hereda igual que antes. */
 .ac-list li::before {
-  content: '◻';
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
   color: var(--text3);
+  background-color: currentColor;
+  -webkit-mask-image: var(--icon-square);
+  mask-image: var(--icon-square);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
   flex-shrink: 0;
   margin-top: 1px;
 }
@@ -5845,10 +5860,24 @@
   vertical-align: middle;
 }
 
+/* TKT-[pendiente-ID] (REQ CAEL-08150730-01): glifo ⏳ retirado — reemplazado por
+   mask-token --icon-hourglass (locus-base.css) + background-color: currentColor.
+   Hereda el color amber ya declarado en .sph-pending-badge (color: rgb(var(--amber-rgb...))). */
 .sph-pending-badge::before {
-  content: '⏳';
-  font-size: 0.75em;
-  line-height: 1;
+  content: '';
+  display: inline-block;
+  width: 0.75em;
+  height: 0.75em;
+  background-color: currentColor;
+  -webkit-mask-image: var(--icon-hourglass);
+  mask-image: var(--icon-hourglass);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  vertical-align: middle;
 }
 
 /* ══ END T-202606-130 ══ */

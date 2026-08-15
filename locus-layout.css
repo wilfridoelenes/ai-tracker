@@ -1,4 +1,4 @@
-/* [PP] mod:33 · autor:Nova · 2026-08-14 23:20 UTC-6 */
+/* [PP] mod:34 · autor:Nova · 2026-08-15 07:45 UTC-6 */
 /* TKT-[ref_id:CAEL-08142310-02] (REQ-[ref_id:CAEL-08142310-01]): .header-inner pasa de
    flex a grid-template-columns: 1fr auto 1fr — .header-zone--nav (columna central, auto)
    queda geométricamente centrada entre .header-zone--brand y .header-zone--utils (ambas
@@ -518,14 +518,26 @@ button {
   padding-right: 16px;
 }
 
+/* TKT-[pendiente-ID] (REQ CAEL-08150730-01): glifo emoji 📁 retirado — reemplazado por
+   mask-token --icon-folder (locus-base.css) + background-color: currentColor, mismo
+   mecanismo que el resto de íconos de línea del header. Hereda color de .breadcrumb-seg--proj. */
 .breadcrumb-seg--proj::before {
-  content: '📁';
+  content: '';
   position: absolute;
   left: 2px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: var(--text-xs);
-  line-height: 1;
+  width: 13px;
+  height: 13px;
+  background-color: currentColor;
+  -webkit-mask-image: var(--icon-folder);
+  mask-image: var(--icon-folder);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
 }
 
 /* TKT-202608-334 (REQ-202608-131): ::after con content:'⌄' retirado — reemplazado

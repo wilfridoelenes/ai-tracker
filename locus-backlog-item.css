@@ -1,4 +1,4 @@
-/* [PP] mod:103 · autor:Nova · 2026-08-12 10:30 UTC-6 */
+/* [PP] mod:104 · autor:Nova · 2026-08-15 07:45 UTC-6 */
 /* TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog): .mdiff-section-chevron
    migrado a svg.chevron (Patrón A-13, línea ~2597) — glifo/rotación retirados, color
    conservado vía currentColor sobre accent-class del header. Corrección de autoría:
@@ -3133,17 +3133,36 @@
    ============================================================ */
 
 /* ── Theme toggle btn en header ─────────────────────────────── */
+/* TKT-[pendiente-ID] (REQ CAEL-08150730-01): glifos emoji ☀/🌙 retirados —
+   reemplazados por mask-tokens --icon-sun/--icon-moon (locus-base.css) +
+   background-color: currentColor, mismo mecanismo del resto de íconos de línea. */
+.theme-toggle-btn::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  background-color: currentColor;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
 [data-theme="dark"]  .theme-toggle-btn::before {
-  content: '☀';
+  -webkit-mask-image: var(--icon-sun);
+  mask-image: var(--icon-sun);
 }
 
 [data-theme="light"] .theme-toggle-btn::before {
-  content: '🌙';
+  -webkit-mask-image: var(--icon-moon);
+  mask-image: var(--icon-moon);
 }
 
 /* fallback si no hay data-theme en root */
 body:not([data-theme]) .theme-toggle-btn::before {
-  content: '☀';
+  -webkit-mask-image: var(--icon-sun);
+  mask-image: var(--icon-sun);
 }
 
 /* ── tracker-grid-header ────────────────────────────────────── */

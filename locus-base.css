@@ -1,4 +1,4 @@
-/* [PP] mod:30 · autor:Nova · 2026-08-14 19:20 UTC-6 */
+/* [PP] mod:31 · autor:Nova · 2026-08-15 07:45 UTC-6 */
 /* TKT-202608-343 (REQ-202608-133, TKT1): agrega .chevron--dropdown — token de
    dropdown-trigger (Patrón A-14, _Locus-css-ref mod:200), rotación 180deg,
    distinto del disclosure de .chevron (Patrón A-13, rotación 90deg). Ver bloque
@@ -627,6 +627,29 @@ body {
 .diff-chip--actualizado{color:var(--text2);background:var(--surface2);border-color:var(--border);}
 .diff-chip--retroceso{color:var(--c-high-text);background:var(--c-high-bg);border-color:var(--c-high-border);}
 .diff-chip--descarte{color:var(--red-text);background:color-mix(in srgb, var(--red) 10%, transparent);border-color:color-mix(in srgb, var(--red) 28%, transparent);}
+
+/* ── --icon-* — mask tokens, pseudo-elemento sin elemento DOM (Nova) ──
+   TKT-[pendiente-ID] (REQ CAEL-08150730-01): complemento de .ti-svg (abajo,
+   Patrón A-13/sprite) — mismo origen visual (@tabler/icons v3.46.0, outline
+   set, mismo lockfile que el sprite), pero para selectores ::before/::after
+   donde no existe <svg> real que consumir vía <use>. Uso: content:'';
+   width/height fijo; background-color: currentColor; mask-image: var(--icon-X);
+   mask-size: contain; mask-repeat: no-repeat; (+ -webkit-mask-image equivalente).
+   El color del stroke en el data-URI (black) es irrelevante — mask-image usa el
+   canal alfa, el color real lo pone background-color: currentColor en el
+   selector consumidor. Fuente: node_modules/@tabler/icons@3.46.0/icons/outline/
+   {name}.svg — no editar a mano, regenerar desde el mismo paquete si el subset
+   cambia. Cierra el hallazgo de doble origen (glifos Unicode/emoji en content:)
+   detectado en la auditoría de íconos — DISC-[pendiente-ID], descartada obsoleto. ── */
+:root{
+  --icon-folder: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2'/></svg>");
+  --icon-sun: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0'/><path d='M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7'/></svg>");
+  --icon-moon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454l0 .008'/></svg>");
+  --icon-square: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14'/></svg>");
+  --icon-hourglass: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6.5 7h11'/><path d='M6.5 17h11'/><path d='M6 20v-2a6 6 0 1 1 12 0v2a1 1 0 0 1 -1 1h-10a1 1 0 0 1 -1 -1'/><path d='M6 4v2a6 6 0 1 0 12 0v-2a1 1 0 0 0 -1 -1h-10a1 1 0 0 0 -1 1'/></svg>");
+  --icon-alert-triangle: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 9v4'/><path d='M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0'/><path d='M12 16h.01'/></svg>");
+  --icon-maximize: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 8v-2a2 2 0 0 1 2 -2h2'/><path d='M4 16v2a2 2 0 0 0 2 2h2'/><path d='M16 4h2a2 2 0 0 1 2 2v2'/><path d='M16 20h2a2 2 0 0 0 2 -2v-2'/></svg>");
+}
 
 /* ── .ti-svg — sprite SVG local de Tabler Icons (INC consolidado, Nova) ──
    TKT-202608-286 (REQ-202608-117 TKT5) migró 8 archivos de webfont Tabler
