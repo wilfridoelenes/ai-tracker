@@ -1,3 +1,9 @@
+// [PP] mod:17 · autor:Rune · 2026-08-14 20:25 UTC-6
+// TKT2 (ref_id CAEL-08142000-03, parent ref_id CAEL-08142000-01): _activeGroupWrap() — chevron
+// ▾ legacy reemplazado por svg.chevron.bl-active-chevron (Patrón A-13), agrupado con label+count
+// en .bl-active-header-meta para que .bl-active-header (justify-content:space-between, TKT1 de
+// Nova) empuje el chevron al extremo derecho — mismo criterio que .qbacklog-draft-header.
+// _attachActiveGroupToggle sin cambios — sigue togueando aria-expanded/.is-collapsed igual.
 // [PP] mod:16 · autor:Rune · 2026-08-12 09:40 UTC-6
 // TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog): .qbacklog-draft-chevron
 // migrado a svg.chevron (Patrón A-13, línea ~212). Color ámbar conservado sin cambio —
@@ -314,9 +320,11 @@ function _activeGroupWrap(innerHtml, count, nsKey) {
   return `
     <div class="bl-active-group${_isOpen ? '' : ' is-collapsed'}" id="${nsKey}-active-group">
       <div class="bl-active-header" id="${nsKey}-active-header" tabindex="0" role="button" aria-expanded="${_isOpen}">
-        <span class="bl-active-arrow">▾</span>
-        <span class="bl-active-label">Activos</span>
-        <span class="bl-active-count" id="${nsKey}-active-count">${count}</span>
+        <div class="bl-active-header-meta">
+          <span class="bl-active-label">Activos</span>
+          <span class="bl-active-count" id="${nsKey}-active-count">${count}</span>
+        </div>
+        <svg class="ti-svg chevron bl-active-chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
       </div>
       <div class="bl-active-body" id="${nsKey}-active-body">${innerHtml}</div>
     </div>`;
