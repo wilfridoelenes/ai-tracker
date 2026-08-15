@@ -1,3 +1,11 @@
+/* [PP] mod:158 · autor:Nova · 2026-08-14 21:30 UTC-6 */
+/* TKT (ref_id CAEL-08142200-02/03, parent ref_id CAEL-08142200-01): corrección de estructura —
+   .bl-active-header-meta/.bl-done-header-meta pasan a agrupar count+chevron a la derecha (antes:
+   label+count a la izquierda), y .bl-active-label/.bl-done-label ganan mayúscula (uppercase,
+   letter-spacing 0.06em, font-weight 600) — ambos ajustes igualan la estructura real de
+   .qdisc-status-title/.qdisc-status-header-meta (línea ~6146/~6130), no solo el token del
+   chevron. Founder señaló el gap tras el cierre del REQ anterior — mismo AC de "mismo componente
+   y mismo lado que Q-Disc", corrección de fidelidad visual sobre lo ya entregado. */
 /* [PP] mod:157 · autor:Nova · 2026-08-14 21:05 UTC-6 */
 /* TKT (ref_id CAEL-08142100-02, parent ref_id CAEL-08142100-01): .bl-done-header adopta
    justify-content:space-between + nueva .bl-done-header-meta (agrupa label+count) — mismo
@@ -5045,13 +5053,20 @@
    esta regla — el toggle de _attachDoneGroupToggle (locus-backlog-zone-engine.js) sigue
    alternando aria-expanded sin cambio de JS. */
 
-/* TKT (ref_id CAEL-08142100-02, parent ref_id CAEL-08142100-01): agrupa label+count a la
-   izquierda para que .bl-done-header (justify-content:space-between) empuje el chevron al
-   extremo derecho — mismo criterio ya usado en .bl-active-header-meta/.qbacklog-draft-header-meta. */
+/* TKT (ref_id CAEL-08142200-03, parent ref_id CAEL-08142200-01): .bl-done-header-meta pasa a
+   agrupar count+chevron a la derecha — corrige la agrupación anterior (label+count a la
+   izquierda), mismo motivo y mismo criterio que .bl-active-header-meta. */
 .bl-done-header-meta {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.bl-done-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .bl-done-count {
@@ -5138,9 +5153,11 @@
   outline: 2px solid var(--accent);
 }
 
-/* TKT1 (ref_id CAEL-08142000-02, parent ref_id CAEL-08142000-01): agrupa label+count a la
-   izquierda para que .bl-active-header (justify-content:space-between) empuje el chevron al
-   extremo derecho — mismo criterio ya usado en .qbacklog-draft-header/-meta (línea ~6188). */
+/* TKT (ref_id CAEL-08142200-02, parent ref_id CAEL-08142200-01): .bl-active-header-meta pasa a
+   agrupar count+chevron a la derecha — corrige la agrupación anterior (label+count a la
+   izquierda), que difería de la estructura real de .qdisc-status-header-meta (label solo a la
+   izquierda, meta con count+chevron a la derecha, línea ~6130). Mismo criterio de mayúscula
+   que .qdisc-status-title. */
 .bl-active-header-meta {
   display: flex;
   align-items: center;
@@ -5152,7 +5169,10 @@
 }
 
 .bl-active-label {
-  font-weight: 500;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .bl-active-count {

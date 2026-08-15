@@ -1,3 +1,8 @@
+// [PP] mod:18 · autor:Rune · 2026-08-14 21:30 UTC-6
+// TKT (ref_id CAEL-08142200-04, parent ref_id CAEL-08142200-01): _activeGroupWrap() corrige
+// agrupación — label vuelve a ser hijo directo del header (izquierda), .bl-active-header-meta
+// ahora envuelve count+chevron (derecha), igualando la estructura real de
+// .qdisc-status-header-meta. Mayúscula del label es CSS puro (Nova, mod:158) — sin cambio aquí.
 // [PP] mod:17 · autor:Rune · 2026-08-14 20:25 UTC-6
 // TKT2 (ref_id CAEL-08142000-03, parent ref_id CAEL-08142000-01): _activeGroupWrap() — chevron
 // ▾ legacy reemplazado por svg.chevron.bl-active-chevron (Patrón A-13), agrupado con label+count
@@ -320,11 +325,11 @@ function _activeGroupWrap(innerHtml, count, nsKey) {
   return `
     <div class="bl-active-group${_isOpen ? '' : ' is-collapsed'}" id="${nsKey}-active-group">
       <div class="bl-active-header" id="${nsKey}-active-header" tabindex="0" role="button" aria-expanded="${_isOpen}">
+        <span class="bl-active-label">Activos</span>
         <div class="bl-active-header-meta">
-          <span class="bl-active-label">Activos</span>
           <span class="bl-active-count" id="${nsKey}-active-count">${count}</span>
+          <svg class="ti-svg chevron bl-active-chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
         </div>
-        <svg class="ti-svg chevron bl-active-chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>
       </div>
       <div class="bl-active-body" id="${nsKey}-active-body">${innerHtml}</div>
     </div>`;
