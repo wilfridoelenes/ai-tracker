@@ -1046,7 +1046,7 @@ import { _ctrMergeFromItem } from './locus-contracts.js';
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 import { _checkStorageQuota, _mergeBacklogWithProject, saveSession, _applyCheckpointBatch } from './locus-session-save.js'; // T-202606-032: saveSession para auto-trigger | TKT4: _applyCheckpointBatch — persistencia de batch, invocada solo en el callback de confirmación de showMergeDiffPanel (no en tiempo de evaluación del módulo, mismo patrón ya usado por _mergeBacklogWithProject en esta misma línea)
-import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, getSupabaseContext, save, saveImmediate, _upsertSprint, LOCUS_KEYS, CANONICAL_PROJECTS, _PREFIX_MAP, getInfraVersionData } from './locus-storage.js';
+import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, getSupabaseContext, save, saveImmediate, saveWorker, _upsertSprint, LOCUS_KEYS, CANONICAL_PROJECTS, _PREFIX_MAP, getInfraVersionData } from './locus-storage.js'; // INC-[pendiente-ID]: saveWorker agregado — persistencia de status exhausted/in_session desde _onApplyBatch, tracker_workers es su único canal (mod:169-171 de _Locus-module-contracts §1)
 // T-202606-029: INFRA_VERSION_ACTIVE (constante) reemplazada por getInfraVersionActive() / setInfraVersionActive() — AC-4 de T-202606-027
 import { showToast, toast } from './locus-toast.js';
 
@@ -1055,6 +1055,7 @@ import { showToast, toast } from './locus-toast.js';
 import { esc, getCurrentTab } from './locus-ui-shell.js'; // Fix INC-202608-094: getCurrentTab agregado — guard de refresco del tab Sprint en _onApplyBatch
 import { navigateToItem } from './locus-item-navigator.js'; // TKT2 (ref_id CAEL-08111800-03, REQ CAEL-08111800-01): link de origen del badge de trazabilidad — sin ciclo ESM, locus-item-navigator.js no importa este archivo (verificado por grep antes de agregar)
 import { renderCkptField } from './locus-ckpt-render.js'; // TKT-202608-340 (REQ-202608-132, depends_on TKT-202608-339): motor de render core — sin ciclo ESM, locus-ckpt-render.js es hoja pura sin imports propios (verificado por grep antes de agregar)
+import { interpretHora } from './locus-session-hora.js'; // INC-[pendiente-ID]: import restaurado — el header de este archivo ya declaraba locus-session-hora.js como dependencia ("Dependencias: ... · locus-session-hora.js") pero nunca se importaba nada de él; sin este import, _onApplyBatch no podía interpretar la hora de reset leída del panel DIFF. Ciclo ESM de 3 nodos (session-parse→session-hora→session-save→session-parse) — seguro porque interpretHora solo se invoca dentro de un callback en tiempo de ejecución, nunca en top-level de módulo, mismo patrón ya vigente entre locus-session-save.js y locus-session-hora.js
 
 // T-202606-012: _INFRA_VERSION_ACTIVE eliminada — importada como INFRA_VERSION_ACTIVE desde locus-storage.js
 // T-202606-029: INFRA_VERSION_ACTIVE (constante) migrada a getInfraVersionActive() / setInfraVersionActive() — AC-4 de T-202606-027 cerrado
@@ -2858,7 +2859,11 @@ function _routeParse(id, ta) {
     }
     _lastBatchRouteText = ta.value;
     _lastBatchRouteTs = _now;
-    _processIngestBatch();
+    // INC-[pendiente-ID]: id propagado — antes se descartaba aquí, dejando _processIngestBatch()
+    // (y por lo tanto _onApplyBatch) sin ningún worker asociado al paste, pese a que _routeParse
+    // sí lo recibe desde handlePaste/handleInput. Causa raíz de que la hora de reset del panel
+    // DIFF nunca marcara ningún worker como exhausted en este flujo — ver _onApplyBatch más abajo.
+    _processIngestBatch(id);
     _updateIngestBlockCount(); // TKT-202607-041 AC1
     _renderIngestBlockPreview(); // TKT-202608-235
     return true;
@@ -2922,7 +2927,13 @@ export function handleInput(id) {
 // malformado (AC3) conservado igual — mismo criterio que ya tenía esta función antes de este TKT.
 // no_incluye (TKT3): no modifica mergeBacklogFromTG. No agrega selección item-por-item — Aplicar
 // aplica el batch completo. No toca locus-session-save.js.
-export async function _processIngestBatch() {
+export async function _processIngestBatch(id) {
+  // INC-[pendiente-ID]: id (worker card que abrió #ingest-modal-overlay) — opcional para no
+  // romper el caller manual de #ingest-process-batch-btn si algún día se invoca sin contexto
+  // de worker, pero ambos call sites reales (handlePaste/handleInput vía _routeParse, y el
+  // click del botón en locus-sesiones.js) ya lo propagan. Sin id, _onApplyBatch simplemente
+  // no toca ningún status de worker — mismo comportamiento (silencioso) que antes de este fix,
+  // nunca peor.
   const ta = document.getElementById('ingest-ta') /* CAEL-22 */;
   if (!ta) return;
 
@@ -3046,7 +3057,7 @@ export async function _processIngestBatch() {
   // eliminada por TKT4) — _applyCheckpointBatch persiste vía mergeBacklogFromTG(dryRun:false)
   // internamente; los patches del batch se encadenan después usando slugMap/refIdTitleMap del
   // mergeResult, mismo criterio que el flujo single.
-  const _onApplyBatch = async () => {
+  const _onApplyBatch = async (horaRaw) => {
     let _batchMergeResult;
     try {
       // FIX (sesión 2026-07-24, gate req-sin-tkt vs reparenting): patchItems propagado — ya
@@ -3131,6 +3142,31 @@ export async function _processIngestBatch() {
     if (getCurrentTab() === 'analytics') { renderAnalytics(); }
     if (getCurrentTab() === 'incidentes') { renderQIncPanel(); }
     if (getCurrentTab() === 'proyectos') { renderProyectos(); }
+    // INC-[pendiente-ID] (triggered_by TKT-202608-276 — gate de _routeParse ampliado a >=1
+    // bloque, mismo camino para paste único y batch desde entonces): esta rama nunca leía
+    // horaRaw ni tocaba ai.status — el input "Hora de reset" (#mdiff-duration-input) se
+    // mostraba igual que en el flujo single (showMergeDiffPanel no distingue modo), el
+    // founder lo llenaba, y _mdiffDoApply() (locus-backlog-merge.js) sí llamaba
+    // onApply(_horaRaw) — pero _onApplyBatch no declaraba parámetro para recibirlo, así que
+    // el valor se descartaba en silencio y ningún worker pasaba a exhausted. Mismo criterio
+    // que _doApplyMergeAndFinish (locus-session-save.js, TKT-202608-320): sin horaResult →
+    // 'in_session' explícito, nunca se deja el status previo intacto. Persistencia vía
+    // saveWorker() únicamente — Workers viven en tracker_workers desde TKT1/TKT2
+    // (CAEL-08111600-01/CAEL-08111815-01), fuera del blob de save()/saveImmediate().
+    if (id) {
+      const _liveAiBatch = getAI(id);
+      if (_liveAiBatch) {
+        const horaResult = interpretHora((horaRaw || '').replace(/\D/g, ''));
+        if (horaResult) {
+          _liveAiBatch.status = 'exhausted';
+          _liveAiBatch.resetTime = horaResult.hhmm;
+          _liveAiBatch.resetEpoch = horaResult.epoch;
+        } else {
+          _liveAiBatch.status = 'in_session';
+        }
+        saveWorker(_liveAiBatch);
+      }
+    }
     window.dispatchEvent(new CustomEvent('shell:render-tracker'));
     const _totalApplied = tgItems.length + (patchItems ? patchItems.length : 0);
     // TKT-202608-234 (REQ-202608-089, AC edge case): cuando el batch mezcla bloques que
