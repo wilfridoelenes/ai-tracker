@@ -1,4 +1,4 @@
-// [PP] mod:182 · autor:Rune · 2026-08-13 UTC-6
+// [PP] mod:183 · autor:Rune · 2026-08-14 20:35 UTC-6
 // TKT5 (REQ-202608-132, ref_id CAEL-08130100-02): _ingestPreviewMeta() (rama 'crea') agrega
 // `count` — cantidad de ítems del bloque, mismo criterio de membresía que _typesSeen (it &&
 // typeof it.type === 'string'). _renderIngestBlockPreview() lo consume junto a typesSummary,
@@ -2583,7 +2583,35 @@ function _ingestPreviewMeta(blockText) {
           .map(k => renderCkptField(_itemType, k, it[k]))
           .filter(Boolean);
       });
-      return { title: _title, meta, category: 'modifica', patch: { codes: _codes, fields: [..._fieldSet] }, rendered: _renderedFields };
+      // TKT-202608-353 (REQ-202608-139): resolver el tipo real de cada código parcheado contra
+      //   el backlog vivo — un type:'patch' no trae el tipo del ítem target (solo code + campos),
+      //   mismo gap ya documentado arriba para renderCkptField. Mismo mecanismo que _originExists
+      //   (rama 'trazabilidad', arriba) — getItems()/getIncidents() por code, sin inferencia por
+      //   prefijo. Ampliado por decisión del founder (esta sesión) a todo tipo, no solo ITIL —
+      //   discrepancia con el AC original de Cael (acotado a INC/PRB/CHG), declarada en el
+      //   CHECKPOINT de este TKT. Un code:{ref_id,title} (patch sobre ítem de la misma tanda aún
+      //   sin código real) no resuelve — badge omitido para ese código, sin excepción (mismo
+      //   criterio de silencio que _originExists ante código no encontrado).
+      const _resolvedTypes = [...new Set(_patchItems.map(it => {
+        const _code = typeof it.code === 'string' ? it.code : null;
+        if (!_code) return null;
+        const _real = getItems().find(i => i.code === _code) || getIncidents().find(i => i.code === _code);
+        return _real ? _real.type : null;
+      }).filter(Boolean))];
+      // Transición ITIL: solo cuando el patch declara incident_status o status Y el tipo
+      //   resuelto es INC/PRB/CHG. avance = destino closed/done. escalacion = destino
+      //   escalated_to_prb/escalated_to_chg. Otros destinos (ej. detected, in_progress,
+      //   root_cause_confirmed, resolved) no son ni avance ni escalación en el sentido visual
+      //   de este AC — sin chip de transición para esos casos, mismo criterio de "no inventar
+      //   una lectura que el AC no pidió".
+      let _transition = null;
+      if (_resolvedTypes.some(t => t === 'INC' || t === 'PRB' || t === 'CHG')) {
+        const _dest = _patchItems.map(it => it.incident_status || it.status).find(Boolean);
+        if (_dest === 'closed' || _dest === 'done') _transition = { kind: 'avance', dest: _dest };
+        else if (_dest === 'escalated_to_prb' || _dest === 'escalated_to_chg') _transition = { kind: 'escalacion', dest: _dest };
+      }
+      const _isHighPriority = _patchItems.some(it => it.sla_priority === 'high');
+      return { title: _title, meta, category: 'modifica', patch: { codes: _codes, fields: [..._fieldSet] }, rendered: _renderedFields, types: _resolvedTypes, transition: _transition, highPriority: _isHighPriority };
     }
     const _typesSeen = [];
     parsed.items.forEach(it => {
@@ -2604,7 +2632,12 @@ function _ingestPreviewMeta(blockText) {
       //   _typesSeen (it && typeof it.type === 'string'), no parsed.items.length crudo, para no
       //   contar entradas malformadas sin type que tampoco aportan a typesSummary/rendered.
       const _itemCount = parsed.items.filter(it => it && typeof it.type === 'string').length;
-      return { title: _title, meta, category: 'crea', typesSummary: _typesSeen.join(' + '), count: _itemCount, rendered: _renderedFields };
+      // TKT-202608-353 (REQ-202608-139): 'types'/'highPriority' con el mismo shape que la rama
+      //   'modifica' (arriba) — aquí el tipo ya viene explícito en cada ítem (a diferencia de
+      //   'modifica', que debe resolverlo contra el backlog), así que se deriva directo de
+      //   _typesSeen sin lookup adicional.
+      const _isHighPriorityCrea = parsed.items.some(it => it && it.sla_priority === 'high');
+      return { title: _title, meta, category: 'crea', typesSummary: _typesSeen.join(' + '), count: _itemCount, rendered: _renderedFields, types: _typesSeen, highPriority: _isHighPriorityCrea };
     }
   }
 
@@ -2691,14 +2724,33 @@ export function _renderIngestBlockPreview() {
             const _renderedHtml = (m.rendered && m.rendered.length)
               ? `<div class="ingest-block-preview-fields">${m.rendered.map(r => r.html).join('')}</div>`
               : '';
+            // TKT-202608-353 (REQ-202608-139, design_intent: ingest_preview_itil_badge_transition):
+            //   badge de tipo — uno por cada type distinto en m.types (normalmente 1; un bloque
+            //   'crea' con ítems de tipos mezclados muestra un badge por tipo, sin límite —
+            //   el mockup aprobado no cubrió el caso multi-tipo explícitamente, se extiende el
+            //   mismo patrón visual en vez de forzar un único badge que ocultaría información).
+            //   Chip --high solo si algún ítem del bloque declara sla_priority:'high' (AC del
+            //   mockup: "su ausencia... ya comunica no urgente"). Fila de transición solo cuando
+            //   m.transition existe (exclusivo de bloques 'modifica' con INC/PRB/CHG resuelto,
+            //   ver _ingestPreviewMeta) — kind 'avance'/'escalacion' mapea 1:1 a las clases
+            //   entregadas por Nova. Flecha con aria-hidden (AC de accesibilidad del entregable
+            //   de Nova) — el texto plano de la transición ya es legible sin ella.
+            const _typeBadges = (m.types || []).map(t => `<span class="ingest-block-preview-type">${esc(t)}</span>`).join('');
+            const _highChip = m.highPriority ? `<span class="ingest-block-preview-tag ingest-block-preview-tag--high">High</span>` : '';
+            const _transitionHtml = m.transition
+              ? `<div class="ingest-block-preview-transition ingest-block-preview-transition--${m.transition.kind}"><span class="ingest-block-preview-transition-arrow" aria-hidden="true">→</span><span>${esc(m.transition.dest)}</span></div>`
+              : '';
             return `
               <div class="ingest-block-preview-item" data-block-idx="${esc(m.idx)}" tabindex="0">
                 <svg class="ti-svg ingest-block-preview-icon"><use href="#ti-file-text"></use></svg>
                 <div class="ingest-block-preview-text">
                   <div class="ingest-block-preview-title-row">
+                    ${_typeBadges}
                     <div class="ingest-block-preview-title" title="${esc(m.title)}">${esc(_short)}</div>
                     <span class="ingest-block-preview-tag ingest-block-preview-tag--${_isCrea ? 'crea' : 'modifica'}">${_isCrea ? 'Crea' : 'Modifica'}</span>
+                    ${_highChip}
                   </div>
+                  ${_transitionHtml}
                   ${_isCrea
                     ? `<div class="ingest-block-preview-meta">${esc(m.typesSummary)} · ${m.count === 1 ? '1 ítem' : `${esc(m.count)} ítems`}</div>`
                     : `<div class="ingest-block-preview-meta">${esc(m.patch.codes.join(' + '))}</div>${m.patch.fields.length ? `<div class="ingest-block-preview-meta">${esc(m.patch.fields.join(', '))}</div>` : ''}`}
