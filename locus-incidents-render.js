@@ -1,3 +1,21 @@
+// [PP] mod:25 · autor:Rune · 2026-08-14 21:45 UTC-6
+// Fast Track INC (triggered_by: hallazgo de Nova, misma sesión — locus-incidents.css mod:16
+// ya entregado): reordena el markup de .qinc-section-header ("Activos"/"Terminados") al
+// patrón canónico recién aplicado por Nova sobre .bl-active-header-meta/.bl-done-header-meta/
+// .qdisc-status-header-meta (locus-backlog.css mod:156-158) — label solo a la izquierda
+// (.qinc-section-title, antes iba dentro de .qinc-section-header-left junto al chevron),
+// count+chevron agrupados a la derecha (.qinc-section-header-meta, antes el count vivía
+// suelto como hermano directo del header, fuera de cualquier wrapper). Ambos headers
+// ("Activos" en renderQIncPanel(), rama _listHtml, y "Terminados" inmediatamente después)
+// reciben el mismo cambio — consistencia entre las dos secciones. Impacto lateral: ninguno —
+// _toggleQIncSection() y _attachQIncDelegation() targetean .qinc-section-header (closest),
+// nunca .qinc-section-header-left directamente, así que el retiro de ese wrapper no rompe
+// el toggle de colapso ni la delegación de eventos. .qinc-section-header-left queda sin
+// consumidores vivos en este archivo — la única mención restante es histórica (comentario
+// de mod:18, sin código real que la use). Sin cambio de contrato exportado — renderQIncPanel()
+// y _attachQIncDelegation() mantienen firma. contract_update: n/a (Effort 1, sin efectos
+// laterales conocidos fuera de este módulo).
+
 // [PP] mod:24 · autor:Rune · 2026-08-12 09:00 UTC-6
 // TKT-202608-263 (parent: REQ-202608-104): listener shell:export-qinc-full agregado al final
 // del archivo, mismo patrón que shell:export-qinc — descarga _${prefix}-incidents-full.md vía
@@ -569,7 +587,7 @@ export function renderQIncPanel() {
         // Estado default por render (AC4): "Activos" nace expandido, "Terminados" nace colapsado
         // — sin persistencia entre renders ni recargas, mismo criterio ya declarado para
         // .sps-status-group (_Locus-css-ref, "estado en memoria, resetea a expandido en reload").
-        h += `<div class="qinc-section"><div class="qinc-section-header qinc-section-header--activos" role="button" tabindex="0" aria-expanded="true" aria-controls="qinc-active-body" id="qinc-active-header"><div class="qinc-section-header-left"><svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg><span>Activos</span></div><span class="qinc-section-count">${_activeItems.length}</span></div>`;
+        h += `<div class="qinc-section"><div class="qinc-section-header qinc-section-header--activos" role="button" tabindex="0" aria-expanded="true" aria-controls="qinc-active-body" id="qinc-active-header"><span class="qinc-section-title">Activos</span><div class="qinc-section-header-meta"><span class="qinc-section-count">${_activeItems.length}</span><svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg></div></div>`;
         // TKT2 (TKT-202607-156, parent REQ-202607-050, depends_on TKT-202607-155): caption fijo,
         // sin condicionar al conteo de _activeItems — AC de coherencia del REQ exige que se
         // renderice igual con las 3 columnas vacías. No se agrega a "Terminados" (más abajo).
@@ -581,7 +599,7 @@ export function renderQIncPanel() {
         // filteredQInc.length>0 está garantizado en este punto (branch de "Sin resultados" ya
         // se resolvió arriba), así que _activeItems y _terminalItems nunca están vacíos los dos
         // a la vez — pero cada uno individualmente sí, y ambas secciones ya lo cubren.
-        h += `<div class="qinc-section"><div class="qinc-section-header qinc-section-header--terminados qinc-section-header--collapsed" role="button" tabindex="0" aria-expanded="false" aria-controls="qinc-terminal-body" id="qinc-terminal-header"><div class="qinc-section-header-left"><svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg><span>Terminados</span></div><span class="qinc-section-count">${_terminalItems.length}</span></div>`;
+        h += `<div class="qinc-section"><div class="qinc-section-header qinc-section-header--terminados qinc-section-header--collapsed" role="button" tabindex="0" aria-expanded="false" aria-controls="qinc-terminal-body" id="qinc-terminal-header"><span class="qinc-section-title">Terminados</span><div class="qinc-section-header-meta"><span class="qinc-section-count">${_terminalItems.length}</span><svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg></div></div>`;
         h += '<div id="qinc-terminal-body" class="qinc-section-body--collapsed">';
         h += _terminalItems.length
           ? `<div class="items-grid">${_terminalItems.map(item => _buildQIncItemHtml(item)).join('')}</div>`
