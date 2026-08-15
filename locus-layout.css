@@ -1,3 +1,14 @@
+/* [PP] mod:33 · autor:Nova · 2026-08-14 23:20 UTC-6 */
+/* TKT-[ref_id:CAEL-08142310-02] (REQ-[ref_id:CAEL-08142310-01]): .header-inner pasa de
+   flex a grid-template-columns: 1fr auto 1fr — .header-zone--nav (columna central, auto)
+   queda geométricamente centrada entre .header-zone--brand y .header-zone--utils (ambas
+   1fr) sin depender de cuánto contenido tenga cada extremo. .header-zone--utils cambia de
+   margin-left:auto (truco de flex, redundante bajo grid porque el item por default se
+   estira a ancho de columna) a justify-self:end — ancla el bloque al borde derecho de su
+   propia columna, igual que antes visualmente. .header-zone--brand sin cambio — el stretch
+   por default de grid + justify-content:flex-start heredado de .header-zone ya deja el logo
+   pegado a la izquierda, mismo resultado que en flex. Sin cambios de HTML — las 3 zonas ya
+   existían como hijos directos de .header-inner. */
 /* [PP] mod:32 · autor:Nova · 2026-08-14 20:15 UTC-6 */
 /* TKT-202608-347: retirados los 3 bloques .proj-filter-btn (::after/hover/active, .proj-icon/.proj-label,
    base) — completa AC1 de TKT-202608-345, que no había persistido en este archivo (mod real 31 pese
@@ -622,7 +633,8 @@ header {
 .header-inner {
   padding-inline: 1.5rem;
   height: var(--header-h);
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: var(--space-md);
 }
@@ -648,7 +660,7 @@ header {
 }
 
 .header-zone--utils {
-  margin-left: auto;
+  justify-self: end;
 }
 
 /* CAEL-06 · TKT1 (REQ CAEL-05): separador vertical para #header-project-label,
