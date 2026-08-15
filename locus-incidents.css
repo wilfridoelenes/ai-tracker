@@ -1,7 +1,22 @@
-/* [PP] mod:16 · autor:Nova · 2026-08-14 22:15 UTC-6 */
+/* [PP] mod:17 · autor:Nova · 2026-08-15 00:35 UTC-6 */
+/* Fix (INC-[pendiente-ID], triggered_by: análisis visual Q-INC, hallazgo de Rune vía grep de
+   balance de comentarios): dos comentarios de este archivo documentaban una familia de clases
+   con guion-asterisco seguido de barra inclinada, sin espacio entre ambos caracteres — esa
+   combinación de dos caracteres es el token de cierre de comentario CSS, así que el comentario
+   se cerraba antes de tiempo. El texto documental restante quedaba como CSS real (no
+   comentario), contaminando el selector de la siguiente regla real — .qinc-item-code-chip y
+   .qinc-section-title quedaban con selector inválido y la regla completa se descartaba en el
+   parser del navegador, sin error visible. Ambas ocurrencias reescritas insertando un espacio
+   entre el guion-asterisco y la barra — mismo contenido documental, sin el token de cierre
+   embebido. Verificado: balance de comentarios correcto en todo el archivo tras el fix (0
+   comentarios sin cerrar, 0 tokens de cierre sueltos fuera de comentario), y las dos reglas
+   antes descartadas ya se aplican. No es la causa del layout apilado de .qinc-columns — ese
+   grid (display:grid, grid-template-columns:repeat(3,1fr)) está intacto y fuera de estos dos
+   comentarios; el screenshot original describe un síntoma visual cuya causa de layout permanece
+   sin confirmar contra el DOM/computed styles reales — ver Hallazgo fuera de scope. */
 /* TKT (ref_id CAEL-08142230-02, parent ref_id CAEL-08142230-01): .qinc-section-header pasa al
    mismo patrón label-izquierda/meta(count+chevron)-derecha ya corregido hoy en
-   .bl-active-*/.bl-done-*/.qdisc-status-* (mod:156-158). .qinc-section-header-left retirada —
+   .bl-active-* / .bl-done-* / .qdisc-status-* (mod:156-158). .qinc-section-header-left retirada —
    reemplazada por .qinc-section-title (solo label) + .qinc-section-header-meta (count+chevron,
    empujado a la derecha por justify-content:space-between del header padre — mismo criterio
    que .bl-active-header-meta). Header base gana padding/border/border-radius/cursor: los
@@ -685,7 +700,7 @@
   color: var(--text3);
 }
 
-/* TKT (alineación Q-INC al patrón .bl-active-*/.bl-done-*/.qdisc-status-*, mod:156-158): label
+/* TKT (alineación Q-INC al patrón .bl-active-* / .bl-done-* / .qdisc-status-*, mod:156-158): label
    solo a la izquierda — mismo font-size/weight/uppercase/letter-spacing que .qdisc-status-title.
    --activos conserva peso 700 (diferenciación intencional de mod:10, "peso visual entre
    secciones") vía el modificador de abajo; --terminados hereda el 600 base sin override, mismo
