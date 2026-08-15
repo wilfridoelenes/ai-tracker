@@ -1,4 +1,7 @@
-// [PP] mod:31 · autor:Rune · 2026-08-15 15:40 UTC-6
+// [PP] mod:32 · autor:Rune · 2026-08-15 16:05 UTC-6
+// INC-202608-118 (Fast Track): _getFooterAlert() — filtro "sin grooming" no excluía DISC
+// status:'promoted', a diferencia de _isQDiscActive (locus-backlog-core.js). Ver fix inline
+// junto a la declaración de `stale` más abajo en este archivo.
 // origen: CAEL-08151030-02 (DISC-202608-146): resueltas 9 referencias de placeholder-de-ítem
 // (8 líneas de comentarios de header/inline, formato "TIPO-pendiente") — reemplazadas por el
 // marcador "histórico — sin CHECKPOINT confirmado", mismo patrón ya usado en el MAP para
@@ -243,8 +246,14 @@ export function _getFooterAlert() {
       }
     }
 
+    // Fix INC-202608-118: el universo de "sin grooming" debe ser el mismo que
+    // _isQDiscActive (locus-backlog-core.js) — descartado/promoted/historico son estados
+    // terminales de DISC (__BR-Ecosystem §5, grupo UI "Cerrado") y no requieren grooming.
+    // Antes solo excluía descartado/historico — todo DISC ya promovido a REQ/TKT/INC con
+    // más de 30 días desde su promoción se contaba como pendiente de grooming, aunque el
+    // panel Q-DISC (que sí filtra con _isQDiscActive) nunca lo mostrara como activo.
     const stale = (typeof getItems === 'function' ? getItems() : []).filter(i =>
-      !i.sprint && i.status !== 'descartado' && i.status !== 'historico' && _zoneStaleness(i)
+      !i.sprint && i.status !== 'descartado' && i.status !== 'promoted' && i.status !== 'historico' && _zoneStaleness(i)
     );
     if (stale.length > 0) {
       const discCount  = stale.filter(i => itemKind(i) === 'DISC').length;
