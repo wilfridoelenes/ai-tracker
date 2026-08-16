@@ -1,4 +1,4 @@
-/* [PP] mod:105 · autor:Nova · 2026-08-15 00:35 UTC-6 */
+/* [PP] mod:106 · autor:Nova · 2026-08-15 12:00 UTC-6 */
 /* .mm-icon duplicado retirado — consolidado en locus-layout.css mod:35 (conflicto
    de font-size que reducía íconos .ti-svg a 14px, ver INC-202608-111). */
 /* TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog): .mdiff-section-chevron
@@ -3631,39 +3631,11 @@ body {
   text-overflow: ellipsis;
 }
 
-/* ── Select de sprint inline ── */
-.mdiff-sprint-select {
-  flex-shrink: 0;
-  max-width: 160px;
-  height: 24px;
-  padding: 0 6px;
-  font-size: var(--text-xs);
-  font-family: inherit;
-  color: var(--text2);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 6px center;
-  padding-right: 20px;
-  transition: var(--trans-color);
-}
-
-.mdiff-sprint-select:hover {
-  border-color: var(--text2);
-}
-
-.mdiff-sprint-select:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-  border-color: var(--accent);
-}
-
-/* INC histórico — sin CHECKPOINT confirmado: badge de cola fija para INC/PRB/CHG en modal DIFF —
-   reemplaza .mdiff-sprint-select cuando el ítem no acepta sprint/Q-Backlog (vive en Q-INC).
+/* TKT-[pendiente-ID] (INC — panel DIFF mutaba backlog real desde un select interactivo antes
+   de "Aplicar"): .mdiff-sprint-select retirado — el sprint de cualquier ítem en el DIFF ahora
+   se muestra siempre como .mdiff-queue-badge de solo lectura, mismo tratamiento que ya tenían
+   INC/PRB/CHG (Q-INC) y DISC (Q-DISC). Redirigir el sprint de un ítem existente se hace vía
+   IDP después de aplicar el CHECKPOINT.
    No interactivo — mismo tratamiento neutro que .sps-card--pausado (surface2/hint). */
 .mdiff-queue-badge {
   flex-shrink: 0;

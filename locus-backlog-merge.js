@@ -1,4 +1,4 @@
-// [PP] mod:98 · autor:Rune · 2026-08-18 18:05 UTC-6
+// [PP] mod:99 · autor:Rune · 2026-08-15 12:00 UTC-6
 // TKT1 (REQ ref_id CAEL-08141930-01/02): footer del panel DIFF reducido a 2 botones —
 // #mdiff-backlog-btn retirado del template y de su listener; backlogBtn retirado del sync de
 // disabled/blocked en _mdiffUpdateConfirmBtn(). _mdiffDoApply() pierde el parámetro
@@ -253,7 +253,7 @@
 // mismo flujo de 'Inyectar en shell' ya existente (AC6). Sin cierre-al-click-afuera — no está en AC,
 // no agregado. Tres variables de módulo (_mdiffUnresolvedFilter/Select/Remove) siguiendo el patrón
 // ya establecido de _mdiffToggleSection/_mdiffJumpTo — limpiadas a null en los tres puntos de cierre
-// del panel (antes solo dos tenían _mdiffJumpTo/_mdiffSetItemSprint, el tercero — cancelar sin
+// del panel (antes solo dos tenían _mdiffJumpTo/onclose, el tercero — cancelar sin
 // aplicar — también corregido). contract_update: no — ninguna función exportada cambia de firma;
 // las tres nuevas son internas, no exportadas.
 // [PP] mod:59 · autor:Rune · 2026-07-20 15:55 UTC-6
@@ -432,7 +432,6 @@ let _mdiffToggleSection = null;
 // null al cerrar).
 let _mdiffToggleZone = null;
 let _mdiffJumpTo = null;
-let _mdiffSetItemSprint = null;
 let _mdiffUpdateConfirmBtn = null;
 // TKT-202607-206 (REQ-202607-079, AC4): historial de ref_id→title resuelto a través de batches
 // aplicados en esta misma sesión de página — a diferencia de diff.refIdTitleMap (por-batch,
@@ -496,7 +495,6 @@ export function teardownMergeDiffPanel() {
   _mdiffToggleSection = null;
   _mdiffToggleZone = null;
   _mdiffJumpTo = null;
-  _mdiffSetItemSprint = null;
   _mdiffUnresolvedFilter = null;
   _mdiffUnresolvedSelect = null;
   _mdiffUnresolvedRemove = null;
@@ -702,9 +700,6 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   const _criticalReasons = ['duplicado', 'sin-status', 'tipo-invalido'];
   const _hasCriticalIgnored = (diff.ignored || []).some(i => _criticalReasons.includes(i.reason));
 
-  // B-202605-500: sprints asignados desde el DIFF a ítems nuevos (aún no existen en getItems() durante dryRun)
-  const _mdiffPendingSprints = {}; // { [code]: sprintId }
-
   // Todo CHECKPOINT válido abre el DIFF — sin excepción por total=0 ni por ausencia de narrativa.
 
   // ── Helpers de renderizado ──
@@ -869,20 +864,12 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     return `<div class="mdiff-field-chips">${parts}</div>`;
   };
 
-  // R-202605-148: select de sprint inline — persiste via _mdiffSetItemSprint sin re-render del DIFF
-  // B-202606-032: sprintOverride — sprint del objeto diff para ítems nuevos que aún no existen en getItems()
-  // [código no confirmado — TKT-202607-212]: itemType (pos 3) — INC/PRB/KE/CHG viven exclusivamente en Q-INC (__BR-Ecosystem §5).
-  //   Estos tipos no aceptan sprint ni Q-Backlog — el selector no se renderiza, se muestra badge de cola fija.
-  // TKT-202607-152: 'KE' retirado — itemKind() nunca produce ese tipo desde la fusión
-  // KE→PRB.root_cause_confirmed (infra_version 51). Mismo criterio de residuo ya limpiado en
-  // _isQIncTerminal() (locus-incidents-render.js mod:10) — la entrada aquí quedaba muerta desde
-  // entonces, sin afectar el selector porque itemType nunca llegaba como 'KE'.
+  // TKT-[pendiente-ID] (INC — DIFF mutaba backlog real vía saveBacklog() antes de "Aplicar",
+  // fuera del flujo de confirmación del CHECKPOINT): el select interactivo de sprint se retira
+  // por completo — el panel DIFF es superficie de solo-preview, sin excepción. Reemplazado por
+  // el mismo badge de solo-lectura ya usado para Q-INC/Q-DISC. Redirigir el sprint de un ítem
+  // existente se hace vía IDP después de aplicar el CHECKPOINT — no desde el DIFF.
   const _QINC_TYPES = ['INC', 'PRB', 'CHG'];
-  // TKT-202607-001 ([código no confirmado — TKT-202607-212], triggered_by hallazgo de sesión — DIFF mostraba
-  //   "Sin sprint (Q-Backlog)" seleccionado para DISC): DISC vive exclusivamente en Q-DISC
-  //   (__BR-Ecosystem §5) y nunca acepta sprint — mismo patrón ya aplicado a _QINC_TYPES.
-  //   _applySprintInheritanceToItems (línea ~1672) ya excluía DISC en el backend; esta rama
-  //   alinea el render visual del selector con esa exclusión ya existente.
   const _QDISC_TYPES = ['DISC'];
   const _sprintSelect = (code, sprintOverride, itemType) => {
     if (_QINC_TYPES.includes(itemType)) {
@@ -891,30 +878,15 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     if (_QDISC_TYPES.includes(itemType)) {
       return `<span class="mdiff-queue-badge mdiff-queue-badge--qdisc" title="Cola fija — no editable">Q-DISC</span>`;
     }
-    const openSprints = getActiveSprints().filter(s => s.status !== 'closed');
     const item = getItems().find(i => i.code === code);
     // B-202606-032: para ítems nuevos (item === null), usar sprintOverride del objeto diff como fuente
     const rawSprint = item ? (item.sprint || '') : (sprintOverride || '');
-    // B-202606-0XX (TKT-B2): sin sprint asignado = valor vacío — Q-Backlog, no icebox (Gen1 deprecado).
-    // B-202606-044: el CHECKPOINT puede declarar sprint como label completo ('PP-S-04 · Nombre')
-    //   o como id corto ('PP-S-04'). Buscar por id primero, luego por label como fallback.
-    const isUnassigned = !rawSprint;
+    const openSprints = getActiveSprints().filter(s => s.status !== 'closed');
     const _matchById    = rawSprint ? openSprints.find(s => s.id    === rawSprint) : null;
     const _matchByLabel = !_matchById && rawSprint ? openSprints.find(s => s.label === rawSprint) : null;
     const _matched      = _matchById || _matchByLabel || null;
-    const sprintExists  = !!_matched;
-    const currentSprint = sprintExists ? _matched.id : '';
-    // [código no confirmado — TKT-202607-212]: _sprintDisplay aplica patrón id · label — antes s.label||s.id
-    const options = openSprints.map(s =>
-      `<option value="${esc(s.id)}" ${currentSprint === s.id ? 'selected' : ''}>${esc(_sprintDisplay(s.id))}</option>`
-    ).join('');
-    // B-202606-0XX (TKT-B2): 'Sin sprint (Q-Backlog)' (value='') reemplaza icebox como opción especial.
-    return `<select class="mdiff-sprint-select" data-item-code="${esc(code)}"
-      data-action="mdiff-set-sprint"
-      data-stop-propagation="true">
-      <option value="" ${isUnassigned || !currentSprint ? 'selected' : ''}>Sin sprint (Q-Backlog)</option>
-      ${options}
-    </select>`;
+    const label = _matched ? _sprintDisplay(_matched.id) : 'Sin sprint (Q-Backlog)';
+    return `<span class="mdiff-queue-badge" title="Solo lectura — editar sprint vía IDP tras aplicar">${esc(label)}</span>`;
   };
 
   // T-202605-037: para ítems tipo T, muestra el campo parent debajo del título
@@ -2134,50 +2106,6 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     }
   };
 
-  // R-202605-148: persistir sprint desde select inline del DIFF sin re-render del panel
-  _mdiffSetItemSprint = function(sel) {
-    const code = sel.dataset.itemCode;
-    if (!code) return;
-    const val = sel.value;
-    // T-202606-035 (TKT-B2): bloqueo sin-sprint + en-revision — BR-Ecosystem §5
-    if (val === '') {
-      const _itemForBlock = getItems().find(i => i.code === code);
-      if (_itemForBlock && _itemForBlock.status === 'en-revision') {
-        showToast(`CHECKPOINT bloqueado: ${code} tiene status en-revision sin sprint asignado. Asignar sprint antes de continuar.`, 'error');
-        sel.value = _itemForBlock.sprint || '';
-        return;
-      }
-    }
-    _mdiffPersistSprint(code, val);
-  };
-
-  // R-202605-148: mini-formulario inline — reemplaza el select en la card
-  // R-202605-148: persistir sprint en getItems() + saveBacklog sin re-render del backlog ni del DIFF
-  function _mdiffPersistSprint(code, sprintId) {
-    const item = getItems().find(i => i.code === code);
-    if (!item) {
-      // B-202605-500: ítem nuevo aún no existe en getItems() durante dryRun — guardar para aplicar en _mdiffDoApply
-      _mdiffPendingSprints[code] = sprintId || '';
-      return;
-    }
-    const prevSprint = item.sprint || '';
-    item.sprint = sprintId || '';
-    item.priority = _calcPriority(item);
-    if (sprintId) {
-      const targetSprint = _getSprintById(sprintId);
-      if (targetSprint && targetSprint.status === 'active' && targetSprint.startedAt) {
-        item.scope_added = true;
-      }
-    } else {
-      delete item.scope_added;
-    }
-    if (!item.history) item.history = [];
-    item.history.push({ type: 'sprint', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { from: prevSprint || null, to: item.sprint || null } });
-    saveBacklog();
-    _setBacklogModified();
-    // No llama renderBacklogList() — el DIFF permanece intacto
-  }
-
   // Helper: validar pendientes y actualizar panel derecho
   _mdiffUpdateConfirmBtn = function() {
     const applyBtn   = document.getElementById('mdiff-apply-btn');
@@ -2211,10 +2139,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       const _prefixToKind = { R: 'REQ', T: 'TKT', I: 'INC', D: 'DISC' };
       const itemKind = item.type || _prefixToKind[_codePrefix] || _codePrefix;
       if (itemKind !== 'REQ' && itemKind !== 'TKT') return;
-      const effectiveSprint = Object.prototype.hasOwnProperty.call(_mdiffPendingSprints, item.code)
-        ? _mdiffPendingSprints[item.code]
-        : item.sprint;
-      if (!effectiveSprint || effectiveSprint === '') {
+      if (!item.sprint || item.sprint === '') {
         sprintPendingItems.push(item);
       }
     });
@@ -2582,8 +2507,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     _mdiffToggleSection = null;
     _mdiffToggleZone = null;
     _mdiffJumpTo = null;
-    _mdiffSetItemSprint = null;
-    _mdiffUnresolvedFilter = null;
+      _mdiffUnresolvedFilter = null;
     _mdiffUnresolvedSelect = null;
     _mdiffUnresolvedRemove = null;
     _mdiffOnClose = null; // aplicar no invoca onClose — solo se limpia la referencia
@@ -2619,33 +2543,6 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     if (_patchResult && _patchResult.ignored && _patchResult.ignored.length) {
       const _ignoredCount = _patchResult.ignored.length;
       showToast('info', `${_ignoredCount} patch${_ignoredCount !== 1 ? 'es' : ''} no se aplicó${_ignoredCount !== 1 ? 'ron' : ''}`, 'Ver DocLog para el detalle');
-    }
-
-    // B-202605-500: aplicar sprints pendientes sobre ítems nuevos (ya existen en getItems() tras onApply)
-    const pendingEntries = Object.entries(_mdiffPendingSprints);
-    if (pendingEntries.length) {
-      let changed = false;
-      pendingEntries.forEach(([code, sprintId]) => {
-        const item = getItems().find(i => i.code === code);
-        if (!item) return;
-        item.sprint = sprintId || '';
-        item.priority = _calcPriority(item);
-        if (sprintId) {
-          const targetSprint = _getSprintById(sprintId);
-          if (targetSprint && targetSprint.status === 'active' && targetSprint.startedAt) {
-            item.scope_added = true;
-          }
-        } else {
-          delete item.scope_added;
-        }
-        if (!item.history) item.history = [];
-        item.history.push({ type: 'sprint', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { from: null, to: sprintId || null } });
-        changed = true;
-      });
-      if (changed) {
-        saveBacklog();
-        _setBacklogModified();
-      }
     }
 
     switchTab('backlog');
@@ -2684,13 +2581,6 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   });
 
   overlay.addEventListener('change', function(e) {
-    // Sprint select — data-action="mdiff-set-sprint" (generado por _sprintSelect)
-    if (e.target.classList.contains('mdiff-sprint-select') && e.target.dataset.action === 'mdiff-set-sprint') {
-      if (_mdiffSetItemSprint) _mdiffSetItemSprint(e.target);
-      // T-202606-001: re-evaluar gate — el cambio puede destrabar un pendiente de sprint icebox
-      if (_mdiffUpdateConfirmBtn) _mdiffUpdateConfirmBtn();
-      return;
-    }
     // Retroceso checkbox — data-retroceso-idx (generado en _mdiffUpdateConfirmBtn)
     if (e.target.classList.contains('mdiff-right-retro-cb')) {
       if (_mdiffUpdateConfirmBtn) _mdiffUpdateConfirmBtn();

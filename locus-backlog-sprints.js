@@ -1,3 +1,19 @@
+// [PP] mod:65 · autor:Rune · 2026-08-15 UTC-6
+// TKT-202608-361 (REQ-202608-144, origen_disc DISC-202608-150): gate duro en _scmExecuteClose()
+// — sprint no cierra si algún ítem del sprint declara origen_disc cuya DISC referenciada no
+// tiene status:'promoted'. Insertado entre el gate de DOC-UPDATEs (línea ~1533, sin cambio) y
+// el bloque de aplicar migraciones — mismo nivel, mismo patrón: showToast('error', ...) + return
+// antes de cualquier mutación. Resuelve la DISC vía getItems().find(it => it.code ===
+// i.origenDisc) — mismo patrón ya usado en mergeBacklogFromTG() (locus-backlog-item.js
+// mod:164) para el chequeo no bloqueante de ingesta; getItems() ya estaba importado en este
+// archivo, sin import nuevo. itemKind(i) !== 'DISC' excluye DISCs del propio sprint del
+// barrido de origenDisc (una DISC no referencia otra DISC como origen en el modelo vigente,
+// __BR-Ecosystem §5) — evita falso positivo si una DISC quedara con sprint asignado por error
+// de datos. Ítem huérfano (origenDisc que no resuelve a ningún ítem real) no bloquea —
+// declarado explícitamente fuera de scope en el AC (problema de integridad distinto). Un solo
+// toast lista todos los pares bloqueantes del sprint, no solo el primero. contract_update: sí
+// — primera entrada de _scmExecuteClose() en _Locus-module-contracts.md §2, ver CHECKPOINT de
+// esta entrega.
 // [PP] mod:64 · autor:Rune · 2026-08-15 UTC-6
 // TKT-202608-351 (REQ-202608-138): botón 'Ver pendientes' en el Paso 2 (DOC-UPDATEs) del
 // modal de cierre de sprint — navega al panel real de pendientes en Documentos. Agregado:
@@ -1533,6 +1549,32 @@ async function _scmExecuteClose() {
   if (docUpdates && docUpdates.length) {
     showToast('error', 'Bloqueo: hay DOC-UPDATEs sin resolver — resuélvelos desde Doc Log (Tab Documentos) antes de cerrar el sprint.');
     return;
+  }
+
+  // TKT-202608-361 (REQ-202608-144, origen_disc DISC-202608-150): Gate duro de cierre —
+  // DISC de origen sin promover (__BR-Ecosystem §5, infra_version 98: "Un sprint no cierra si
+  // contiene un REQ o TKT con origen_disc declarado cuya DISC de origen permanece en
+  // discovery"). Mismo patrón de defensa en profundidad que el gate de DOC-UPDATEs de arriba
+  // — backstop mecánico para el caso donde la regla de promoción-en-mismo-bloque (Cael) se
+  // omitió por error. Barre todos los ítems del sprint, no solo el primero encontrado.
+  {
+    const _origenDiscBlockers = [];
+    getItems().forEach(i => {
+      if (_sprintIdOf(i) !== id) return;
+      if (itemKind(i) === 'DISC') return; // una DISC no referencia origen_disc en el modelo vigente
+      if (!i.origenDisc) return;
+      const _discOrigen = getItems().find(it => it.code === i.origenDisc);
+      // Ítem huérfano (origenDisc sin ítem real) — fuera de scope de este gate, problema de
+      // integridad distinto. No bloquea.
+      if (!_discOrigen) return;
+      if (_discOrigen.status !== 'promoted') {
+        _origenDiscBlockers.push(`${i.code}: declara origen_disc: ${i.origenDisc}, DISC sigue en discovery`);
+      }
+    });
+    if (_origenDiscBlockers.length) {
+      showToast('error', `Sprint no cierra — ${_origenDiscBlockers.join(' · ')}. Emitir patch de promoción antes de cerrar.`);
+      return;
+    }
   }
 
   // aplicar migraciones de pendientes
