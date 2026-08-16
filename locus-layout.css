@@ -1,3 +1,8 @@
+/* [PP] mod:36 · autor:Nova · 2026-08-16 UTC-6 */
+/* TKT-202608-364 (REQ-202608-145): .hdr-menu-infra-current(__label/__value) — estilos
+   nuevos, campo sin regla propia hasta ahora. .modal--infra-sync .hdr-menu-textarea —
+   override de min-height/font para el modal, scoped, sin tocar el uso legacy del
+   subpanel inline. Ver bloques junto a @media (prefers-reduced-motion) más abajo. */
 /* [PP] mod:35 · autor:Nova · 2026-08-15 00:35 UTC-6 */
 /* Corrección de conflicto: .mm-icon duplicado en locus-backlog-item.css (mod:104)
    imponía font-size:var(--text-xs) (14px), reduciendo los íconos .ti-svg (1em) por
@@ -1007,6 +1012,45 @@ header {
   opacity: 0.35;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+/* TKT-202608-364 (REQ-202608-145, Nova): bloque "Actual" del modal de sync — sin
+   ninguna regla propia hasta ahora (heredaba estilos de navegador por defecto),
+   contribuía a la sensación de estrechez/desalineación que señaló el founder. */
+.hdr-menu-infra-current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.hdr-menu-infra-current__label {
+  font-size: var(--text-xs);
+  color: var(--text2);
+  font-weight: 500;
+}
+
+.hdr-menu-infra-current__value {
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* TKT-202608-364: textarea del modal — el founder pidió el mismo tratamiento que el
+   campo de Instrucciones del Proyecto en Claude.ai: monoespaciado, alto generoso para
+   pegar bloques multilínea sin scroll inmediato. Scope a .modal--infra-sync — no
+   afecta el uso original de .hdr-menu-textarea en el subpanel inline legacy
+   (.hdr-menu-subpanel, T-202606-028), que conserva min-height:80px. */
+.modal--infra-sync .hdr-menu-textarea {
+  min-height: 220px;
+  font-family: var(--font-mono);
+  padding: 10px 12px;
 }
 
 @media (prefers-reduced-motion: reduce) {

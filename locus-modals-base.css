@@ -1,3 +1,6 @@
+/* [PP] mod:34 · autor:Nova · 2026-08-16 UTC-6 */
+/* TKT-202608-364 (REQ-202608-145): .modal--infra-sync agregado — override de ancho,
+   ver bloque junto a .modal-split-shell más abajo en este archivo. */
 /* [PP] mod:33 · autor:Nova · 2026-08-14 20:05 UTC-6 */
 /* TKT-202608-333 (design_intent: ingest_block_crea_modifica_wireframe): .ingest-block-preview-tag--crea/--modifica.
    Corrige entrega anterior — el bloque se había descrito por error sobre locus-backlog-item.css, donde
@@ -416,6 +419,15 @@
   display: flex;
   flex-direction: column;
   max-width: none;
+}
+
+/* TKT-202608-364 (REQ-202608-145, Nova): .modal--infra-sync — el modal heredaba
+   max-width:360px de la base .modal (línea ~1072) sin override propio, pensado para
+   confirmaciones cortas — insuficiente para pegar el bloque multilínea de infra_version.
+   Mismo criterio de override ya usado por .modal--ingest (arriba en este archivo):
+   ancho fijo mayor, sin tocar el shell base. */
+.modal.modal--infra-sync {
+  max-width: 640px;
 }
 
 /* ══ .modal-split-shell — TKT-202607-144 (REQ-202607-046, Nova): shell único que

@@ -1,3 +1,19 @@
+// [PP] mod:37 · autor:Rune · 2026-08-16 UTC-6
+// INC-202608-124 (triggered_by DISC-202608-149): 'gf-ckpt--link' reincorporado en la rama
+// de alerta de #gf-ckpt — el retiro previo dejó el onclick inalcanzable (pointer-events:none
+// heredado sin clase que lo revierta). role/tabindex/onkeydown agregados junto con la clase,
+// limpiados en el estado de solo lectura para no introducir foco sin acción. Ver detalle en
+// el bloque if(gfCkpt) más abajo.
+// [PP] mod:36 · autor:Rune · 2026-08-16 UTC-6
+// TKT-202608-364 (REQ-202608-145) — corrección de gap detectado por Finn: onkeydown
+// (Enter/Espacio) agregado junto al onclick — role="button" tabindex="0" (index.html)
+// no activa por teclado sin este handler. AC redactado por Finn en auditoría de Momento 1.
+// [PP] mod:35 · autor:Rune · 2026-08-16 UTC-6
+// TKT-202608-364 (REQ-202608-145): #gf-infra-version pasa a ser clickeable — abre
+// openInfraSync() (import agregado desde locus-ui-shell.js). Clase modificadora
+// .gf-infra-version--link toggleada junto con is-hidden, mismo ciclo de vida que el
+// resto del bloque. index.html: role="button" tabindex="0" agregado al span (sin
+// wrapper nuevo, mismo criterio ya usado por #qbacklog-done-header).
 // [PP] mod:34 · autor:Rune · 2026-08-15 18:20 UTC-6
 // origen: TKT resuelto del grooming de DISC-202608-149 — retiro de 'gf-ckpt--link',
 // literal sin definición CSS ni classList.add() en todo el archivo (solo aparecía en
@@ -79,7 +95,7 @@ import { incSlaPriority, incIncidentStatus } from './locus-inc-fields.js';
 // T-202606-166: _getActiveProjectFilter y getProjectById movidas a locus-storage.js
 import { _effectiveVersion, _getActiveProjectFilter, _getDocUpdateIndex, _isInSession, getAISessions, getActiveProject, getActiveTracker, getAllSessions, getInfraVersionData, getProjectById, save } from './locus-storage.js';
 
-import { switchSubTab, switchTab } from './locus-ui-shell.js';
+import { switchSubTab, switchTab, openInfraSync } from './locus-ui-shell.js';
 
 // APP_VERSION — fuente de verdad: locus-workers.js
 // R-202605-012: constante movida a locus-workers.js (carga antes). Disponible globalmente aquí.
@@ -377,34 +393,71 @@ export function renderStatusBar() {
       gfInfraVersion.textContent = 'infra_version: ' + infraData.infraVersion;
       gfInfraSep.classList.remove('is-hidden');
       gfInfraVersion.classList.remove('is-hidden');
+      // TKT-202608-364 (REQ-202608-145): label clickeable → abre #infra-sync-overlay.
+      // Mismo patrón ya usado por gfCkpt.onclick más abajo en esta función — sin wrapper
+      // de markup nuevo, el span existente recibe pointer-events vía clase modificadora.
+      gfInfraVersion.classList.add('gf-infra-version--link');
+      gfInfraVersion.onclick = openInfraSync;
+      // Gap detectado por Finn en auditoría de TKT-202608-364: role="button" solo (index.html)
+      // no basta — necesita keydown propio, mismo patrón que #qbacklog-done-header/
+      // .qdisc-status-header--* (delegados en otros módulos, aquí directo por ser un solo nodo).
+      gfInfraVersion.onkeydown = function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openInfraSync();
+        }
+      };
     } else {
       gfInfraSep.classList.add('is-hidden');
       gfInfraVersion.classList.add('is-hidden');
+      gfInfraVersion.classList.remove('gf-infra-version--link');
+      gfInfraVersion.onclick = null;
+      gfInfraVersion.onkeydown = null;
     }
   }
 
   if (gfCkpt) {
     try {
-      // REQ histórico — sin CHECKPOINT confirmado TKT3: limpiar clases de estado de un render previo antes de decidir
-      gfCkpt.classList.remove('gf-ckpt--alert-inc', 'gf-ckpt--alert-sprint', 'gf-ckpt--alert-backlog', 'gf-ckpt--alert-docupdate');
+      // INC-202608-124 (triggered_by DISC-202608-149): limpieza ampliada — el retiro de
+      // 'gf-ckpt--link' en DISC-202608-149 dejó el onclick de la rama de alerta inalcanzable
+      // (pointer-events:none heredado de .gf-ckpt base, sin clase que lo revierta). Se
+      // reincorpora aquí junto con role/tabindex/onkeydown, limpiados siempre al inicio del
+      // render — mismo criterio que gf-infra-version: solo el estado "alerta activa" es
+      // interactivo, el contador de solo lectura (rama final) no debe ser focuseable.
+      gfCkpt.classList.remove('gf-ckpt--alert-inc', 'gf-ckpt--alert-sprint', 'gf-ckpt--alert-backlog', 'gf-ckpt--alert-docupdate', 'gf-ckpt--link');
       gfCkpt.onclick = null;
+      gfCkpt.onkeydown = null;
+      gfCkpt.removeAttribute('role');
+      gfCkpt.removeAttribute('tabindex');
 
       const alert = _getFooterAlert();
       if (alert) {
         gfCkpt.textContent = alert.text;
         gfCkpt.classList.remove('is-hidden');
-        gfCkpt.classList.add('gf-ckpt--alert-' + alert.type);
+        gfCkpt.classList.add('gf-ckpt--alert-' + alert.type, 'gf-ckpt--link');
+        gfCkpt.setAttribute('role', 'button');
+        gfCkpt.setAttribute('tabindex', '0');
         // TKT3 (REQ histórico — sin CHECKPOINT confirmado): alert.targetSubTab es opcional — solo 'docupdate' lo declara.
         // Los otros 3 tipos (inc/sprint/backlog) no lo tienen — comportamiento idéntico al previo.
-        gfCkpt.onclick = function() {
+        const _gfCkptActivate = function() {
           switchTab(alert.targetTab);
           if (alert.targetSubTab) setTimeout(function() { switchSubTab(alert.targetSubTab); }, 80);
+        };
+        gfCkpt.onclick = _gfCkptActivate;
+        // INC-202608-124: keydown propio — mismo patrón ya resuelto en TKT-202608-364 para
+        // #gf-infra-version (role="button" sin keydown no activa por teclado).
+        gfCkpt.onkeydown = function (e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            _gfCkptActivate();
+          }
         };
         return;
       }
 
       // TKT1 (REQ CAEL-08151400-01, ref_id CAEL-08151400-02): contador de pendientes reemplaza
-      // el título de última sesión — ver AC1/AC2/AC3. Solo lectura, sin onclick.
+      // el título de última sesión — ver AC1/AC2/AC3. Solo lectura, sin onclick, sin foco
+      // (role/tabindex limpiados arriba) — INC-202608-124 no cambia este estado.
       const pendItems = (typeof getItems === 'function' ? (getItems() || []) : []).filter(i =>
         !i.sprint && i.status !== 'descartado' && i.status !== 'promoted' && i.status !== 'historico'
       ).length;

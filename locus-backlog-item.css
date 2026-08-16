@@ -1,3 +1,7 @@
+/* [PP] mod:107 · autor:Nova · 2026-08-16 UTC-6 */
+/* TKT-202608-364 (REQ-202608-145): .gf-infra-version--link agregado — espeja
+   .gf-ckpt--link para el trigger clickeable del footer. Ver bloque junto a
+   .gf-ckpt--link (~L3277). */
 /* [PP] mod:106 · autor:Nova · 2026-08-15 12:00 UTC-6 */
 /* .mm-icon duplicado retirado — consolidado en locus-layout.css mod:35 (conflicto
    de font-size que reducía íconos .ti-svg a 14px, ver INC-202608-111). */
@@ -3285,6 +3289,28 @@ body:not([data-theme]) .theme-toggle-btn::before {
 .gf-ckpt--link:hover {
   background: var(--surface3);
   color: var(--text);
+}
+
+/* TKT-202608-364 (REQ-202608-145, Nova): #gf-infra-version clickeable → abre
+   openInfraSync() (wiring en locus-sesiones-stats.js). Mismo patrón que
+   .gf-ckpt--link — span existente, sin markup nuevo, pointer-events vía
+   clase modificadora toggleada junto con is-hidden. */
+.gf-infra-version--link {
+  pointer-events: auto;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 1px 4px;
+  transition: var(--trans-color);
+}
+
+.gf-infra-version--link:hover {
+  background: var(--surface3);
+  color: var(--text);
+}
+
+.gf-infra-version--link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 /* REQ histórico — sin CHECKPOINT confirmado TKT2: estados de alerta de salud del proyecto — reemplazan el color

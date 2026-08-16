@@ -1,3 +1,7 @@
+<!-- [PP] mod:206 · autor:Rune · 2026-08-16 UTC-6 -->
+<!-- TKT-202608-364 (REQ-202608-145): #gf-infra-version — role="button" tabindex="0"
+     agregado, footer clickeable/operable por teclado hacia el modal de sync de
+     infra_version (mismo patrón que #qbacklog-done-header). -->
 <!-- [PP] mod:205 · autor:Rune · 2026-08-15 19:23 UTC-6 -->
 <!-- TKT (ref_id CAEL-08151900-01): retirado <span id="gf-items"> del footer global —
      contador duplicaba semántica con #gf-ckpt (universos distintos, mismo patrón visual,
@@ -2400,7 +2404,10 @@
   <span id="gf-proyecto" class="gf-proyecto is-hidden"></span>
   <span id="gf-version" class="gf-version is-hidden"></span>
   <span id="gf-infra-sep" class="gf-infra-sep is-hidden">·</span>
-  <span id="gf-infra-version" class="gf-infra-version is-hidden"></span>
+  <!-- TKT-202608-364 (REQ-202608-145): role/tabindex fijos — .is-hidden es display:none,
+       ya saca el elemento del orden de tabulación cuando no hay dato, mismo criterio que
+       #qbacklog-done-header/.qdisc-status-header--*. -->
+  <span id="gf-infra-version" class="gf-infra-version is-hidden" role="button" tabindex="0"></span>
   <div class="gf-spacer"></div>
   <span id="gf-ckpt" class="gf-ckpt is-hidden"></span>
   <span id="gf-sync" class="gf-sync is-hidden"></span>
