@@ -1,3 +1,26 @@
+// [PP] mod:126 · autor:Rune · 2026-08-16 UTC-6
+// TKT-202608-366 (REQ-202608-146, TKT2): wiring del toggle de detalle de la card
+// #sps-activo — consume .sps-card-detail-toggle/.sps-card--collapsed/.sps-card-pct-mini
+// entregadas por Nova en locus-sprint.css mod:74 (CSS dependencies block verificado antes
+// de escribir este wiring). _renderSpsActivo() inserta el botón toggle (svg.chevron,
+// Patrón A-13, mismo markup que .sph-collapse-btn) y el nodo .sps-card-pct-mini dentro de
+// .sps-card-header, junto a .sps-menu-wrap — identidad de la card (header) nunca se oculta.
+// Estado nuevo _SPS_ACTIVO_DETAIL_COLLAPSED (en memoria, mismo criterio que
+// _SPS_GROUP_COLLAPSED — resetea a expandido en reload) — independiente del colapso de
+// sección (.sps-status-group.is-collapsed, mod:111). _spsActivoHandleClick() gana una rama
+// nueva para [data-sps-detail-toggle]; sin keydown propio porque el toggle es un <button>
+// real (activación nativa de Enter/Space, mismo criterio ya vigente para .sps-btn-menu en
+// este archivo — sin handler de teclado dedicado). Copy de #sps-content-empty: ver
+// index.html mod correspondiente — cambio de texto solo en .spt-content-empty-hint (el
+// único nodo que el CSS dependencies block de Nova autorizó a tocar en este TKT), no en
+// .spt-content-empty-title. Supuesto declarado (inferible, no en el CHECKPOINT de Nova):
+// el hint reemplaza la implicación de creación manual por referencia al flujo real de
+// aprobación de sprint_proposal de Cael (__BR-Ecosystem §5 — "Solo Cael propone apertura
+// de sprint") — mismo copy ya usado en el empty-state interno de _renderSpsActivo() de
+// este mismo archivo ("La apertura de sprint se propone desde Cael (sprint_proposal) — no
+// hay creación manual."), adaptado para referenciar el panel #spnp-panel que ya vive
+// inmediatamente debajo en el DOM. contract_update: n/a — _renderSpsActivo()/
+// _spsActivoHandleClick() sin cambio de firma, ambas sin consumidores externos.
 // [PP] mod:125 · autor:Rune · 2026-08-14 21:45 UTC-6
 // TKT-202607-142 (REQ-202607-045, retroactivo — reemplaza TKT-202607-141): retirado el
 // listener 'shell:sprint-render' agregado en mod:120 — dead code, ver bloque en el cuerpo
@@ -917,6 +940,12 @@ function _spsWireDropdownToggle(menuBtn) {
 // edición inline). Claves: 'activo' | 'programados' | 'pausados' | 'cerrados'.
 const _SPS_GROUP_COLLAPSED = new Set();
 
+// TKT-202608-366 (REQ-202608-146, TKT2): colapso de detalle de la card #sps-activo —
+// independiente de _SPS_GROUP_COLLAPSED (ese Set colapsa la SECCIÓN "Activo" completa;
+// esto colapsa el detalle interno de la card ya visible dentro de la sección). Mismo
+// criterio de estado en memoria — resetea a expandido en reload.
+let _SPS_ACTIVO_DETAIL_COLLAPSED = false;
+
 function _spsGroupHtml(key, title, count, headerModifier, bodyHtml) {
   const collapsed = _SPS_GROUP_COLLAPSED.has(key);
   return (
@@ -1066,13 +1095,17 @@ function _renderSpsActivo() {
 
   // T-202606-003: modificador visual para sprint pausado
   const pausadoCls = sprint.status === 'paused' ? ' sps-card--pausado' : '';
+  // TKT-202608-366 (REQ-202608-146, TKT2): sps-card--collapsed alterna .sps-meta/.sph-panel
+  // vs .sps-card-pct-mini (locus-sprint.css mod:74) — la identidad del header nunca se oculta.
+  const collapsedCls = _SPS_ACTIVO_DETAIL_COLLAPSED ? ' sps-card--collapsed' : '';
 
   const _spsActivoCardHtml =
-    '<div class="sps-card' + pausadoCls + '" data-sprint-id="' + _escHtml(id) + '">' +
+    '<div class="sps-card' + pausadoCls + collapsedCls + '" data-sprint-id="' + _escHtml(id) + '">' +
       '<div class="sps-card-header">' +
         '<span class="sps-card-id font-mono">' + _escHtml(id) + '</span>' +
         '<span class="sps-card-title sps-meta-editable" tabindex="0" title="Click para editar título">' + _escHtml(label) + '</span>' +
         '<span class="sprint-badge-active">Activo</span>' +
+        '<span class="sps-card-pct-mini">' + pct + '%</span>' +
         '<div class="sps-menu-wrap">' +
           '<button class="sps-btn-menu" type="button" aria-label="Acciones del sprint activo" aria-expanded="false" aria-haspopup="true" data-sps-activo-menu>···</button>' +
           '<div class="sps-dropdown" role="menu" aria-label="Acciones sprint activo" hidden>' +
@@ -1081,6 +1114,11 @@ function _renderSpsActivo() {
             '<button class="sps-dropdown-item sps-dropdown-item--danger" role="menuitem" type="button" data-sps-action="cerrar">Cerrar sprint</button>' +
           '</div>' +
         '</div>' +
+        '<button class="sps-card-detail-toggle" type="button" data-sps-detail-toggle ' +
+          'aria-expanded="' + (!_SPS_ACTIVO_DETAIL_COLLAPSED) + '" ' +
+          'aria-label="' + (_SPS_ACTIVO_DETAIL_COLLAPSED ? 'Expandir detalle del sprint' : 'Contraer detalle del sprint') + '">' +
+          '<svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>' +
+        '</button>' +
       '</div>' +
       '<div class="sps-meta">' +
         '<div class="sps-meta-item"><span class="sps-meta-label">Versión</span><span class="sps-meta-value sps-meta-editable" tabindex="0" title="Click para editar">' + _escHtml(vt) + '</span></div>' +
@@ -1165,6 +1203,17 @@ function _spsActivoHandleClick(e) {
       _spsFieldEdit(metaVal, sprint.id, field, function() { _renderSpsActivo(); }, opts);
       return;
     }
+  }
+
+  // TKT-202608-366: toggle de detalle — independiente del menú ··· y del colapso de sección
+  const detailToggle = e.target.closest('[data-sps-detail-toggle]');
+  if (detailToggle) {
+    _SPS_ACTIVO_DETAIL_COLLAPSED = !_SPS_ACTIVO_DETAIL_COLLAPSED;
+    const card = detailToggle.closest('.sps-card');
+    if (card) card.classList.toggle('sps-card--collapsed', _SPS_ACTIVO_DETAIL_COLLAPSED);
+    detailToggle.setAttribute('aria-expanded', String(!_SPS_ACTIVO_DETAIL_COLLAPSED));
+    detailToggle.setAttribute('aria-label', _SPS_ACTIVO_DETAIL_COLLAPSED ? 'Expandir detalle del sprint' : 'Contraer detalle del sprint');
+    return;
   }
 
   // Toggle menú

@@ -1,3 +1,6 @@
+<!-- [PP] mod:207 · autor:Rune · 2026-08-16 UTC-6 -->
+<!-- TKT-202608-366 (REQ-202608-146): copy de .spt-content-empty-hint dentro de
+     #sps-content-empty corregido — ver comentario inline junto al elemento. -->
 <!-- [PP] mod:206 · autor:Rune · 2026-08-16 UTC-6 -->
 <!-- TKT-202608-364 (REQ-202608-145): #gf-infra-version — role="button" tabindex="0"
      agregado, footer clickeable/operable por teclado hacia el modal de sync de
@@ -1378,10 +1381,17 @@
          #spi-content-empty/#spp-content-empty (familia .spt-content-empty, Nova TKT1) — is-hidden
          por defecto, JS (renderSprintTab, rama sin sprint) lo muestra cuando no hay ningún sprint
          de ningún tipo para el proyecto activo. -->
+    <!-- TKT-202608-366 (REQ-202608-146, TKT2): copy de .spt-content-empty-hint corregido —
+         el texto anterior ("Creá un sprint nuevo para empezar a planificar") implicaba
+         creación manual, que el ecosistema no permite (__BR-Ecosystem §5 — solo Cael propone
+         apertura de sprint vía sprint_proposal, el founder aprueba con 1-tap). Nuevo texto
+         referencia el panel de aprobación (#spnp-panel) que vive inmediatamente debajo en el
+         DOM. .spt-content-empty-title sin cambio — fuera del scope autorizado por el CSS
+         dependencies block de Nova para este TKT. -->
     <div class="spt-content-empty is-hidden" id="sps-content-empty">
       <svg class="ti-svg spt-content-empty-icon" aria-hidden="true"><use href="#ti-calendar-off"></use></svg>
       <div class="spt-content-empty-title">Sin sprint activo</div>
-      <div class="spt-content-empty-hint">Creá un sprint nuevo para empezar a planificar</div>
+      <div class="spt-content-empty-hint">La apertura de sprint se propone desde Cael (sprint_proposal) — pegá la propuesta en el panel de abajo para aprobarla.</div>
     </div>
 
     <!-- TKT2 (REQ histórico — sin CHECKPOINT confirmado · migración Step 0 DIFF → panel Sprint subtab): shell estático —

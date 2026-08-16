@@ -1,4 +1,4 @@
-// [PP] mod:73 · autor:Rune · 2026-08-16 UTC-6
+// [PP] mod:74 · autor:Rune · 2026-08-16 UTC-6
 // TKT-202608-363 (REQ-202608-145): openInfraSync() enfoca #hdr-menu-infra-textarea vía
 // requestAnimationFrame al abrir. Validación/apply extraída a _applyInfraSync() interna
 // de initInfraVersionHandler(), invocada tanto por click en applyBtn como por Enter (sin
@@ -536,14 +536,14 @@ export function initInfraVersionHandler() {
     const parsed = _parseInfraLine(raw);
 
     if (!parsed) {
-      textarea.classList.add('hdr-menu-textarea--error');
+      textarea.classList.add('infra-sync-textarea--error');
       errMsg.textContent = 'Pegar la línea <!-- **infra_version:** ... --> completa';
       errMsg.classList.remove('is-hidden');
       return;
     }
 
     // Limpiar estado de error previo
-    textarea.classList.remove('hdr-menu-textarea--error');
+    textarea.classList.remove('infra-sync-textarea--error');
     errMsg.textContent = '';
     errMsg.classList.add('is-hidden');
 
