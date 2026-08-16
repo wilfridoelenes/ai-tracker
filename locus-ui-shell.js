@@ -1,3 +1,8 @@
+// [PP] mod:73 · autor:Rune · 2026-08-16 UTC-6
+// TKT-202608-363 (REQ-202608-145): openInfraSync() enfoca #hdr-menu-infra-textarea vía
+// requestAnimationFrame al abrir. Validación/apply extraída a _applyInfraSync() interna
+// de initInfraVersionHandler(), invocada tanto por click en applyBtn como por Enter (sin
+// Shift) en el textarea vía keydown. Shift+Enter conserva salto de línea nativo.
 // [PP] mod:72 · autor:Rune · 2026-08-11 02:10 UTC-6
 // TKT-202608-317 (REQ-202608-126, TKT1): wired click de #btn-export-sprints →
 // dispatchEvent('shell:export-sprints'), mismo bloque DOMContentLoaded y mismo patrón que
@@ -480,6 +485,13 @@ export function openInfraSync() {
   if (overlay) overlay.classList.add('open');
   // TKT1: valor Actual en vivo cada vez que se abre el modal.
   _renderInfraCurrentValue();
+  // TKT-202608-363 (REQ-202608-145): foco automático al textarea — sin este paso el
+  // founder tenía que hacer click manual antes de poder pegar. requestAnimationFrame
+  // evita competir con la transición de apertura del overlay.
+  const textarea = document.getElementById('hdr-menu-infra-textarea');
+  if (textarea) {
+    requestAnimationFrame(function () { textarea.focus(); });
+  }
 }
 
 export function closeInfraSync() {
@@ -514,9 +526,13 @@ export function initInfraVersionHandler() {
     applyBtn.disabled = textarea.value.trim() === '';
   });
 
-  // Validación + apply
-  applyBtn.addEventListener('click', function () {
+  // TKT-202608-363 (REQ-202608-145): validación + apply extraído a función compartida
+  // entre click en #hdr-menu-infra-apply y Enter en el textarea — mismo flujo, sin
+  // duplicar la lógica de _parseInfraLine/setInfraVersionData.
+  function _applyInfraSync() {
     const raw = textarea.value.trim();
+    if (raw === '') return; // guard — mismo criterio que applyBtn.disabled
+
     const parsed = _parseInfraLine(raw);
 
     if (!parsed) {
@@ -535,6 +551,18 @@ export function initInfraVersionHandler() {
     closeInfraSync();
     // TKT2: refresco del footer sin recargar — mismo patrón que locus-sesiones.js/locus-sesiones-utils.js.
     window.dispatchEvent(new CustomEvent('shell:render-statusbar'));
+  }
+
+  applyBtn.addEventListener('click', _applyInfraSync);
+
+  // TKT-202608-363 (REQ-202608-145): Enter aplica sin click intermedio. Shift+Enter se
+  // preserva como salto de línea manual (comportamiento nativo de textarea) — el guard
+  // solo intercepta Enter sin modificador.
+  textarea.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      _applyInfraSync();
+    }
   });
 }
 
