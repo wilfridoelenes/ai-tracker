@@ -1,4 +1,4 @@
-// [PP] mod:37 · autor:Rune · 2026-08-14 19:45 UTC-6
+// [PP] mod:38 · autor:Rune · 2026-08-15 19:50 UTC-6
 // Fix inline #2 sobre INC (colisión TKT2 ↔ TKT-202608-325): los botones de copia individual
 // (data-du-copy-key / data-du-copy-resolved) compartían clase .du-btn-copy-group con el botón
 // de grupo — el listener solo leía dataset.duCopyGroup, así que un click individual entraba al
@@ -1749,6 +1749,12 @@ window.addEventListener('shell:update-subtab-buttons', e => {
   _updateSubTabButtons(e.detail?.sub || 'backlog');
 });
 // ── END B histórico (DISC-202608-130) ──
+
+// INC-[pendiente-ID]: switchSubTab('context') (locus-ui-shell.js) despacha
+// 'shell:render-context' desde su introducción — ningún módulo lo escuchaba.
+// renderContext() solo se invocaba tras una importación manual de CONTEXT,
+// nunca al activar el sub-tab: el panel quedaba vacío en toda navegación normal.
+window.addEventListener('shell:render-context', () => { renderContext(); });
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
 // ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
