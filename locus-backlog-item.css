@@ -3291,6 +3291,15 @@ body:not([data-theme]) .theme-toggle-btn::before {
   color: var(--text);
 }
 
+/* INC-202608-124 (Nova): .gf-ckpt--link nunca tuvo :focus-visible porque hasta este INC
+   el elemento nunca era focuseable por teclado — role/tabindex se agregan dinámicamente
+   solo cuando hay alerta activa (locus-sesiones-stats.js). Mismo tratamiento ya usado en
+   .gf-infra-version--link. */
+.gf-ckpt--link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 /* TKT-202608-364 (REQ-202608-145, Nova): #gf-infra-version clickeable → abre
    openInfraSync() (wiring en locus-sesiones-stats.js). Mismo patrón que
    .gf-ckpt--link — span existente, sin markup nuevo, pointer-events vía
