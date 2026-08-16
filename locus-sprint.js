@@ -1,4 +1,4 @@
-// [PP] mod:126 · autor:Rune · 2026-08-16 UTC-6
+// [PP] mod:127 · autor:Rune · 2026-08-16 UTC-6
 // TKT-202608-366 (REQ-202608-146, TKT2): wiring del toggle de detalle de la card
 // #sps-activo — consume .sps-card-detail-toggle/.sps-card--collapsed/.sps-card-pct-mini
 // entregadas por Nova en locus-sprint.css mod:74 (CSS dependencies block verificado antes
@@ -943,8 +943,9 @@ const _SPS_GROUP_COLLAPSED = new Set();
 // TKT-202608-366 (REQ-202608-146, TKT2): colapso de detalle de la card #sps-activo —
 // independiente de _SPS_GROUP_COLLAPSED (ese Set colapsa la SECCIÓN "Activo" completa;
 // esto colapsa el detalle interno de la card ya visible dentro de la sección). Mismo
-// criterio de estado en memoria — resetea a expandido en reload.
-let _SPS_ACTIVO_DETAIL_COLLAPSED = false;
+// criterio de estado en memoria — resetea a colapsado (default del AC) en reload.
+// Fix FINN-08161900-01: nacía en false — AC exige colapsado por default, no expandido.
+let _SPS_ACTIVO_DETAIL_COLLAPSED = true;
 
 function _spsGroupHtml(key, title, count, headerModifier, bodyHtml) {
   const collapsed = _SPS_GROUP_COLLAPSED.has(key);
