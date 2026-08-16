@@ -1,4 +1,4 @@
-// [PP] mod:36 · autor:Rune · 2026-08-11 17:52 UTC-6
+// [PP] mod:37 · autor:Rune · 2026-08-14 19:45 UTC-6
 // Fix inline #2 sobre INC (colisión TKT2 ↔ TKT-202608-325): los botones de copia individual
 // (data-du-copy-key / data-du-copy-resolved) compartían clase .du-btn-copy-group con el botón
 // de grupo — el listener solo leía dataset.duCopyGroup, así que un click individual entraba al
@@ -1051,7 +1051,7 @@ export function resolveDocUpdate(key, chosenIndex) {
 
 // _duFilter — estado local del filtro activo (todos/pendientes/resueltos). Mismo patrón que
 // currentSubTab de este archivo — sin nuevo import cross-módulo para persistirlo.
-let _duFilter = 'todos';
+let _duFilter = 'pendientes';
 
 // _duResolvedCopyMap — lookup de content por entrada resuelta, reconstruido en cada render de
 // renderDocUpdatesUnified(). Las entradas resueltas no tienen `key` propio en docUpdateIndex

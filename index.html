@@ -1,4 +1,4 @@
-<!-- [PP] mod:204 · autor:Rune · 2026-08-15 19:05 UTC-6 -->
+<!-- [PP] mod:205 · autor:Rune · 2026-08-15 19:23 UTC-6 -->
 <!-- TKT (ref_id CAEL-08151900-01): retirado <span id="gf-items"> del footer global —
      contador duplicaba semántica con #gf-ckpt (universos distintos, mismo patrón visual,
      confusión reportada por founder). Ver DISC-202608-149 y decisión de founder de
@@ -1528,10 +1528,12 @@
       <span class="du-conflict-summary is-hidden" id="du-conflict-summary"></span>
     </div>
     <div class="du-unified-toolbar">
+      <!-- TKT-[ref_id:CAEL-08151851-02] (REQ-[ref_id:CAEL-08151851-01]): orden Pendientes→Resueltos→Todos,
+           default activo movido de 'todos' a 'pendientes' — espejo de _duFilter en locus-docs.js mod:37. -->
       <div class="hmfilter-pills" role="tablist" aria-label="Filtrar Doc Updates">
-        <button class="hmfilter-pill hmfilter-pill--all active" data-du-filter="todos" role="tab" aria-selected="true">Todos</button>
-        <button class="hmfilter-pill" data-du-filter="pendientes" role="tab" aria-selected="false">Pendientes</button>
+        <button class="hmfilter-pill active" data-du-filter="pendientes" role="tab" aria-selected="true">Pendientes</button>
         <button class="hmfilter-pill" data-du-filter="resueltos" role="tab" aria-selected="false">Resueltos</button>
+        <button class="hmfilter-pill hmfilter-pill--all" data-du-filter="todos" role="tab" aria-selected="false">Todos</button>
       </div>
       <input type="text" id="du-unified-search" class="du-resolved-search-input"
              placeholder="Buscar doc o sección" autocomplete="off">
