@@ -1,3 +1,18 @@
+// [PP] mod:38 · autor:Rune · 2026-08-16 UTC-6
+// TKT-202608-367 (REQ-202608-147): _mgParseHeaderVersion() nueva — extrae la versión declarada
+// en la 2ª línea del header interno del MAP recién generado (docs.map). _mgShowPreview() la
+// compara contra el nombre de archivo propuesto (variable `version`, de _mgGetVersion() —
+// misma fuente ya usada para el filename mostrado en el preview, línea ~1180) y, si difieren,
+// agrega un banner no bloqueante (reutiliza .mg-open-sprint-warning/.mg-warn-title/.mg-warn-body/
+// .mg-warn-sprint-id de locus-document-generator.css, mod:8, B-202605-071 — sin CSS nuevo) debajo
+// del preview existente, sin reemplazarlo ni deshabilitar #mg-confirm-btn. Causa raíz del
+// desalineamiento histórico (_PP-map-v1.28.0.md con header v1.27.0, ver _pp-context §8):
+// _mgShowPreview() calcula el filename propuesto con _mgGetVersion() (versión efectiva /
+// input manual), mientras _generateMap() escribe el header interno con _mgGetMapVersion()
+// (version_target del sprint activo) — dos fuentes de versión distintas que _doConfirmGenerate()
+// ya reconcilia correctamente para el filename de descarga real (línea ~1302, T-202606-148),
+// pero que el preview mostrado antes de confirmar nunca contrastaba. Edge case: si docs.map
+// aún no existe o el header no matchea el regex esperado, no se evalúa — sin falso positivo.
 // [PP] mod:37 · autor:Rune · 2026-08-05 UTC-6
 // TKT1 (REQ ref_id CAEL-0804-01): _mgUpdateStepper() nueva — sincroniza .mg-stepper-step--active/
 // --done y #mg-step-badge con el estado real (_mapGen.files.length + estado de #mg-confirm-btn).
@@ -1167,6 +1182,17 @@ function _mgResetPreview() {
   _mgUpdateStepper(); // TKT1 (REQ ref_id CAEL-0804-01)
 }
 
+// TKT-202608-367 (REQ-202608-147): extrae la versión declarada en la 2ª línea del header
+// interno del MAP recién generado — formato `<!-- Versión: vX.Y.Z | Actualizado: ... -->`
+// (ver _generateMap(), línea ~871). Devuelve null si el contenido no está disponible o el
+// header no matchea el formato esperado — nunca fuerza un valor por defecto que produciría
+// un falso positivo/negativo en la comparación.
+function _mgParseHeaderVersion(mapContent) {
+  if (!mapContent) return null;
+  const m = mapContent.match(/^<!-- Versión:\s*(\S+)\s*\|/m);
+  return m ? m[1] : null;
+}
+
 function _mgShowPreview(docs) {
   const area = document.getElementById('mg-preview-area');
   if (!area) return;
@@ -1223,6 +1249,22 @@ function _mgShowPreview(docs) {
       }
     } catch(e) {
       html += `<div class="mg-preview-error">⚠ Error al parsear MAP Markdown: ${e.message}</div>`;
+    }
+  }
+
+  // TKT-202608-367 (REQ-202608-147): banner no bloqueante si el nombre de archivo propuesto
+  // (`version`, de _mgGetVersion()) no coincide con la versión escrita en el header interno
+  // del MAP recién generado (docs.map, calculada internamente vía _mgGetMapVersion() en
+  // _generateMap()). Se agrega debajo del preview existente — no lo reemplaza, no deshabilita
+  // #mg-confirm-btn. Edge case: docs.map ausente o header sin match → no se evalúa.
+  if (docs.map) {
+    const headerVer = _mgParseHeaderVersion(docs.map);
+    if (headerVer && headerVer !== version) {
+      html += `
+        <div class="mg-open-sprint-warning">
+          <p class="mg-warn-title">⚠ Nombre de archivo y header no coinciden</p>
+          <p class="mg-warn-body">El nombre propuesto es <span class="mg-warn-sprint-id">${_mgCanonicalMapName(prefix, version)}</span>, pero el header interno del MAP declara <span class="mg-warn-sprint-id">${headerVer}</span>. Puedes generar de todos modos — verifica la versión antes de subir el archivo al proyecto.</p>
+        </div>`;
     }
   }
 

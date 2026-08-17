@@ -1,3 +1,8 @@
+// [PP] mod:75 · autor:Rune · 2026-08-16 UTC-6
+// DISC-202608-154: comentario en initInfraVersionHandler() rotulaba el handler como
+// '#hdr-menu-infra-subpanel' — subpanel retirado del DOM desde TKT-infra-sync-modal
+// (ver L457). Actualizado a referenciar '#infra-sync-overlay', el overlay real. Sin
+// cambio de comportamiento — nivel Patch, hallazgo de housekeeping resuelto en sesión.
 // [PP] mod:74 · autor:Rune · 2026-08-16 UTC-6
 // TKT-202608-363 (REQ-202608-145): openInfraSync() enfoca #hdr-menu-infra-textarea vía
 // requestAnimationFrame al abrir. Validación/apply extraída a _applyInfraSync() interna
@@ -1138,7 +1143,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (btn) btn.addEventListener('click', mm[id]);
   });
 
-  // #hdr-menu-infra-subpanel — toggle + validación + apply (T-202606-031)
+  // #infra-sync-overlay — toggle + validación + apply (T-202606-031). Antes rotulado
+  // '#hdr-menu-infra-subpanel' — ese subpanel inline fue retirado del DOM en
+  // TKT-infra-sync-modal (ver L457), comentario desalineado desde entonces (DISC-202608-154).
   initInfraVersionHandler();
 
 
