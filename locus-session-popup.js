@@ -1,3 +1,12 @@
+// [PP] mod:26 · autor:Rune · 2026-08-17 10:00 UTC-6
+// TKT-202608-379 (REQ-202608-153): retirado import huérfano `parsePaste` desde
+// locus-session-parse.js — grep exhaustivo sobre el archivo completo (1317 líneas) confirma
+// cero uso real fuera de la propia línea de import. Causa raíz: mismo patrón de deuda ya
+// cerrado en locus-backlog-item.js (CAEL-0724-01) — imports huérfanos tras mover funciones a
+// otro módulo sin auditar sus dependencias. El módulo locus-session-parse.js sigue siendo
+// consumido normalmente por este archivo (import de STATUS_LABELS no aplica aquí — este
+// archivo no lo importaba; sin otro símbolo de ese módulo en uso, la línea de import se retira
+// por completo).
 // [PP] mod:25 · autor:Rune · 2026-08-12 09:00 UTC-6
 // INC-202607-002: class="log-scroll-top hidden" → "log-scroll-top is-hidden" — .hidden no
 // tenía regla CSS en ninguna hoja del proyecto; el botón "↑" renderizaba visible por defecto
@@ -33,7 +42,6 @@ function _codeKind(codeOrItem) {
 
 import { fmt12 } from './locus-session-hora.js';
 
-import { parsePaste } from './locus-session-parse.js';
 
 // Variables de estado del popup — declaradas como módulo (eran globales en el stack monolítico)
 let popAIId = null;

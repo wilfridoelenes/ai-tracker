@@ -1,4 +1,13 @@
-/* [PP] mod:159 · autor:Nova · 2026-08-15 07:45 UTC-6 */
+/* [PP] mod:160 · autor:Nova · 2026-08-17 03:20 UTC-6 */
+/* TKT-202608-380 (parent REQ-202608-154, origen_disc DISC-202608-176): .filter-done-chip
+   pasa de --c-done-bg/--c-done-border/--c-done-text (indistinguible en la práctica de
+   --accent-text usado por .filter-status-btn.active) a la familia --green-* — único token
+   de "éxito" ya documentado en _Locus-css-ref. .filter-status-btn no se toca — la pill
+   'Pendiente' conserva su color actual. Mismo mecanismo de fill ya usado en
+   .filter-status-btn.active/.filter-type-btn.active-INC (background: var(--{color}-text) +
+   color: var(--on-fill-vivid)) — no el de --on-fill-muted que usaba .filter-done-chip antes,
+   verificado como pareja de --c-done-text/--c-won-text específicamente (ver _Locus-css-ref
+   §Tokens, fila --on-fill-muted), no de la familia --{color}-text estándar que sí usa vivid. */
 /* TKT (ref_id CAEL-08142200-02/03, parent ref_id CAEL-08142200-01): corrección de estructura —
    .bl-active-header-meta/.bl-done-header-meta pasan a agrupar count+chevron a la derecha (antes:
    label+count a la izquierda), y .bl-active-label/.bl-done-label ganan mayúscula (uppercase,
@@ -2174,8 +2183,8 @@
 
 .filter-done-chip {
   font-size: var(--text-xs); font-weight: 500; padding: 4px 9px; border-radius: var(--radius-xs);
-  border: 1.5px solid var(--c-done-border); background: var(--c-done-bg);
-  color: var(--c-done-text); cursor: pointer; transition: var(--trans-fast);
+  border: 1.5px solid var(--green-border); background: var(--green-dim);
+  color: var(--green-text); cursor: pointer; transition: var(--trans-fast);
 }
 
 .filter-done-chip:hover {
@@ -2184,9 +2193,9 @@
 }
 
 .filter-done-chip.active {
-  background: var(--c-done-text);
-  color: var(--on-fill-muted);
-  border-color: var(--c-done-text);
+  background: var(--green-text);
+  color: var(--on-fill-vivid);
+  border-color: var(--green-text);
 }
 
 /* T-108: ítem colapsable */

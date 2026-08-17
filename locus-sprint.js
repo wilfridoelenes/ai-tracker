@@ -1,4 +1,20 @@
-// [PP] mod:127 · autor:Rune · 2026-08-16 UTC-6
+// [PP] mod:129 · autor:Rune · 2026-08-17 UTC-6
+// TKT-202608-374 (REQ-202608-150, TKT2): chip "Retro sin evaluar" en _renderSpsCerrados() —
+// visible solo en la fila del sprint cerrado más reciente (_closedIdx === 0, closed[] ya
+// ordenado descendente por closedAt/createdAt) cuando sprint.retroEvaluated !== true. Reusa
+// la clase .sps-closed-retro-pending ya declarada por Nova para el chip "Retro pendiente"
+// (sin retroDoc) — mismo tratamiento visual, texto propio vía variable local
+// retroUnevaluatedHtml, sin CSS nuevo. Ambos chips son independientes: un sprint sin
+// retroDoc y con retroEvaluated !== true en idx 0 puede mostrar los dos simultáneamente
+// (comunican señales distintas — ausencia de documento vs. falta de evaluación de patrón —
+// AC de este TKT no excluye ese caso). Navegación: la fila completa ya es clickeable/
+// operable por teclado vía _spsCerradosRowClick()/_spsCerradosRowKeydown() →
+// openSprintRetroView(sprintId) — sin wiring adicional, satisface "click navega a
+// Narrativas sin pasos adicionales" (AC2 del REQ). Edge case sin sprints cerrados ya
+// cubierto por el bloque closed.length === 0 existente — sin chip, sin error.
+// contract_update: n/a — _renderSpsCerrados() sin cambio de firma, sin consumidores
+// externos nuevos.
+// [PP] mod:128 · autor:Rune · 2026-08-17 UTC-6
 // TKT-202608-366 (REQ-202608-146, TKT2): wiring del toggle de detalle de la card
 // #sps-activo — consume .sps-card-detail-toggle/.sps-card--collapsed/.sps-card-pct-mini
 // entregadas por Nova en locus-sprint.css mod:74 (CSS dependencies block verificado antes
@@ -2491,7 +2507,7 @@ async function _renderSpsCerrados() {
   // Fix de alineación BR (__BR-Ecosystem §5): "migrado" eliminado — bajo el Gate duro
   // de cierre, un sprint no cierra con ítems en pendiente/en-revision, por lo que ese
   // conteo era siempre 0 en la práctica. Ver __BR-Ecosystem §5 y locus-backlog-sprints.js AC-3.
-  const rows = closed.map(sprint => {
+  const rows = closed.map((sprint, _closedIdx) => {
     const _sid = _spIdBase(sprint.id);
     let doneCnt = 0, descartadoCnt = 0;
     {
@@ -2528,6 +2544,14 @@ async function _renderSpsCerrados() {
       ? ''
       : '<span class="sps-closed-retro-pending">Retro pendiente</span>';
 
+    // TKT-202608-374 (REQ-202608-150): solo el sprint cerrado más reciente (idx 0) puede
+    // mostrar este chip — AC no pide señalar retros sin evaluar de sprints anteriores.
+    // sprint.retroEvaluated !== true cubre tanto false explícito (setSprintStatus, TKT-373)
+    // como ausente (sprint histórico pre-feature) con el mismo criterio de default.
+    const retroUnevaluatedHtml = (_closedIdx === 0 && sprint.retroEvaluated !== true)
+      ? '<span class="sps-closed-retro-pending">Retro sin evaluar</span>'
+      : '';
+
     return (
       '<div class="sps-closed-row" data-sprint-id="' + _escHtml(sprint.id) + '" role="button" tabindex="0" ' +
         'aria-label="Ver retro de ' + _escHtml(sprint.id) + '">' +
@@ -2538,6 +2562,7 @@ async function _renderSpsCerrados() {
         '<span class="sps-closed-row-done">' + doneCnt + ' done</span>' +
         '<span class="sps-count-descartado">' + descartadoCnt + ' desc.</span>' +
         retroPendingHtml +
+        retroUnevaluatedHtml +
       '</div>'
     );
   }).join('');

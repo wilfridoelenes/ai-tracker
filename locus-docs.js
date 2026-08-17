@@ -1,4 +1,4 @@
-// [PP] mod:38 · autor:Rune · 2026-08-15 19:50 UTC-6
+// [PP] mod:39 · autor:Rune · 2026-08-17 UTC-6
 // Fix inline #2 sobre INC (colisión TKT2 ↔ TKT-202608-325): los botones de copia individual
 // (data-du-copy-key / data-du-copy-resolved) compartían clase .du-btn-copy-group con el botón
 // de grupo — el listener solo leía dataset.duCopyGroup, así que un click individual entraba al
@@ -1061,6 +1061,15 @@ let _duFilter = 'pendientes';
 // disabled en "Copiar pendientes" con 0 pendientes en el grupo. Fix cierra ambos AC.
 let _duResolvedCopyMap = {};
 
+// normalizeDocKey — TKT-202608-381 (REQ-202608-155): retira '_' inicial y normaliza a
+// lowercase para que el render de pendientes agrupe entradas del mismo documento pese a
+// variación de naming entre roles (con/sin guion bajo, capitalización). Uso exclusivo de
+// agrupación visual — no toca la key del índice (`doc::seccion`) que gobierna detección
+// de conflicto en processDocUpdate(), sin migración de datos ya persistidos.
+function normalizeDocKey(doc) {
+  return String(doc || '').replace(/^_+/, '').toLowerCase();
+}
+
 // renderDocUpdatesUnified — une pendientes (docUpdateIndex) y resueltos (docUpdateResolvedLog)
 // en un solo render agrupado por doc sobre #du-unified-list, filtrado por _duFilter y por
 // #du-unified-search (doc/section, case-insensitive). Preserva sin cambio de comportamiento
@@ -1105,10 +1114,18 @@ export function renderDocUpdatesUnified() {
   // pendiente bajo el estado real del índice — independiente del filtro activo, para que el
   // botón no cambie de estado según qué filtro esté seleccionado.
   const docPendingCount = {};
+  // TKT-202608-381: docDisplay guarda el string tal como llegó en la primera aparición de
+  // cada grupo normalizado — se usa para el header visual, nunca la forma normalizada.
+  const docDisplay = {};
   const _addToGroup = (doc, html, isPending) => {
-    if (!docGroups[doc]) { docGroups[doc] = []; docOrder.push(doc); docPendingCount[doc] = 0; }
-    docGroups[doc].push(html);
-    if (isPending) docPendingCount[doc] += 1;
+    // AC5: mismo fallback ya usado en la rama de resueltos (e.doc || '—'), aplicado también
+    // a la rama de pendientes — antes de normalizar, para que doc vacío/undefined agrupe
+    // de forma identificable en vez de romper el render.
+    const displayDoc = doc || '—';
+    const key = normalizeDocKey(displayDoc);
+    if (!docGroups[key]) { docGroups[key] = []; docOrder.push(key); docPendingCount[key] = 0; docDisplay[key] = displayDoc; }
+    docGroups[key].push(html);
+    if (isPending) docPendingCount[key] += 1;
   };
 
   // Pendientes — omitidas por completo si el filtro activo es 'resueltos'.
@@ -1236,11 +1253,14 @@ export function renderDocUpdatesUnified() {
 
   // TKT-202608-325: un grupo por doc, con botón "Copiar pendientes" que junta el texto plano
   // de las entradas pendientes de ese doc — no toca la lógica de Aplicar/Descartar/conflicto.
-  const groupsHtml = docOrder.map(doc => {
-    const docAttr = esc(doc);
-    const count = docGroups[doc].length;
+  const groupsHtml = docOrder.map(key => {
+    // TKT-202608-381: docAttr sale de docDisplay (primera aparición) — no de la clave
+    // normalizada. El header y los atributos data-du-* muestran el string real, la
+    // normalización es solo criterio de pertenencia al grupo.
+    const docAttr = esc(docDisplay[key]);
+    const count = docGroups[key].length;
     // TKT-202608-325 AC4: disabled + sin evento click cuando el doc no tiene pendientes.
-    const hasPending = (docPendingCount[doc] || 0) > 0;
+    const hasPending = (docPendingCount[key] || 0) > 0;
     const copyGroupAttrs = hasPending ? '' : ' disabled aria-disabled="true"';
     return `
       <div class="du-group" data-du-group="${docAttr}">
@@ -1248,7 +1268,7 @@ export function renderDocUpdatesUnified() {
           <span class="du-group-title">${docAttr} <span class="du-group-count">(${count})</span></span>
           <button class="du-btn-copy-group" data-du-copy-group="${docAttr}" aria-label="Copiar pendientes de ${docAttr}"${copyGroupAttrs}>Copiar pendientes</button>
         </div>
-        ${docGroups[doc].join('')}
+        ${docGroups[key].join('')}
       </div>`;
   }).join('');
 
@@ -1375,13 +1395,22 @@ function _initDocUpdatesUnifiedListeners() {
       const btnCopyGroup = e.target.closest('.du-btn-copy-group');
       if (btnCopyGroup) {
         const doc = btnCopyGroup.dataset.duCopyGroup;
+        // TKT-202608-381 — impacto lateral: el grupo ahora agrupa por doc normalizado, así
+        // que este botón filtraba por literal exacto y podía omitir variantes de naming
+        // (con/sin '_', capitalización) que sí pertenecen al mismo grupo visual. Se compara
+        // por clave normalizada — el texto copiado conserva el literal real de cada entrada.
+        const normDoc = normalizeDocKey(doc);
         const index = _getDocUpdateIndex();
         const text = Object.keys(index)
-          .filter(key => key.split('::')[0] === doc)
+          // Fix inline: mismo fallback '—' que _addToGroup — sin esto, el grupo de doc
+          // vacío/undefined comparaba normalizeDocKey('') contra normalizeDocKey('—') y
+          // nunca coincidía, dejando "Copiar pendientes" sin resultados pese a count > 0.
+          .filter(key => normalizeDocKey(key.split('::')[0] || '—') === normDoc)
           .map(key => {
+            const docLiteral = key.split('::')[0] || '—';
             const [, seccion] = key.split('::');
             const entry = (index[key] || [])[0];
-            return `${doc} §${seccion} — ${entry?.titulo || '—'}\n${entry?.contenido || ''}`;
+            return `${docLiteral} §${seccion} — ${entry?.titulo || '—'}\n${entry?.contenido || ''}`;
           })
           .join('\n\n---\n\n');
         const _duCopyFeedback = ok => {

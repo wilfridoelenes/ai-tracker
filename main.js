@@ -1,3 +1,13 @@
+// [PP] mod:24 · autor:Rune · 2026-08-17 10:00 UTC-6
+// TKT-202608-379 (REQ-202608-153): retirados imports huérfanos `parsePaste`/`handlePaste`/
+// `handleInput` desde locus-session-parse.js. El comentario B-202606-024 (más abajo en este
+// mismo archivo) ya documentaba que la exposición window.parsePaste/handlePaste/handleInput
+// fue eliminada a favor de import ESM directo en cada consumidor real — pero el import ESM en
+// este archivo quedó huérfano desde entonces: grep exhaustivo confirma cero uso fuera de la
+// línea de import y de ese mismo comentario histórico. locus-session-parse.js sigue siendo
+// importado normalmente por los otros 5 consumidores (locus-session-save.js,
+// locus-session-popup.js, locus-sesiones.js, locus-backlog-item.js, locus-sprint.js) — sin
+// cambio de comportamiento en runtime, el módulo sigue cargando igual.
 // [PP] mod:23 · autor:Rune · 2026-08-09 21:00 UTC-6
 // TKT-202608-289 (REQ-202608-118): import de side-effect de locus-cmdk.js agregado. El Backlog
 // declaraba este TKT `done`, pero verificado contra main.js real (mod:22) el import nunca
@@ -64,7 +74,6 @@ import './locus-sesiones-stats.js';
 import './locus-sesiones-capture.js';
 import { _itemVizConfirm, _itemVizClose, closeCkptPanel } from './locus-sesiones-viz.js';
 import './locus-radar.js';
-import { parsePaste, handlePaste, handleInput } from './locus-session-parse.js';
 import { relDate } from './locus-session-hora.js';
 import './locus-session-save.js';
 import './locus-tags.js';
