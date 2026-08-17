@@ -1,3 +1,26 @@
+// [PP] mod:68 · autor:Rune · 2026-08-16 UTC-6
+// Fix inline (triggered_by TKT-202608-377, auditoría Finn): comentario de markRetroEvaluated()
+// (líneas ~919-921) seguía afirmando "sin wiring a UI, invocación queda para sesión posterior"
+// pese a que este mismo TKT ya la invoca desde locus-session-parse.js — corregido abajo para
+// reflejar el estado real.
+// [PP] mod:67 · autor:Rune · 2026-08-16 UTC-6
+// TKT-202608-377 (REQ-202608-150, depends_on TKT-202608-373): markRetroEvaluated(id) —
+// declarada en mod:66 sin caller — ahora tiene invocación real desde
+// locus-session-parse.js (_applyRetroEvaluatedSprint, flujos single y batch de ingesta de
+// CHECKPOINT). Sin cambio de firma ni de comportamiento interno de esta función. Ver
+// header de locus-session-parse.js para el detalle del wiring.
+// [PP] mod:66 · autor:Rune · 2026-08-16 09:15 UTC-6
+// TKT-202608-373 (REQ-202608-150): setSprintStatus() setea sp.retroEvaluated = false al
+// transicionar a 'closed' — mismo bloque de asignaciones que closedAt/endsAt, antes del
+// _upsertSprint() ya existente al final de la función (persiste el valor sin llamada extra).
+// Función de marcado nueva: markRetroEvaluated(id) — busca el sprint, setea
+// retroEvaluated = true, persiste vía _upsertSprint() (mismo patrón que confirmEditSprint()),
+// save(), renderSprintTab(), toast de confirmación. Sin wiring a UI en este TKT — la
+// invocación (ej. desde el badge de TKT-202608-374) queda fuera de scope de TKT1. AC de
+// mecanismo de disparo ("CHECKPOINT de Cael declarando evaluación") resuelto como contrato de
+// función invocable directamente — no existe hoy un canal de patch de CHECKPOINT sobre
+// tracker_sprints (type: patch solo targetea tracker_items/tracker_incidents,
+// __BR-Ecosystem §8); extenderlo está fuera de scope de este TKT.
 // [PP] mod:65 · autor:Rune · 2026-08-15 UTC-6
 // TKT-202608-361 (REQ-202608-144, origen_disc DISC-202608-150): gate duro en _scmExecuteClose()
 // — sprint no cierra si algún ítem del sprint declara origen_disc cuya DISC referenciada no
@@ -606,6 +629,9 @@ export async function setSprintStatus(id, newStatus) {
   if (newStatus === 'active')     sp.startedAt   = sp.startedAt   || Date.now();
   if (newStatus === 'closed')     sp.closedAt    = sp.closedAt    || Date.now();
   if (newStatus === 'closed')     sp.endsAt      = sp.endsAt      || Date.now();
+  // TKT-202608-373 (REQ-202608-150): retro sin evaluar por default en todo cierre — el
+  // _upsertSprint() más abajo en esta misma función persiste el valor, sin llamada extra.
+  if (newStatus === 'closed')     sp.retroEvaluated = false;
   // T-202606-015 AC-2: timestamps para nuevos valores
   if (newStatus === 'scheduled')  sp.scheduledAt = sp.scheduledAt || Date.now();
   if (newStatus === 'discarded')  sp.discardedAt = sp.discardedAt || Date.now();
@@ -893,6 +919,26 @@ function confirmEditSprint(sprintId) {
   _markBacklogListDirty(); renderBacklogList();
   // TKT2-[pendiente-ID]: _sprintDisplay aplica patrón id · label en confirmación
   showToast('success', '✓ Sprint actualizado: ' + _sprintDisplay(sp.id));
+}
+
+// TKT-202608-373 (REQ-202608-150): función de marcado — mueve retro_evaluated de false a
+// true para un sprint puntual. Invocación real desde locus-session-parse.js
+// (_applyRetroEvaluatedSprint, TKT-202608-377) — ver header de ese archivo para el wiring
+// completo. TKT-202608-374 (badge en Tab Sprint) solo lee el campo, no invoca esta función.
+// Mismo patrón de persistencia que confirmEditSprint(): mutar sp en memoria →
+// _upsertSprint() → save() → re-render.
+export function markRetroEvaluated(id) {
+  const sp = _getSprintById(id);
+  if (!sp) return;
+  if (sp.retroEvaluated === true) return; // AC implícito: no-op si ya estaba evaluada
+  sp.retroEvaluated = true;
+  const _projIdForRetroUpsert = sp.projId || sp.projectId || getActiveProject()?.id || '';
+  _upsertSprint(sp, _projIdForRetroUpsert).catch(err => {
+    console.error('[Locus] TKT-202608-373: markRetroEvaluated upsert falló', err);
+  });
+  save();
+  renderSprintTab();
+  showToast('success', '✓ Retro evaluada: ' + _sprintDisplay(sp.id));
 }
 
 // R-202604-089: estado del modal de cierre de sprint

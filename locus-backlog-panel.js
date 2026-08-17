@@ -1,4 +1,12 @@
-// [PP] mod:35 · autor:Rune · 2026-08-16 15:45 UTC-6
+// [PP] mod:38 · autor:Rune · 2026-08-16 18:05 UTC-6
+// TKT5 (TKT-202608-376, REQ-202608-149): render de archivos[] (TKT/INC/PRB/CHG, grupo
+// Relaciones, dentro de depsHtml), queue (INC/PRB/CHG) y zona (DISC) (ambos grupo
+// Ubicación, dentro de metaHtml) — cierra el gap de integración detectado por Finn en
+// la sesión de cierre de REQ-202608-149 contra _Locus-ckpt-render-ref.
+// TKT4 (TKT-202608-372, REQ-202608-149): dependsOn/blockedBy consolidados en un solo
+// bloque de relaciones (depsHtml) con sub-etiqueta de origen 'schema'/'legacy' vía
+// .idp-dep-origin-tag (Nova, locus-sesiones.css mod:55). dependsOnHtml retirado de
+// _buildIdpSlotPlaneada — ya no duplica intención en N1.
 // TKT2 (ref_id CAEL-08161420-03, REQ CAEL-08161420-01): triggered_by ahora visible en el
 // IDP (bloque triggeredByHtml, junto a originChipHtml) — ver comentario inline junto a la
 // función. Cierra DISC-202608-171.
@@ -672,27 +680,8 @@ function _renderItemPanel(item) {
           ${parentChip}
         </div>` : '';
 
-      const dependsOnCodes = Array.isArray(it.dependsOn) ? it.dependsOn : [];
-      // AC error: depends_on no resuelto (código inexistente en backlog o placeholder sin
-      // resolver) → mismo código visible + indicador de referencia rota, sin excepción.
-      const dependsOnHtml = dependsOnCodes.length ? `
-        <div class="idp-section">
-          <div class="idp-section-label">Depends on</div>
-          <div class="idp-deps-chips">
-            ${dependsOnCodes.map(c => {
-              if (_depPlaceholderRe.test(c)) {
-                return `<span class="badge-missing badge-missing--dep-blocked" title="Referencia sin resolver — pendiente de ID real">🔗 ${esc(c)} (pendiente de ID)</span>`;
-              }
-              const dep = getItems().find(i => i.code === c);
-              if (!dep) {
-                return `<span class="badge-missing badge-missing--dep-blocked" title="Código no encontrado en el backlog">🔗 ${esc(c)} (no encontrado)</span>`;
-              }
-              return dep.status === 'done'
-                ? `<span class="idp-dep-chip idp-dep-chip--done" data-action="idp-open-panel" data-item-code="${esc(c)}" tabindex="0" role="button" title="${esc(dep.title)}">✓ ${esc(c)}</span>`
-                : `<span class="idp-dep-chip" data-action="idp-open-panel" data-item-code="${esc(c)}" tabindex="0" role="button" title="${esc(dep.title)}">🔒 ${esc(c)}</span>`;
-            }).join('')}
-          </div>
-        </div>` : '';
+      // TKT4: dependsOn ya no se renderiza aquí — consolidado en depsHtml
+      // (_renderItemPanel) junto a blockedBy, con sub-etiqueta de origen.
 
       const noIncluyeList = Array.isArray(it.no_incluye) ? it.no_incluye : (it.no_incluye ? [it.no_incluye] : []);
       const noIncluyeHtml = noIncluyeList.length ? `
@@ -701,7 +690,7 @@ function _renderItemPanel(item) {
           ${noIncluyeList.map(n => `<div class="idp-meta-value idp-meta-value--readonly">– ${esc(n)}</div>`).join('')}
         </div>` : '';
 
-      return `${parentHtml}${dependsOnHtml}${noIncluyeHtml}`;
+      return `${parentHtml}${noIncluyeHtml}`;
     }
     return '';
   };
@@ -826,12 +815,30 @@ function _renderItemPanel(item) {
         </select>
       </div>`;
 
+  // TKT5 (REQ-202608-149, gap de integración de Fase 5 — cierre de REQ): queue (INC/PRB/CHG)
+  // y zona (DISC) no tenían representación visual en el IDP pese a estar declarados en
+  // _Locus-ckpt-render-ref con grupo visual "Ubicación". Reutiliza idp-dep-chip como
+  // display readonly dentro de idp-meta-cell — mismo slot que sprintMetaCellHtml, que
+  // queda vacío para estos tipos (_idpHideScrumFields). Mutuamente excluyentes por tipo
+  // — nunca ambos presentes en el mismo render.
+  const queueMetaCellHtml = (INCIDENT_TYPES.includes(type) && item.queue) ? `
+      <div class="idp-meta-cell">
+        <span class="idp-meta-label">Queue</span>
+        <span class="idp-dep-chip idp-dep-chip--queue">${esc(item.queue)}</span>
+      </div>` : '';
+
+  const zonaMetaCellHtml = (type === 'DISC' && item.zona) ? `
+      <div class="idp-meta-cell">
+        <span class="idp-meta-label">Zona</span>
+        <span class="idp-dep-chip idp-dep-chip--zona">${esc(item.zona)}</span>
+      </div>` : '';
+
   const metaHtml = `
     <div class="idp-meta-grid">
       <div class="idp-meta-cell">
         <span class="idp-meta-label">Status</span>
         ${statusCellHtml}
-      </div>${priorityMetaCellHtml}${sprintMetaCellHtml}${effortMetaCellHtml}
+      </div>${priorityMetaCellHtml}${sprintMetaCellHtml}${effortMetaCellHtml}${queueMetaCellHtml}${zonaMetaCellHtml}
       <div class="idp-meta-cell idp-meta-cell--wide">
         <span class="idp-meta-label">Area</span>
         <input class="idp-meta-input" value="${esc(item.area || '')}" placeholder="—"
@@ -858,29 +865,71 @@ function _renderItemPanel(item) {
       </div>
     </div>` : '';
 
-  // T-202605-449: sección Dependencias — Bloqueado por / Bloquea a
+  // TKT4 (TKT-202608-372, REQ-202608-149): bloque único de relaciones — consolida
+  // item.dependsOn (schema) e item.blockedBy (legacy) en la misma sección
+  // idp-section--deps, con sub-etiqueta de origen por chip ('schema'/'legacy').
+  // Antes vivían en dos bloques separados: dependsOnHtml (dentro de
+  // _buildIdpSlotPlaneada, sección "Depends on") y depsHtml/"Bloqueado por"
+  // (blockedBy legacy) — duplicaban intención en N1 sin distinguir mecanismo.
+  // No elimina blockedBy del schema — solo consolida el render (no_incluye del TKT).
   const allBlockedBy = (item.blockedBy || []);
+  const dependsOnCodes = Array.isArray(item.dependsOn) ? item.dependsOn : [];
+
   const blockedByPending = allBlockedBy.filter(c => { const dep = getItems().find(i => i.code === c); return !dep || dep.status !== 'done'; });
   const blockedByDone    = allBlockedBy.filter(c => { const dep = getItems().find(i => i.code === c); return dep && dep.status === 'done'; });
   const blockingOthers = getItems().filter(i => i.blockedBy && i.blockedBy.includes(item.code) && i.status !== 'done' && i.status !== 'descartado');
 
-  const _depsChip = (code, isDone) => {
+  const _depsChip = (code, isDone, originLabel) => {
     const dep = getItems().find(i => i.code === code);
     const title = dep ? esc(dep.title) : '';
     const cls = isDone ? 'idp-dep-chip idp-dep-chip--done' : 'idp-dep-chip';
     const icon = isDone ? '✓' : '🔒';
-    return `<span class="${cls}" data-action="idp-open-panel" data-item-code="${esc(code)}" tabindex="0" role="button" title="${title}">${icon} ${esc(code)}</span>`;
+    return `<span class="${cls}" data-action="idp-open-panel" data-item-code="${esc(code)}" tabindex="0" role="button" title="${title}">${icon} ${esc(code)} <span class="idp-dep-origin-tag">${originLabel}</span></span>`;
   };
 
-  const depsHtml = (allBlockedBy.length || blockingOthers.length) ? `
+  // AC error de dependsOn (heredado de dependsOnHtml original): código inexistente
+  // o placeholder sin resolver → chip roto visible, sub-etiqueta 'schema' igual.
+  const _dependsOnChip = (c) => {
+    if (_depPlaceholderRe.test(c)) {
+      return `<span class="badge-missing badge-missing--dep-blocked" title="Referencia sin resolver — pendiente de ID real">🔗 ${esc(c)} (pendiente de ID) <span class="idp-dep-origin-tag">schema</span></span>`;
+    }
+    const dep = getItems().find(i => i.code === c);
+    if (!dep) {
+      return `<span class="badge-missing badge-missing--dep-blocked" title="Código no encontrado en el backlog">🔗 ${esc(c)} (no encontrado) <span class="idp-dep-origin-tag">schema</span></span>`;
+    }
+    return _depsChip(c, dep.status === 'done', 'schema');
+  };
+
+  // TKT5 (REQ-202608-149, gap de integración de Fase 5 — cierre de REQ): archivos[]
+  // (TKT/INC/PRB/CHG) sin representación visual pese a estar declarado en
+  // _Locus-ckpt-render-ref con grupo visual "Relaciones" — mismo grupo que
+  // depsHtml. No son ítems del backlog (sin código propio) → sin data-action de
+  // navegación, a diferencia de los chips de dependsOn/blockedBy.
+  const archivosCodes = ['TKT', 'INC', 'PRB', 'CHG'].includes(type) ? (item.archivos || []) : [];
+  const archivosChipsHtml = archivosCodes.length ? `
+        <div class="idp-deps-row">
+          <span class="idp-deps-label">Archivos</span>
+          <div class="idp-deps-chips">
+            ${archivosCodes.map(f => `<span class="idp-dep-chip idp-dep-chip--archivos" title="${esc(f)}">📄 ${esc(f)}</span>`).join('')}
+          </div>
+        </div>` : '';
+
+  const depsHtml = (dependsOnCodes.length || allBlockedBy.length || blockingOthers.length || archivosCodes.length) ? `
     <div class="idp-section idp-section--deps">
-      <div class="idp-section-label">Dependencias</div>
+      <div class="idp-section-label">Relaciones</div>
+      ${dependsOnCodes.length ? `
+        <div class="idp-deps-row">
+          <span class="idp-deps-label">Depends on</span>
+          <div class="idp-deps-chips">
+            ${dependsOnCodes.map(_dependsOnChip).join('')}
+          </div>
+        </div>` : ''}
       ${allBlockedBy.length ? `
         <div class="idp-deps-row">
           <span class="idp-deps-label">Bloqueado por</span>
           <div class="idp-deps-chips">
-            ${blockedByPending.map(c => _depsChip(c, false)).join('')}
-            ${blockedByDone.map(c => _depsChip(c, true)).join('')}
+            ${blockedByPending.map(c => _depsChip(c, false, 'legacy')).join('')}
+            ${blockedByDone.map(c => _depsChip(c, true, 'legacy')).join('')}
           </div>
         </div>` : ''}
       ${blockingOthers.length ? `
@@ -888,10 +937,11 @@ function _renderItemPanel(item) {
           <span class="idp-deps-label">Bloquea a</span>
           <div class="idp-deps-chips">
             ${blockingOthers.map(i => {
-              return `<span class="idp-dep-chip idp-dep-chip--blocks" data-action="idp-open-panel" data-item-code="${esc(i.code)}" tabindex="0" role="button" title="${esc(i.title)}">⚠ ${esc(i.code)}</span>`;
+              return `<span class="idp-dep-chip idp-dep-chip--blocks" data-action="idp-open-panel" data-item-code="${esc(i.code)}" tabindex="0" role="button" title="${esc(i.title)}">⚠ ${esc(i.code)} <span class="idp-dep-origin-tag">legacy</span></span>`;
             }).join('')}
           </div>
         </div>` : ''}
+      ${archivosChipsHtml}
     </div>` : '';
 
   // R-202605-004: chip "Generado desde [código]" — solo si item.origin tiene valor
@@ -933,11 +983,28 @@ function _renderItemPanel(item) {
     </div>`;
   })();
 
+  // TKT3 (TKT-202608-371, REQ-202608-149): lista de TKTs hijos navegables — solo para
+  // REQs (itemKind(item) === 'REQ'), busca en getItems() por parentId === item.code.
+  // Reutiliza el idioma nativo del panel (idp-open-panel/idp-dep-chip), misma variante
+  // de degradación que originChipHtml/triggeredByHtml no aplica aquí: un hijo real
+  // siempre tiene código real en backlog por definición de parentId — sin rama de
+  // "código no encontrado". AC2: sin hijos → bloque omitido, sin mensaje de vacío.
+  const childrenChipsHtml = (() => {
+    if (itemKind(item) !== 'REQ') return '';
+    const children = (getItems() || []).filter(i => i.parentId === item.code);
+    if (!children.length) return '';
+    const chips = children.map(c =>
+      `<button class="idp-dep-chip idp-dep-chip--children" data-action="idp-open-panel" data-item-code="${esc(c.code)}" aria-label="Ir a ${esc(c.code)}" title="${esc(c.title || c.code)}">${esc(c.code)}</button>`
+    ).join('');
+    return `<div class="idp-meta-row idp-children-row">${chips}</div>`;
+  })();
+
   panel.innerHTML = `
     <div class="idp-inner">
       ${headerHtml}
       ${draftStripHtml}
       ${metaHtml}
+      ${childrenChipsHtml}
       ${discSlotHtml}
       ${planeadaSlotHtml}
       ${contractSlotHtml}

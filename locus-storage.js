@@ -1,3 +1,15 @@
+// [PP] mod:166 · autor:Rune · 2026-08-16 09:15 UTC-6
+// TKT-202608-373 (REQ-202608-150): campo retro_evaluated agregado a tracker_sprints.
+// _loadAllProjectsSprintsFromSupabase() selecciona la columna nueva y mapea
+// sp.retroEvaluated = row.retro_evaluated === true — sprints históricos sin la columna
+// (o con valor null) caen a false por default, mismo criterio que schema_version ausente =
+// versión 0. _upsertSprint() persiste sprintObj.retroEvaluated (=== true) en la fila —
+// default false si el campo no fue seteado explícitamente por el caller. Función de marcado
+// (markRetroEvaluated) vive en locus-backlog-sprints.js, ver header de ese módulo.
+// DDL requerido — no ejecutado desde este TKT, registrado como deuda con escalate_to: Vera:
+//   ALTER TABLE tracker_sprints ADD COLUMN retro_evaluated boolean DEFAULT false;
+// Módulo crítico: locus-storage.js — activar verificación de regresiones en Finn.
+//
 // [PP] mod:165 · autor:Rune · 2026-08-14 21:10 UTC-6
 // mod:165: sin cambio funcional — reemplazo de placeholder INC-[pendiente-ID] por código real
 // INC-202608-110 (ya asignado por Locus, ver _PP-incidents.md) en los dos comentarios del fix
@@ -3990,7 +4002,7 @@ export async function _loadAllProjectsSprintsFromSupabase() {
   try {
     const { data, error } = await _supabase
       .from('tracker_sprints')
-      .select('sprint_id,label,status,version_target,release_type,scope,goal,out_of_scope,opened_at,closed_at,updated_at,project_id')
+      .select('sprint_id,label,status,version_target,release_type,scope,goal,out_of_scope,opened_at,closed_at,updated_at,project_id,retro_evaluated')
       .eq('user_id', _supabaseUser.id);
     if (error) throw error;
     // AC: mapear campos de tracker_sprints al shape canónico de sprint en memoria, agrupado por proyecto
@@ -4011,6 +4023,9 @@ export async function _loadAllProjectsSprintsFromSupabase() {
         startedAt:      row.opened_at ? new Date(row.opened_at).getTime() : null,
         closedAt:       row.closed_at ? new Date(row.closed_at).getTime() : null,
         current:        row.status === 'active',
+        // TKT-202608-373 (REQ-202608-150): sprint histórico sin la columna (row.retro_evaluated
+        // undefined/null) cae a false por default — mismo criterio que schema_version ausente.
+        retroEvaluated: row.retro_evaluated === true,
         isHotfix:       (row.sprint_id || '').includes('-S-HOTFIX'),
         formallyOpened: true,
         projId:         row.project_id,
@@ -4074,6 +4089,9 @@ export async function _upsertSprint(sprintObj, projId) {
     out_of_scope:   sprintObj.out_of_scope || null,
     opened_at:      toIso(sprintObj.startedAt || sprintObj.opened_at),
     closed_at:      toIso(sprintObj.closedAt  || sprintObj.closed_at),
+    // TKT-202608-373 (REQ-202608-150): default false si el caller no seteó retroEvaluated
+    // explícitamente — sin ambigüedad entre "no evaluado" y "campo no considerado".
+    retro_evaluated: sprintObj.retroEvaluated === true,
     updated_at:     new Date().toISOString()
   };
 

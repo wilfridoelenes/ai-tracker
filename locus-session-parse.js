@@ -1,3 +1,19 @@
+// [PP] mod:197 · autor:Rune · 2026-08-16 UTC-6
+// TKT-202608-377 (REQ-202608-150, depends_on TKT-202608-373): wiring del campo top-level
+// retro_evaluated_sprint del schema JSON de CHECKPOINT — mismo patrón de extracción que
+// sprint_proposal/finn_release (guard de tipo en parseCheckpoint, propagado vía
+// _extractCkptMeta hacia ambos flujos de aplicación: single (~L2028, junto al forEach de
+// doc_updates) y batch (~L3150, dentro de _onApplyBatch, junto al forEach de metas). Import
+// nuevo: markRetroEvaluated/_getSprintById de locus-backlog-sprints.js — sin ciclo ESM,
+// verificado por grep (ese módulo no importa nada de este archivo). Helper interno
+// _applyRetroEvaluatedSprint(sprintId) centraliza el lookup + AC3 (sprint inexistente →
+// _blogLog + ignorar, sin bloquear el resto del CHECKPOINT) — invocado desde ambos flujos
+// para no duplicar la lógica de guard. AC2 (no-op sobre ya-true, sin doble toast/error) se
+// resuelve gratis: markRetroEvaluated() ya es no-op y no emite toast/error por sí misma —
+// este wiring no le agrega ninguno. no_incluye: no modifica el mecanismo type:patch
+// existente · no agrega UI para declarar el campo · no valida que el sprint pertenezca al
+// proyecto activo de la sesión (mismo criterio que declared en el TKT — _getSprintById no
+// filtra por proyecto).
 // [PP] mod:196 · autor:Rune · 2026-08-15 17:05 UTC-6
 // INC-202608-120: _buildItilItem() no propagaba refId (it.ref_id) al ítem construido — ver fix
 // inline en el bloque de retorno de esa función, más abajo en este archivo.
@@ -1089,6 +1105,7 @@ import { renderBacklogList } from './locus-backlog-render.js';
 // Fix INC-202608-094: mismo gap que en _doApplyMergeAndFinish (locus-session-save.js) —
 // _onApplyBatch (más abajo) renderizaba backlog/stats pero nunca el tab Sprint.
 import { renderSprintTab } from './locus-sprint.js';
+import { markRetroEvaluated, _getSprintById } from './locus-backlog-sprints.js'; // TKT-202608-377: wiring de retro_evaluated_sprint — sin ciclo ESM, locus-backlog-sprints.js no importa este archivo (verificado por grep antes de agregar)
 import { renderAnalytics } from './locus-analytics-render.js'; // INC-202608-097: guard de refresco post-CHECKPOINT para tab Analytics — mismo patrón ya usado para 'sprint'
 import { renderQIncPanel } from './locus-incidents-render.js'; // INC-202608-097: idem para subtab Q-INC (tab 'incidentes')
 import { renderProyectos } from './locus-projects.js'; // INC-202608-097: idem para tab Proyectos
@@ -1537,6 +1554,15 @@ export function parseCheckpoint(text) {
     const _rawSprintProposal = (_rawSprintProposalCandidate && Object.keys(_rawSprintProposalCandidate).length > 0)
       ? _rawSprintProposalCandidate
       : null;
+    // TKT-202608-377 (REQ-202608-150): extraer retro_evaluated_sprint — string top-level del
+    //   schema JSON, null si ausente/vacío/no-string. Mismo criterio de guard que el resto de
+    //   campos opcionales de este bloque: valor real y no vacío, o null.
+    const _rawRetroEvaluatedSprintCandidate = (typeof _parsed.retro_evaluated_sprint === 'string')
+      ? _parsed.retro_evaluated_sprint.trim()
+      : '';
+    const _rawRetroEvaluatedSprint = _rawRetroEvaluatedSprintCandidate.length > 0
+      ? _rawRetroEvaluatedSprintCandidate
+      : null;
     // T-202606-018: extraer finn_observations — array de objetos tipados (null si ausente o vacío)
     const _rawFinnObservations = Array.isArray(_parsed.finn_observations) && _parsed.finn_observations.length
       ? _parsed.finn_observations
@@ -1613,6 +1639,7 @@ export function parseCheckpoint(text) {
       _inlineFixes,                     // T-202606-039: array de inline_fix extraídos del schema JSON
       _rawDocUpdates,                   // T-202606-017: array de doc_updates del schema JSON
       _rawSprintProposal,               // T-202606-017: objeto sprint_proposal del schema JSON (null si ausente)
+      _rawRetroEvaluatedSprint,         // TKT-202608-377: string retro_evaluated_sprint del schema JSON (null si ausente)
       _rawFinnObservations,             // T-202606-018: array de finn_observations del schema JSON (null si ausente)
       _rawFinnRelease,                  // TKT2 (REQ CAEL-0717-01): objeto finn_release del schema JSON (null si ausente)
       draft: _parsed.draft === true,    // T-202606-006: exponer draft para guard en parsePaste
@@ -1703,6 +1730,24 @@ export function parseCheckpoint(text) {
 //   `metas` en absoluto — no solo se perdía en el flujo batch al aplicar (ver _onApplyBatch más
 //   abajo), no existía ningún punto donde se propagara para batch. contract_update: sí — ver
 //   contract_detail del TKT en el CHECKPOINT de entrega.
+// TKT-202608-377 (REQ-202608-150 · AC1-3): aplica el campo retro_evaluated_sprint al confirmar
+// ingesta — invocado desde ambos flujos (single y batch), mismo patrón que processDocUpdate()
+// para doc_updates. AC3: sprint_id sin resolver → _blogLog + ignorar, sin lanzar ni bloquear.
+function _applyRetroEvaluatedSprint(sprintId) {
+  if (!sprintId) return;
+  const sp = _getSprintById(sprintId);
+  if (!sp) {
+    _blogLog(
+      'retro-evaluated-sprint-no-resuelto',
+      sprintId,
+      `retro_evaluated_sprint ${sprintId} no corresponde a sprint real — ignorado`,
+      'backlog'
+    );
+    return;
+  }
+  markRetroEvaluated(sprintId); // AC2: no-op propio si ya estaba en true — sin toast/error extra aquí
+}
+
 function _extractCkptMeta(ckpt) {
   const _c = ckpt || {};
   return {
@@ -1719,6 +1764,7 @@ function _extractCkptMeta(ckpt) {
     docUpdates:       _c._isJsonFormat ? (_c._rawDocUpdates || [])        : [],
     finnObservations: _c._isJsonFormat ? (_c._rawFinnObservations || null) : null,
     finnRelease:      _c._isJsonFormat ? (_c._rawFinnRelease || null)      : null,
+    retroEvaluatedSprint: _c._isJsonFormat ? (_c._rawRetroEvaluatedSprint || null) : null, // TKT-202608-377
     inlineFixes:      _c._isJsonFormat ? (_c._inlineFixes || [])          : [], // TKT1 (REQ CAEL-0727-01 · ref_id CAEL-0727-02)
     // TKT-202607-185 (REQ-202607-069 · origen DISC-202607-060): campo `archivosNombres` agregado —
     //   deriva de ckpt.archivos (string de nivel-sesión, campo Archivos: del CHECKPOINT, formato
@@ -2042,6 +2088,11 @@ export function parsePaste(id) {
               );
             }
           });
+        }
+        // TKT-202608-377 (REQ-202608-150): flujo single — mismo punto de confirmación de
+        // ingesta que doc_updates, arriba en este mismo bloque.
+        if (ckpt._rawRetroEvaluatedSprint) {
+          _applyRetroEvaluatedSprint(ckpt._rawRetroEvaluatedSprint);
         }
       }
     }
@@ -3184,6 +3235,9 @@ export async function _processIngestBatch(id) {
       });
       if (Array.isArray(m.inlineFixes) && m.inlineFixes.length) _allInlineFixes.push(...m.inlineFixes);
       if (m.finnRelease) _finnReleaseCount++;
+      // TKT-202608-377 (REQ-202608-150): flujo batch — mismo punto de confirmación de ingesta
+      // que doc_updates/inline_fix/finn_release, por bloque del batch.
+      if (m.retroEvaluatedSprint) _applyRetroEvaluatedSprint(m.retroEvaluatedSprint);
     });
     if (_allInlineFixes.length) {
       showCheckpointPanel({ ...(_batchMergeResult || {}), inlineFixes: _allInlineFixes });
