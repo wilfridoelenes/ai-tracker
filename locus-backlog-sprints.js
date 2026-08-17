@@ -1,3 +1,16 @@
+// [PP] mod:69 · autor:Rune · 2026-08-17 09:40 UTC-6
+// TKT-202608-375 (REQ-202608-151, origen_disc DISC-202608-156): extiende el gate duro de
+// cierre por origen_disc (_scmExecuteClose(), mod:65/TKT-202608-361) al caso huérfano —
+// origen_disc que no resuelve a ningún ítem real del backlog, antes explícitamente fuera de
+// scope ("problema de integridad distinto, no bloquea"). AC1-AC3 de este TKT (happy path DISC
+// en discovery/promoted, sprint sin origen_disc) ya estaban cubiertos por la implementación
+// existente — verificado contra el archivo real antes de escribir el delta, sin cambio de
+// comportamiento para esos tres casos. Único cambio: el branch que antes retornaba en
+// silencio ante origenDisc sin ítem real ahora empuja un blocker con mensaje 'DISC de origen
+// no encontrada'. Hallazgo fuera de scope (ver CHECKPOINT de esta entrega): el `problema` de
+// REQ-202608-151 describe el gate como si aún no existiera ("solo alerta pasiva de DocLog")
+// — desactualizado desde PP-S-38 (2026-08-15, TKT-202608-361). No corregido en este TKT —
+// contenido del REQ, fuera del scope de Rune.
 // [PP] mod:68 · autor:Rune · 2026-08-16 UTC-6
 // Fix inline (triggered_by TKT-202608-377, auditoría Finn): comentario de markRetroEvaluated()
 // (líneas ~919-921) seguía afirmando "sin wiring a UI, invocación queda para sesión posterior"
@@ -1603,6 +1616,9 @@ async function _scmExecuteClose() {
   // discovery"). Mismo patrón de defensa en profundidad que el gate de DOC-UPDATEs de arriba
   // — backstop mecánico para el caso donde la regla de promoción-en-mismo-bloque (Cael) se
   // omitió por error. Barre todos los ítems del sprint, no solo el primero encontrado.
+  // TKT-202608-375 (REQ-202608-151, AC4): el caso huérfano (origen_disc que no resuelve a
+  // ningún ítem real) ya no se ignora — antes explícitamente fuera de scope ("problema de
+  // integridad distinto, no bloquea"). Ahora bloquea igual, con mensaje propio.
   {
     const _origenDiscBlockers = [];
     getItems().forEach(i => {
@@ -1610,9 +1626,10 @@ async function _scmExecuteClose() {
       if (itemKind(i) === 'DISC') return; // una DISC no referencia origen_disc en el modelo vigente
       if (!i.origenDisc) return;
       const _discOrigen = getItems().find(it => it.code === i.origenDisc);
-      // Ítem huérfano (origenDisc sin ítem real) — fuera de scope de este gate, problema de
-      // integridad distinto. No bloquea.
-      if (!_discOrigen) return;
+      if (!_discOrigen) {
+        _origenDiscBlockers.push(`${i.code}: declara origen_disc: ${i.origenDisc}, DISC de origen no encontrada`);
+        return;
+      }
       if (_discOrigen.status !== 'promoted') {
         _origenDiscBlockers.push(`${i.code}: declara origen_disc: ${i.origenDisc}, DISC sigue en discovery`);
       }
