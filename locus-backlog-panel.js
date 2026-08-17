@@ -1,4 +1,7 @@
-// [PP] mod:33 · autor:Rune · 2026-08-12 10:15 UTC-6
+// [PP] mod:35 · autor:Rune · 2026-08-16 15:45 UTC-6
+// TKT2 (ref_id CAEL-08161420-03, REQ CAEL-08161420-01): triggered_by ahora visible en el
+// IDP (bloque triggeredByHtml, junto a originChipHtml) — ver comentario inline junto a la
+// función. Cierra DISC-202608-171.
 // INC-CAEL-0718-01: agregado window.addEventListener('shell:close-item-panel', closeItemPanel)
 // — el evento que switchTab()/switchSubTab() (locus-ui-shell.js) despachan desde mod:44 nunca
 // tuvo consumidor real. Ver detalle completo junto a closeItemPanel(). Sin cambio de firma,
@@ -499,6 +502,73 @@ function _buildIdpCore(item, type) {
   return { headerHtml, notesHtml, sessionsHtml, preCreationHtml, timelineHtml };
 }
 
+// TKT1 (ref_id CAEL-08161420-02, REQ CAEL-08161420-01 · origen_disc DISC-202608-170):
+// motor de render de los grupos visuales del catálogo _Locus-ckpt-render-ref que
+// TKT-202608-333 ya asignó render_hint pero que no tenían representación en el IDP —
+// "Contrato condicional" (inline-detail), "Aval/borrador" (status-strip) y "UI
+// condicional" (conditional-badge). No reemplaza discSlotHtml/planeadaSlotHtml/
+// reactivaSlotHtml — los complementa. Reutiliza clases ya existentes en este archivo
+// (idp-meta-value--readonly, idp-section, idp-pill) — nuevos modificadores declarados
+// en locus-backlog-item.css, sin componente nuevo.
+
+function _buildIdpContractSlot(item) {
+  // Grupo "Contrato condicional" — visible solo si contract_update:"sí" con
+  // contract_detail presente (obligatorio en TKT Effort 2+ con contrato, __BR-Execution §2).
+  if (item.contract_update !== 'sí' || !item.contract_detail) return '';
+  const cd = item.contract_detail;
+  const fns = Array.isArray(cd.functions) ? cd.functions : [];
+  return `
+    <div class="idp-section idp-section--contract">
+      <div class="idp-section-label">Contrato de módulo</div>
+      <div class="idp-meta-value idp-meta-value--readonly">Archivo: ${esc(cd.file || '—')}</div>
+      ${fns.map(fn => `
+        <div class="idp-contract-fn">
+          <div class="idp-meta-value idp-meta-value--readonly idp-contract-fn-name">${esc(fn.name || '—')}${fn.signature_change ? ' <span class="idp-pill idp-pill--warn">firma cambiada</span>' : ''}</div>
+          <div class="idp-meta-value idp-meta-value--readonly">${esc(fn.signature || '—')}</div>
+          ${(Array.isArray(fn.invariants) ? fn.invariants : []).map(inv => `<div class="idp-meta-value idp-meta-value--readonly idp-contract-detail-row">invariant: ${esc(inv)}</div>`).join('')}
+          ${(Array.isArray(fn.sideEffects) ? fn.sideEffects : []).map(se => `<div class="idp-meta-value idp-meta-value--readonly idp-contract-detail-row">sideEffect: ${esc(se)}</div>`).join('')}
+        </div>`).join('')}
+    </div>`;
+}
+
+function _buildIdpDraftStrip(item) {
+  // Grupo "Aval/borrador" — franja en la Zona Identidad, mismo componente que el
+  // Estado de aval ya entregado en TKT-202607-204 (draft → avalado). Exclusivo de
+  // la rama Planeada (REQ/TKT) — INC/PRB/CHG/DISC nunca declaran draft (__BR-Ecosystem §8).
+  const hasDraftField = typeof item.draft !== 'undefined' && item.draft !== null;
+  const drc = item.doc_relevance_confirmada || {};
+  const drcKeys = Object.keys(drc);
+  if (!hasDraftField && !drcKeys.length) return '';
+  const draftLabel = item.draft === true
+    ? '◌ pendiente de aval Finn'
+    : item.draft === false
+    ? `✓ avalado${item.verified_by ? ' — ' + esc(item.verified_by) : ''}`
+    : '';
+  const drcRows = drcKeys.map(k => `<span class="idp-meta-value idp-meta-value--readonly idp-draft-strip-row">doc_relevance_confirmada.${esc(k)}: ${esc(drc[k])}</span>`).join('');
+  return `
+    <div class="idp-draft-strip">
+      ${draftLabel ? `<span class="idp-pill idp-pill--draft">${draftLabel}</span>` : ''}
+      ${drcRows}
+    </div>`;
+}
+
+function _buildIdpUiConditionalBadges(item) {
+  // Grupo "UI condicional" — visible solo si el ítem toca UI: design_intent presente
+  // o algún doc_relevance en "sí". Mismo criterio que el bloqueo UI de Rune (__BR-Execution §2).
+  const dr = item.doc_relevance || {};
+  const touchesUi = !!item.design_intent || Object.keys(dr).some(k => dr[k] === 'sí');
+  if (!touchesUi) return '';
+  const drBadges = Object.keys(dr).filter(k => dr[k] === 'sí')
+    .map(k => `<span class="idp-pill idp-pill--ui-cond">${esc(k)}: sí</span>`).join('');
+  const designIntentBadge = item.design_intent
+    ? `<span class="idp-pill idp-pill--ui-cond" title="Borrador visual aprobado por el founder">design_intent: ${esc(item.design_intent)}</span>` : '';
+  return `
+    <div class="idp-section idp-section--ui-conditional">
+      <div class="idp-section-label">UI condicional</div>
+      <div class="idp-ui-cond-badges">${designIntentBadge}${drBadges}</div>
+    </div>`;
+}
+
 function _renderItemPanel(item) {
   const panel = document.getElementById('item-detail-panel');
   if (!panel) return;
@@ -636,6 +706,12 @@ function _renderItemPanel(item) {
     return '';
   };
   const planeadaSlotHtml = (type === 'REQ' || type === 'TKT') ? _buildIdpSlotPlaneada(item, type) : '';
+
+  // TKT1 (ref_id CAEL-08161420-02): grupos del catálogo antes sin render — ver
+  // funciones declaradas arriba de _renderItemPanel.
+  const contractSlotHtml = type === 'TKT' ? _buildIdpContractSlot(item) : '';
+  const draftStripHtml = (type === 'REQ' || type === 'TKT') ? _buildIdpDraftStrip(item) : '';
+  const uiConditionalHtml = (type === 'REQ' || type === 'TKT') ? _buildIdpUiConditionalBadges(item) : '';
 
   // TKT4 (ref_id CAEL-05, REQ IDP core+slots): slot Reactiva — INC/PRB/KE/CHG.
   // Punto único de lectura ITIL vía los 6 getters de locus-inc-fields.js — sin acceso
@@ -835,14 +911,40 @@ function _renderItemPanel(item) {
     </div>`;
   })();
 
+  // TKT2 (ref_id CAEL-08161420-03, REQ CAEL-08161420-01): triggered_by ahora visible en el
+  // IDP — antes solo se renderizaba en N2 (bitem-origin-p-block, locus-backlog-item.js
+  // L1711-1714). Reutiliza el idioma nativo del panel (idp-open-panel/idp-dep-chip, mismo
+  // patrón que originChipHtml arriba) en vez del markup literal de N2 — data-action
+  // "navigate-origin" no está delegado dentro de #item-detail-panel (ver _onIdpClick,
+  // L1496, y el switch de idpPanel.addEventListener, L1528-1551), solo en la delegación
+  // global de la lista de backlog (locus-backlog-item.js L838). Mismo criterio de
+  // degradación de originChipHtml: código existente → chip navegable, código no
+  // encontrado (archivado o de otro proyecto) → texto plano sin link.
+  const triggeredByHtml = (() => {
+    if (!item.triggeredBy) return '';
+    const originItem = (typeof getAnyItem !== 'undefined') ? getAnyItem(item.triggeredBy) : null;
+    if (originItem) {
+      return `<div class="idp-meta-row idp-origin-row">
+        <button class="idp-dep-chip idp-dep-chip--origin" data-action="idp-open-panel" data-item-code="${esc(item.triggeredBy)}" aria-label="Originado durante ${esc(item.triggeredBy)}" title="${esc(originItem.title || item.triggeredBy)}">⚡ Originado durante ${esc(item.triggeredBy)}</button>
+      </div>`;
+    }
+    return `<div class="idp-meta-row idp-origin-row">
+      <span class="idp-pill idp-pill--origin">⚡ Originado durante ${esc(item.triggeredBy)}</span>
+    </div>`;
+  })();
+
   panel.innerHTML = `
     <div class="idp-inner">
       ${headerHtml}
+      ${draftStripHtml}
       ${metaHtml}
       ${discSlotHtml}
       ${planeadaSlotHtml}
+      ${contractSlotHtml}
+      ${uiConditionalHtml}
       ${reactivaSlotHtml}
       ${originChipHtml}
+      ${triggeredByHtml}
       <div class="idp-divider"></div>
       ${depsHtml}
       ${notesHtml}

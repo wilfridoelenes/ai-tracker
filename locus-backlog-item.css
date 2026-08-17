@@ -1,4 +1,4 @@
-/* [PP] mod:107 · autor:Nova · 2026-08-16 UTC-6 */
+/* [PP] mod:108 · autor:Nova · 2026-08-16 15:10 UTC-6 */
 /* TKT-202608-364 (REQ-202608-145): .gf-infra-version--link agregado — espeja
    .gf-ckpt--link para el trigger clickeable del footer. Ver bloque junto a
    .gf-ckpt--link (~L3277). */
@@ -3923,6 +3923,60 @@ body {
   margin-bottom: 6px;
 }
 /* ── END R-202605-004 ── */
+
+/* TKT1 (ref_id CAEL-08161420-02, REQ CAEL-08161420-01 · origen_disc DISC-202608-170):
+   Grupos "Contrato condicional" / "Aval/borrador" / "UI condicional" del catálogo
+   _Locus-ckpt-render-ref. Reuso puro — sin token de color nuevo: .idp-pill como base,
+   .idp-meta-value--readonly como fila de detalle, misma paleta --amber/--green/--red
+   ya vigente en este archivo. */
+
+/* Aval/borrador — status-strip, misma zona de identidad que TKT-202607-204 (draft → avalado) */
+.idp-draft-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2xs);
+  margin: 0 0 var(--space-md);
+}
+.idp-draft-strip-row {
+  font-size: var(--text-2xs);
+}
+.idp-pill--draft {
+  border-color: color-mix(in srgb, var(--amber) 35%, transparent);
+  background: color-mix(in srgb, var(--amber) 12%, transparent);
+  color: var(--amber-text);
+}
+
+/* UI condicional — conditional-badge, mismo criterio visual que .mdiff-docrel-badge (TKT-202608-326) */
+.idp-section--ui-conditional .idp-ui-cond-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
+.idp-pill--ui-cond {
+  border-color: color-mix(in srgb, var(--amber) 35%, transparent);
+  background: color-mix(in srgb, var(--amber) 12%, transparent);
+  color: var(--amber-text);
+}
+
+/* Contrato condicional — inline-detail, un bloque por función declarada en contract_detail */
+.idp-section--contract .idp-contract-fn {
+  padding: var(--space-2xs) 0 var(--space-2xs) var(--space-sm);
+  border-left: 2px solid color-mix(in srgb, var(--border) 80%, transparent);
+  margin-bottom: var(--space-2xs);
+}
+.idp-contract-fn-name {
+  font-weight: 600;
+}
+.idp-contract-detail-row {
+  padding-left: var(--space-sm);
+}
+.idp-pill--warn {
+  border-color: color-mix(in srgb, var(--red) 35%, transparent);
+  background: color-mix(in srgb, var(--red) 12%, transparent);
+  color: var(--red-text);
+  margin-left: var(--space-2xs);
+}
 
 /* ── T-202605-105: Botón copy ítem — patrón Claude.ai ── */
 .copy-item-btn {

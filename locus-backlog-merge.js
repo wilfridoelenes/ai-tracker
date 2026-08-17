@@ -1,4 +1,4 @@
-// [PP] mod:99 · autor:Rune · 2026-08-15 12:00 UTC-6
+// [PP] mod:100 · autor:Rune · 2026-08-16 09:00 UTC-6
 // TKT1 (REQ ref_id CAEL-08141930-01/02): footer del panel DIFF reducido a 2 botones —
 // #mdiff-backlog-btn retirado del template y de su listener; backlogBtn retirado del sync de
 // disabled/blocked en _mdiffUpdateConfirmBtn(). _mdiffDoApply() pierde el parámetro
@@ -727,38 +727,57 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // (ítems completos no-patch, ya filtrado en línea ~531) + _patchItems (línea ~530) —
   // ambos son el objeto crudo parseado del bloque pegado, no el diff calculado. Cruza campos
   // dentro del mismo bloque exclusivamente — no_incluye del TKT: sin consulta a getItems().
-  const _DOCREL_FIELDS = ['css_ref', 'ux_ref', 'ui_inventory'];
-  const _DOCREL_TARGET_STATUS = ['en-revision', 'done'];
-  // code -> objeto doc_relevance declarado por el TKT en este mismo bloque
+  //
+  // TKT-202608-368 (REQ-202608-148, TKT1): extiende el mecanismo — antes exclusivo de TKT —
+  // a REQ. REQ solo declara doc_relevance.context_strategy (__BR-Ecosystem §8 Campo
+  // doc_relevance) y su único target de status es 'done' — Finn es quien lo confirma en la
+  // sesión de cierre del REQ, no hay 'en-revision' intermedio que un rol emita para un REQ.
+  // _DOCREL_SPECS reemplaza los dos const planos por un mapa por tipo — mismo scope que ya
+  // regía para TKT: solo dentro del mismo bloque pegado, sin consultar getItems().
+  const _DOCREL_SPECS = {
+    TKT: { fields: ['css_ref', 'ux_ref', 'ui_inventory'], targetStatus: ['en-revision', 'done'] },
+    REQ: { fields: ['context_strategy'], targetStatus: ['done'] },
+  };
+  // code -> { type, declared } — objeto doc_relevance declarado por el TKT/REQ en este mismo bloque
   const _docRelDeclared = {};
   tgItems.forEach(i => {
-    if (i && i.type === 'TKT' && i.code && i.doc_relevance && typeof i.doc_relevance === 'object') {
-      _docRelDeclared[i.code] = i.doc_relevance;
+    if (i && _DOCREL_SPECS[i.type] && i.code && i.doc_relevance && typeof i.doc_relevance === 'object') {
+      _docRelDeclared[i.code] = { type: i.type, declared: i.doc_relevance };
     }
   });
-  // code -> Set de campos confirmados vía type:patch (doc_relevance_confirmada) en este mismo bloque
+  // code -> Set de campos confirmados vía type:patch (doc_relevance_confirmada) en este mismo
+  // bloque — sin filtro por tipo: el propio patch trae los campos, TKT y REQ comparten el mismo
+  // nombre de campo (doc_relevance_confirmada) con distinto set de keys posibles.
   const _docRelConfirmed = {};
   _patchItems.forEach(p => {
     if (p && p.code && p.doc_relevance_confirmada && typeof p.doc_relevance_confirmada === 'object') {
       const set = _docRelConfirmed[p.code] || (_docRelConfirmed[p.code] = new Set());
-      _DOCREL_FIELDS.forEach(f => { if (p.doc_relevance_confirmada[f] === 'sí') set.add(f); });
+      Object.keys(p.doc_relevance_confirmada).forEach(f => { if (p.doc_relevance_confirmada[f] === 'sí') set.add(f); });
     }
   });
-  // code -> true si el status del ítem llega a en-revision/done dentro de este mismo bloque —
-  // vía el ítem completo (status directo) o vía type:patch con campo status.
+  // code -> true si el status del ítem llega al target de status de su tipo (TKT:
+  // en-revision/done · REQ: done) dentro de este mismo bloque — vía el ítem completo (status
+  // directo) o vía type:patch con campo status. El target se resuelve contra el type ya
+  // indexado en _docRelDeclared — un patch de status no trae type propio, así que no puede
+  // resolverlo por sí solo.
   const _docRelStatusTransitioned = {};
+  const _isDocRelTargetStatus = (code, status) => {
+    const entry = _docRelDeclared[code];
+    return !!(entry && _DOCREL_SPECS[entry.type].targetStatus.includes(status));
+  };
   tgItems.forEach(i => {
-    if (i && i.type === 'TKT' && i.code && _DOCREL_TARGET_STATUS.includes(i.status)) _docRelStatusTransitioned[i.code] = true;
+    if (i && i.code && _isDocRelTargetStatus(i.code, i.status)) _docRelStatusTransitioned[i.code] = true;
   });
   _patchItems.forEach(p => {
-    if (p && p.code && _DOCREL_TARGET_STATUS.includes(p.status)) _docRelStatusTransitioned[p.code] = true;
+    if (p && p.code && _isDocRelTargetStatus(p.code, p.status)) _docRelStatusTransitioned[p.code] = true;
   });
   // AC2: un único badge listando los campos separados por coma cuando hay más de uno.
   const _docRelBadgeHtml = code => {
-    const declared = _docRelDeclared[code];
-    if (!declared || !_docRelStatusTransitioned[code]) return '';
+    const entry = _docRelDeclared[code];
+    if (!entry || !_docRelStatusTransitioned[code]) return '';
+    const fields = _DOCREL_SPECS[entry.type].fields;
     const confirmed = _docRelConfirmed[code] || new Set();
-    const missing = _DOCREL_FIELDS.filter(f => declared[f] === 'sí' && !confirmed.has(f));
+    const missing = fields.filter(f => entry.declared[f] === 'sí' && !confirmed.has(f));
     if (!missing.length) return '';
     return `<span class="mdiff-docrel-badge" title="Confirmar doc_relevance_confirmada al cerrar el TKT">doc_relevance sin confirmar — ${esc(missing.join(', '))}</span>`;
   };
