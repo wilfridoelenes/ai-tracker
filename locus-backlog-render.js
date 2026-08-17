@@ -1,4 +1,10 @@
-// [PP] mod:112 · autor:Rune · 2026-08-12 09:40 UTC-6
+// [PP] mod:113 · autor:Rune · 2026-08-16 UTC-6
+// INC-202608-XXX: renderSprintGroup() — buildBacklogItem(item) para el REQ padre ahora
+// pasa { suppressChildren: true } (L579). Sin el flag, buildBacklogItem() renderizaba su
+// propio bloque .req-children-block (mini-rows) además de los .bl-child-row que este mismo
+// bloque ya dibuja para cada hijo — duplicación visual confirmada en Vista Lista. Fix de una
+// línea, sin cambio de firma ni de contrato — solo activa una opción ya soportada por
+// buildBacklogItem() (locus-backlog-item.js).
 // TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog): .bl-r-toggle migrado a
 // svg.chevron (Patrón A-13, línea ~574). Fix aplicado en el handler real de la
 // delegación `vl-toggle-r` (línea ~869) — no en el branch `act === 'bl-r-toggle'` de
@@ -576,7 +582,11 @@ export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
         const _isRCollapsed = localStorage.getItem(_collapseKey) === '1';
 
         html += `<div class="bl-vl-req" data-r-code="${esc(item.code)}">`;
-        html += buildBacklogItem(item);
+        // INC-202608-XXX: suppressChildren:true — evita que buildBacklogItem() renderice
+        // su bloque interno .req-children-block (mini-rows) cuando este bloque ya va a
+        // renderizar los hijos completos como .bl-child-row unas líneas más abajo. Sin este
+        // flag, cada TKT hijo se dibujaba dos veces.
+        html += buildBacklogItem(item, { suppressChildren: true });
         html += `<button class="bl-r-toggle${_isRCollapsed ? ' collapsed' : ''}" data-action="vl-toggle-r" data-r-code="${esc(item.code)}" aria-label="Colapsar/expandir hijos" title="Colapsar/expandir hijos" type="button" aria-expanded="${_isRCollapsed ? 'false' : 'true'}"><svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg></button>`;
         html += `<div class="bl-vl-req-body${_isRCollapsed ? ' collapsed' : ''}" id="bl-vl-req-body-${esc(item.code)}">`;
         _children.forEach(child => {
