@@ -1,4 +1,10 @@
-/* [PP] mod:160 · autor:Nova · 2026-08-17 03:20 UTC-6 */
+/* [PP] mod:161 · autor:Rune · 2026-08-17 04:15 UTC-6 */
+/* origen: CAEL-08170430-02 (parent CAEL-08170430-01, origen_disc DISC-202608-179): agrega
+   :focus-visible a .filter-type-btn/.filter-status-btn/.filter-done-chip/.bl-strip-btn —
+   mismo anillo outline: 2px solid var(--accent); outline-offset: 2px ya vigente en
+   .stat-type-chip/.bl-toolbar-new-item-btn/.item-type-pill/.blf-trigger. Sin cambio de
+   hover/active/color/tamaño. .htmlmap-filter-btn (locus-docs.css) fuera de scope — archivo
+   no adjunto. */
 /* TKT-202608-380 (parent REQ-202608-154, origen_disc DISC-202608-176): .filter-done-chip
    pasa de --c-done-bg/--c-done-border/--c-done-text (indistinguible en la práctica de
    --accent-text usado por .filter-status-btn.active) a la familia --green-* — único token
@@ -2139,6 +2145,11 @@
   color: var(--text2);
 }
 
+.filter-type-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .filter-type-btn.active-DISC {
   background: var(--purple-text);
   color: var(--on-fill-vivid);
@@ -2175,6 +2186,11 @@
   color: var(--text2);
 }
 
+.filter-status-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .filter-status-btn.active {
   background: var(--accent-text);
   color: var(--on-fill-vivid);
@@ -2190,6 +2206,11 @@
 .filter-done-chip:hover {
   border-color: var(--hint);
   color: var(--text2);
+}
+
+.filter-done-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .filter-done-chip.active {
@@ -3424,6 +3445,11 @@
 .bl-strip-btn:hover {
   background: var(--surface3);
   color: var(--text);
+}
+
+.bl-strip-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .bl-strip-btn.active {
