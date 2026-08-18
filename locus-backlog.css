@@ -1,4 +1,11 @@
-/* [PP] mod:161 · autor:Rune · 2026-08-17 04:15 UTC-6 */
+/* [PP] mod:162 · autor:Rune · 2026-08-18 05:10 UTC-6 */
+/* origen: CAEL-08180500-02 (parent CAEL-08180500-01): .badge-status-done/.bitem-status-chip--done
+   migran a --green-dim/--green-border/--green-text; .badge-status-descartado migra a
+   --red-dim/--red-border/--red-text — antes ambos badges de estado compartían literal el
+   mismo bloque de color, indistinguibles. Se eliminan 6 selectores muertos sin call site
+   real: .filter-btn.active.f-pulido/.f-won, .badge-pulido, .badge-won, .status-pill--descartado,
+   .bl-strip-btn.active.s-done/.s-en-curso/.s-descartado, .item-done-check. Sin cambio de
+   hover/active/tamaño existentes. */
 /* origen: CAEL-08170430-02 (parent CAEL-08170430-01, origen_disc DISC-202608-179): agrega
    :focus-visible a .filter-type-btn/.filter-status-btn/.filter-done-chip/.bl-strip-btn —
    mismo anillo outline: 2px solid var(--accent); outline-offset: 2px ya vigente en
@@ -1257,22 +1264,10 @@
   border-color: var(--c-medium-text);
 }
 
-.filter-btn.active.f-pulido {
-  background: var(--c-pulido-text);
-  color: var(--on-fill-vivid);
-  border-color: var(--c-pulido-text);
-}
-
 .filter-btn.active.f-low {
   background: var(--c-low-text);
   color: #000;
   border-color: var(--c-low-text);
-}
-
-.filter-btn.active.f-won {
-  background: var(--c-won-text);
-  color: var(--on-fill-muted);
-  border-color: var(--c-won-text);
 }
 
 .version-group {
@@ -1726,22 +1721,10 @@
   color: var(--c-medium-text);
 }
 
-.badge-pulido {
-  background: var(--c-pulido-bg);
-  border-color: var(--c-pulido-border);
-  color: var(--c-pulido-text);
-}
-
 .badge-low {
   background: var(--c-low-bg);
   border-color: var(--c-low-border);
   color: var(--c-low-text);
-}
-
-.badge-won {
-  background: var(--c-won-bg);
-  border-color: var(--c-won-border);
-  color: var(--c-won-text);
 }
 
 .badge-area {
@@ -1773,15 +1756,15 @@
    propio en ambos temas (1.63–2.36:1, verificado). var(--text3) sustituye — mismo tratamiento
    neutro que .badge-status-backlog, verificado 4.6–5.75:1 contra el fondo done compuesto. */
 .badge-status-done {
-  background: var(--c-done-bg);
-  border-color: var(--text3);
-  color: var(--c-done-text);
+  background: var(--green-dim);
+  border-color: var(--green-border);
+  color: var(--green-text);
 }
 
 .badge-status-descartado {
-  background: var(--c-done-bg);
-  border-color: var(--text3);
-  color: var(--c-done-text);
+  background: var(--red-dim);
+  border-color: var(--red-border);
+  color: var(--red-text);
 }
 
 /* B-202606-095: status bloqueado/orphaned en Rs — badge visual diferenciado */
@@ -2312,12 +2295,6 @@
 .item-effort-dot-lg.on {
   background: var(--text2);
   border-color: var(--text2);
-}
-
-.item-done-check {
-  font-size: var(--text-base);
-  color: var(--c-done-text, var(--green));
-  opacity: 0.7;
 }
 
 /* T-104/T-106: secciones futura/done colapsables */
@@ -3458,18 +3435,6 @@
   color: var(--on-fill-vivid);
 }
 
-.bl-strip-btn.active.s-done {
-  border-color: var(--c-done-text);
-  background: var(--c-done-text);
-  color: var(--on-fill-muted);
-}
-
-.bl-strip-btn.active.s-en-curso {
-  border-color: var(--c-pulido-text);
-  background: var(--c-pulido-text);
-  color: var(--on-fill-vivid);
-}
-
 /* T-202605-040: En revisión — reutiliza variables de en-curso */
 .bl-strip-btn.active.s-en-revision {
   border-color: var(--c-high-text);
@@ -3488,12 +3453,6 @@
 #fstatus-done:not(.active),
 #fstatus-descartado:not(.active) {
   opacity: 0.55;
-}
-
-.bl-strip-btn.active.s-descartado {
-  border-color: var(--c-won-text);
-  background: var(--c-won-text);
-  color: var(--on-fill-muted);
 }
 
 .bl-strip-btn.active.s-bloqueado {
@@ -4068,16 +4027,6 @@
   opacity: 0.85;
 }
 
-/* Descartado — muted, sin peso visual */
-.status-pill--descartado {
-  color: var(--c-done-text, #888);
-  background: rgb(136 136 136 / 10%);
-  background: var(--c-done-bg, color-mix(in srgb, #888 10%, transparent));
-  border-color: var(--c-done-text, #888);
-  font-weight: 500;
-  opacity: 0.7;
-}
-
 /* T-202605-040: En revisión — reutiliza variables de en-curso.
    TKT-202608-252: border-color migrado de --c-high-border (18-30% opacity — mismo tinte
    que --c-high-bg, patrón de bajo contraste ya identificado en AC2 de este TKT sobre
@@ -4362,9 +4311,9 @@
 }
 
 .bitem-status-chip--done {
-  background: var(--c-done-bg);
-  color: var(--c-done-text);
-  border-color: var(--c-done-border);
+  background: var(--green-dim);
+  color: var(--green-text);
+  border-color: var(--green-border);
 }
 
 .bitem-status-chip--descartado {

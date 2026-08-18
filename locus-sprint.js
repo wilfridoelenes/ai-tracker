@@ -1,4 +1,4 @@
-// [PP] mod:129 · autor:Rune · 2026-08-17 UTC-6
+// [PP] mod:130 · autor:Rune · 2026-08-17 UTC-6
 // TKT-202608-374 (REQ-202608-150, TKT2): chip "Retro sin evaluar" en _renderSpsCerrados() —
 // visible solo en la fila del sprint cerrado más reciente (_closedIdx === 0, closed[] ya
 // ordenado descendente por closedAt/createdAt) cuando sprint.retroEvaluated !== true. Reusa
@@ -951,10 +951,14 @@ function _spsWireDropdownToggle(menuBtn) {
 // mod:64). Un solo helper por las 4 funciones — evita duplicar el wrapper byte-a-byte
 // (mismo criterio que _spsWireDropdownToggle ya usado en este archivo).
 
-// Colapso por sección — estado en memoria, no persistido. Resetea a "todo expandido"
-// en cada reload, consistente con el resto de UI efímera del tab Sprint (menús,
+// Colapso por sección — estado en memoria, no persistido. Resetea al default declarado
+// abajo en cada reload, consistente con el resto de UI efímera del tab Sprint (menús,
 // edición inline). Claves: 'activo' | 'programados' | 'pausados' | 'cerrados'.
-const _SPS_GROUP_COLLAPSED = new Set();
+// TKT-[pendiente-ID] (REQ-[pendiente-ID]): default cambia de "todo expandido" a solo
+// 'activo' expandido — 'programados'/'pausados'/'cerrados' nacen colapsados. El founder
+// puede expandir cualquiera durante la sesión (_spsGroupToggleHandler ya lo soporta sin
+// cambio) — el reset ocurre solo en reload, mismo criterio que _SPS_ACTIVO_DETAIL_COLLAPSED.
+const _SPS_GROUP_COLLAPSED = new Set(['programados', 'pausados', 'cerrados']);
 
 // TKT-202608-366 (REQ-202608-146, TKT2): colapso de detalle de la card #sps-activo —
 // independiente de _SPS_GROUP_COLLAPSED (ese Set colapsa la SECCIÓN "Activo" completa;
