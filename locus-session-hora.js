@@ -1,4 +1,4 @@
-// [PP] mod:6 · autor:Rune · 2026-08-06 10:15 UTC-6
+// [PP] mod:7 · autor:Rune · 2026-08-18 22:30 UTC-6
 // TKT1 (REQ CAEL-08061000-01): interpretHora() gana withinResetWindow — ventana máxima
 // de negocio de 5h para que un worker quede exhausted. Criterio único consumido por
 // _horaUpdate (visual, este archivo) y por los tres confirm handlers externos (Quick
@@ -16,14 +16,14 @@
 // TKT-202607-217 (origen DISC-202607-079): parseHora/horaKey/correctHora eliminadas —
 // dead code confirmado, sin export, sin exposición a window, sin caller real en el
 // proyecto. Comentario huérfano de exposición a window (fin de archivo) retirado junto.
-// INC-[pendiente-ID]: getState() importado — typeof state !== 'undefined' en
+// INC histórico — sin CHECKPOINT confirmado: getState() importado — typeof state !== 'undefined' en
 // _showProjRequiredInPanel nunca era true (state es var privada de locus-storage.js,
 // exportada pero no importada aquí). Lista de proyectos en el banner de "selecciona
 // proyecto" siempre estaba vacía — banner mostraba "No hay proyectos creados" aunque
 // sí los hubiera. Fix: getState().projects, mismo patrón ya usado en getProjectById.
 // locus-session-hora.js
 import { _doSaveSession, saveSession } from './locus-session-save.js';
-import { getAI, getState } from './locus-storage.js'; // INC-[pendiente-ID]: getState agregado — guard typeof state muerto
+import { getAI, getState } from './locus-storage.js'; // INC histórico — sin CHECKPOINT confirmado: getState agregado — guard typeof state muerto
 
 import { esc } from './locus-ui-shell.js';
 
@@ -160,7 +160,7 @@ let _pendingCompleteId = null;
 // El botón Guardar queda en estado --btn-blocked hasta que el usuario selecciona proyecto en el card.
 // No dispara toast — la advertencia vive completamente dentro del panel.
 export function _showProjRequiredInPanel(id, parsed, horaResult) {
-  // [pendiente-ID] fix: guardar foco antes de cualquier mutación DOM (body.innerHTML + cloneNode)
+  // histórico — sin CHECKPOINT confirmado fix: guardar foco antes de cualquier mutación DOM (body.innerHTML + cloneNode)
   const _vizPrevFocus = document.activeElement;
 
   const overlay = document.getElementById('item-viz-overlay');
@@ -229,7 +229,7 @@ export function _showProjRequiredInPanel(id, parsed, horaResult) {
     overlay.classList.remove('open');
     setTimeout(() => {
       overlay.classList.remove('closing', 'item-viz--flex');
-      // [pendiente-ID]: restaurar foco al elemento que lo tenía antes de abrir
+      // histórico — sin CHECKPOINT confirmado: restaurar foco al elemento que lo tenía antes de abrir
       if (_vizPrevFocus && typeof _vizPrevFocus.focus === 'function') {
         _vizPrevFocus.focus();
       }
@@ -243,7 +243,7 @@ export function _showProjRequiredInPanel(id, parsed, horaResult) {
   // Abrir panel
   overlay.classList.remove('closing');
   overlay.classList.add('open', 'item-viz--flex');
-  // [pendiente-ID]: mover foco al overlay para lectores de pantalla
+  // histórico — sin CHECKPOINT confirmado: mover foco al overlay para lectores de pantalla
   overlay.focus();
 }
 

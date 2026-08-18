@@ -1,4 +1,4 @@
-// [PP] mod:100 · autor:Rune · 2026-08-16 09:00 UTC-6
+// [PP] mod:101 · autor:Rune · 2026-08-18 22:30 UTC-6
 // TKT1 (REQ ref_id CAEL-08141930-01/02): footer del panel DIFF reducido a 2 botones —
 // #mdiff-backlog-btn retirado del template y de su listener; backlogBtn retirado del sync de
 // disabled/blocked en _mdiffUpdateConfirmBtn(). _mdiffDoApply() pierde el parámetro
@@ -65,7 +65,7 @@
 // actualizado en el string enum interno de categoría ('lite' retirado, 'vacio'/'sin-resolver'
 // agregados) — mismo criterio que TKT-202607-170 (mod:73, ver abajo).
 // [PP] mod:88 · autor:Rune · 2026-08-04 UTC-6
-// TKT3 (parent: [pendiente-ID] · depends_on: TKT2 · design_intent: unresolved_refs_borrador):
+// TKT3 (parent: histórico — sin CHECKPOINT confirmado · depends_on: TKT2 · design_intent: unresolved_refs_borrador):
 // sección 'Referencias sin resolver' separa source:'formato_invalido' (no bloquea guardar) del
 // resto (ref_no_resuelta/tmp_slug_no_resoluble/ref-id-sin-declarante, sigue en 'warn') — fila
 // propia con badge "no bloquea guardar" (accent 'pink') y botón "Quitar referencia" en vez de
@@ -799,7 +799,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     'bloqueado':   'bloqueado',
   };
 
-  // INC-[pendiente-ID] (hallazgo de Rune, sesión de cierre de INC-202608-084):
+  // INC histórico — sin CHECKPOINT confirmado (hallazgo de Rune, sesión de cierre de INC-202608-084):
   // _fieldChips() solo coloreaba el chip cuando field === 'status' (vocabulario Scrum) —
   // un chip incidentStatus: detected → closed quedaba sin clase de color, aunque el pill
   // principal (_terminalIncidentTransition) ya resuelve la visibilidad de la transición a
@@ -827,7 +827,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     return `<div class="mdiff-field-chips">${chips}</div>`;
   };
 
-  // INC-[pendiente-ID] (triggered_by: hallazgo del founder — "al pegar el CHECKPOINT de cierre
+  // INC histórico — sin CHECKPOINT confirmado (triggered_by: hallazgo del founder — "al pegar el CHECKPOINT de cierre
   // de un INC, el Desglose del preview no muestra el avance a estado terminal, solo actualiza"):
   // diff.updated ya recibe el dato correcto — mergeBacklogFromTG (locus-backlog-item.js, rama
   // _isItilExisting) empuja { field: 'incidentStatus', from, to } a changes[] cuando un INC/PRB
@@ -883,7 +883,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     return `<div class="mdiff-field-chips">${parts}</div>`;
   };
 
-  // TKT-[pendiente-ID] (INC — DIFF mutaba backlog real vía saveBacklog() antes de "Aplicar",
+  // TKT histórico — sin CHECKPOINT confirmado (INC — DIFF mutaba backlog real vía saveBacklog() antes de "Aplicar",
   // fuera del flujo de confirmación del CHECKPOINT): el select interactivo de sprint se retira
   // por completo — el panel DIFF es superficie de solo-preview, sin excepción. Reemplazado por
   // el mismo badge de solo-lectura ya usado para Q-INC/Q-DISC. Redirigir el sprint de un ítem

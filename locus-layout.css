@@ -1,4 +1,4 @@
-/* [PP] mod:37 · autor:Nova · 2026-08-16 UTC-6 */
+/* [PP] mod:39 · autor:Nova · 2026-08-18 22:40 UTC-6 */
 /* DISC-202608-152: .hdr-menu-infra-current/.hdr-menu-textarea/.hdr-menu-error-msg/
    .hdr-menu-apply-btn renombradas a prefijo .infra-sync-* propio del modal — el nombre
    "hdr-menu" venía del subpanel legacy retirado del DOM (T-206-009). Textarea consolidada
@@ -72,7 +72,7 @@
    (id-selector) se descarta. */
 /* mod:21 — retirado .status-confirm-overlay del bloque light-theme backdrop blur (L1543 previa) —
    clase huérfana, retirada de HTML/JS por TKT4 (CAEL-0720-05, REQ CAEL-0720-01). Selector nunca
-   volvía a matchear tras el retiro; DISC [pendiente-ID] cerrada con este fix. */
+   volvía a matchear tras el retiro; DISC histórica — sin CHECKPOINT confirmado cerrada con este fix. */
 /* mod:20 — retirado duplicado #pepe-splash .splash-sub (ver bloque A4-b Splash screen, abajo
    en este archivo) — canónico queda en locus-modals-tracker.css. Ver ui-Inventory mod:27. */
 /* CAEL-05 · TKT1 (CAEL-06) — completo: tabs sin pill (font-size:15px, border:none,
@@ -155,7 +155,7 @@
   display: block;
 }
 
-/* R [pendiente-ID]: grillo ocupa exactamente el alto del header — height 100% de .header-inner (52px), overflow:hidden en header lo contiene */
+/* R histórico — sin CHECKPOINT confirmado: grillo ocupa exactamente el alto del header — height 100% de .header-inner (52px), overflow:hidden en header lo contiene */
 #pepe-logo {
   height: 90%;
   width: auto;
@@ -302,7 +302,7 @@
   flex-shrink: 0;
 }
 
-/* [pendiente-ID]: theme toggle — regla base completada */
+/* Ítem histórico — sin CHECKPOINT confirmado: theme toggle — regla base completada */
 .theme-toggle-btn {
   position: relative;
   width: 32px;
@@ -373,7 +373,7 @@ body:not([data-theme]) .theme-icon-light {
   transform: scale(0.7);
 }
 
-/* [pendiente-ID]: Panel pendientes — trigger en header */
+/* Ítem histórico — sin CHECKPOINT confirmado: Panel pendientes — trigger en header */
 .header-pend-btn {
   position: relative;
   width: 32px;
@@ -533,7 +533,7 @@ button {
   padding-right: 16px;
 }
 
-/* TKT-[pendiente-ID] (REQ CAEL-08150730-01): glifo emoji 📁 retirado — reemplazado por
+/* TKT histórico — sin CHECKPOINT confirmado (REQ CAEL-08150730-01): glifo emoji 📁 retirado — reemplazado por
    mask-token --icon-folder (locus-base.css) + background-color: currentColor, mismo
    mecanismo que el resto de íconos de línea del header. Hereda color de .breadcrumb-seg--proj. */
 .breadcrumb-seg--proj::before {
@@ -1248,7 +1248,7 @@ header {
   opacity: 1;
 }
 
-/* B-[pendiente-ID]: contener cada tab en su propio contexto de scroll —
+/* B histórico — sin CHECKPOINT confirmado: contener cada tab en su propio contexto de scroll —
    evita que el scroll del Backlog (u otros tabs largos) se filtre al window
    y persista al cambiar de tab. El patrón ya existe en #tab-tracker;
    se aplica al resto de tabs activos. */
@@ -1392,7 +1392,7 @@ header {
   background: var(--accent);
 }
 
-/* tpl-nav-badge — conteo de ítems en subtabs de sidebar (T-[pendiente-ID]) */
+/* tpl-nav-badge — conteo de ítems en subtabs de sidebar (T histórico — sin CHECKPOINT confirmado) */
 .tpl-nav-badge {
   display: inline-flex;
   align-items: center;
@@ -1803,7 +1803,7 @@ header {
 
 /* END R-202605-140 */
 
-/* R-[pendiente-ID]: Botones accionables textarea paste — Limpiar y Pegar */
+/* R histórico — sin CHECKPOINT confirmado: Botones accionables textarea paste — Limpiar y Pegar */
 .paste-ta-wrap {
   position: relative;
 }
@@ -1960,7 +1960,7 @@ header {
   background: rgb(232 168 50 / 25%);
 }
 
-/* ── Setup Checklist Banner (SCB) — eliminado, ver REQ-[pendiente-ID] TKT2 ── */
+/* ── Setup Checklist Banner (SCB) — eliminado, ver REQ histórico — sin CHECKPOINT confirmado TKT2 ── */
 
 /* ══ A4-b: Splash screen — clases faltantes ══ */
 

@@ -1,6 +1,6 @@
-// [PP] mod:5 · autor:Rune · 2026-07-09 13:58 UTC-6
-// INC-[pendiente-ID]: header migrado a formato canónico (BR-Execution §9) — v/sprint eliminados.
-// INC-[pendiente-ID]: _analyticsPeriod, _compareProjectIdA/B, _cfProjId, _cfTypeFilter y sus setters
+// [PP] mod:6 · autor:Rune · 2026-08-18 22:30 UTC-6
+// INC histórico — sin CHECKPOINT confirmado: header migrado a formato canónico (BR-Execution §9) — v/sprint eliminados.
+// INC histórico — sin CHECKPOINT confirmado: _analyticsPeriod, _compareProjectIdA/B, _cfProjId, _cfTypeFilter y sus setters
 // (setAnalyticsPeriod, setCompareProjectA/B, clearComparison, setCfProject, setCfType) eran privados
 // de módulo — render.js y digest.js los referenciaban bare sin import. render.js: _hasComparison
 // (línea 393) los lee de forma incondicional en cada renderAnalytics(), rompiendo el tab completo en
@@ -17,7 +17,7 @@ import { _buildHourlyInsightData } from './locus-analytics-charts.js';
 import { render } from './locus-sesiones.js';
 
 import { getAllSessions, getState, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js';
-// INC-[pendiente-ID] inline_fix: `state` se referenciaba bare (sin import) en 6 call sites de este
+// INC histórico — sin CHECKPOINT confirmado inline_fix: `state` se referenciaba bare (sin import) en 6 call sites de este
 // módulo — ReferenceError en runtime, nunca resuelto porque state solo se exporta desde
 // locus-storage.js (T-202606-023 migró otros módulos a getState(), este quedó fuera). Mismo
 // archivo que el fix de historico, bloqueante para probar el fix — corregido inline (BR-Core §7).
@@ -39,10 +39,10 @@ export function getAnalyticsColor(idx) {
 }
 
 // ── Analytics período: 'week' | 'month' | 'quarter' (default: week) ──
-// INC-[pendiente-ID]: export — render.js lo lee bare en los botones de período (líneas 877-879, 925)
+// INC histórico — sin CHECKPOINT confirmado: export — render.js lo lee bare en los botones de período (líneas 877-879, 925)
 export let _analyticsPeriod = localStorage.getItem('analytics-period') || 'week';
 // R-202604-070: Comparación side-by-side — dos proyectos independientes
-// INC-[pendiente-ID]: export — render.js lee _compareProjectIdA/B bare (líneas 393, 426-431, 503-505)
+// INC histórico — sin CHECKPOINT confirmado: export — render.js lee _compareProjectIdA/B bare (líneas 393, 426-431, 503-505)
 export let _compareProjectIdA = null;
 export let _compareProjectIdB = null;
 // Alias legacy para retrocompatibilidad con setCompareProject existente
@@ -78,7 +78,7 @@ let _analyticsRange = 3;
 export function setAnalyticsRange(n) { _analyticsRange = n; _markAnalyticsDirty(); renderAnalytics(); }
 
 // T-202605-452: Gráfico de flujo acumulativo — filtros de proyecto y tipo
-// INC-[pendiente-ID]: export — render.js (líneas 942, 946-949) y digest.js (_buildCumulativeFlowChart)
+// INC histórico — sin CHECKPOINT confirmado: export — render.js (líneas 942, 946-949) y digest.js (_buildCumulativeFlowChart)
 // los leían bare sin import.
 export let _cfProjId   = '';
 export let _cfTypeFilter = '';
@@ -372,13 +372,13 @@ export function _animateCountUp(container) {
 
 // ═══ T-202604-119: Tab Proyectos — Dashboard estratégico ═══
 
-// INC-[pendiente-ID]: getItems()/localStorage 'backlog-items-*' nunca contienen status:historico
+// INC histórico — sin CHECKPOINT confirmado: getItems()/localStorage 'backlog-items-*' nunca contienen status:historico
 // desde T-202606-106 — un ítem done/descartado de un sprint cerrado se remueve del blob activo
 // y se archiva en el storage dedicado (T-202606-105). Los cuatro helpers de rango debajo leían
 // solo el blob activo — nunca contaban ítems de sprints cerrados. Fix: merge con
 // getHistoricoItemsSync(p.id), que debe estar poblado por refreshAnalyticsHistoricoCache()
 // ANTES de cualquiera de estos helpers — no hacen I/O propio, permanecen sync.
-// INC-[pendiente-ID]: exportada — charts.js y render.js la consumían reimplementando el
+// INC histórico — sin CHECKPOINT confirmado: exportada — charts.js y render.js la consumían reimplementando el
 // parseo crudo de localStorage sin merge de historico. Única fuente del merge activo+historico.
 export function _activeAndHistoricoItems(p) {
   let active = [];

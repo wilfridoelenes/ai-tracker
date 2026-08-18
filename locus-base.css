@@ -1,4 +1,12 @@
-/* [PP] mod:32 · autor:Nova · 2026-08-17 23:40 UTC-6 */
+/* [PP] mod:34 · autor:Nova · 2026-08-18 UTC-6 */
+/* TKT1 (REQ CAEL-08180630-01, origen_disc DISC-202608-183): retira --on-fill-muted
+   (bloque dark L305 y light L454 en mod:32) — huérfano confirmado por grep en los
+   22 CSS y 58 JS del proyecto, sin consumidor desde que su único uso migró a
+   --on-fill-vivid. --on-fill-vivid permanece intacto — 26+ call sites activos en
+   locus-docs.css y locus-backlog.css. Comentarios de rationale en ambos bloques
+   actualizados para no citar el token retirado — mismo criterio ya aplicado en
+   TKT-202608-386. Cierra el "candidato a token huérfano" que ese mismo TKT dejó
+   señalado en este header (línea de abajo, mod:32). */
 /* TKT-202608-386 (REQ-202608-158, TKT3): elimina los 9 tokens legacy
    --c-pulido-bg/border/text, --c-won-bg/border/text, --c-done-bg/border/text
    (bloque dark y light) y el alias suelto --c-done (dark y light) — 20 líneas
@@ -295,14 +303,14 @@
      de chip activo. Cada *-text de hue (critical/high/pulido/red/green/blue/purple/amber/slate/
      accent-text/orange) se usa como background-color del estado .active — verificado contra
      negro/blanco vía cálculo WCAG relativo (no contra --surface, contra el propio color del
-     fill): en dark, negro pasa ≥4.5:1 contra todos esos fills; en light, blanco pasa ≥4.5:1
-     contra todos esos fills. --on-fill-vivid es ese ganador por tema.
-     --on-fill-muted es el ganador inverso, exclusivo de los dos tokens desaturados grises
-     legacy (retirados en REQ-202608-158/TKT-202608-386), cuya polaridad de contraste se invierte respecto al resto:
-     en dark ganan blanco, en light ganan negro. Ambos casos verificados con la misma fórmula
-     WCAG relativa (contraste sRGB), no medidos contra --surface. */
+     fill): en dark, negro pasa ≥4.5:1 contra todos esos fills. --on-fill-vivid es ese ganador
+     por tema, verificado con la misma fórmula WCAG relativa (contraste sRGB), no medida
+     contra --surface.
+     ── [Retiro TKT1 REQ CAEL-08180630-01]: --on-fill-muted retirado — era el ganador inverso
+     de los tokens desaturados grises legacy (--c-pulido/--c-won/--c-done, ya retirados en
+     REQ-202608-158/TKT-202608-386), sin consumidor propio desde esa migración — huérfano
+     confirmado por grep en los 22 CSS y 58 JS del proyecto, origen DISC-202608-183. */
   --on-fill-vivid:  #000;
-  --on-fill-muted:  #fff;
 
   /* ── TKT1 (REQ CAEL-01 · design_intent: QDISC-headers-3-bloques-verticales) — mismo patrón
      Cluster B: --blue/--red ya pasan 4.5:1 en dark (7.85–9.55:1 / 4.68–5.69:1 vs
@@ -446,12 +454,12 @@
   --yellow-text: #836900;
   --slate-text:  var(--slate);
 
-  /* ── TKT-202608-281 — espejo de light theme. Polaridad invertida respecto a dark:
-     en light, blanco pasa ≥4.5:1 contra los fills vivid (critical/high/pulido/red/green/blue/
-     purple/amber/slate/accent-text/orange); negro pasa contra los dos fills muted
-     legacy (retirados en REQ-202608-158/TKT-202608-386). Ver nota completa en el bloque dark. */
+  /* ── TKT-202608-281 — espejo de light theme. En light, blanco pasa ≥4.5:1 contra los
+     fills vivid (critical/high/pulido/red/green/blue/purple/amber/slate/accent-text/orange).
+     Ver nota completa en el bloque dark.
+     ── [Retiro TKT1 REQ CAEL-08180630-01]: --on-fill-muted retirado — huérfano, ver nota
+     completa en el bloque dark. */
   --on-fill-vivid:  #fff;
-  --on-fill-muted:  #000;
 
   /* ── TKT1 (REQ CAEL-01 · design_intent: QDISC-headers-3-bloques-verticales) — gap cerrado:
      --blue/--red fallan como texto en light (3.31–4.11:1 / 4.01–4.41:1 vs --surface3/--surface2/
@@ -618,7 +626,7 @@ body {
 .diff-chip--descarte{color:var(--red-text);background:color-mix(in srgb, var(--red) 10%, transparent);border-color:color-mix(in srgb, var(--red) 28%, transparent);}
 
 /* ── --icon-* — mask tokens, pseudo-elemento sin elemento DOM (Nova) ──
-   TKT-[pendiente-ID] (REQ CAEL-08150730-01): complemento de .ti-svg (abajo,
+   TKT histórico — sin CHECKPOINT confirmado (REQ CAEL-08150730-01): complemento de .ti-svg (abajo,
    Patrón A-13/sprite) — mismo origen visual (@tabler/icons v3.46.0, outline
    set, mismo lockfile que el sprite), pero para selectores ::before/::after
    donde no existe <svg> real que consumir vía <use>. Uso: content:'';
@@ -629,7 +637,7 @@ body {
    selector consumidor. Fuente: node_modules/@tabler/icons@3.46.0/icons/outline/
    {name}.svg — no editar a mano, regenerar desde el mismo paquete si el subset
    cambia. Cierra el hallazgo de doble origen (glifos Unicode/emoji en content:)
-   detectado en la auditoría de íconos — DISC-[pendiente-ID], descartada obsoleto. ── */
+   detectado en la auditoría de íconos — DISC histórica — sin CHECKPOINT confirmado, descartada obsoleto. ── */
 :root{
   --icon-folder: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2'/></svg>");
   --icon-sun: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0'/><path d='M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7'/></svg>");

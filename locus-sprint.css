@@ -1,4 +1,4 @@
-/* [PP] mod:75 · autor:Nova · 2026-08-18 22:25 UTC-6 */
+/* [PP] mod:76 · autor:Nova · 2026-08-18 22:40 UTC-6 */
 /* TKT-202608-385 (parent REQ-202608-158): .sph-release-pill (base) y .sph-release-pill.is-patch
    migran de --c-pulido-*/--c-won-* a --blue-dim/--blue-text/--blue-border; .sca-item-type--req
    migra de --c-pulido-bg/--c-pulido-text al mismo trío --blue-dim/--blue-text. Tokens ya en
@@ -79,7 +79,7 @@
 
 .sph-header {
   position: sticky;
-  top: var(--spt-nav-height, 41px); /* B-[pendiente-ID]: nav siempre primero — header sticky debajo del nav */
+  top: var(--spt-nav-height, 41px); /* B histórico — sin CHECKPOINT confirmado: nav siempre primero — header sticky debajo del nav */
   z-index: var(--z-sticky);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -748,7 +748,7 @@
 /* ══ END T-202605-062 ══ */
 
 /* ══ R-202605-043: Subtab nav — Ítems / Plan ══ */
-/* B-[pendiente-ID]: nav movido antes de #sprint-panel-header en DOM — top:0 siempre */
+/* B histórico — sin CHECKPOINT confirmado: nav movido antes de #sprint-panel-header en DOM — top:0 siempre */
 
 :root {
   --spt-nav-height: 41px; /* altura del .spt-nav — usada por .sph-header como top offset */
@@ -1699,7 +1699,7 @@
    La meta "Versión" se renderiza vía .sps-meta-item/.sps-meta-value (L322). */
 
 /* ── sps-empty — Empty state sin sprint activo (AC-2) ─────────────────── */
-/* Corregido mod:45 (Nova, sesión REQ-[pendiente-ID] migración panel Sprint nuevo):
+/* Corregido mod:45 (Nova, sesión REQ histórico — sin CHECKPOINT confirmado migración panel Sprint nuevo):
    comentario anterior ("CTA visible — apunta a openNewSprintInline() o similar") nunca
    fue verificado contra locus-sprint.js real — _renderSpsActivo() solo renderiza
    .sps-empty-hint (texto). .sps-empty-cta queda declarada sin consumidor — ver
@@ -1744,7 +1744,7 @@
   outline-offset: 2px;
 }
 
-/* ══ TKT2 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab) ══ */
+/* ══ TKT2 (REQ histórico — sin CHECKPOINT confirmado · migración Step 0 DIFF → panel Sprint subtab) ══ */
 /* design_intent: sprint-nuevo-panel-v1 — reutiliza tokens de .sps-card / .sps-btn /
    .btn-primary (locus-layout.css) — sin componente visual nuevo, solo composición. */
 
@@ -1905,7 +1905,7 @@
 
 /* ══ END TKT2 ══ */
 
-/* ══ TKT4 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab) ══ */
+/* ══ TKT4 (REQ histórico — sin CHECKPOINT confirmado · migración Step 0 DIFF → panel Sprint subtab) ══ */
 /* design_intent: spnp-gate-inline-v1 — Opción 1 (gate inline en #spnp-panel, aprobada por
    founder sobre Opción 2 modal). Reutiliza .spnp-badge (mismo tono de acento, sin color
    nuevo), .spnp-actions (mismo patrón de botones flex), .spnp-error (mensaje inline) y el
@@ -2463,7 +2463,7 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   background: var(--border);
 }
 
-/* Pausado conserva su semántica muted (B-[pendiente-ID]) — sin esta regla,
+/* Pausado conserva su semántica muted (B histórico — sin CHECKPOINT confirmado) — sin esta regla,
    el border-left dominante (mayor especificidad por scope #sps-activo) sobreescribe
    el border-color: var(--hint) de .sps-card--pausado. Mismo patrón que
    .sps-card--pausado .sph-panel .sph-bar-fill { background: var(--hint) } más abajo —
@@ -2897,7 +2897,7 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   display: flex;
 }
 
-/* INC-[pendiente-ID]: flip-to-fit — .sps-card (contenedor compartido de filas en
+/* INC histórico — sin CHECKPOINT confirmado: flip-to-fit — .sps-card (contenedor compartido de filas en
    #sps-programados) declara overflow:hidden para su border-radius. Un .sps-dropdown
    anclado con top:32px en una fila cercana al borde inferior del card se recorta/oculta
    detrás del contenedor siguiente (#sps-cerrados) — no es un problema de z-index.

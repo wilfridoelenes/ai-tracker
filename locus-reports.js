@@ -1,4 +1,4 @@
-// [PP] mod:12 · autor:Rune · 2026-07-22 22:18 UTC-6
+// [PP] mod:13 · autor:Rune · 2026-08-18 22:30 UTC-6
 // locus-reports.js
 // Última actualización: B-202606-108 — removeItem() de la clave legacy eliminado en
 // confirmResetBacklog() y en el delete remoto del danger zone de backlog — sin escrituras activas.
@@ -262,7 +262,7 @@ function confirmResetBacklog() {
   saveBacklog();
 
   // AC-9: borrar backlog en Supabase cuando el usuario está autenticado
-  // INC-[pendiente-ID]: typeof _supabase !== 'undefined' era guard siempre falso — este
+  // INC histórico — sin CHECKPOINT confirmado: typeof _supabase !== 'undefined' era guard siempre falso — este
   // delete nunca se ejecutaba.
   {
     const _sbCtx = getSupabaseContext();
@@ -302,7 +302,7 @@ function toggleSidebarDanger() {
   _syncCleanProjectBtn();
 }
 
-// ── R-[pendiente-ID]: Modal Limpiar proyecto activo ──────────────────────────
+// ── R histórico — sin CHECKPOINT confirmado: Modal Limpiar proyecto activo ──────────────────────────
 // Reemplaza: openResetBacklogModal · confirmResetBacklog · openResetSessionsModal · purgeOldSessions
 // Scope: proyecto activo únicamente — workers y proyectos nunca se tocan
 
@@ -411,7 +411,7 @@ async function confirmCleanProject() {
       if (projObj) projObj.sessions = [];
 
       // DELETE en Supabase
-      // INC-[pendiente-ID]: _supabase/_supabaseUser referenciados directo, sin typeof —
+      // INC histórico — sin CHECKPOINT confirmado: _supabase/_supabaseUser referenciados directo, sin typeof —
       // no declarados en este módulo → ReferenceError real al ejecutar esta rama, no
       // solo no-op silencioso como en los otros call sites del mismo bug.
       {
@@ -441,7 +441,7 @@ async function confirmCleanProject() {
       if (typeof getItems() !== 'undefined') getItems().length = 0;
 
       // DELETE en Supabase
-      // INC-[pendiente-ID]: _supabase/_supabaseUser referenciados directo, sin typeof —
+      // INC histórico — sin CHECKPOINT confirmado: _supabase/_supabaseUser referenciados directo, sin typeof —
       // ReferenceError real al ejecutar esta rama (mismo bug que el delete de sesiones arriba).
       {
         const _sbCtx = getSupabaseContext();
@@ -499,7 +499,7 @@ async function confirmCleanProject() {
 }
 
 // ── FUNCIONES LEGACY — deprecadas, mantenidas para compatibilidad ────────────
-// No se llaman desde ningún punto del HTML tras R-[pendiente-ID]
+// No se llaman desde ningún punto del HTML tras R histórico — sin CHECKPOINT confirmado
 // openResetBacklogModal / closeResetBacklogModal / confirmResetBacklog → reemplazadas por openCleanProjectModal
 // openResetSessionsModal / confirmResetSessions → reemplazadas por openCleanProjectModal
 // purgeOldSessions / openPurgeModal / closePurgeModal / confirmPurge → reemplazadas por openCleanProjectModal

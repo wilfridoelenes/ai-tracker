@@ -1,4 +1,4 @@
-/* [PP] mod:109 · autor:Nova · 2026-08-16 16:05 UTC-6 */
+/* [PP] mod:111 · autor:Nova · 2026-08-18 22:40 UTC-6 */
 /* TKT-202608-364 (REQ-202608-145): .gf-infra-version--link agregado — espeja
    .gf-ckpt--link para el trigger clickeable del footer. Ver bloque junto a
    .gf-ckpt--link (~L3277). */
@@ -3139,7 +3139,7 @@
    ============================================================ */
 
 /* ── Theme toggle btn en header ─────────────────────────────── */
-/* TKT-[pendiente-ID] (REQ CAEL-08150730-01): glifos emoji ☀/🌙 retirados —
+/* TKT histórico — sin CHECKPOINT confirmado (REQ CAEL-08150730-01): glifos emoji ☀/🌙 retirados —
    reemplazados por mask-tokens --icon-sun/--icon-moon (locus-base.css) +
    background-color: currentColor, mismo mecanismo del resto de íconos de línea. */
 .theme-toggle-btn::before {
@@ -3666,7 +3666,7 @@ body {
   text-overflow: ellipsis;
 }
 
-/* TKT-[pendiente-ID] (INC — panel DIFF mutaba backlog real desde un select interactivo antes
+/* TKT histórico — sin CHECKPOINT confirmado (INC — panel DIFF mutaba backlog real desde un select interactivo antes
    de "Aplicar"): .mdiff-sprint-select retirado — el sprint de cualquier ítem en el DIFF ahora
    se muestra siempre como .mdiff-queue-badge de solo lectura, mismo tratamiento que ya tenían
    INC/PRB/CHG (Q-INC) y DISC (Q-DISC). Redirigir el sprint de un ítem existente se hace vía

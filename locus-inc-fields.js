@@ -1,5 +1,5 @@
-// [PP] mod:3 · autor:Rune · 2026-07-21 UTC-6
-// TKT-[pendiente-ID] (parent: REQ CAEL-0721-01 · "_PP-incidents.md — alineación con
+// [PP] mod:4 · autor:Rune · 2026-08-18 22:30 UTC-6
+// TKT histórico — sin CHECKPOINT confirmado (parent: REQ CAEL-0721-01 · "_PP-incidents.md — alineación con
 // _ob-DocStandards §3b v1.16"): agrega incDiscardReason() — mismo patrón de los 6 getters
 // existentes. Único accessor de discard_reason que faltaba en este módulo; discardReason →
 // discard_reason ya se normaliza en locus-backlog-core.js (línea ~1182) pero ese módulo no lo
@@ -7,14 +7,14 @@
 // para el cuerpo de ítem sin reimplementar el fallback camelCase||snake_case a mano.
 
 // [PP] mod:2 · autor:Rune · 2026-07-20 23:25 UTC-6
-// TKT-[pendiente-ID] (deuda técnica, DISC promovida en cierre de REQ CAEL-0720-01):
+// TKT histórico — sin CHECKPOINT confirmado (deuda técnica, DISC promovida en cierre de REQ CAEL-0720-01):
 // SLA_RIESGO_WINDOW_MS = 21600000 (6h) agregada como export — antes vivía duplicada a mano
 // en locus-incidents-generator.js y locus-backlog-render.js, ambos ya migrados a importarla
 // de aquí. Sin cambio en los 6 getters ITIL existentes.
 //
 // [PP] mod:1 · autor:Rune · 2026-07-09 UTC-6
 
-// TKT-[pendiente-ID] (REQ-centralizar-accesores-itil, TKT1): punto único de
+// TKT histórico — sin CHECKPOINT confirmado (REQ-centralizar-accesores-itil, TKT1): punto único de
 // canonicalización para los campos ITIL que conviven en dos convenciones de
 // naming — camelCase en el modelo de sesión/memoria (locus-session-parse.js,
 // items ya normalizados) y snake_case en las columnas reales de Postgres

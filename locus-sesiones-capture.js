@@ -1,10 +1,10 @@
-// [PP] mod:26 · autor:Rune · 2026-08-15 · UTC-6
+// [PP] mod:27 · autor:Rune · 2026-08-18 22:30 UTC-6
 // INC-ref:CAEL-08151230-01: _qcAttemptSave() — status pasa a exhausted desde cualquier
 // status previo distinto de 'exhausted' (antes: solo desde 'available'). Reaplicado sobre
 // mod:25 real (base anterior usada era obsoleta — señalado por el founder). Ver comentario
 // inline en la función.
 // [PP] mod:25 · autor:Rune · 2026-08-15 14:20 UTC-6
-// Fix INC-[pendiente-ID] (ref_id RUNE-08151420-01): confirmQuickCapture() empujaba `sess`
+// Fix INC histórico — sin CHECKPOINT confirmado (ref_id RUNE-08151420-01): confirmQuickCapture() empujaba `sess`
 // directo a activeProj.sessions — bypasseaba _mutateSessions() (locus-storage.js), único
 // punto que marca una sesión dirty para _saveSessions(). Sin esa marca, Quick Capture nunca
 // subía la sesión a Supabase una vez el proyecto ya tenía baseline sincronizado — quedaba
@@ -16,7 +16,7 @@
 // saveImmediate(), antes del rollback) y en dismissInterrupted() — save()/saveImmediate()
 // ya no persisten ais en tracker_state. interruptSession() no lleva save propio — su único
 // caller (_qcAttemptSave) ya cubre la persistencia.
-// Fix inline (triggered_by INC-[pendiente-ID]): _qcAttemptSave() mutaba ai.status/resetTime/
+// Fix inline (triggered_by INC histórico — sin CHECKPOINT confirmado): _qcAttemptSave() mutaba ai.status/resetTime/
 // resetEpoch/interrupted DESPUÉS de que saveImmediate() ya había subido `state` y disparado
 // shell:render-radar — la mutación nunca llegaba a Supabase/localStorage ni al Radar. Movida
 // a antes de saveImmediate() (mismo round-trip que `sess`), con snapshot + rollback en catch()
@@ -54,7 +54,7 @@ import { esc, getCurrentTab, switchTab } from './locus-ui-shell.js';
 
 import { openAddAI } from './locus-workers.js';
 
-// ── R-[pendiente-ID]: Quick Capture — modal unificado con stepper ──
+// ── R histórico — sin CHECKPOINT confirmado: Quick Capture — modal unificado con stepper ──
 // Reemplaza: T-071 (quick-modal-overlay) + selectAIForQuickCapture (ai-quick-select-modal)
 // Shell HTML: #qc-modal-overlay con #qc-panel-1 (selector) y #qc-panel-2 (formulario)
 // CSS: locus-modals-misc.css §qc- (corregido — el nombre anterior "locus-modals.css" es el monolito pre-split, ya no existe)
@@ -326,7 +326,7 @@ function confirmQuickCapture() {
   // que el Hallazgo A-10 señalaba y ya no puede fallar aquí.
   sess.aiId = _quickAIId;
   const activeProj = getActiveProject();
-  // Fix INC-[pendiente-ID] (triggered_by hallazgo de diagnóstico, sesión consultiva sin
+  // Fix INC histórico — sin CHECKPOINT confirmado (triggered_by hallazgo de diagnóstico, sesión consultiva sin
   // TKT activo): antes empujaba directo a activeProj.sessions — bypasseaba _mutateSessions(),
   // el único punto que marca la sesión dirty (locus-storage.js §_dirtySessionIds). Sin esa
   // marca, _saveSessions() nunca la subía a Supabase una vez que el proyecto ya tenía su
@@ -342,7 +342,7 @@ function confirmQuickCapture() {
   // (status/resetTime/resetEpoch) e interruptSession() no ocurren aquí — viajan como datos
   // a _qcAttemptSave, que las aplica justo antes de llamar a saveImmediate() (mismo
   // round-trip que `sess`) y las revierte en su catch() si el guardado falla — ver fix
-  // inline (triggered_by INC-[pendiente-ID]) dentro de _qcAttemptSave.
+  // inline (triggered_by INC histórico — sin CHECKPOINT confirmado) dentro de _qcAttemptSave.
   const _qcWipEl = _qcEl('quick-wip');
   const wipChecked = !!(_qcWipEl && _qcWipEl.checked);
   _qcAttemptSave(ai, horaResult, wipChecked);
@@ -352,12 +352,12 @@ function confirmQuickCapture() {
 // Reintentar reinvoque saveImmediate() sin reconstruir sess (evita push duplicado).
 // TKT2 (parent CAEL-08081500-01): recibe horaResult/wipChecked para aplicar la mutación del
 // worker antes del guardado, con rollback en catch() si falla — ver Patrón A-10 en
-// _Locus-ux-ref y corrección de INC-[pendiente-ID] (fix inline) más abajo.
+// _Locus-ux-ref y corrección de INC histórico — sin CHECKPOINT confirmado (fix inline) más abajo.
 function _qcAttemptSave(ai, horaResult, wipChecked) {
   _qcSaving = true;
   _qcSetSavingState(true);
 
-  // Fix inline (triggered_by INC-[pendiente-ID]): la mutación de ai.status/resetTime/
+  // Fix inline (triggered_by INC histórico — sin CHECKPOINT confirmado): la mutación de ai.status/resetTime/
   // resetEpoch/interrupted vivía en el .then() de saveImmediate() — DESPUÉS de que
   // _saveFlush() ya había serializado y subido `state` y despachado shell:render-radar,
   // por lo que (a) el Radar nunca reflejaba el estado agotado (el único render-radar de
@@ -410,7 +410,7 @@ function _qcAttemptSave(ai, horaResult, wipChecked) {
       showToast('success', `${ai.name} — sesión rápida guardada`);
     }
     window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-    // TKT1 [pendiente-ID]: auto-selección del Worker usado en Quick Capture si el founder
+    // TKT1 histórico — sin CHECKPOINT confirmado: auto-selección del Worker usado en Quick Capture si el founder
     // está en tab Sesiones — reutiliza shell:select-tracker-ai (locus-sesiones.js), mismo
     // patrón de evento que shell:sesiones-render, sin import directo.
     if (getCurrentTab() === 'sesiones') {
@@ -432,7 +432,7 @@ function _qcAttemptSave(ai, horaResult, wipChecked) {
   });
 }
 
-// ── END R-[pendiente-ID] Quick Capture ──
+// ── END R histórico — sin CHECKPOINT confirmado Quick Capture ──
 
 // ── T-055: Sesión interrumpida ──
 // TKT3 (CAEL-0723-04): confirmInterruptInline/cancelInterruptInline retiradas — huérfanas

@@ -1,9 +1,9 @@
-// [PP] mod:14 · autor:Rune · 2026-08-14 20:10 UTC-6
+// [PP] mod:15 · autor:Rune · 2026-08-18 22:30 UTC-6
 // TKT-202608-346: closeProjPanel — retiradas las 2 líneas huérfanas de #proj-filter-btn
 // (id inexistente en el DOM desde TKT-202607-150, no-op guardado). Línea de
 // #proj-panel-overlay conservada sin cambio. Sin cambio de firma ni de call site
 // (selectProjectFilter sigue invocando closeProjPanel() igual).
-// INC-[pendiente-ID]: getCurrentTab importado — typeof currentTab !== 'undefined' nunca era true
+// INC histórico — sin CHECKPOINT confirmado: getCurrentTab importado — typeof currentTab !== 'undefined' nunca era true
 // (currentTab es var privada de locus-ui-shell.js, no global). Guard "solo renderizar Analytics si
 // tab activo" nunca ejecutaba. Fix: getCurrentTab() real, mismo patrón ya usado en locus-sprint-project.js:143.
 // REQ refactor-zonas TKT5: import de renderQBacklogPanel/renderQDiscPanel actualizado — ahora
@@ -108,7 +108,7 @@ export function setProjContext(projId, text, version) {
   save();
 }
 
-// ── Registro de callback en _coreCallbacks — TKT-[pendiente-ID] ─────────────
+// ── Registro de callback en _coreCallbacks — TKT histórico — sin CHECKPOINT confirmado ─────────────
 // _getActiveProjectFilter vive en este módulo desde T-202606-197. Registrada aquí
 // para que locus-backlog-core.js la consuma via _coreCallbacks sin import directo
 // (evita ciclo: este módulo importa loadBacklog/renderStats desde locus-backlog-core.js).

@@ -1,8 +1,8 @@
-// [PP] mod:26 · autor:Rune · 2026-08-11 UTC-6
+// [PP] mod:27 · autor:Rune · 2026-08-18 22:30 UTC-6
 // Fix (founder, post-liberación REQ CAEL-0720-01): byType simplificado a {REQ,TKT} — INC/DISC/
 // PRB/KE/CHG removidos, universo real de Histórico no puede contenerlos (ver comentario en
 // locus-backlog-render.js mod:101). Sin retrocompatibilidad con claves muertas.
-// REQ-[pendiente-ID] Unificar vocabulario historico: archivo renombrado
+// REQ histórico — sin CHECKPOINT confirmado Unificar vocabulario historico: archivo renombrado
 // locus-backlog-archive.js → locus-backlog-historico.js. Rename mecánico de identificadores
 // vivos: migrateClosedItemsToHistorico (ex archiveClosedItems), getHistoricoCount (ex
 // getArchivoHistoricoCount), getHistoricoStats (ex getArchivoHistoricoStats),
@@ -20,14 +20,14 @@
 // _renderArchivoViewSprint/_renderArchivoViewFlat) — son registro histórico, no código vivo.
 // [PP] mod:21 · autor:Rune · 2026-07-03 20:10 UTC-6
 // locus-backlog-historico.js
-// INC-[pendiente-ID] (mod:20): migrateClosedItemsToHistorico() reescrita para seguir el mismo contrato que
+// INC histórico — sin CHECKPOINT confirmado (mod:20): migrateClosedItemsToHistorico() reescrita para seguir el mismo contrato que
 // _scmExecuteClose (locus-backlog-sprints.js) y setSprintStatus(closed) — persistir en
 // storage dedicado vía saveHistoricoItems() y remover de ITEMS antes de saveBacklog().
 // Antes: mutaba status in-place sin persistir en el storage dedicado ni sacar el ítem de
 // ITEMS — saveBacklog() los excluía silenciosamente (solo-lectura), y el próximo _setITEMS()
 // (undo, reload, etc) los descartaba por la barrera T-202606-106. Pérdida de datos real en
 // todo cierre de sprint hecho vía el generador de paquete (confirmMapGenerator).
-// TKT1+TKT2 (REQ-[pendiente-ID] Consolidar wiring de Histórico) — mod:21: eliminado el
+// TKT1+TKT2 (REQ histórico — sin CHECKPOINT confirmado Consolidar wiring de Histórico) — mod:21: eliminado el
 // acordeón colapsable (_ARCH_KEY, toggleArchivoHistorico) y el listener duplicado de
 // 'shell:render-historico' — el subtab dedicado (renderHistoricoPanel, locus-backlog-render.js)
 // es ahora el único dueño de la activación y el render. renderHistoricoSection(listEl) pasa a
@@ -51,10 +51,10 @@ import { getActiveSprints, saveBacklog, refreshHistoricoCache, getHistoricoItems
 // ─────────────────────────────────────────────────────────────────────────────
 // B-[tmp:closed-version]: archivar ítems done/descartados al hacer bump de versión
 // Llamada desde confirmMapGenerator() en locus-map-generator.js (ahora awaited — ver header)
-// B-202606-[pendiente-ID]: fix — solo archiva ítems cuyos sprints están cerrados formalmente.
+// B-202606 histórico — sin CHECKPOINT confirmado: fix — solo archiva ítems cuyos sprints están cerrados formalmente.
 // Antes archivaba todos los done/descartado sin filtrar por sprint, migrando a historico
 // ítems de sprints activos o programados que aún no habían sido cerrados.
-// INC-[pendiente-ID]: fix de pérdida de datos — ver header del archivo. Contrato idéntico a
+// INC histórico — sin CHECKPOINT confirmado: fix de pérdida de datos — ver header del archivo. Contrato idéntico a
 // _scmExecuteClose (locus-backlog-sprints.js:1638-1665): marcar → persistir en storage
 // dedicado (merge sobre lo ya existente, saveHistoricoItems sobreescribe la clave completa) →
 // remover de ITEMS in-place → invalidar cache. El splice ocurre fuera del try/catch: debe
@@ -71,7 +71,7 @@ export async function migrateClosedItemsToHistorico() {
 
   itemsArr.forEach(item => {
     if (item.status !== 'done' && item.status !== 'descartado') return;
-    // B-202606-[pendiente-ID]: solo archivar si el ítem pertenece a un sprint formalmente cerrado
+    // B-202606 histórico — sin CHECKPOINT confirmado: solo archivar si el ítem pertenece a un sprint formalmente cerrado
     if (!item.sprint || !closedSprintIds.has(item.sprint)) return;
     item.status = 'historico';
     item.archivedAt = historicoTs;
@@ -118,7 +118,7 @@ export async function migrateClosedItemsToHistorico() {
 //   Disponible para T2 (sección legacy con botón Purgar).
 export let _legacyHistoricos = [];
 
-// INC-[pendiente-ID]: getItems() nunca contiene status:historico desde T-202606-106 (barrera
+// INC histórico — sin CHECKPOINT confirmado: getItems() nunca contiene status:historico desde T-202606-106 (barrera
 // dura en locus-backlog-core.js _setITEMS) — los ítems historico viven exclusivamente en el
 // storage dedicado (T-202606-105) y se leen vía getHistoricoItemsSync(). _buildHistoricoPartitions
 // debe mergear ambas fuentes; el caller es responsable de haber llamado refreshHistoricoCache()
@@ -187,7 +187,7 @@ export function getHistoricoStats() {
   return { total: all.length, byType, byPriority, byEffort };
 }
 
-// INC-[pendiente-ID]: async — refresca el cache de historico antes de construir las particiones.
+// INC histórico — sin CHECKPOINT confirmado: async — refresca el cache de historico antes de construir las particiones.
 // TKT1+TKT2: único caller ahora es renderHistoricoPanel() (locus-backlog-render.js) — el listener
 // propio de 'shell:render-historico' que vivía en este archivo se eliminó (ver header del
 // archivo). renderHistoricoSection deja de ser dueña de su propia activación y de su estado de
@@ -280,7 +280,7 @@ function _renderHistoricoItems() {
 // visual — ver inline_fix en CHECKPOINT. Guard idéntico al patrón ya usado en este archivo
 // (_historicoChildDelegationAttached) para no acumular listeners en re-renders.
 //
-// INC-[pendiente-ID]: renderSprintGroup también emite data-action="version-collapse" en el
+// INC histórico — sin CHECKPOINT confirmado: renderSprintGroup también emite data-action="version-collapse" en el
 // header de cada grupo — en Backlog esa acción la resuelve toggleVersionCollapse() (core.js)
 // contra el Set compartido de _getCollapsedVersions(). Ese Set usa groupId = 'vl-' + sprintId
 // sin distinguir contexto (Backlog vs Histórico) — coactuar sobre el mismo Set acoplaría el
@@ -419,7 +419,7 @@ function _renderLegacySection(listEl) {
 
 // T-202604-287: Vista Kanban — 4 columnas: pendiente · progreso · done · descartado
 
-// TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): listener propio de
+// TKT1 (REQ histórico — sin CHECKPOINT confirmado Consolidar wiring de Histórico): listener propio de
 // 'shell:render-historico' eliminado — dos caminos de wiring corrían en paralelo sobre el
 // mismo botón de sub-tab (este listener + _initHistoricoSubTab en locus-backlog-render.js),
 // ambos async y sin orden garantizado entre sí. renderHistoricoPanel() (locus-backlog-render.js)

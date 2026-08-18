@@ -1,4 +1,4 @@
-// [PP] mod:38 · autor:Rune · 2026-08-16 18:05 UTC-6
+// [PP] mod:39 · autor:Rune · 2026-08-18 22:30 UTC-6
 // TKT5 (TKT-202608-376, REQ-202608-149): render de archivos[] (TKT/INC/PRB/CHG, grupo
 // Relaciones, dentro de depsHtml), queue (INC/PRB/CHG) y zona (DISC) (ambos grupo
 // Ubicación, dentro de metaHtml) — cierra el gap de integración detectado por Finn en
@@ -62,7 +62,7 @@
 // Fix directo en sesión: metaHtml oculta Priority/Effort/Sprint para INCIDENT_TYPES
 //   (INC/PRB/KE/CHG) — no declaran esos campos en su schema (usan sla_priority, no
 //   declaran effort, viven en Q-INC no en sprint). Extiende el patrón ya existente
-//   para DISC (INC-[pendiente-ID] AC2) vía INCIDENT_TYPES, ya importado. Sin CSS nuevo.
+//   para DISC (INC histórico — sin CHECKPOINT confirmado AC2) vía INCIDENT_TYPES, ya importado. Sin CSS nuevo.
 // TKT-202607-045 (REQ-202607-015): chip 'Generado desde' (item.origin) usa
 //   getAnyItem() en vez de getItems().find() — item.origin puede apuntar a un código ITIL.
 // locus-backlog-panel.js
@@ -593,7 +593,7 @@ function _renderItemPanel(item) {
   // T-202606-036 AC4: T con parent — sprint heredado no editable
   const _isInheritedSprint = item.parentId && itemKind(item) === 'TKT';
   const _parentItem = _isInheritedSprint ? (getItems() || []).find(i => i.code === item.parentId) : null;
-  // TKT4-[pendiente-ID]: _sprintDisplay aplica patrón id · label — antes solo .label || _parentItem.sprint
+  // TKT4 histórico — sin CHECKPOINT confirmado: _sprintDisplay aplica patrón id · label — antes solo .label || _parentItem.sprint
   const _inheritedLabel = _parentItem
     ? ((_parentItem.sprint && getActiveSprints().find(s => s.id === _parentItem.sprint))
         ? _sprintDisplay(_parentItem.sprint)
@@ -612,7 +612,7 @@ function _renderItemPanel(item) {
           ${sprintOrphan}
         </select>`;
 
-  // INC-[pendiente-ID] AC1: DISC — Status es badge de solo lectura (discovery|promoted|descartado, nunca pendiente/done)
+  // INC histórico — sin CHECKPOINT confirmado AC1: DISC — Status es badge de solo lectura (discovery|promoted|descartado, nunca pendiente/done)
   // [tmp:tkt-panel-readonly-mode]: item.status done/descartado → status select también disabled (AC literal)
   const _discStatusLabels = { discovery: '◆ discovery', promoted: '➜ promoted', descartado: '🗑 descartado' };
   // [tmp:tkt4-status-guard]: solo INC/PRB/KE — badge de solo lectura, mismo patrón que DISC.
@@ -786,7 +786,7 @@ function _renderItemPanel(item) {
 
   // Fix directo en sesión: Sprint/Priority/Effort no aplican a INC/PRB/KE/CHG (usan
   // sla_priority, no declaran effort, y viven en Q-INC — no en sprint). Extiende el
-  // patrón ya usado para DISC (INC-[pendiente-ID] AC2) vía INCIDENT_TYPES, ya importado.
+  // patrón ya usado para DISC (INC histórico — sin CHECKPOINT confirmado AC2) vía INCIDENT_TYPES, ya importado.
   const _idpHideScrumFields = type === 'DISC' || INCIDENT_TYPES.includes(type);
   const sprintMetaCellHtml = _idpHideScrumFields ? '' : `
       <div class="idp-meta-cell">
@@ -1455,7 +1455,7 @@ function toggleTmplTriggerPanel(btn) {
   }
 })();
 
-// B-[pendiente-ID]: export-backlog-btn — handler adjuntado una sola vez al iniciar
+// B histórico — sin CHECKPOINT confirmado: export-backlog-btn — handler adjuntado una sola vez al iniciar
 (function _initExportBacklogBtn() {
   function _attach() {
     const btn = document.getElementById('export-backlog-btn');

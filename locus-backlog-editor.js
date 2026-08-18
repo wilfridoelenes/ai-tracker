@@ -1,5 +1,5 @@
-// [PP] mod:11 · autor:Rune · 2026-07-10 UTC-6
-// INC-[pendiente-ID]: saveBacklog agregado al import de locus-storage.js — la función existe
+// [PP] mod:12 · autor:Rune · 2026-08-18 22:30 UTC-6
+// INC histórico — sin CHECKPOINT confirmado: saveBacklog agregado al import de locus-storage.js — la función existe
 // ahí (mod:106+, ver module-contracts) y locus-backlog-editor.js está documentado como uno de
 // sus 9 módulos consumidores, pero el import no la incluía. Invocada sin import en confirmItemEditor()
 // (~L500 rama editar, ~L533 rama crear) causando ReferenceError en runtime. Ambas llamadas ahora
@@ -470,7 +470,7 @@ export async function confirmItemEditor() {
     item.blockedBy = blockedBy;
     item.archivos = archivos;
     item.parentId = parentId || null;
-    // T-[pendiente-ID]: parentId es el único campo canónico en JS (REQ-unify-parent TKT2).
+    // T histórico — sin CHECKPOINT confirmado: parentId es el único campo canónico en JS (REQ-unify-parent TKT2).
     // _toItemRow() ya no lee it.parent — el bridge introducido en el fix anterior (INC) se elimina.
     // T-202606-111 AC-3: persistir no_incluye solo en T
     if (type === 'T') item.no_incluye = no_incluye;

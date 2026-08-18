@@ -1,4 +1,4 @@
-// [PP] mod:19 · autor:Rune · 2026-07-27 21:10 UTC-6
+// [PP] mod:20 · autor:Rune · 2026-08-18 22:30 UTC-6
 // Hallazgo fuera de scope — resuelto en sesión (Excepción de resolución directa: dueño presente,
 // Patch, sin bifurcación de founder): _esc(o.code) en la fila de outliers de Cycle Time era typo
 // de esc(o.code) — _esc nunca se declaró ni importó en ningún módulo de Analytics. esc ya está
@@ -7,13 +7,13 @@
 // INC de esta tanda — no reportado por el founder, encontrado por escaneo heurístico de
 // identificadores sin declarar/importar contra el archivo completo.
 // [PP] mod:17 · autor:Rune · 2026-07-24 UTC-6
-// INC-[pendiente-ID] (mismo INC que mod:15/16, causa 4): _PROD_MIN_SESSIONS se consumía bare en
+// INC histórico — sin CHECKPOINT confirmado (mismo INC que mod:15/16, causa 4): _PROD_MIN_SESSIONS se consumía bare en
 // el subtítulo de Patrones de productividad — const de módulo en locus-analytics-charts.js,
 // nunca exportada ni importada aquí. ReferenceError en runtime, mismo patrón de gap doc-vs-código
 // que causas 1 y 3 de este mismo INC. Fix: export agregado en locus-analytics-charts.js (mod:6) +
 // import agregado al bloque ya existente de ese módulo en este archivo.
 // [PP] mod:16 · autor:Rune · 2026-07-24 UTC-6
-// INC-[pendiente-ID] (mismo INC que mod:15, causa 3): _buildCumulativeFlowChart() se invoca en
+// INC histórico — sin CHECKPOINT confirmado (mismo INC que mod:15, causa 3): _buildCumulativeFlowChart() se invoca en
 // este archivo (línea del gráfico de flujo acumulativo) sin import — la función vive en
 // locus-analytics-digest.js, exportada, pero main.js solo importa ese módulo como side-effect
 // (sin named imports) y este archivo nunca la trajo. ReferenceError en runtime — no detectado
@@ -23,18 +23,18 @@
 // (comentario documentaba el consumo de la función sin que el import correspondiente existiera).
 // Fix: import { _buildCumulativeFlowChart } from './locus-analytics-digest.js' agregado.
 // [PP] mod:15 · autor:Rune · 2026-07-24 UTC-6
-// INC-[pendiente-ID]: listener de 'shell:render-analytics' no existía en ningún módulo — switchTab
+// INC histórico — sin CHECKPOINT confirmado: listener de 'shell:render-analytics' no existía en ningún módulo — switchTab
 // lo despachaba desde siempre, pero renderAnalytics() nunca se conectó a ese evento. Tab Analytics
 // quedaba en blanco en todo primer render. Fix: window.addEventListener('shell:render-analytics', ...)
 // agregado antes del bloque de delegation existente — ver comentario en el sitio del fix.
 // [PP] mod:14 · autor:Rune · 2026-07-13 UTC-6
-// INC-[pendiente-ID] fix real aplicado: mod:13 documentó "getCurrentTab importado" pero
+// INC histórico — sin CHECKPOINT confirmado fix real aplicado: mod:13 documentó "getCurrentTab importado" pero
 // el import y el reemplazo del guard nunca se escribieron en el código — típeo de sesión
 // interrumpida. getCurrentTab() ahora sí importado (locus-ui-shell.js) y consumido en la
 // línea del guard. Detectado en pendiente #1 (grep exhaustivo post-cierre del INC) — mismo
 // patrón de gap doc-vs-código que motivó la auditoría original.
 // [PP] mod:13 · autor:Rune · 2026-07-13 UTC-6
-// INC-[pendiente-ID]: getCurrentTab importado — typeof currentTab !== 'undefined' nunca era true.
+// INC histórico — sin CHECKPOINT confirmado: getCurrentTab importado — typeof currentTab !== 'undefined' nunca era true.
 // Guard "T-202605-117: skip render si tab Analytics no es el visible" nunca ejecutaba —
 // renderAnalytics() hacía el trabajo completo aun con el tab fuera de vista (costo de performance).
 // TKT1 (REQ CAEL-04): import de navigateToItem apunta a locus-item-navigator.js — antes
@@ -43,18 +43,18 @@
 // TKT-202607-001: selector de tipo de Flujo Acumulativo migrado de 4 opciones Gen1 (R/T/B/P)
 // a 7 opciones Gen2 (REQ/TKT/DISC/INC/PRB/KE/CHG) — el value ahora coincide con lo que
 // itemKind() retorna, consumido en _buildCumulativeFlowChart() (locus-analytics-digest.js).
-// INC-[pendiente-ID] — verificado contra locus-storage.js real: p.sprints fue eliminado del blob
+// INC histórico — sin CHECKPOINT confirmado — verificado contra locus-storage.js real: p.sprints fue eliminado del blob
 // por REQ-sprints-migration (state.projects[i].sprints ya no se inicializa/migra/lee en
 // _applyStateData). _buildForecastData leía p.sprints para closedSprintIds → siempre vacío →
 // Forecast reportaba "insuficiente" sin importar cuántos sprints hubiera cerrados, en silencio.
 // Fix: getAllProjectsSprints()[p.id] (cache cross-proyecto, fuente real desde la migración).
-// INC-[pendiente-ID]: _analyticsPeriod, _compareProjectIdA/B, _cfProjId, _cfTypeFilter,
+// INC histórico — sin CHECKPOINT confirmado: _analyticsPeriod, _compareProjectIdA/B, _cfProjId, _cfTypeFilter,
 // setAnalyticsPeriod, setCompareProjectA/B, clearComparison, setCfProject, setCfType se referenciaban
 // bare en este archivo (8 identificadores, ~15 sitios) sin import de locus-analytics-core.js.
 // _hasComparison (línea ~393) los lee sin guardia en cada renderAnalytics() → ReferenceError en el
 // primer render del tab, no solo al interactuar con comparación/filtros. Fix: import de los bindings
 // ya exportados por core.js.
-// INC-[pendiente-ID] — gap detectado en auditoría de Finn: el fix de historico (mismo INC que
+// INC histórico — sin CHECKPOINT confirmado — gap detectado en auditoría de Finn: el fix de historico (mismo INC que
 // _closedForProj en charts.js) no se había propagado a _cycleTimeData (2 sitios) ni a
 // _buildForecastData (1 sitio) — seguían leyendo backlog-items-{id} crudo. Fix: _activeAndHistoricoItems
 // con el mismo criterio done/historico de core.js.
@@ -69,7 +69,7 @@ import { _getActiveProjectFilter, getAllProjectsSprints, getAllSessions, getProj
 
 import { esc, getCurrentTab, switchTab } from './locus-ui-shell.js';
 import { itemKind } from './locus-backlog-core.js'; // TKT-D1: itemKind(item) — clasificación Gen2, no letra Gen1
-import { _buildCumulativeFlowChart } from './locus-analytics-digest.js'; // INC-[pendiente-ID]: import faltante — la función se invoca en la línea del gráfico de flujo acumulativo sin haberse importado nunca desde locus-analytics-digest.js. ReferenceError no visible en producción hasta que el fix de wiring de renderAnalytics (mod:15/mod:16 de este archivo, mismo INC previo) permitió que renderAnalytics() corriera completo por primera vez.
+import { _buildCumulativeFlowChart } from './locus-analytics-digest.js'; // INC histórico — sin CHECKPOINT confirmado: import faltante — la función se invoca en la línea del gráfico de flujo acumulativo sin haberse importado nunca desde locus-analytics-digest.js. ReferenceError no visible en producción hasta que el fix de wiring de renderAnalytics (mod:15/mod:16 de este archivo, mismo INC previo) permitió que renderAnalytics() corriera completo por primera vez.
 
 // locus-analytics-render.js
 // Responsabilidad: renderAnalytics — función principal del tab de analytics.
@@ -80,7 +80,7 @@ let _analyticsDirty = false;
 export function _markAnalyticsDirty() { _analyticsDirty = true; }
 // window.* — solo para locus-api.js (T6)
 
-// INC-[pendiente-ID]: async — refresca el cache cross-proyecto de historico antes de las
+// INC histórico — sin CHECKPOINT confirmado: async — refresca el cache cross-proyecto de historico antes de las
 // KPIs (kpiClosed/kpiOpened) y los sparklines, que dependen de _closedItemsInRange/
 // _openedItemsInRange (locus-analytics-core.js, ahora sync sobre el cache ya poblado).
 // Callers (9 call sites en varios módulos) no requieren await — es fire-and-forget desde
@@ -823,7 +823,7 @@ export async function renderAnalytics() {
     });
 
     // Obtener IDs de sprints cerrados desde state
-    // INC-[pendiente-ID]: p.sprints eliminado del blob por REQ-sprints-migration (locus-storage.js
+    // INC histórico — sin CHECKPOINT confirmado: p.sprints eliminado del blob por REQ-sprints-migration (locus-storage.js
     // §_applyStateData) — closedSprintIds quedaba siempre vacío, Forecast reportaba "insuficiente"
     // sin importar cuántos sprints hubiera cerrados. Fix: getAllProjectsSprints()[p.id].
     const closedSprintIds = new Set(
@@ -1162,7 +1162,7 @@ function _getAnalyticsAIs() {
 
 // ── T-042: Heatmap de actividad por día de la semana ──
 
-// INC-[pendiente-ID]: switchTab('analytics') despacha 'shell:render-analytics' (locus-ui-shell.js
+// INC histórico — sin CHECKPOINT confirmado: switchTab('analytics') despacha 'shell:render-analytics' (locus-ui-shell.js
 // L206) desde la primera versión del tab — pero ningún módulo tenía addEventListener para ese
 // evento. renderAnalytics() solo se invocaba desde los setters de locus-analytics-core.js
 // (filtros/comparación/período) y desde locus-proj-core.js/locus-sprint-project.js al cambiar

@@ -1,4 +1,4 @@
-// [PP] mod:38 · autor:Rune · 2026-08-16 UTC-6
+// [PP] mod:39 · autor:Rune · 2026-08-18 22:30 UTC-6
 // TKT-202608-367 (REQ-202608-147): _mgParseHeaderVersion() nueva — extrae la versión declarada
 // en la 2ª línea del header interno del MAP recién generado (docs.map). _mgShowPreview() la
 // compara contra el nombre de archivo propuesto (variable `version`, de _mgGetVersion() —
@@ -22,7 +22,7 @@
 // mg-body, no invalida preview al agregar archivo post-generación (gap preexistente en
 // _mgLoadFiles, fuera de scope de este TKT).
 // [PP] mod:35 · autor:Rune · 2026-07-30 UTC-6
-// TKT2/TKT3/TKT4 (REQ-[pendiente-ID], ref_id CAEL-0730-01): Document Generator queda exclusivo a
+// TKT2/TKT3/TKT4 (REQ histórico — sin CHECKPOINT confirmado, ref_id CAEL-0730-01): Document Generator queda exclusivo a
 // MAP. Retirados de generateDocuments()/_mgShowPreview()/_doConfirmGenerate()/_mgExportAllZip():
 // generación y empaquetado de CONTEXT (competía con el flujo manual de __BR-Core §8), BACKLOG y
 // BACKLOG-FULL (exportBacklogMd()/exportFullHistoryMd() en locus-backlog-generator.js siguen
@@ -38,7 +38,7 @@
 // imports, sin relación con este REQ): getAISessions y save (locus-storage.js) no tenían
 // consumidor en el archivo — retirados.
 // [PP] mod:34 · autor:Rune · 2026-07-30 UTC-6
-// TKT1 (REQ-[pendiente-ID], ref_id CAEL-0730-01): _mgLoadFiles() ya no excluye env*.js del
+// TKT1 (REQ histórico — sin CHECKPOINT confirmado, ref_id CAEL-0730-01): _mgLoadFiles() ya no excluye env*.js del
 // dropzone — la regex `excluded` y su rejected/toast se retiran; env.js se indexa como
 // cualquier otro .js. Cierra el gap registrado en _pp-strategy §7 ("env.js no aparece en el
 // índice del MAP actual — no confirmado contra código real, pendiente de verificar por Rune").
@@ -132,13 +132,13 @@
 // disponible como archivo real al abrir esta sesión.
 // [PP] mod:14 · autor:Rune · 2026-07-05 UTC-6
 // TKT1 (limpieza post-rename): comentarios en L3 y L1741 actualizados — locus-backlog-archive.js → locus-backlog-historico.js. Sin cambio de código.
-// INC-[pendiente-ID]: regresión detectada post-cierre de REQ-[tmp:req-vocab-historico] — este
+// INC histórico — sin CHECKPOINT confirmado: regresión detectada post-cierre de REQ-[tmp:req-vocab-historico] — este
 // archivo importaba archiveClosedItems() de locus-backlog-historico.js (nombre previo al rename) y quedó fuera del scope
 // de TKT2 (archivos declarados no incluían locus-map-generator.js). Import y 2 call sites
 // actualizados a migrateClosedItemsToHistorico() / locus-backlog-historico.js — sin cambio
 // de comportamiento, mismo contrato.
 // [PP] mod:12 · autor:Rune · 2026-07-03 20:10 UTC-6
-// INC-[pendiente-ID]: _doConfirmGenerate() ahora async — await migrateClosedItemsToHistorico() en ambos
+// INC histórico — sin CHECKPOINT confirmado: _doConfirmGenerate() ahora async — await migrateClosedItemsToHistorico() en ambos
 // call sites (ZIP y fallback). Completa el fix de pérdida de datos de locus-backlog-historico.js:
 // la persistencia en storage dedicado debe resolver antes de exponer la descarga al usuario.
 /**
@@ -181,7 +181,7 @@ export function _mgCanonicalBacklogName(prefix, version) {
 }
 
 // ─── Helper: sprint de referencia — activo o último cerrado ──────────────────
-// B-[pendiente-ID]: el generador se usa post-cierre de sprint — si no hay sprint
+// B histórico — sin CHECKPOINT confirmado: el generador se usa post-cierre de sprint — si no hay sprint
 // activo, tomar el último sprint cerrado (mayor closedAt) para el Sprint Review.
 function _mgActiveSprint() {
   const all = getActiveSprints();
@@ -612,7 +612,7 @@ function _generateMap(ver) {
   // R-202605-137: produce JSON puro — parseable con JSON.parse sin regex
   // T-202605-491: incluye campo status en objeto raíz — coherencia con CONTEXT
   // B-202605-494: acepta ver como parámetro; fallback a _mgGetVersion() si no se pasa
-  // [pendiente-ID]: AC-17/18/19 — dos pasadas para exports + calls cruzados
+  // histórico — sin CHECKPOINT confirmado: AC-17/18/19 — dos pasadas para exports + calls cruzados
   const order = { js: 0, css: 1, html: 2 };
   const sorted = [..._mapGen.files].sort((a, b) => {
     const ea = a.name.split('.').pop().toLowerCase();
@@ -1282,7 +1282,7 @@ function confirmMapGenerator() {
   const allSprints = getActiveSprints();
   const hasClosedSprint = allSprints.some(s => s.status === 'closed');
 if (!hasClosedSprint) {
-  // B-[pendiente-ID]: warning no bloqueante — MAP y demás documentos se descargan
+  // B histórico — sin CHECKPOINT confirmado: warning no bloqueante — MAP y demás documentos se descargan
   // sin sprint cerrado. Solo el bump de versión requiere sprint cerrado.
   // Si no hay sprint cerrado → usar versión actual sin bumpear.
   showToast('warning', 'Sin sprint cerrado — archivos descargados con versión actual sin bumpear');
@@ -1318,7 +1318,7 @@ if (!hasClosedSprint) {
   _doConfirmGenerate();
 }
 
-// INC-[pendiente-ID]: async — permite await migrateClosedItemsToHistorico() en ambos call sites internos
+// INC histórico — sin CHECKPOINT confirmado: async — permite await migrateClosedItemsToHistorico() en ambos call sites internos
 // (ZIP y fallback de descarga individual). Antes disparaba la promesa sin esperarla ("ahora
 // awaited" declarado en el header de locus-backlog-historico.js pero nunca aplicado aquí —
 // corregido en esta entrega). Dos callers, ambos fire-and-forget sobre el resultado
@@ -1361,7 +1361,7 @@ async function _doConfirmGenerate() {
   fileDefs.forEach(d => _mgDownload(d.content, d.filename));
   fileDefs.forEach(d => { if (d.apply) d.apply(); });
   _mgApplyBumpedVersion(bumpedVer); // B-202605-493: diferido post-descarga
-  await migrateClosedItemsToHistorico(); // INC-[pendiente-ID]: awaited — persistencia debe completarse antes del toast de éxito
+  await migrateClosedItemsToHistorico(); // INC histórico — sin CHECKPOINT confirmado: awaited — persistencia debe completarse antes del toast de éxito
 
   closeMapGenerator();
   showToast('success', `Paquete generado — ${fileDefs.length} documento${fileDefs.length !== 1 ? 's' : ''} · v${bumpedVer}`);

@@ -1,11 +1,11 @@
-// [PP] mod:6 · autor:Rune · 2026-08-12 06:15 UTC-6
+// [PP] mod:7 · autor:Rune · 2026-08-18 22:30 UTC-6
 // TKT2 (CAEL-08111815-01): saveWorker()/deleteWorker() agregados en los 5 sitios de mutación
 // de Worker (avatar, alta, archived, y las dos bajas) — save()/saveImmediate() ya no persisten
 // ais en tracker_state, cada sitio persiste su propio cambio vía el canal dedicado.
-// TKT-[pendiente-ID] (REQ CAEL-01): AVATAR_LOGOS.claude reemplazado — logo oficial
+// TKT histórico — sin CHECKPOINT confirmado (REQ CAEL-01): AVATAR_LOGOS.claude reemplazado — logo oficial
 // de marca (fill="#d97757" fijo) en vez del ícono abstracto circular anterior.
 // [PP] mod:4 · autor:Rune · 2026-07-13 UTC-6
-// INC-[pendiente-ID]: APP_VERSION exportada — locus-docs.js la consumía vía
+// INC histórico — sin CHECKPOINT confirmado: APP_VERSION exportada — locus-docs.js la consumía vía
 // typeof APP_VERSION !== 'undefined' sin import real; el guard nunca era true
 // (variable module-privada, no global) y siempre caía al fallback 'v0'/_effectiveVersion.
 // [PP] mod:3 · autor:Rune · 2026-07-11 00:00 UTC-6

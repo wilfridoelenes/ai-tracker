@@ -1,4 +1,4 @@
-/* [PP] mod:14 · autor:Nova · 2026-08-17 22:10 UTC-6 */
+/* [PP] mod:15 · autor:Nova · 2026-08-18 22:40 UTC-6 */
 /* TKT1 (REQ · Foco visible en .htmlmap-filter-btn, origen DISC-202608-182): agrega :focus-visible
    — mismo outline: 2px solid var(--accent); outline-offset: 2px ya aplicado a .filter-status-btn/
    .filter-type-btn/.filter-done-chip/.bl-strip-btn en TKT-202608-383 (locus-layout.css), que
@@ -294,7 +294,7 @@
   background: rgb(93 154 36 / 12%);
 }
 
-/* TKT-[pendiente-ID] (REQ-[pendiente-ID] · CAEL-08111530-02): .hmfilter-pill no tenía estado
+/* TKT histórico — sin CHECKPOINT confirmado (REQ histórico — sin CHECKPOINT confirmado · CAEL-08111530-02): .hmfilter-pill no tenía estado
    de foco propio — gap de accesibilidad frente a AC2 (foco visible, contraste ≥4.5:1). Mismo
    token --accent-border ya usado en inputs de este archivo (.du-resolved-search-input:focus-visible). */
 .hmfilter-pill:focus-visible {
@@ -1137,7 +1137,7 @@
   color: var(--red);
 }
 
-/* TKT-[pendiente-ID] (REQ-[pendiente-ID] · CAEL-08111530-02): variante --pendiente — completa
+/* TKT histórico — sin CHECKPOINT confirmado (REQ histórico — sin CHECKPOINT confirmado · CAEL-08111530-02): variante --pendiente — completa
    el set de 3 status que la vista consolidada necesita mostrar simultáneamente. Reutiliza
    --accent, mismo token ya usado como color de "seleccionado" en .hmfilter-pill.active — sin
    token nuevo. .du-resolved-badge deja de ser exclusivo del sub-tab Resueltos: la clase base

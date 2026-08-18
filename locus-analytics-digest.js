@@ -1,14 +1,14 @@
-// [PP] mod:7 · autor:Rune · 2026-07-06 09:00 UTC-6
+// [PP] mod:8 · autor:Rune · 2026-08-18 22:30 UTC-6
 // TKT-202607-001: _buildCumulativeFlowChart() filtraba con (item.code||'').startsWith(_cfTypeFilter)
 // — discriminador Gen1 por prefijo de code. Los 7 tipos Gen2 se clasifican con itemKind(item) desde
 // locus-backlog-core.js (mismo criterio ya en uso en locus-analytics-render.js, ver TKT-D1).
-// INC-[pendiente-ID] — verificado contra locus-storage.js real: p.sprints fue eliminado del blob
+// INC histórico — sin CHECKPOINT confirmado — verificado contra locus-storage.js real: p.sprints fue eliminado del blob
 // por REQ-sprints-migration. allSprints (anotaciones de sprint en el gráfico) leía p.sprints →
 // siempre vacío → sin líneas de anotación, en silencio. Fix: getAllProjectsSprints()[p.id].
-// INC-[pendiente-ID]: header migrado a formato canónico (BR-Execution §9) — v/sprint eliminados.
-// INC-[pendiente-ID]: state referenciado sin import en _buildCumulativeFlowChart (2 sitios) —
+// INC histórico — sin CHECKPOINT confirmado: header migrado a formato canónico (BR-Execution §9) — v/sprint eliminados.
+// INC histórico — sin CHECKPOINT confirmado: state referenciado sin import en _buildCumulativeFlowChart (2 sitios) —
 // ReferenceError en runtime. Fix: import getState desde locus-storage.js.
-// INC-[pendiente-ID]: _cfProjId y _cfTypeFilter (filtros del propio gráfico que esta función
+// INC histórico — sin CHECKPOINT confirmado: _cfProjId y _cfTypeFilter (filtros del propio gráfico que esta función
 // construye, 3 sitios: proyecto x2, tipo x1) también se referenciaban bare — mismo patrón, no
 // detectado en el fix anterior porque el ReferenceError de `state` ocurría primero en el flujo.
 import { esc } from './locus-ui-shell.js';
@@ -114,7 +114,7 @@ export function _buildCumulativeFlowChart() {
     + ' Z';
 
   // ── Anotaciones de sprint ──
-  // INC-[pendiente-ID]: p.sprints eliminado del blob por REQ-sprints-migration (locus-storage.js
+  // INC histórico — sin CHECKPOINT confirmado: p.sprints eliminado del blob por REQ-sprints-migration (locus-storage.js
   // §_applyStateData) — allSprints quedaba siempre vacío, sin líneas de anotación de sprint en el
   // gráfico. Fix: getAllProjectsSprints()[p.id].
   const allSprints = (getState().projects || []).flatMap(p => {

@@ -1,4 +1,4 @@
-/* [PP] mod:12 · autor:Nova · 2026-08-12 10:15 UTC-6 */
+/* [PP] mod:13 · autor:Nova · 2026-08-18 22:40 UTC-6 */
 /* TKT ref:CAEL-08101045-02 (REQ-202608-118, origen DISC-202608-127): .ctr-toolbar y sus
    3 reglas hijas (.ctr-search-input, .ctr-search-clear, .ctr-search-clear--visible)
    retiradas — sin markup en index.html ni consumidor JS desde TKT-202608-296 (verificado
@@ -12,7 +12,7 @@
    feature Plan cancelada (REQ-202607-014). Archivo verificado: no contenía ninguna regla
    de Pulso pese a lo declarado en el INC de index.html que restauró el <link>. El <link>
    en index.html se actualiza al nuevo nombre en TKT siguiente (Rune). */
-/* REQ-[pendiente-ID] Unificar vocabulario historico — Conflicto CSS resuelto: eliminado
+/* REQ histórico — sin CHECKPOINT confirmado — Unificar vocabulario historico — Conflicto CSS resuelto: eliminado
    bloque muerto B-202604-193 (.historico-section y 3 clases más, sin consumidor JS) que
    colisionaba por nombre con locus-historico.css tras el rename arch-*→historico-*. */
 /* locus-contracts.css */

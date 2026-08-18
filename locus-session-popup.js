@@ -1,4 +1,4 @@
-// [PP] mod:26 · autor:Rune · 2026-08-17 10:00 UTC-6
+// [PP] mod:27 · autor:Rune · 2026-08-18 22:30 UTC-6
 // TKT-202608-379 (REQ-202608-153): retirado import huérfano `parsePaste` desde
 // locus-session-parse.js — grep exhaustivo sobre el archivo completo (1317 líneas) confirma
 // cero uso real fuera de la propia línea de import. Causa raíz: mismo patrón de deuda ya
@@ -533,7 +533,7 @@ function unlockNowFromPopup() {
   if (!ai) return;
   _resetWorker(ai);
   save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-  // TKT-[pendiente-ID] (INC-[pendiente-ID]): save() ya no sube ais al blob de tracker_state
+  // TKT histórico (INC histórico — sin CHECKPOINT confirmado): save() ya no sube ais al blob de tracker_state
   // desde la migración a tracker_workers (CAEL-08111815-01) — este sitio quedó fuera del
   // alcance de ese TKT. Mismo patrón que unlockNowFromCard() (locus-sesiones-viz.js):
   // persistir el Worker por su canal propio, sin depender de save().

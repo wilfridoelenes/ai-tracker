@@ -1,4 +1,4 @@
-// [PP] mod:46 · autor:Rune · 2026-08-14 10:00 UTC-6
+// [PP] mod:47 · autor:Rune · 2026-08-18 22:30 UTC-6
 // TKT-202608-344 (TKT2, parent REQ-202608-133, DependsOn: TKT-202608-343 done): migra el
 // chevron del header #bl-plan-done-header (bloque Terminados) de swap de textContent JS
 // (▾/▸) a .chevron--dropdown (Patrón A-14, _Locus-css-ref mod:194/199 — token ya entregado
@@ -11,7 +11,7 @@
 // (código muerto, no existe en el DOM — DISC de la misma tanda, fuera de scope). Sin cambio
 // de firma en ninguna función existente. contract_update: no.
 // [PP] mod:45 · autor:Rune · 2026-08-11 01:15 UTC-6
-// INC-[pendiente-ID] (Fast Track — sla_priority medium, un solo archivo, sin lógica de negocio
+// INC histórico — sin CHECKPOINT confirmado (Fast Track — sla_priority medium, un solo archivo, sin lógica de negocio
 // nueva): _updatePlanStatsShell() determinaba isEmpty solo con unassigned.length === 0 (L490
 // anterior) — ignoraba doneUnassigned (ítems Q-Backlog en status done, ya calculado en
 // _renderPlanningView() para el bloque Terminados colapsable, TKT1/TKT2 REQ CAEL-0717-01).
@@ -113,7 +113,7 @@
 //   ya fue eliminado en mod:34 — verificado con grep, sin código real que limpiar, solo el
 //   comentario estaba desactualizado. Sin cambio de comportamiento. contract_update: no.
 // [PP] mod:34 · autor:Rune · 2026-07-17 UTC-6
-// TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): subsistema muerto "Sprint selector
+// TKT1 (REQ histórico — sin CHECKPOINT confirmado Consolidar wiring de Histórico): subsistema muerto "Sprint selector
 // bar" eliminado — _roadmapSprintFilter, _statusPills, roadmapGoToSprint, _buildSprintOption,
 // _buildSprintSelector, _blSprintOpen, _blSprintClose, _blSprintSelect, _blSprintToggleClosed,
 // _attachSprintBarDelegation, _renderSprintRoadmap. Sin call sites reales fuera del propio
@@ -147,7 +147,7 @@
 // la rama muerta (else if openSprints.length / spread ...openSprints) no era alcanzable.
 // TKT-202607-010: código muerto _planDragOver/_planDragLeave eliminado — sin call sites reales,
 // la delegación inline en _attachPlanViewDelegation (dragenter/dragover/dragleave) ya cubre el comportamiento.
-// INC-[pendiente-ID]: fix drag&drop — currentTarget es getter-only en Event (post-ESM, strict mode).
+// INC histórico — sin CHECKPOINT confirmado: fix drag&drop — currentTarget es getter-only en Event (post-ESM, strict mode).
 // Object.assign(e, {currentTarget}) lanzaba TypeError. _planDragStart/_planDragEnd/_planDrop
 // ahora reciben el elemento destino como parámetro explícito en vez de mutar el Event nativo.
 // TKT1 (limpieza post-rename): comentario en L9 actualizado — locus-backlog-archive.js → locus-backlog-historico.js. Sin cambio de código.
@@ -156,7 +156,7 @@
 // Migrado desde locus-backlog-render.js (T-202605-090)
 // T-202606-091: headers colapsables en sprints destino — delegación en bl-plan-col-header
 // T-202606-092: drop de R mueve Ts hijos activos al mismo sprint destino
-// TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): toggleClosedSprintsBody eliminada —
+// TKT1 (REQ histórico — sin CHECKPOINT confirmado Consolidar wiring de Histórico): toggleClosedSprintsBody eliminada —
 // era alias de compatibilidad sin call sites reales (solo importada, nunca invocada) que
 // dependía de toggleArchivoHistorico, export eliminado de locus-backlog-historico.js al quitar
 // el acordeón colapsable del subtab Histórico.
@@ -339,7 +339,7 @@ export function _renderPlanningView(listEl, closeCallback) {
     // TKT2 (REQ CAEL-0724-02): programado nunca coincide con activeSprint — isCurrent ya lo
     // excluye por construcción, sin condición adicional.
     const isProgramado = sprint.status === 'scheduled';
-    // TKT-[pendiente-ID]: patrón id · label — fallback a solo id si no hay label propio
+    // TKT histórico — sin CHECKPOINT confirmado: patrón id · label — fallback a solo id si no hay label propio
     const displayName = sprint.label ? `${sprint.id} · ${sprint.label}` : sprint.id;
     const inSprint  = getItems().filter(i =>
       i.sprint === sprint.id &&

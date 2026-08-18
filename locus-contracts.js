@@ -1,4 +1,4 @@
-// [PP] mod:10 · autor:Rune · 2026-08-10 10:00 UTC-6
+// [PP] mod:11 · autor:Rune · 2026-08-18 22:30 UTC-6
 // TKT-202608-296 (REQ-202608-118): onContratosSearch()/clearContratosSearch() y su wiring
 //   (#ctr-search-input/#ctr-search-clear) eliminados — buscador local reemplazado por ⌘K.
 //   _ctrSearchQuery se conserva como filtro consumido por renderContratos() — sin fuente
@@ -373,7 +373,7 @@ function confirmResetSessions() {
   localStorage.removeItem('app-version-override');
 
   // AC-9: sincronizar reset a Supabase cuando el usuario está autenticado
-  // INC-[pendiente-ID]: typeof _supabase !== 'undefined' era guard siempre falso — _supabase
+  // INC histórico — sin CHECKPOINT confirmado: typeof _supabase !== 'undefined' era guard siempre falso — _supabase
   // no es global ni estaba importado en este módulo. Este bloque nunca se ejecutaba.
   {
     const _sbCtx = getSupabaseContext();

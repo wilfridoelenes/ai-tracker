@@ -1,4 +1,4 @@
-/* [PP] mod:15 · autor:Nova · 2026-08-10 08:15 UTC-6 */
+/* [PP] mod:16 · autor:Nova · 2026-08-18 22:40 UTC-6 */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* TKT2 (REQ CAEL-0724-01): .bl-plan-card--child — sangría visual del TKT bajo su REQ padre
    cuando ambos están renderizados en la misma lista (Q-Backlog o mismo sprint destino).
@@ -677,7 +677,7 @@
 
 /* END R-B: EXECUTION-PLAN */
 
-/* ══ TKT2 REQ-[pendiente-ID]: sprint-conflict-banner — estilo propio, ya no hereda de .scb-icon ══ */
+/* ══ TKT2 REQ histórico — sin CHECKPOINT confirmado: sprint-conflict-banner — estilo propio, ya no hereda de .scb-icon ══ */
 
 .sprint-conflict-banner {
   display: flex;

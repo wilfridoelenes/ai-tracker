@@ -1,4 +1,4 @@
-// [PP] mod:3 · autor:Rune · 2026-07-13 00:50 UTC-6
+// [PP] mod:4 · autor:Rune · 2026-08-18 22:30 UTC-6
 // locus-doc-log.js
 // Módulo: Doc Activity Log — openDocLog · closeDocLog · _updateDocLogCount · _renderDocLog · clearDocLog
 // Migrado desde locus-misc-ui.js (T-202605-074)
@@ -41,7 +41,7 @@ export function closeDocLog() {
 }
 
 export function _updateDocLogCount(doc) {
-  // TKT-[pendiente-ID]: botón único #btn-view-doclog (antes 3 botones por doc, ver index.html mod:117).
+  // TKT histórico — sin CHECKPOINT confirmado: botón único #btn-view-doclog (antes 3 botones por doc, ver index.html mod:117).
   // AC3: si el doc emitido no es el sub-tab activo, no se toca el badge — evita mostrar el
   // conteo de un doc no visible. _updateSubTabButtons vuelve a llamar a esta función al
   // reactivar el sub-tab, así el badge siempre refleja el doc realmente visible.

@@ -1,4 +1,4 @@
-// [PP] mod:67 · autor:Rune · 2026-08-15 14:20 UTC-6
+// [PP] mod:68 · autor:Rune · 2026-08-18 22:30 UTC-6
 // INC-ref:RUNE-08151405-01: causa raíz confirmada — _populateWorkerHeader() ocultaba
 //   correctHoraBtn (dot-correct-hora) con la condición equivocada (isAvail en vez de
 //   state !== 'exhausted'), dejándolo visible en insession e interrupted, no solo en
@@ -72,7 +72,7 @@
 // interruptBtn, delegación B-202605-017 y case 'dismiss-interrupted' (código muerto,
 // sin trigger de markup) eliminados. Import de confirmInterruptInline/dismissInterrupted
 // limpiado. El checkbox de WIP (TKT1/TKT2) reemplaza esta acción.
-// INC-[pendiente-ID]: avatarEl.textContent → innerHTML en _populateWorkerHeader() (L836) —
+// INC histórico — sin CHECKPOINT confirmado: avatarEl.textContent → innerHTML en _populateWorkerHeader() (L836) —
 // ai.avatar es markup SVG; con textContent se pintaba como texto crudo (path data visible
 // en pantalla, ver captura del founder). Mismo patrón ya usado en #pop-avatar.
 // [PP] mod:41 · autor:Rune · 2026-07-14 UTC-6
@@ -195,7 +195,7 @@ export { _sessRelTsShared, _cscardRelTs } from './locus-sesiones-utils.js';
 // anteriores → '10 may'
 function _sessFixedTs(s, group) {
   const ts = s.createdAt || s.date && new Date(s.date).getTime() || 0; // B-202605-067: createdAt como fuente — refleja ocurrencia, no edición. Fallback a s.date
-  if (!ts) return (s.dateShort || '—'); // B-[pendiente-ID]: fallback '—' cuando no hay timestamp ni dateShort
+  if (!ts) return (s.dateShort || '—'); // B histórico — sin CHECKPOINT confirmado: fallback '—' cuando no hay timestamp ni dateShort
   try {
     if (group === 'hoy' || group === 'ayer') {
       return new Date(ts).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -207,12 +207,12 @@ function _sessFixedTs(s, group) {
     }
     return new Date(ts).toLocaleDateString('es', { day: 'numeric', month: 'short' });
   } catch(_) {
-    return (s.dateShort || '—'); // B-[pendiente-ID]: fallback '—' en catch
+    return (s.dateShort || '—'); // B histórico — sin CHECKPOINT confirmado: fallback '—' en catch
   }
 }
 
 // ── R-202604-078 Fase 2: Mini-historial de IA en Col2 (modo Por IA) ─────
-// T-[pendiente-ID]: refactorizado — sesión en curso integrada como grupo 'ahora' al tope (AC-2..AC-9)
+// T histórico — sin CHECKPOINT confirmado: refactorizado — sesión en curso integrada como grupo 'ahora' al tope (AC-2..AC-9)
 
 // Render Col2 en modo Por IA: lista unificada — sesión en curso + historial agrupado
 function _trackerRenderMiniHist(aiId) {
@@ -230,7 +230,7 @@ function _trackerRenderMiniHist(aiId) {
   }
 
   const allSessions = getAllSessions();
-  // B-[pendiente-ID]: guard aiId — evita que s.aiId===null pase el filtro cuando aiId es null
+  // B histórico — sin CHECKPOINT confirmado: guard aiId — evita que s.aiId===null pase el filtro cuando aiId es null
   const aiSessions = aiId ? allSessions.filter(s => s.aiId === aiId) : [];
 
   // AC-9: excluir sesión en curso de pastSessions — se construye desde currentSess directamente
@@ -247,7 +247,7 @@ function _trackerRenderMiniHist(aiId) {
     : pastSessions;
 
   // más reciente primero — sort explícito por createdAt descendente, con fallback a s.date
-  // B-[pendiente-ID]: createdAt ausente en algunas sesiones causaba ts=0 y orden incorrecto
+  // B histórico — sin CHECKPOINT confirmado: createdAt ausente en algunas sesiones causaba ts=0 y orden incorrecto
   const _sortTs = (s) => s.createdAt || (s.date && new Date(s.date).getTime()) || 0;
   const sorted = [...filtered].sort((a, b) => _sortTs(b) - _sortTs(a));
 
@@ -725,7 +725,7 @@ export function render() {
   if (!_radarSbInited) { _radarSbInited = true; _initRadarSidebarState(); }
   // T-202605-447: actualizar banner de sesión sugerida tras cada render
   renderSuggestionBanner();
-  // R-202605-008: checklist de setup eliminado — REQ-[pendiente-ID] TKT1
+  // R-202605-008: checklist de setup eliminado — REQ histórico — sin CHECKPOINT confirmado TKT1
   // B-202605-508: actualizar badges de tabs al final de cada render
   updateTabNotifBadges();
 }
@@ -932,7 +932,7 @@ function _populateWorkerHeader(ai) {
 
   const avatarEl = document.getElementById('worker-header-avatar');
   if (avatarEl) {
-    avatarEl.innerHTML = ai.avatar || aiInitial; // INC-[pendiente-ID]: textContent no renderizaba el SVG — corregido a innerHTML, mismo patrón que #pop-avatar (locus-workers.js:83)
+    avatarEl.innerHTML = ai.avatar || aiInitial; // INC histórico — sin CHECKPOINT confirmado: textContent no renderizaba el SVG — corregido a innerHTML, mismo patrón que #pop-avatar (locus-workers.js:83)
     avatarEl.title = ai.name;
     avatarEl.dataset.aiId = ai.id;
     avatarEl.className = 'sc-avatar sc-avatar--' + state;
@@ -1198,7 +1198,7 @@ function _maybeRestoreDraft(aiId, ta) {
 
 // _discardDraft — REQ-restore-draft TKT2 (Rune), AC5. Wired desde #ingest-draft-discard-btn
 // en _openIngestModal. Limpia las tres capas (textarea, localStorage, Supabase) — usa
-// getSupabaseContext() (INC-[pendiente-ID]) en vez del guard typeof _supabase muerto que
+// getSupabaseContext() (INC histórico — sin CHECKPOINT confirmado) en vez del guard typeof _supabase muerto que
 // tenía el resto del ecosistema para este tipo de operación.
 function _discardDraft(aiId) {
   if (!aiId) return;

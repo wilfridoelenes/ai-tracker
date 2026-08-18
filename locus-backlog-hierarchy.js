@@ -1,4 +1,4 @@
-// [PP] mod:2 · autor:Rune · 2026-07-07 18:00 UTC-6
+// [PP] mod:3 · autor:Rune · 2026-08-18 22:30 UTC-6
 // locus-backlog-hierarchy.js
 // Responsabilidad: _buildChildMap — agrupación de hijos (TKT/INC) por REQ padre, con sort
 //   topológico por depends_on. Único consumidor de datos: itemKind() de locus-backlog-core.js.
@@ -16,7 +16,7 @@ import { itemKind } from './locus-backlog-core.js';
 
 // T-202606-022: _buildChildMap — agrupación de hijos por R con sort topológico por depends_on
 // Recibe los ítems de un sprint (o de una zona) y retorna Map: rCode → [hijos ordenados]
-// INC-[pendiente-ID] TKT1: includeHistorico (default false) — cuando true, hijos con status
+// INC histórico — sin CHECKPOINT confirmado TKT1: includeHistorico (default false) — cuando true, hijos con status
 // 'historico' se incluyen en el árbol igual que cualquier otro status. Default false preserva
 // el contrato original para todo consumidor existente — sin cambio de comportamiento. Único
 // caller con includeHistorico:true es _renderVistaLista para grupos de sprint closed.

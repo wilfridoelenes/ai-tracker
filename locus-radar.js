@@ -1,4 +1,4 @@
-// [PP] mod:20 · autor:Rune · 2026-08-11 23:50 UTC-6
+// [PP] mod:21 · autor:Rune · 2026-08-18 22:30 UTC-6
 // [CORRECCIÓN — Rune, revierte fix incorrecto de mod:19]: mod:19 cambió el botón
 // rsb-card-quick a webfont asumiendo símbolo inexistente. Falso — #ti-plus sí está
 // definido en el sprite local de index.html (TKT-202608-286, REQ-202608-117 TKT5,
@@ -359,7 +359,7 @@ export function renderGlobalRadarSidebar() {
     }
   }
 
-  // B-[pendiente-ID]: guard de diff — evita reescribir innerHTML (y el parpadeo visual que
+  // B histórico — sin CHECKPOINT confirmado: guard de diff — evita reescribir innerHTML (y el parpadeo visual que
   // produce) cuando el html generado es idéntico al ya presente en el DOM. _saveFlush()
   // despacha shell:render-radar en cada guardado sin distinguir si el cambio afecta al radar —
   // este guard evita el costo visual de esa señal incondicional. No reemplaza el guard

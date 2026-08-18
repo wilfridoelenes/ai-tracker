@@ -1,4 +1,4 @@
-// [PP] mod:15 · autor:Rune · 2026-08-06 UTC-6
+// [PP] mod:16 · autor:Rune · 2026-08-18 22:30 UTC-6
 // TKT-202608-263 (parent: REQ-202608-104, depends_on: TKT-202608-262): nueva función exportada
 // _generateIncidentsFullMd() — export puntual "histórico completo" que el comentario de mod:14
 // (línea 8, sin cambiar) ya anticipaba. Reutiliza _isIndexEligible() (mod:13, conservada sin
@@ -143,7 +143,7 @@
 // fuente de datos (getIncidents()) que el resto del módulo.
 
 // [PP] mod:6 · autor:Rune · 2026-07-21 15:10 UTC-6
-// INC-[pendiente-ID] (fix — SyntaxError reportado por founder: locus-incidents-render.js:43 no
+// INC histórico — sin CHECKPOINT confirmado (fix — SyntaxError reportado por founder: locus-incidents-render.js:43 no
 // podía importar '_countClosedIncidents', ausente en este módulo): agrega el export faltante.
 // Mismo cálculo que closedCount interno de _generateIncidentsMd() (all.length - active.length,
 // sobre getIncidents() — invariant de fuente de datos preservado) — ahora factorizado en una sola
@@ -171,7 +171,7 @@
 // (locus-map-generator.js:614, locus-incidents-render.js:316).
 
 // [PP] mod:2 · autor:Rune · 2026-07-20 23:10 UTC-6
-// TKT-[pendiente-ID] (deuda técnica, DISC promovida en cierre de REQ CAEL-0720-01): umbral
+// TKT histórico — sin CHECKPOINT confirmado (deuda técnica, DISC promovida en cierre de REQ CAEL-0720-01): umbral
 // de riesgo SLA movido a locus-inc-fields.js (SLA_RIESGO_WINDOW_MS, exportado) — antes vivía
 // duplicado a mano aquí y en locus-backlog-render.js. _riesgoTag() sin cambio de comportamiento.
 //

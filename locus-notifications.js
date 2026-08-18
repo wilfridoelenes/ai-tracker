@@ -1,4 +1,4 @@
-// [PP] mod:17 · autor:Rune · 2026-07-24 UTC-6
+// [PP] mod:18 · autor:Rune · 2026-08-18 22:30 UTC-6
 // TKT4 (REQ CAEL-0723-01, ref_id CAEL-0723-01): bloque 5 (rama Reactiva) — gatea con
 // isSlaClockPaused(item) (locus-backlog-core.js) antes de evaluar _fires. Cubre las 3
 // prioridades (high/medium/low) con un solo early-return, sin duplicar el check por rama.
@@ -15,7 +15,7 @@
 // blocked_at: "Restaurar por defecto" usa reset directo — el patrón D-03
 // (.item-inline-confirm) queda pendiente hasta identificar el módulo que lo implementa.
 // [PP] mod:14 · autor:Rune · 2026-07-13 UTC-6
-// INC-[pendiente-ID]: getState() importado — typeof state !== 'undefined' en
+// INC histórico — sin CHECKPOINT confirmado: getState() importado — typeof state !== 'undefined' en
 // _computeNotifications() (bloque 6, aiCadencia) nunca era true — 'active' siempre
 // era []. La notificación "IA fuera de cadencia" nunca disparaba pese a estar
 // enabled:true por default. Fix: getState().ais, mismo patrón ya usado en el resto
@@ -33,7 +33,7 @@
 // sprintLow declaraba tab:'sprint' sin clave correspondiente en counts, badge nunca se incrementaba.
 // TKT3 (REQ CAEL-01): counts extendido con 'incidentes' · notificación incHigh cambia tab de
 // 'backlog' a 'incidentes' — badge del tab Incidentes ahora independiente del de Backlog.
-// TKT-202607-INC-NAMING (INC-[pendiente-ID]): la alerta "INC high sin resolver" (__BR-Core
+// TKT-202607-INC-NAMING (INC histórico — sin CHECKPOINT confirmado): la alerta "INC high sin resolver" (__BR-Core
 //   §6) era código muerto — iteraba `items` (getItems()), que nunca contiene tipo INC desde
 //   la separación ITEMS/INCIDENTS de TKT-202607-005. Import de getIncidents() agregado,
 //   bloque re-apuntado a `incidents`. Fallback slaPriority||sla_priority e
@@ -51,7 +51,7 @@ import { getItems, getIncidents, _registerCoreCallback, isSlaClockPaused } from 
 import { navigateToItem } from './locus-item-navigator.js'; // TKT1 (REQ CAEL-04): reubicado — antes en locus-backlog-sprints.js
 import { renderGlobalRadarSidebar } from './locus-radar.js';
 import { navigateToCard } from './locus-sesiones-stats.js';
-import { _sprintDisplay, getActiveSprints, getAllSessions, getState } from './locus-storage.js'; // INC-[pendiente-ID]: getState agregado — guard typeof state muerto
+import { _sprintDisplay, getActiveSprints, getAllSessions, getState } from './locus-storage.js'; // INC histórico — sin CHECKPOINT confirmado: getState agregado — guard typeof state muerto
 import { switchTab } from './locus-ui-shell.js';
 import { toast } from './locus-toast.js';
 import { getMdiffStepZeroActive } from './locus-backlog-merge.js';

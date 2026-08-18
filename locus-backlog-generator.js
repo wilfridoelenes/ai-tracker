@@ -1,4 +1,4 @@
-// [PP] mod:62 · autor:Rune · 2026-08-15 UTC-6
+// [PP] mod:63 · autor:Rune · 2026-08-18 22:30 UTC-6
 // RUNE-08151230-01: _isActiveQIncItem() — rama PRB leía i.status en vez de incIncidentStatus(i).
 // PRB no declara `status` (solo CHG lo hace, __BR-Ecosystem §4b) — la comparación siempre daba
 // undefined, ningún PRB activo se reconocía como activo en los 4 call sites de esta función
@@ -1345,7 +1345,7 @@ function _buildItemFieldsMd(item, state) {
     // T-202606-067: DISC siempre exportan con zona: Q-DISC — independiente del valor en storage
     const _itemT = _itemTypeGen2(item);
     const _sprintVal = (_itemT === 'DISC') ? `${_docPrefix()}-Q-DISC` : item.sprint;
-    // [pendiente-ID]: leer sprint_id y sprint_name directamente si están presentes (formato nuevo).
+    // histórico — sin CHECKPOINT confirmado: leer sprint_id y sprint_name directamente si están presentes (formato nuevo).
     // Fallback a split de item.sprint para ítems legacy sin campos separados.
     let _sprintId, _sprintName;
     if (item.sprint_id) {

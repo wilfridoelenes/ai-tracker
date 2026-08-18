@@ -1,4 +1,4 @@
-// [PP] mod:14 · autor:Rune · 2026-08-15 14:05 UTC-6
+// [PP] mod:15 · autor:Rune · 2026-08-18 22:30 UTC-6
 // INC-ref:RUNE-08151405-01: openCorrectHora() no verificaba ai.status antes de abrir el modal
 //   "Editar worker agotado" — se abría (y confirmCorrectHora() forzaba status:'exhausted'
 //   incondicionalmente al guardar) sobre workers en cualquier estado, incluido in_session.
@@ -10,14 +10,14 @@
 // T-202606-065) cuando interpretHora().withinResetWindow es false — mismo criterio
 // centralizado que TKT1/TKT2/TKT3, reemplaza el umbral duplicado (5*3600000 hardcoded)
 // que vivía solo en el listener de input de este archivo.
-// INC-[pendiente-ID]: confirmCorrectHora()/unlockNowFromCard() no marcaban _trackerDirty antes de
+// INC histórico — sin CHECKPOINT confirmado: confirmCorrectHora()/unlockNowFromCard() no marcaban _trackerDirty antes de
 //   render() — mismo patrón roto que locus-session-save.js. render() salía sin pintar el estado
 //   real salvo que otra interacción previa ya hubiera dejado _trackerDirty en true. Fix: llamar
 //   _markTrackerDirty() antes de render() en ambos call sites (import ya existía, faltaba el uso).
 // TKT2 (CAEL-0723-03): openCorrectHora() renombrado a "Editar worker agotado" — checkbox de
 // WIP inyectado en msg.innerHTML, precargado con ai.interrupted, aplicado en confirmCorrectHora().
 // locus-sesiones-viz.js
-// INC-[pendiente-ID]: import de esc agregado (faltaba) — ReferenceError en openCorrectHora resuelto.
+// INC histórico — sin CHECKPOINT confirmado: import de esc agregado (faltaba) — ReferenceError en openCorrectHora resuelto.
 //   esc local redundante en showCheckpointPanel eliminada — una sola fuente desde locus-ui-shell.js
 // T-202606-010: 2 call sites huérfanos renderHoy eliminados (guard typeof inerte)
 // Responsabilidad: Panel diff de CHECKPOINT (showCheckpointPanel), Item Viz Panel

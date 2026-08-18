@@ -1,4 +1,4 @@
-// [PP] mod:12 · autor:Rune · 2026-08-12 09:00 UTC-6
+// [PP] mod:13 · autor:Rune · 2026-08-18 22:30 UTC-6
 // TKT (Nova, análisis visual Q-INC): copyItemHtml pasa a icon-only — retira el label de
 // texto "Copiar ítem" del botón, conserva title/aria-label. Ver comentario inline en la
 // entrega de este mod, más abajo en el archivo.
@@ -102,13 +102,13 @@ import { itemKind, isSlaClockPaused } from './locus-backlog-core.js'; // TKT3 (R
 import { incSlaPriority, incComportamientoActual, incIncidentStatus, incOriginModule, SLA_RIESGO_WINDOW_MS } from './locus-inc-fields.js';
 import { _VALID_INCIDENT_STATUS, _VALID_PRB_STATUS } from './locus-session-parse.js';
 
-// TKT-PARSER-2a (REQ-[pendiente-ID]): tabla de pares válidos de transición ITIL.
+// TKT-PARSER-2a (REQ histórico — sin CHECKPOINT confirmado): tabla de pares válidos de transición ITIL.
 // Clave: incidentStatus origen. Valor: Set de incidentStatus destino permitidos desde ese origen.
 // Distinto de _VALID_INCIDENT_STATUS (locus-session-parse.js) — ese set valida pertenencia
 // del valor al vocabulario ITIL; esta tabla valida que el PAR origen→destino sea una
 // transición real del ciclo de vida (BR-Core §6), no solo que ambos valores existan.
 const _VALID_INCIDENT_TRANSITIONS = {
-  // INC-[pendiente-ID] (triggered_by INC-202607-004 · fix de causa raíz real, sesión 2026-07-24):
+  // INC histórico — sin CHECKPOINT confirmado (triggered_by INC-202607-004 · fix de causa raíz real, sesión 2026-07-24):
   // tabla desactualizada — reflejaba el ciclo ITIL previo a infra_version 52/53 (__BR-Core §6),
   // con 'assigned'/'in_progress' como estados intermedios ya fusionados/eliminados. 'detected'
   // solo permitía transicionar a 'assigned' (estado inexistente en el schema vigente), por lo
@@ -148,7 +148,7 @@ const _VALID_PRB_TRANSITIONS = {
 // (infra_version 51), type:'KE' ya no alcanza este archivo desde que _GEN2_TYPES lo excluye
 // (TKT-202607-067, locus-backlog-core.js mod:131) — tabla era código muerto.
 
-// TKT-PARSER-2a (REQ-[pendiente-ID]): valida un par (oldIncidentStatus, newIncidentStatus).
+// TKT-PARSER-2a (REQ histórico — sin CHECKPOINT confirmado): valida un par (oldIncidentStatus, newIncidentStatus).
 // No usa VALID_TRANSITIONS (locus-session-save.js) — esa tabla es de status Scrum por tipo,
 // no de transiciones ITIL por par origen→destino. Devuelve {valid:true} o {valid:false, reason}.
 // TKT1 (REQ CAEL-01): parámetro `itilType` agregado — antes esta función validaba todo par
@@ -167,7 +167,7 @@ export function validateIncidentTransitions(oldIncidentStatus, newIncidentStatus
     // Defensivo: no es una transición ITIL inválida en sí, es un valor inválido — no bloquear aquí.
     return { valid: true };
   }
-  // INC-[pendiente-ID] (gap detectado en auditoría Q-INC): 'descartado' es destino válido desde
+  // INC histórico — sin CHECKPOINT confirmado (gap detectado en auditoría Q-INC): 'descartado' es destino válido desde
   // CUALQUIER estado no-terminal para INC/PRB — BR-Core §6 lo declara sin restricción de
   // origen ("Cualquier status → descartado | Con justificación explícita en el CHECKPOINT").
   // Antes de este fix, INC/PRB la rechazaban con "transición ITIL inválida" pese a estar

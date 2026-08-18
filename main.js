@@ -1,4 +1,4 @@
-// [PP] mod:24 · autor:Rune · 2026-08-17 10:00 UTC-6
+// [PP] mod:25 · autor:Rune · 2026-08-18 22:30 UTC-6
 // TKT-202608-379 (REQ-202608-153): retirados imports huérfanos `parsePaste`/`handlePaste`/
 // `handleInput` desde locus-session-parse.js. El comentario B-202606-024 (más abajo en este
 // mismo archivo) ya documentaba que la exposición window.parsePaste/handlePaste/handleInput
@@ -16,7 +16,7 @@
 // cambio en opts de _initApp — openCmdk()/closeCmdk() no se inyectan por ciclo, se
 // autorregistran al importar (mismo criterio que locus-backlog-qbacklog.js/qdisc.js abajo).
 // [PP] v0.8.0 · sprint:PP-S-06 · mod:22 · autor:Rune · 2026-07-24 UTC-6
-// INC-[pendiente-ID] (Tab Analytics no renderiza — causa 2, timing async): _markAnalyticsDirty
+// INC histórico — sin CHECKPOINT confirmado (Tab Analytics no renderiza — causa 2, timing async): _markAnalyticsDirty
 // y renderAnalytics importados como named imports (antes solo side-effect) e inyectados en
 // opts de _initApp como renderAnalytics: () => { _markAnalyticsDirty(); renderAnalytics(); } —
 // mismo patrón que renderSprintTab. Cierra el wiring del lado de main.js para que
@@ -25,13 +25,13 @@
 // el tab ya estaba abierto con el empty-state congelado. Ver también locus-analytics-render.js
 // mod:15 (fix relacionado, listener de shell:render-analytics — mismo INC, causa 1, distinta).
 // [PP] v0.8.0 · sprint:PP-S-06 · mod:21 · autor:Rune · 2026-07-20 UTC-6
-// INC-[pendiente-ID] (Tab INC no renderiza): agregado import de efecto lateral de
+// INC histórico — sin CHECKPOINT confirmado (Tab INC no renderiza): agregado import de efecto lateral de
 // locus-incidents-render.js — TKT2 (REQ CAEL-0720-03) extrajo renderQIncPanel() ahí pero
 // ningún módulo lo importaba, así que el listener 'shell:render-qinc' nunca se registraba.
 // Fix de una línea, sin cambio de lógica de negocio — ver locus-ui-shell.js switchTab('incidentes').
 // Deprecación Command Palette (cont.): removidos import + llamada de initCommandPalette() —
 // el módulo locus-command-palette.js fue eliminado del proyecto. Ver locus-ui-shell.js.
-// INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminados imports
+// INC histórico — sin CHECKPOINT confirmado (deprecación Sesiones/Pulso, founder confirmó): eliminados imports
 // estáticos de locus-pulso.js y locus-sesiones-arranque.js — causa raíz del fallo de
 // arranque (MIME type error) que reveló que TKT-202607-042 declaró 'sin importadores' de
 // forma incorrecta. Ambos módulos se borraron del repositorio junto con todos sus call
@@ -52,7 +52,7 @@
 // _attachDoneGroupToggle deben ejecutar al cargar la app. locus-backlog-zone-engine.js y
 // locus-backlog-hierarchy.js no requieren import explícito aquí — son módulos puramente
 // exportadores sin side effects de nivel módulo, se resuelven transitivamente.
-// REQ-[pendiente-ID] Unificar vocabulario historico — TKT2: side-effect import
+// REQ histórico — sin CHECKPOINT confirmado Unificar vocabulario historico — TKT2: side-effect import
 // actualizado hacia locus-backlog-historico.js (ex locus-backlog-archive.js).
 // main.js — punto de entrada único de Locus (ES Modules nativos)
 // El ciclo storage↔sprint-project se resuelve inyectando las referencias via opts en _initApp
@@ -90,7 +90,7 @@ import './locus-backlog-item.js';
 import './locus-backlog-merge.js';
 import './locus-backlog-panel.js';
 import './locus-backlog-render.js';
-import './locus-incidents-render.js'; // INC-[pendiente-ID]: TKT2 (REQ CAEL-0720-03) extrajo renderQIncPanel/_attachQIncDelegation
+import './locus-incidents-render.js'; // INC histórico — sin CHECKPOINT confirmado: TKT2 (REQ CAEL-0720-03) extrajo renderQIncPanel/_attachQIncDelegation
   // a este módulo pero ningún archivo lo importaba — el listener 'shell:render-qinc' nunca se
   // registraba y switchTab('incidentes') disparaba el evento al vacío. Import de efecto lateral,
   // mismo patrón que locus-backlog-qbacklog.js/locus-backlog-qdisc.js en las líneas siguientes.
@@ -185,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
     purgeStaleBacklogCache: _purgeStaleBacklogCache,
     getProjectById,
     renderSprintTab,
-    // INC-[pendiente-ID]: renderAnalytics inyectado — mismo patrón que renderSprintTab arriba.
+    // INC histórico — sin CHECKPOINT confirmado: renderAnalytics inyectado — mismo patrón que renderSprintTab arriba.
     // _loadFromSupabase() lo invoca al terminar la carga remota para refrescar el tab Analytics
     // si quedó con el empty-state congelado (abierto antes de que tracker_sessions terminara de
     // mergear). _markAnalyticsDirty() es obligatorio antes de renderAnalytics() — mismo guard

@@ -1,5 +1,5 @@
-/* [PP] mod:17 · autor:Nova · 2026-08-15 00:35 UTC-6 */
-/* Fix (INC-[pendiente-ID], triggered_by: análisis visual Q-INC, hallazgo de Rune vía grep de
+/* [PP] mod:18 · autor:Nova · 2026-08-18 22:40 UTC-6 */
+/* Fix (INC histórico — sin CHECKPOINT confirmado, triggered_by: análisis visual Q-INC, hallazgo de Rune vía grep de
    balance de comentarios): dos comentarios de este archivo documentaban una familia de clases
    con guion-asterisco seguido de barra inclinada, sin espacio entre ambos caracteres — esa
    combinación de dos caracteres es el token de cierre de comentario CSS, así que el comentario

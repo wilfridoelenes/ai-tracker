@@ -1,10 +1,20 @@
+// [PP] mod:132 · autor:Rune · 2026-08-17 UTC-6
+// TKT histórico — sin CHECKPOINT confirmado (ref_id CAEL-08172145-03, parent REQ
+// CAEL-08172145-01, origen_disc DISC-202608-184): las 24 referencias restantes con marcador
+// de código pendiente en comentarios de este archivo (TKT/REQ/INC citados sin código real
+// recuperable) se reescriben con el patrón histórico — sin CHECKPOINT confirmado, ya vigente
+// en el proyecto (ver locus-backlog-item.css). El comentario de mod:131 (más abajo) también se
+// reescribe para no reproducir el marcador prohibido al citarse a sí mismo. Ningún ref_id ya
+// resuelto (ref: CAEL-05, ref: CAEL-03) se toca — es trazabilidad histórica válida. Sin cambio
+// de lógica ejecutable — diff limitado a texto dentro de comentarios //. Cierra DISC-202608-184.
+// contract_update: n/a — cambio de comentarios únicamente, sin firma ni comportamiento afectados.
 // [PP] mod:131 · autor:Rune · 2026-08-17 UTC-6
 // TKT-202608-387 (REQ-202608-159, TKT1): AC ya satisfechos por la implementación existente
 // de _SPS_GROUP_COLLAPSED (mod:111) — el Set ya nace con 'programados'/'pausados'/'cerrados'
 // y excluye 'activo', que es exactamente el default pedido por este TKT. Único cambio de
-// esta entrega: el comentario de mod:111 (más abajo) citaba el literal "TKT-[pendiente-ID]
-// (REQ-[pendiente-ID])" para referenciarse a sí mismo — violación de __BR-Ecosystem §4 /
-// __BR-Execution §9 (un [pendiente-ID] nunca se persiste en un archivo real una vez que el
+// esta entrega: el comentario de mod:111 (más abajo) citaba una referencia sin resolver a sí
+// mismo (marcador de código pendiente para TKT/REQ) — violación de __BR-Ecosystem §4 /
+// __BR-Execution §9 (ese marcador nunca se persiste en un archivo real una vez que el
 // ítem tiene código asignado). Reemplazado por el código real TKT-202608-387/REQ-202608-159.
 // Sin cambio de comportamiento — solo trazabilidad.
 // contract_update: n/a — _spsGroupHtml()/_spsGroupToggleHandler()/_spsAttachGroupToggle()
@@ -168,7 +178,7 @@
 //   _spsFieldEdit(): showToast('success', 'Sprint actualizado.') se disparaba
 //   incondicional e inmediato sin esperar _upsertSprint() (async, no awaited) — en
 //   fallo el founder veía éxito seguido de error. Movido a .then(), .catch() intacto.
-// INC-[pendiente-ID] (fix — gate "mover ítems Q-Backlog" tras aprobar sprint_proposal):
+// INC histórico — sin CHECKPOINT confirmado (fix — gate "mover ítems Q-Backlog" tras aprobar sprint_proposal):
 // _spnpHandlePanelClick() leía `created.id` sobre el retorno de
 // _tryIngestSprintProposalFromParsed() — esa función retorna un string (id corto del
 // sprint), no un objeto, por contrato ya documentado en su propio comentario en
@@ -204,7 +214,7 @@
 // §Staleness pill (warn 4-7 días, stale >7 días) — sin excepción de color para este caso.
 // Sin CSS nuevo — reutiliza staleness-pill/staleness--stale ya declarados (mod:51 css-ref).
 // [PP] mod:94 · autor:Rune · 2026-07-12 UTC-6
-// INC-[pendiente-ID] (Hallazgo de sesión de diagnóstico Cael — tab Sprint, sin TKT de
+// INC histórico — sin CHECKPOINT confirmado (Hallazgo de sesión de diagnóstico Cael — tab Sprint, sin TKT de
 // origen): REQ en status "en-proceso" o "bloqueado" (__BR-Core §4) no caía en ninguna de
 // las 4 secciones de _renderSprintItems ni se contaba en el badge de _updateSprintTabBadges
 // — ambos sitios duplicaban la misma clasificación incompleta (solo pendiente/en-revision/
@@ -218,7 +228,7 @@
 // no bloquea (§4). _renderSprintItems y _updateSprintTabBadges consumen la misma función —
 // elimina la duplicación que causó el bug original.
 // [PP] mod:89 · autor:Rune · 2026-07-12 UTC-6
-// TKT (REQ-[pendiente-ID] · ref: consolidación de punto de entrada único de sprint_proposal —
+// TKT (REQ histórico — sin CHECKPOINT confirmado · ref: consolidación de punto de entrada único de sprint_proposal —
 //   decisión del founder): el panel "+ Sprint nuevo" (#spnp-panel) deja de depender
 //   exclusivamente de que otro archivo (card del worker o modal standalone) haya poblado
 //   getPendingSprintProposal — gana su propio paste. _renderSpnpPanel, cuando no hay proposal
@@ -240,7 +250,7 @@
 // vía campo de ítem; ver _Locus-module-contracts.md §ITEMS). Call site actualizado
 // — ya no pasa proj.id como argumento.
 // [PP] mod:87 · autor:Rune · 2026-07-11 23:45 UTC-6
-// TKT4 (REQ-[pendiente-ID] · ref: CAEL-05): gate de ítems Q-Backlog tras aprobar sprint
+// TKT4 (REQ histórico — sin CHECKPOINT confirmado · ref: CAEL-05): gate de ítems Q-Backlog tras aprobar sprint
 // nuevo — _spnpQBacklogItems (REQ/TKT sin sprint del proyecto activo, sin filtro de
 // relación por área/scope, decisión del founder) + _spnpRenderGate (markup Nova,
 // design_intent: spnp-gate-inline-v1) + _spnpHandleGateAction (mover/omitir, mismo
@@ -250,11 +260,11 @@
 // 'sprint'. Branch 'aprobar' de _spnpHandlePanelClick ya no cierra el panel directo —
 // cierra solo si no hay ítems en Q-Backlog; si hay, renderiza el gate y retorna.
 // [PP] mod:86 · autor:Rune · 2026-07-11 23:20 UTC-6
-// TKT2 (REQ-[pendiente-ID] · ref: CAEL-03) — corrección tras bug reportado por Finn:
+// TKT2 (REQ histórico — sin CHECKPOINT confirmado · ref: CAEL-03) — corrección tras bug reportado por Finn:
 // _spnpHandlePanelClick rama 'rechazar' no cerraba el panel ni reseteaba aria-expanded — AC
 // de Rechazar violado. Corregido con el mismo patrón que el bloque de éxito de 'aprobar'
 // (classList.add('is-hidden') + aria-expanded false).
-// TKT2 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): comportamiento del
+// TKT2 (REQ histórico — sin CHECKPOINT confirmado · migración Step 0 DIFF → panel Sprint subtab): comportamiento del
 // panel "+ Sprint nuevo" — _spnpAttachListeners/_spnpHandleTriggerClick/_renderSpnpPanel/
 // _spnpHandlePanelClick. Toggle + foco al abrir (panel.focus() con tabindex=-1), estado vacío
 // vía getPendingSprintProposal, Aprobar invoca _tryIngestSprintProposalFromParsed (misma función
@@ -281,13 +291,13 @@
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
-import { _isBlocked, getItems, itemKind, _calcPriority, _getActiveSessionAiId } from './locus-backlog-core.js'; // TKT4 (REQ-[pendiente-ID] · ref: CAEL-05): _calcPriority/_getActiveSessionAiId — mismo patrón de mutación sprint que _mdiffPersistSprint en locus-backlog-merge.js
+import { _isBlocked, getItems, itemKind, _calcPriority, _getActiveSessionAiId } from './locus-backlog-core.js'; // TKT4 (REQ histórico — sin CHECKPOINT confirmado · ref: CAEL-05): _calcPriority/_getActiveSessionAiId — mismo patrón de mutación sprint que _mdiffPersistSprint en locus-backlog-merge.js
 import { openItemPanel } from './locus-backlog-panel.js';
 import { _renderPlanningView, _attachPlanCloseHandler, _attachPlanViewDelegation } from './locus-sprint-planificacion.js';
 import { _getActiveSprint, confirmCloseSprint, createSprintFromGroup, openSprintRetroView, setSprintStatus, _getConflictingSprints } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · T-202606-105
 import { _gconfirmOpen } from './locus-modals.js';
-import { getAI, getActiveSprints, getAllSessions, save, _upsertSprint, getHistoricoItemsSync, refreshHistoricoCache, getActiveProject, getPendingSprintProposal, setPendingSprintProposal, clearPendingSprintProposal } from './locus-storage.js'; // INC-fix: contador de sprint cerrado no veía ítems migrados a historico — getHistoricoItemsSync/refreshHistoricoCache viven en locus-storage.js, no en locus-backlog-historico.js | TKT2 (REQ-[pendiente-ID]): getActiveProject/getPendingSprintProposal/clearPendingSprintProposal — panel "+ Sprint nuevo" | TKT (REQ-[pendiente-ID] · consolidación sprint_proposal): setPendingSprintProposal agregado — el panel persiste su propio paste ya parseado
-import { _tryIngestSprintProposalFromParsed, parseCheckpoint } from './locus-session-parse.js'; // TKT2 (REQ-[pendiente-ID]): misma función que usa Step 0 del DIFF al aprobar (ver locus-session-save.js _ckptMeta.onApproveProposal) — sin duplicar lógica de ingesta | TKT (REQ-[pendiente-ID] · consolidación de punto de entrada único de sprint_proposal): parseCheckpoint agregado — el panel parsea su propio paste, ya no depende de setPendingSprintProposal poblado desde otro archivo
+import { getAI, getActiveSprints, getAllSessions, save, _upsertSprint, getHistoricoItemsSync, refreshHistoricoCache, getActiveProject, getPendingSprintProposal, setPendingSprintProposal, clearPendingSprintProposal } from './locus-storage.js'; // INC-fix: contador de sprint cerrado no veía ítems migrados a historico — getHistoricoItemsSync/refreshHistoricoCache viven en locus-storage.js, no en locus-backlog-historico.js | TKT2 (REQ histórico — sin CHECKPOINT confirmado): getActiveProject/getPendingSprintProposal/clearPendingSprintProposal — panel "+ Sprint nuevo" | TKT (REQ histórico — sin CHECKPOINT confirmado · consolidación sprint_proposal): setPendingSprintProposal agregado — el panel persiste su propio paste ya parseado
+import { _tryIngestSprintProposalFromParsed, parseCheckpoint } from './locus-session-parse.js'; // TKT2 (REQ histórico — sin CHECKPOINT confirmado): misma función que usa Step 0 del DIFF al aprobar (ver locus-session-save.js _ckptMeta.onApproveProposal) — sin duplicar lógica de ingesta | TKT (REQ histórico — sin CHECKPOINT confirmado · consolidación de punto de entrada único de sprint_proposal): parseCheckpoint agregado — el panel parsea su propio paste, ya no depende de setPendingSprintProposal poblado desde otro archivo
 import { _getActiveProjectFilter } from './locus-proj-core.js';
 import { showToast, toast } from './locus-toast.js';
 
@@ -341,7 +351,7 @@ function _spIdBase(sprintId) {
 // _iSprint() lee sprint_id con fallback a sprint para cubrir ambos casos.
 function _iSprint(i) { return i.sprint_id !== undefined ? i.sprint_id : (i.sprint || ''); }
 
-// INC-[pendiente-ID]: bucket único para clasificar ítems del sprint board — enumera
+// INC histórico — sin CHECKPOINT confirmado: bucket único para clasificar ítems del sprint board — enumera
 // explícitamente todos los status válidos de REQ y TKT (__BR-Core §4), evitando que un
 // status no contemplado (REQ en-proceso/bloqueado/orphaned) desaparezca silenciosamente
 // de las 4 secciones del sprint board. Consumida por _renderSprintItems y
@@ -456,11 +466,11 @@ function _sptSwitch(subtab, triggerBtn, skipItemsRender = false) {
     _renderSpsPausados(); // T-202606-041
     // TKT-B1: _renderSpsHotfix eliminada — Q-INC reemplaza S-HOTFIX
     _renderSpsCerrados(); // T-202606-039
-    _spnpAttachListeners(); // TKT2 (REQ-[pendiente-ID]): panel "+ Sprint nuevo" — idempotente, mismo patrón remove/add que el resto del subtab
+    _spnpAttachListeners(); // TKT2 (REQ histórico — sin CHECKPOINT confirmado): panel "+ Sprint nuevo" — idempotente, mismo patrón remove/add que el resto del subtab
   }
 }
 
-// ── Panel "+ Sprint nuevo" — TKT2 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab) ──
+// ── Panel "+ Sprint nuevo" — TKT2 (REQ histórico — sin CHECKPOINT confirmado · migración Step 0 DIFF → panel Sprint subtab) ──
 // design_intent: sprint-nuevo-panel-v1
 
 function _spnpAttachListeners() {
@@ -510,7 +520,7 @@ function _renderSpnpPanel() {
   const proposal = proj ? getPendingSprintProposal(proj.id) : null;
 
   if (!proposal) {
-    // TKT (REQ-[pendiente-ID] · consolidación de punto de entrada único de sprint_proposal —
+    // TKT (REQ histórico — sin CHECKPOINT confirmado · consolidación de punto de entrada único de sprint_proposal —
     // decisión del founder): este panel deja de depender de que otro archivo (card del worker
     // o modal standalone) haya poblado la propuesta en storage — parsea su propio paste.
     // design_intent: sprint-nuevo-panel-v1 (extensión — paste propio, sin borrador nuevo de Nova
@@ -566,7 +576,7 @@ function _spnpHandlePanelClick(e) {
     _spnpSyncGateSelectAll();
     return;
   }
-  // TKT4 (REQ-[pendiente-ID] · ref: CAEL-05): acciones del gate — mismo listener, distinto data-attribute
+  // TKT4 (REQ histórico — sin CHECKPOINT confirmado · ref: CAEL-05): acciones del gate — mismo listener, distinto data-attribute
   const gateBtn = e.target.closest('[data-spnp-gate-action]');
   if (gateBtn) {
     _spnpHandleGateAction(gateBtn);
@@ -610,7 +620,7 @@ function _spnpHandlePanelClick(e) {
     }
 
     clearPendingSprintProposal(proj.id);
-    // INC-[pendiente-ID]: `created` es un string (contrato documentado de
+    // INC histórico — sin CHECKPOINT confirmado: `created` es un string (contrato documentado de
     // _tryIngestSprintProposalFromParsed — "Retorna el id del sprint creado (string) o false"),
     // no un objeto. `created.id` leía undefined, filtrado a '' solo en el toast por el
     // `|| ''` — pero pasado sin ese guard a _spnpRenderGate(), que lo serializaba a la
@@ -620,7 +630,7 @@ function _spnpHandlePanelClick(e) {
     _renderSpsActivo();
     _renderSpsProgramados();
 
-    // TKT4 (REQ-[pendiente-ID] · ref: CAEL-05): gate de ítems Q-Backlog tras aprobar —
+    // TKT4 (REQ histórico — sin CHECKPOINT confirmado · ref: CAEL-05): gate de ítems Q-Backlog tras aprobar —
     // sin filtro de relación por área/scope, decisión del founder (código original ex
     // T-202606-164 no recuperable). proj.id ya validado no-null arriba en este handler.
     const _spnpQItems = _spnpQBacklogItems();
@@ -636,7 +646,7 @@ function _spnpHandlePanelClick(e) {
   }
 }
 
-// TKT (REQ-[pendiente-ID] · ref: consolidación de punto de entrada único de sprint_proposal —
+// TKT (REQ histórico — sin CHECKPOINT confirmado · ref: consolidación de punto de entrada único de sprint_proposal —
 // decisión del founder): parsea el CHECKPOINT pegado directamente en el paste propio del panel
 // "+ Sprint nuevo" — única ruta de ingesta de sprint_proposal en todo el ecosistema. Reutiliza
 // parseCheckpoint (locus-session-parse.js) — mismo parser que parsePaste/parsePasteStandalone,
@@ -904,7 +914,7 @@ function _spsFieldEdit(el, sprintId, field, onDone, opts) {
 
 // ── END T-202606-XXX ─────────────────────────────────────────────────────────
 
-// ── INC-[pendiente-ID]: flip-to-fit — .sps-dropdown vs overflow:hidden de .sps-card ──
+// ── INC histórico — sin CHECKPOINT confirmado: flip-to-fit — .sps-dropdown vs overflow:hidden de .sps-card ──
 // .sps-card (contenedor compartido de filas en #sps-programados y #sps-cerrados)
 // declara overflow:hidden por su border-radius. Un .sps-dropdown anclado con top:32px
 // en una fila cercana al borde inferior del card se recorta/oculta — no es problema de
@@ -1094,7 +1104,7 @@ function _renderSpsActivo() {
   }
 
   const id    = sprint.id || '';
-  // INC-[pendiente-ID]: 'label' se renderiza en sps-card-title, junto a sps-card-id
+  // INC histórico — sin CHECKPOINT confirmado: 'label' se renderiza en sps-card-title, junto a sps-card-id
   // (span separado, ver container.innerHTML abajo) — no debe re-incluir el id como prefijo
   // o duplica visualmente el ID. Mismo bug ya corregido en Programados/Cerrados/Pausados —
   // esta era la instancia visible en la captura del founder (sub-tab Sprints → Activo).
@@ -1336,7 +1346,7 @@ function _renderSpsProgramados() {
 
   const rows = sprints.map(function(s) {
     const id    = s.id || '';
-    // INC-[pendiente-ID]: 'label' se renderiza junto a un span de id separado (sps-scheduled-id,
+    // INC histórico — sin CHECKPOINT confirmado: 'label' se renderiza junto a un span de id separado (sps-scheduled-id,
     // línea siguiente) — no debe re-incluir el id como prefijo o duplica visualmente el ID.
     // Mismo criterio ya correcto en _renderSprintSummaryTable (ssm-row-name): label crudo, sin id.
     const label = s.label || s.name || id;
@@ -1345,7 +1355,7 @@ function _renderSpsProgramados() {
     let total = 0;
     let done  = 0;
     let advDone = 0; // ítems ya done en un sprint programado = adelantados
-    let spItems = []; // INC-[pendiente-ID]: sacado del if-block — TKT3 (L1175) lo consume fuera del scope original
+    let spItems = []; // INC histórico — sin CHECKPOINT confirmado: sacado del if-block — TKT3 (L1175) lo consume fuera del scope original
     if (Array.isArray(getItems())) {
       const _sid = _spIdBase(id);
       spItems = getItems().filter(function(i) {
@@ -2389,7 +2399,7 @@ function _renderSpsPausados() {
   container.classList.remove('is-hidden');
 
   const cards = paused.map(function(s) {
-    // INC-[pendiente-ID]: composite construido una sola vez aquí (mismo patrón que
+    // INC histórico — sin CHECKPOINT confirmado: composite construido una sola vez aquí (mismo patrón que
     // _renderSpsActivo) — evita "id · id" cuando no hay label ni name propios.
     const title = s.label ? `${s.id} · ${s.label}` : (s.name ? `${s.id} · ${s.name}` : s.id);
     const pauseRef = s.pausedAt || s.createdAt;

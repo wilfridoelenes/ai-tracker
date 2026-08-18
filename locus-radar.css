@@ -1,10 +1,10 @@
-/* [PP] mod:17 · autor:Nova · 2026-08-15 20:00 UTC-6 */
+/* [PP] mod:18 · autor:Nova · 2026-08-18 22:40 UTC-6 */
 /* Fix: .rsb-card-quick sin color declarado — el ícono SVG (#ti-plus, stroke=currentColor)
    caía al negro por defecto del navegador, invisible sobre fondo oscuro. color: var(--text)
    restaura el token de texto del tema — mismo criterio que el resto de íconos .ti-svg
    del sistema, que dependen de heredar color de un ancestro. */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
-/* TKT-[pendiente-ID] (CAEL-FASTTRACK-01): --rsb-width 340→380px + --rsb-width/
+/* TKT histórico — sin CHECKPOINT confirmado (CAEL-FASTTRACK-01): --rsb-width 340→380px + --rsb-width/
    --rsb-strip movidas de #global-radar-sidebar a :root — fuente única, ver nota
    en "Variables radar". Pills de .rsb-header-row2 (.rsb-hdr-counts) ahora caben
    en una línea con el ancho ampliado. */
@@ -45,7 +45,7 @@
 
 /* ── Variables radar ── */
 
-/* TKT-[pendiente-ID] (CAEL-FASTTRACK-01): --rsb-width/--rsb-strip movidas a :root —
+/* TKT histórico — sin CHECKPOINT confirmado (CAEL-FASTTRACK-01): --rsb-width/--rsb-strip movidas a :root —
    antes vivían solo en #global-radar-sidebar, y body.radar-sb-open / #global-footer
    (fuera del árbol del sidebar, no heredan la custom property) dependían de un
    fallback hardcodeado (340px/14px) que solo por coincidencia coincidía con el valor

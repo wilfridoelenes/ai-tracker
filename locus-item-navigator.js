@@ -1,4 +1,4 @@
-// [PP] mod:3 · autor:Rune · 2026-07-13 02:15 UTC-6
+// [PP] mod:4 · autor:Rune · 2026-08-18 22:30 UTC-6
 // locus-item-navigator.js
 // Responsabilidad: navigateToItem() — router transversal de navegación por código de ítem.
 // Usado por 5 módulos (locus-analytics-render.js, locus-backlog-item.js,
@@ -22,7 +22,7 @@
 import { itemKind, getItems, getIncidents, updateStatusFilterUI, _getActiveStatuses } from './locus-backlog-core.js'; // TKT1 (REQ CAEL-05): _getActiveStatuses agregada — reemplaza identificador libre activeStatuses
 import { switchTab, switchSubTab } from './locus-ui-shell.js';
 
-// R-[pendiente-ID]: navegar a un ítem del backlog por código — cambia a tab backlog, sub-tab backlog, hace scroll y pulsa highlight
+// R histórico — sin CHECKPOINT confirmado: navegar a un ítem del backlog por código — cambia a tab backlog, sub-tab backlog, hace scroll y pulsa highlight
 export function navigateToItem(code) {
   if (!code) return;
   // TKT3 (REQ CAEL-01): distinguir ítems ITIL (INC/PRB/KE/CHG, viven en getIncidents()) de
@@ -49,7 +49,7 @@ export function navigateToItem(code) {
     _getActiveStatuses().add(item.status);
     updateStatusFilterUI();
   }
-  // INC-[pendiente-ID] (triggered_by análisis de subtab Discoveries): DISC vive en
+  // INC histórico — sin CHECKPOINT confirmado (triggered_by análisis de subtab Discoveries): DISC vive en
   // #sspanel-qdisc, no en #sspanel-backlog — buildBacklogItem() (locus-backlog-qdisc.js)
   // reutiliza el mismo shell .item que TKT/REQ, así que el selector de scroll no cambia,
   // solo el sub-tab activo antes de buscarlo. Sin esta rama, un DISC caía en el

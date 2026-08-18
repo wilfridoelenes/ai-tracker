@@ -1,10 +1,10 @@
-/* [PP] mod:11 · autor:Nova · 2026-08-12 09:00 UTC-6 */
+/* [PP] mod:12 · autor:Nova · 2026-08-18 22:40 UTC-6 */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* locus-modals-misc.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
 
 /* [PP] mod:7 · autor:Nova · 2026-07-04 UTC-6 */
 /* locus-modals.css */
-/* TKT2-[pendiente-ID] (REQ-[tmp:req-consolidacion-close-btn]): eliminada .modal-close-btn —
+/* TKT2 histórico — sin CHECKPOINT confirmado (REQ-[tmp:req-consolidacion-close-btn]): eliminada .modal-close-btn —
    consolidado en .modal-close (box 28x28). Sin retrocompatibilidad — path legacy eliminado
    en el mismo TKT (cero call sites tras migración de index.html). */
 
@@ -766,7 +766,7 @@
 
 /* ══ END R-202605-095 ══ */
 
-/* ══ [pendiente-ID] — #item-viz-overlay: aria-live + badge de origen ══ */
+/* ══ Ítem histórico — sin CHECKPOINT confirmado — #item-viz-overlay: aria-live + badge de origen ══ */
 
 /* Badge de origen en header del overlay — conexión visual con el contexto que lo disparó */
 .item-viz-origin-badge {
@@ -778,7 +778,7 @@
   flex-shrink: 0;
 }
 
-/* ══ END [pendiente-ID] ══ */
+/* ══ END Ítem histórico — sin CHECKPOINT confirmado ══ */
 
 /* ══ R-202605-098: Ciclo de vida y representación visual diferenciada — ítems tipo P ══ */
 
@@ -788,7 +788,7 @@
 
 /* sprint-close: T-202605-440 → locus-sprint-close.css */
 
-/* B-[pendiente-ID]: Toast bloqueante QuotaExceededError — botones de acción */
+/* B histórico — sin CHECKPOINT confirmado: Toast bloqueante QuotaExceededError — botones de acción */
 .toast-quota-actions {
   display: flex;
   gap: 6px;
@@ -813,7 +813,7 @@
   background: rgb(255 255 255 / 20%);
 }
 
-/* END B-[pendiente-ID] */
+/* END B histórico — sin CHECKPOINT confirmado */
 
 /* Migrado desde index.html — shortcuts overlay + panel */
 
@@ -1292,13 +1292,13 @@
 
 /* ══ T-202604-233: Toast — mobile responsive (≤560px) — actualizado T-202604-221 ══ */
 
-/* sprint-close: R-[pendiente-ID] sprint-close-overlay → locus-sprint-close.css */
+/* sprint-close: R histórico — sin CHECKPOINT confirmado sprint-close-overlay → locus-sprint-close.css */
 
 /* === locus-checkpoint-capture.js ===
    Funciones: openQuickCapture · closeQuickCapture · qcSelectWorker · confirmQuickCapture · interruptSession */
 
 /* ══════════════════════════════════════════════════════════
-   R-[pendiente-ID]: Quick Capture — modal unificado con stepper
+   R histórico — sin CHECKPOINT confirmado: Quick Capture — modal unificado con stepper
    Prefijo: qc-  |  Archivo: locus-modals.css
    Reemplaza: .quick-modal-overlay (tracker) + .ai-quick-select-* (proyectos)
    ══════════════════════════════════════════════════════════ */
@@ -1622,12 +1622,12 @@
   outline-offset: 2px;
 }
 
-/* ══ END R-[pendiente-ID] Quick Capture ══ */
+/* ══ END R histórico — sin CHECKPOINT confirmado Quick Capture ══ */
 
 /* === locus-misc-ui.js ===
    Funciones: openPendPanel · closePendPanel */
 
-/* ══ [pendiente-ID]: Panel de pendientes — overlay + drawer ══ */
+/* ══ Ítem histórico — sin CHECKPOINT confirmado: Panel de pendientes — overlay + drawer ══ */
 
 .pend-overlay {
   display: none;
@@ -1706,7 +1706,7 @@
   }
 }
 
-/* ══ END [pendiente-ID]: Panel de pendientes ══ */
+/* ══ END Ítem histórico — sin CHECKPOINT confirmado: Panel de pendientes ══ */
 
 
 /* ══ END A4-b: Command Palette footer hints ══ */

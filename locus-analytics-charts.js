@@ -1,17 +1,17 @@
-// [PP] mod:6 · autor:Rune · 2026-07-24 UTC-6
-// INC-[pendiente-ID] (mismo INC, causa 4): _PROD_MIN_SESSIONS era const de módulo sin export —
+// [PP] mod:7 · autor:Rune · 2026-08-18 22:30 UTC-6
+// INC histórico — sin CHECKPOINT confirmado (mismo INC, causa 4): _PROD_MIN_SESSIONS era const de módulo sin export —
 // locus-analytics-render.js la consumía bare (línea del subtítulo de Patrones de productividad)
 // sin import, mismo gap doc-vs-código que ya afecta a este proyecto (ver locus-analytics-render.js
 // mod:11/13/14/16). Fix: export agregado — única fuente del valor, consumido también
 // internamente en renderProductivityPatterns() sin cambio de comportamiento.
 // [PP] mod:5 · autor:Rune · 2026-07-09 13:58 UTC-6
 // T-202606-166: getProjectById movida a locus-storage.js — import actualizado.
-// INC-[pendiente-ID]: header migrado a formato canónico (BR-Execution §9) — v/sprint eliminados.
-// INC-[pendiente-ID]: state referenciado sin import en _closedForProj —
+// INC histórico — sin CHECKPOINT confirmado: header migrado a formato canónico (BR-Execution §9) — v/sprint eliminados.
+// INC histórico — sin CHECKPOINT confirmado: state referenciado sin import en _closedForProj —
 // ReferenceError en runtime (ESM sin bundler). Fix: import getState + reemplazo.
-// INC-[pendiente-ID]: _closedForProj leía backlog-items-{id} crudo sin merge de historico —
+// INC histórico — sin CHECKPOINT confirmado: _closedForProj leía backlog-items-{id} crudo sin merge de historico —
 // subcuenta ítems done de sprints cerrados. Fix: usa _activeAndHistoricoItems (core.js).
-// INC-[pendiente-ID]: _buildHourlyInsightData (Métrica B) tenía el mismo patrón sin detectar:
+// INC histórico — sin CHECKPOINT confirmado: _buildHourlyInsightData (Métrica B) tenía el mismo patrón sin detectar:
 // `typeof state !== 'undefined'` (línea ~161) nunca es true en ESM sin global — falla en
 // silencio, no lanza error, pero "ítems cerrados por hora" queda siempre vacío. Además leía
 // backlog-items-{id} crudo, mismo gap de historico que _closedForProj. Fix: getState() +
