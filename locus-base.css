@@ -1,4 +1,13 @@
-/* [PP] mod:31 · autor:Nova · 2026-08-15 07:45 UTC-6 */
+/* [PP] mod:32 · autor:Nova · 2026-08-17 23:40 UTC-6 */
+/* TKT-202608-386 (REQ-202608-158, TKT3): elimina los 9 tokens legacy
+   --c-pulido-bg/border/text, --c-won-bg/border/text, --c-done-bg/border/text
+   (bloque dark y light) y el alias suelto --c-done (dark y light) — 20 líneas
+   retiradas sin remanente, verificado por grep. Cierra REQ-202608-158 junto
+   con TKT-202608-384 (locus-backlog.css) y TKT-202608-385 (locus-sprint.css),
+   ambos done. Comentarios de rationale de --on-fill-vivid/--on-fill-muted y de
+   .diff-chip--creado (que citaban --c-won-text/--c-done-text por nombre)
+   actualizados para no referenciar tokens inexistentes — ver Hallazgo fuera de
+   scope en CHECKPOINT sobre --on-fill-muted como candidato a token huérfano. */
 /* TKT-202608-343 (REQ-202608-133, TKT1): agrega .chevron--dropdown — token de
    dropdown-trigger (Patrón A-14, _Locus-css-ref mod:200), rotación 180deg,
    distinto del disclosure de .chevron (Patrón A-13, rotación 90deg). Ver bloque
@@ -289,7 +298,7 @@
      fill): en dark, negro pasa ≥4.5:1 contra todos esos fills; en light, blanco pasa ≥4.5:1
      contra todos esos fills. --on-fill-vivid es ese ganador por tema.
      --on-fill-muted es el ganador inverso, exclusivo de los dos tokens desaturados grises
-     (--c-won-text / --c-done-text), cuya polaridad de contraste se invierte respecto al resto:
+     legacy (retirados en REQ-202608-158/TKT-202608-386), cuya polaridad de contraste se invierte respecto al resto:
      en dark ganan blanco, en light ganan negro. Ambos casos verificados con la misma fórmula
      WCAG relativa (contraste sRGB), no medidos contra --surface. */
   --on-fill-vivid:  #000;
@@ -330,18 +339,9 @@
   --c-medium-text:     #f5c842;
   --c-amber-retro-bg:     rgb(245 200 66 / 6%);
   --c-amber-retro-border: rgb(245 200 66 / 20%);
-  --c-pulido-bg:       rgb(79 195 247 / 10%);
-  --c-pulido-border:   rgb(79 195 247 / 25%);
-  --c-pulido-text:     #4fc3f7;
   --c-low-bg:          rgb(166 226 46 / 10%);
   --c-low-border:      rgb(166 226 46 / 25%);
   --c-low-text:        #a6e22e;
-  --c-won-bg:          rgb(90 90 110 / 10%);
-  --c-won-border:      rgb(90 90 110 / 20%);
-  --c-won-text:        #606080;
-  --c-done-bg:         rgb(90 90 110 / 6%);
-  --c-done-border:     rgb(90 90 110 / 12%);
-  --c-done-text:       #454560;
 
   /* ── Variables de uso extendido ── */
   --text-secondary: var(--text2);
@@ -369,7 +369,6 @@
   /* Semánticos de estado */
   --error:                      var(--red);
   --success:                    var(--green);
-  --c-done:                     var(--c-done-text);
 
   /* Fondos semánticos */
   --bg-danger-subtle:            var(--red-dim);
@@ -450,7 +449,7 @@
   /* ── TKT-202608-281 — espejo de light theme. Polaridad invertida respecto a dark:
      en light, blanco pasa ≥4.5:1 contra los fills vivid (critical/high/pulido/red/green/blue/
      purple/amber/slate/accent-text/orange); negro pasa contra los dos fills muted
-     (--c-won-text/--c-done-text). Ver nota completa en el bloque dark. */
+     legacy (retirados en REQ-202608-158/TKT-202608-386). Ver nota completa en el bloque dark. */
   --on-fill-vivid:  #fff;
   --on-fill-muted:  #000;
 
@@ -494,18 +493,9 @@
   --c-medium-text:     #a07000;
   --c-amber-retro-bg:     rgb(245 200 66 / 8%);
   --c-amber-retro-border: rgb(245 200 66 / 25%);
-  --c-pulido-bg:       rgb(2 136 209 / 7%);
-  --c-pulido-border:   rgb(2 136 209 / 18%);
-  --c-pulido-text:     #0277bd;
   --c-low-bg:          rgb(109 184 33 / 7%);
   --c-low-border:      rgb(109 184 33 / 18%);
   --c-low-text:        #4a8a10;
-  --c-won-bg:          rgb(120 120 140 / 7%);
-  --c-won-border:      rgb(120 120 140 / 14%);
-  --c-won-text:        #808090;
-  --c-done-bg:         rgb(160 160 160 / 6%);
-  --c-done-border:     rgb(160 160 160 / 11%);
-  --c-done-text:       #a0a0a0;
 
   /* ── Variables de uso extendido ── */
   --text-secondary: var(--text2);
@@ -533,7 +523,6 @@
   /* Semánticos de estado */
   --error:                      var(--red);
   --success:                    var(--green);
-  --c-done:                     var(--c-done-text);
 
   /* Fondos semánticos */
   --bg-danger-subtle:            var(--red-dim);
@@ -615,8 +604,8 @@ body {
 
 /* ── diff-chip — familia compartida card/DIFF (TKT1/TKT3 · REQ CAEL-01) ──
    Entregable de Nova (mod:58 de _Locus-css-ref) integrado por Rune.
-   .diff-chip--creado usa --green-text (no --c-done-text, que es gris — ver
-   gap cerrado en esta sesión, _Locus-css-ref §Cambios). ── */
+   .diff-chip--creado usa --green-text — ver gap cerrado en esa sesión,
+   _Locus-css-ref §Cambios. ── */
 /* TKT-202608-252 (REQ-202608-099, TKT2 · AC3): border-width 0.5px→1px, default border-color
    de transparent a var(--border) — cada modificador de abajo ya sobreescribe border-color
    con su propio token, este cambio solo cierra el caso de un modificador futuro que no lo

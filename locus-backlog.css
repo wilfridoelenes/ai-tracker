@@ -1,4 +1,13 @@
-/* [PP] mod:162 · autor:Rune · 2026-08-18 05:10 UTC-6 */
+/* [PP] mod:163 · autor:Nova · 2026-08-18 22:10 UTC-6 */
+/* Corrección de atribución — TKT-202608-384 (parent REQ-202608-158): mod:162 quedó firmado
+   autor:Rune sobre este archivo .css — viola ownership exclusivo de Nova (__Role-Nova_UX.md,
+   __BR-Execution §3: "Rune no escribe en archivos .css bajo ninguna circunstancia"). Nova
+   revisó el contenido de mod:162 contra _Locus-css-ref (tokens --green-*/--red-* ya
+   documentados, sin conflicto) y lo re-firma sin cambio de código — mismos 3 selectores
+   migrados y mismos 6 selectores muertos retirados, verificados por Finn en la auditoría de
+   TKT-202608-384 antes de esta corrección. Founder confirmó el flujo de corrección
+   (re-firma, no reimplementación). */
+/* [PP] mod:162 · autor:Rune · 2026-08-18 05:10 UTC-6 — histórico, contenido superseded por mod:163 sin diferencia de código */
 /* origen: CAEL-08180500-02 (parent CAEL-08180500-01): .badge-status-done/.bitem-status-chip--done
    migran a --green-dim/--green-border/--green-text; .badge-status-descartado migra a
    --red-dim/--red-border/--red-text — antes ambos badges de estado compartían literal el

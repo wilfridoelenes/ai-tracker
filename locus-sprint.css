@@ -1,3 +1,9 @@
+/* [PP] mod:75 · autor:Nova · 2026-08-18 22:25 UTC-6 */
+/* TKT-202608-385 (parent REQ-202608-158): .sph-release-pill (base) y .sph-release-pill.is-patch
+   migran de --c-pulido-*/--c-won-* a --blue-dim/--blue-text/--blue-border; .sca-item-type--req
+   migra de --c-pulido-bg/--c-pulido-text al mismo trío --blue-dim/--blue-text. Tokens ya en
+   uso real en este archivo (L3348+, familia .sph-release-pill--info/similares) — sin token
+   nuevo. .sph-release-pill.is-major no se toca — sigue en --c-high-*. */
 /* [PP] mod:74 · autor:Nova · 2026-08-16 UTC-6 */
 /* TKT-202608-365 (REQ-202608-146, TKT1): .sps-card-detail-toggle / .sps-card--collapsed /
    .sps-card-pct-mini — card colapsable de #sps-activo (identidad + detalle). Bloque nuevo
@@ -156,9 +162,9 @@
   font-weight: 500;
   padding: 2px 8px;
   border-radius: var(--radius-pill);
-  background: var(--c-pulido-bg);
-  color: var(--c-pulido-text);
-  border: 1px solid var(--c-pulido-border);
+  background: var(--blue-dim);
+  color: var(--blue-text);
+  border: 1px solid var(--blue-border);
 }
 
 .sph-release-pill.is-major {
@@ -168,9 +174,9 @@
 }
 
 .sph-release-pill.is-patch {
-  background: var(--c-won-bg);
-  color: var(--c-won-text);
-  border-color: var(--c-won-border);
+  background: var(--blue-dim);
+  color: var(--blue-text);
+  border-color: var(--blue-border);
 }
 
 .sph-days {
@@ -610,8 +616,8 @@
 
 /* TKT0-gen2: renombradas desde --r / --t */
 .sca-item-type--req {
-  background: var(--c-pulido-bg);
-  color: var(--c-pulido-text);
+  background: var(--blue-dim);
+  color: var(--blue-text);
 }
 
 .sca-item-type--tkt {

@@ -1,3 +1,14 @@
+// [PP] mod:131 · autor:Rune · 2026-08-17 UTC-6
+// TKT-202608-387 (REQ-202608-159, TKT1): AC ya satisfechos por la implementación existente
+// de _SPS_GROUP_COLLAPSED (mod:111) — el Set ya nace con 'programados'/'pausados'/'cerrados'
+// y excluye 'activo', que es exactamente el default pedido por este TKT. Único cambio de
+// esta entrega: el comentario de mod:111 (más abajo) citaba el literal "TKT-[pendiente-ID]
+// (REQ-[pendiente-ID])" para referenciarse a sí mismo — violación de __BR-Ecosystem §4 /
+// __BR-Execution §9 (un [pendiente-ID] nunca se persiste en un archivo real una vez que el
+// ítem tiene código asignado). Reemplazado por el código real TKT-202608-387/REQ-202608-159.
+// Sin cambio de comportamiento — solo trazabilidad.
+// contract_update: n/a — _spsGroupHtml()/_spsGroupToggleHandler()/_spsAttachGroupToggle()
+// sin cambio de firma ni de lógica.
 // [PP] mod:130 · autor:Rune · 2026-08-17 UTC-6
 // TKT-202608-374 (REQ-202608-150, TKT2): chip "Retro sin evaluar" en _renderSpsCerrados() —
 // visible solo en la fila del sprint cerrado más reciente (_closedIdx === 0, closed[] ya
@@ -954,7 +965,7 @@ function _spsWireDropdownToggle(menuBtn) {
 // Colapso por sección — estado en memoria, no persistido. Resetea al default declarado
 // abajo en cada reload, consistente con el resto de UI efímera del tab Sprint (menús,
 // edición inline). Claves: 'activo' | 'programados' | 'pausados' | 'cerrados'.
-// TKT-[pendiente-ID] (REQ-[pendiente-ID]): default cambia de "todo expandido" a solo
+// TKT-202608-387 (REQ-202608-159): default cambia de "todo expandido" a solo
 // 'activo' expandido — 'programados'/'pausados'/'cerrados' nacen colapsados. El founder
 // puede expandir cualquiera durante la sesión (_spsGroupToggleHandler ya lo soporta sin
 // cambio) — el reset ocurre solo en reload, mismo criterio que _SPS_ACTIVO_DETAIL_COLLAPSED.
