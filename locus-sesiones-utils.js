@@ -1,4 +1,7 @@
-// [PP] mod:10 · autor:Rune · 2026-08-12 06:15 UTC-6
+// [PP] mod:11 · autor:Rune · 2026-08-18 UTC-6
+// INC-[pendiente-ID]: setInterval de auto-reset (línea ~386) ganó guard !ai.interrupted —
+// mismo patrón ya corregido en locus-storage.js mod:169/188. Ver ese header para el
+// reporte original del founder.
 // TKT2 (CAEL-08111815-01): saveWorker() agregado dentro del setInterval de auto-reset —
 // save() de fin de ciclo ya no persiste ais en tracker_state.
 // locus-sesiones-utils.js
@@ -383,10 +386,15 @@ export function getCD(resetTime, resetEpoch) {
 }
 
 // T-058 + T-082: intervalo de reset de IAs — migrado desde locus-misc-ui.js
+// mod:11 (INC-[pendiente-ID]): !ai.interrupted — mismo guard ya aplicado en
+// locus-storage.js (mod:169/188, load() y _applyStateRow()). Este setInterval es
+// el tercer barrido automático exhausted→available detectado y no tenía el guard
+// — un worker interrumpido con reset expirado se auto-reseteaba a 'available' aquí
+// también, revirtiendo interrupted:true de forma contradictoria.
 setInterval(() => {
   let changed = false;
   (getState()?.ais || []).forEach(ai => {
-    if (ai.status !== 'exhausted' || !ai.resetTime) return;
+    if (ai.status !== 'exhausted' || ai.interrupted || !ai.resetTime) return;
     if (_resetExpired(ai.resetTime, ai.resetEpoch)) {
       _resetWorker(ai);
       changed = true;

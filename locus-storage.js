@@ -1,4 +1,37 @@
-// [PP] mod:166 · autor:Rune · 2026-08-16 09:15 UTC-6
+// [PP] mod:169 · autor:Rune · 2026-08-18 UTC-6
+// INC-[pendiente-ID] (triggered_by: reporte directo del founder — worker en sesión
+// interrumpida, badge morado, con reset_epoch ya vencido no permitía guardar Quick
+// Capture ni para re-interrumpirlo ni para desinterrumpirlo): los dos barridos de
+// auto-reset exhausted→available de este archivo — load() y el loop dentro de
+// _applyStateRow() (ver ambos, más abajo) — evaluaban únicamente
+// `ai.status === 'exhausted' && ai.resetTime && _resetExpiredInternal(...)`, sin
+// excluir `ai.interrupted === true`. Un worker interrumpido con resetTime/resetEpoch
+// ya vencido quedaba silenciosamente revertido a `status:'available'` en cada carga o
+// sync remoto (_applyStateRow corre en cada _loadFromSupabase()) mientras
+// `ai.interrupted` seguía en `true` — estado contradictorio (`interrupted:true` +
+// `status:'available'`) no contemplado por ningún consumidor del modelo. Fix de causa
+// raíz: ambos barridos ganan `&& !ai.interrupted` — un worker interrumpido nunca se
+// auto-resetea por expiración; solo `dismissInterrupted()` (locus-sesiones-capture.js)
+// limpia `interrupted`, momento en el cual el próximo barrido (ya sin el flag) puede
+// resetearlo con normalidad si el reset sigue vencido. Sin cambio de firma en
+// `_resetWorker()` ni en `_resetExpiredInternal()`. **Pendiente de verificación
+// adicional — no confirmado en esta sesión:** `locus-sesiones-utils.js` (setInterval,
+// ver comentario de mod:162 sobre load()/_applyStateRow() más abajo — "el mecanismo
+// real en producción" que corre cada 1000ms) es candidato a compartir el mismo patrón
+// sin guardar — no adjunto en esta sesión, no se asume ni se corrige aquí. INC
+// permanece `detected` hasta confirmar ese archivo — ver CHECKPOINT de esta entrega.
+// Módulo crítico: locus-storage.js — activar verificación de regresiones en Finn.
+//
+// [PP] mod:168 · autor:Rune · 2026-08-18 09:20 UTC-6
+// TKT-202608-407 (REQ-202608-164): reescritas 56 de las 59 ocurrencias del marcador de
+// ítem sin resolver en comentarios — ningún código real identificable para ninguna, todas
+// pasan al patrón canónico "histórico — sin CHECKPOINT confirmado" ya vigente en el proyecto
+// (mismo criterio que TKT-202608-395/397/403/404/405). 3 ocurrencias excluidas explícitamente:
+// L130 (cita documental de un formato de comentario histórico, no una referencia real) y
+// L1655/L1684 (mismo marcador usado como valor de fallback en runtime dentro de la llamada
+// a _dispatch('storage:item-excluded', ...) sobre it.code — string de código de evento,
+// no comentario que referencia un ítem del backlog). Sin cambio de lógica ejecutable —
+// solo texto de comentario. contract_update: no.
 // TKT-202608-373 (REQ-202608-150): campo retro_evaluated agregado a tracker_sprints.
 // _loadAllProjectsSprintsFromSupabase() selecciona la columna nueva y mapea
 // sp.retroEvaluated = row.retro_evaluated === true — sprints históricos sin la columna
@@ -11,7 +44,7 @@
 // Módulo crítico: locus-storage.js — activar verificación de regresiones en Finn.
 //
 // [PP] mod:165 · autor:Rune · 2026-08-14 21:10 UTC-6
-// mod:165: sin cambio funcional — reemplazo de placeholder INC-[pendiente-ID] por código real
+// mod:165: sin cambio funcional — reemplazo de placeholder INC histórico — sin CHECKPOINT confirmado por código real
 // INC-202608-110 (ya asignado por Locus, ver _PP-incidents.md) en los dos comentarios del fix
 // de mod:164. Ver bloque mod:164 abajo para el fix real.
 //
@@ -197,7 +230,7 @@
 // sin conversión ISO necesaria. DDL requerido: sí — ALTER TABLE tracker_incidents ADD COLUMN
 // status_changed_at bigint; (pendiente de ejecución por el founder).
 // [PP] mod:145 · autor:Rune · 2026-07-24 UTC-6
-// INC-[pendiente-ID]: _loadFromSupabase() nunca refrescaba el tab Analytics al terminar la carga
+// INC histórico — sin CHECKPOINT confirmado: _loadFromSupabase() nunca refrescaba el tab Analytics al terminar la carga
 // remota — Tracker/Radar/Backlog/Sprint sí tenían su dispatch/callback de re-render post-carga,
 // Analytics no. Si el tab se abría antes de que el batch (incluye tracker_sessions) terminara, el
 // empty-state quedaba congelado aunque llegaran cientos de sesiones reales. Fix: _renderAnalyticsFn
@@ -222,14 +255,14 @@
 //   mod:136 (abajo) narraba el fix de schema_version como pendiente de DDL — pero el ALTER
 //   TABLE ya fue ejecutado y verificado vía information_schema (24 columnas, schema_version
 //   integer · NOT NULL · default 2) y _toIncidentRow()/_mapRowToIncident() ya tienen el mapeo
-//   activo (ver comentario inline junto a la función: "INC-[pendiente-ID] gap cerrado — ALTER
+//   activo (ver comentario inline junto a la función: "INC histórico — sin CHECKPOINT confirmado (gap cerrado — ALTER
 //   ejecutado y verificado"). El fix se aplicó sin agregar su propia entrada de header — mod:136
 //   quedó como única entrada visible, describiendo un estado que el cuerpo del archivo ya no
 //   tiene. Esta entrada no cambia comportamiento — corrige la trazabilidad del header para que
 //   coincida con el código real. Ver `_Locus-module-contracts.md` mod:105 — misma corrección
 //   aplicada ahí. Sin cambio de comportamiento. contract_update: no.
 // [PP] mod:136 · autor:Rune · 2026-07-21 23:35 UTC-6
-// TKT (INC-[pendiente-ID] · schema_version ausente en tracker_incidents, DDL pendiente):
+// TKT (INC histórico — sin CHECKPOINT confirmado · schema_version ausente en tracker_incidents, DDL pendiente):
 //   documentado el gap en _toIncidentRow — columna no existe en Postgres (18 columnas verificadas,
 //   sin schema_version). DDL requerido declarado en comentario junto a la función: ALTER TABLE
 //   tracker_incidents ADD COLUMN schema_version INTEGER DEFAULT 2. No se agrega la clave al
@@ -277,7 +310,7 @@
 // verificados idénticos por comparación línea a línea antes del reemplazo. saveBacklog()
 // queda como orquestador delgado, cumpliendo done_cuando del REQ CAEL-0718-09.
 // [PP] mod:125 · autor:Rune · 2026-07-18 UTC-6
-// INC-[pendiente-ID]: isSupabaseAuthed() agregada — expone estado de auth (_supabase &&
+// INC histórico — sin CHECKPOINT confirmado: isSupabaseAuthed() agregada — expone estado de auth (_supabase &&
 // _supabaseUser) sin exponer el cliente ni el user object. Consumida por loadBacklog()
 // en locus-backlog-core.js — antes typeof-guard muerto sobre variables module-privadas
 // sin import. Módulo crítico — activar verificación de regresiones en Finn.
@@ -297,7 +330,7 @@
 //     — activar verificación de regresiones en Finn (_mapRowToItem es la única fuente de
 //     rehidratación DDL→JS, consumida por ítems activos e histórico).
 // [PP] mod:116 · autor:Rune · 2026-07-11 21:40 UTC-6
-// TKT1 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): agregado
+// TKT1 (REQ histórico — sin CHECKPOINT confirmado · migración Step 0 DIFF → panel Sprint subtab): agregado
 // LOCUS_KEYS.SPRINT_PROPOSAL_PENDING_PREFIX + getPendingSprintProposal()/setPendingSprintProposal()/
 // clearPendingSprintProposal() — persistencia de sprint_proposal pendiente por proyecto, reusando
 // el patrón try/catch de _loadTmpIdMap/_saveTmpIdMap. clearPendingSprintProposal() no tiene
@@ -326,7 +359,7 @@
 //   a que TKT2 elimine la columna sprint legacy. Sin cambio en _toItemRow/_mapRowToItem
 //   en este TKT — eso es scope de TKT2. Nuevo — sin signature_change (función nueva).
 // [PP] mod:110 · autor:Rune · 2026-07-10 UTC-6
-// TKT-202607-INC-NAMING (INC-[pendiente-ID]): gate de exclusión del upsert (sla_priority) y
+// TKT-202607-INC-NAMING (INC histórico — sin CHECKPOINT confirmado): gate de exclusión del upsert (sla_priority) y
 //   _toIncidentRow() (sla_priority, comportamiento_actual, origin_module, derived_items)
 //   solo leían snake_case. Un INC recién parseado desde CHECKPOINT trae estos campos en
 //   camelCase (slaPriority, comportamientoActual, originModule, derivedItems) — se excluía
@@ -343,12 +376,12 @@ import { incSlaPriority, incComportamientoActual, incOriginModule, incDerivedIte
 //   migración de incidentes en _scmExecuteClose (locus-backlog-sprints.js), revertido en el
 //   mismo TKT porque contradecía AC3 (Q-INC no migra a historico — __BR-Core §6, confirmado
 //   por el founder). Sin otros consumidores verificados por grep antes de eliminar.
-// INC-[pendiente-ID]: _subscribeRealtime() no reconectaba tras CHANNEL_ERROR/CLOSED/TIMED_OUT
+// INC histórico — sin CHECKPOINT confirmado: _subscribeRealtime() no reconectaba tras CHANNEL_ERROR/CLOSED/TIMED_OUT
 // — el guard de idempotencia bloqueaba la reconexión porque _realtimeChannels seguía con
 // canales muertos y _realtimeSubscribedFor sin resetear. Fix: _handleChannelStatus() limpia
 // el canal caído del tracking y resetea _realtimeSubscribedFor a null. Ver detalle en
 // _subscribeRealtime().
-// INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminados wiring de
+// INC histórico — sin CHECKPOINT confirmado (deprecación Sesiones/Pulso, founder confirmó): eliminados wiring de
 // _showArranquePanel (import + setTimeout en _renderAfterAuth) y los 4 sitios de dispatch
 // 'shell:mark-pulso-dirty'/'shell:render-pulso-dot' (post-debounce, save() no-auth, save()
 // offline x2, _renderAfterAuth) — sin listener desde que se borró locus-pulso.js. Eliminado
@@ -361,7 +394,7 @@ import { incSlaPriority, incComportamientoActual, incOriginModule, incDerivedIte
 // _loadFromSupabase() consulta tracker_incidents y puebla INCIDENTS (merge-por-fila, mismo
 // patrón anti-race que ITEMS). _getIncidents inyectado via _initApp(opts.getIncidents).
 // Módulo crítico — activar verificación de regresiones en Finn.
-// INC-[pendiente-ID]: fix _itemsRef en null cuando ITEMS local está vacío (length 0) —
+// INC histórico — sin CHECKPOINT confirmado: fix _itemsRef en null cuando ITEMS local está vacío (length 0) —
 //   el ternario producía null en vez de la referencia al array vacío real, lo que hacía
 //   shouldEvaluate=false y saltaba el bloque de merge con Supabase sin importar cuántas
 //   filas remotas válidas hubiera. _itemsRef ahora siempre es la referencia real de _getItems().
@@ -447,7 +480,7 @@ let _migrateItemTypes = function() {};
 let _purgeStaleBacklogCache = function() { return 0; };
 // T-202606-006 T3: renderSprintTab inyectado via _initApp — ciclo storage ↔ sprint eliminado.
 let _renderSprintTabFn = function() {};
-// INC-[pendiente-ID]: mismo patrón que _renderSprintTabFn — inyectado via _initApp para evitar
+// INC histórico — sin CHECKPOINT confirmado: mismo patrón que _renderSprintTabFn — inyectado via _initApp para evitar
 // ciclo ESM storage ↔ locus-analytics-render.js (que ya importa varias funciones de este módulo).
 // Sin este ref, _loadFromSupabase() nunca refrescaba el tab Analytics tras la carga remota —
 // si el tab se abría antes de que la carga terminara, el empty-state ("sin sesiones") quedaba
@@ -479,7 +512,7 @@ export const LOCUS_KEYS = {
   DRAFT_KEY_PREFIX: 'draft-',
   // T-202606-032: índice de DOC-UPDATEs por sprint — persiste en state.projects[i].docUpdateIndex
   DOC_UPDATE_INDEX: 'docUpdateIndex',
-  // TKT1 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): sprint_proposal
+  // TKT1 (REQ histórico — sin CHECKPOINT confirmado · migración Step 0 DIFF → panel Sprint subtab): sprint_proposal
   // válido detectado al parsear un CHECKPOINT se persiste aquí, por proyecto, hasta que el
   // founder lo confirme o rechace desde el panel "+ Sprint nuevo" (TKT2). Reemplaza — para este
   // flujo — el ckptMeta.sprintProposal efímero que hoy solo vive dentro de la sesión de pegado.
@@ -585,7 +618,7 @@ let _realtimeReconnectAttempts  = 0;
 // adicional") — ese código no cambia con este fix, solo deja de dispararse mientras
 // el flag esté en false.
 const _REALTIME_ENABLED = false;
-// INC-[pendiente-ID] (triggered_by hallazgo fuera de scope, cierre INC-202607-009): user_id
+// INC histórico — sin CHECKPOINT confirmado (triggered_by hallazgo fuera de scope, cierre INC-202607-009): user_id
 // para el cual _realtimeChannels está activo. Permite que _subscribeRealtime() sea idempotente
 // ante llamadas repetidas del mismo usuario — ver comentario completo en _subscribeRealtime().
 // TKT2 (REQ-202607-018): _realtimeSubscribedFor y _realtimeLastTs migrados a
@@ -802,7 +835,7 @@ export function _shortcutsSave(map) {
   _saveUserPrefs(); // R-4: persistir en Supabase
 }
 
-// ── SPRINT PROPOSAL PENDIENTE (TKT1 · REQ-[pendiente-ID]) ──────────────────────
+// ── SPRINT PROPOSAL PENDIENTE (TKT1 · REQ histórico — sin CHECKPOINT confirmado) ──────────────────────
 // Contrato: única vía de lectura/escritura de LOCUS_KEYS.SPRINT_PROPOSAL_PENDING_PREFIX.
 // Ningún otro módulo debe llamar localStorage.getItem/setItem/removeItem sobre esta clave
 // directamente — mismo criterio que _getBacklogStorageKey (línea ~211 de este archivo).
@@ -1046,7 +1079,7 @@ export function getSupabaseUserId() {
   return _supabaseUser ? _supabaseUser.id : null;
 }
 
-// isSupabaseAuthed — INC-[pendiente-ID]: accessor agregado. _supabase/_supabaseUser son
+// isSupabaseAuthed — INC histórico — sin CHECKPOINT confirmado: accessor agregado. _supabase/_supabaseUser son
 // privadas de este módulo (let/var sin export) — loadBacklog() en locus-backlog-core.js
 // las referenciaba vía typeof _supabase !== 'undefined' sin import real, guard siempre
 // falso. La rama "Supabase-first" de loadBacklog() (refresh en background al cambiar de
@@ -1055,7 +1088,7 @@ export function isSupabaseAuthed() {
   return !!(_supabase && _supabaseUser);
 }
 
-// getSupabaseContext — INC-[pendiente-ID] (2026-07-23): mismo patrón que isSupabaseAuthed()/
+// getSupabaseContext — INC histórico — sin CHECKPOINT confirmado (2026-07-23): mismo patrón que isSupabaseAuthed()/
 // getSupabaseUserId() de arriba, pero para callers que necesitan ejecutar sus propias queries
 // (delete/upsert multi-tabla) en vez de solo el booleano o el id — locus-session-save.js,
 // locus-session-parse.js, locus-contracts.js y locus-reports.js usaban typeof _supabase
@@ -1255,7 +1288,7 @@ const _SAVE_DEBOUNCE_MS = 5000; // acumula calls; Supabase solo escribe si dirty
 let _saveDebounceTimer = null;
 let _stateDirty = false;
 
-// B-[pendiente-ID]: contador in-flight para saveBacklog() — >0 mientras hay al menos un
+// B histórico — sin CHECKPOINT confirmado: contador in-flight para saveBacklog() — >0 mientras hay al menos un
 // upsert hacia tracker_items en curso. _loadFromSupabase() lo verifica antes de mergear
 // items remotos, igual que ya verifica _saveDebounceTimer para el state general (línea ~1546).
 // Contador en vez de booleano: varios call sites de saveBacklog() no usan await (fire-and-
@@ -1327,7 +1360,7 @@ async function _saveFlush() {
       if (error) throw error;
 
       // Sesiones — upsert en paralelo por proyecto
-      // INC-[pendiente-ID] (triggered_by TKT2): antes solo se llamaba _saveSessions(proj)
+      // INC histórico — sin CHECKPOINT confirmado (triggered_by TKT2): antes solo se llamaba _saveSessions(proj)
       // si proj.sessions.length > 0 — un proyecto purgado por completo (sessions vacío)
       // nunca llegaba a _saveSessions(), así que su DELETE pendiente en
       // _dirtySessionRemovals jamás se enviaba. Ahora también entra si hay removals
@@ -1587,7 +1620,7 @@ export function _relTs(ts) {
 // locus-backlog-sprints, locus-backlog-item, locus-backlog-editor, locus-backlog-historico,
 // locus-backlog-render, locus-reports — 41 invocaciones en total) no requieren cambio de
 // código. locus-session-parse y locus-session-save no invocan saveBacklog() directamente —
-// corregido tras auditoría T-[pendiente-ID], el comentario original los listaba por error.
+// corregido tras auditoría T histórico — sin CHECKPOINT confirmado, el comentario original los listaba por error.
 // localStorage se mantiene como caché/fallback (sin auth).
 // CAEL-0718-10 (TKT1 · REQ CAEL-0718-09): extraído de saveBacklog() sin cambio de
 // comportamiento — mismo bloque que antes vivía inline antes de "const items = ...filter".
@@ -1626,7 +1659,7 @@ function _filterValidItemsForUpsert(_rawItems) {
     DISC: new Set(['discovery', 'promoted', 'descartado']),
   };
 
-  // INC-[pendiente-ID]: gate chk_type_canonico — reflejo client-side de tracker_items_type_check
+  // INC histórico — sin CHECKPOINT confirmado: gate chk_type_canonico — reflejo client-side de tracker_items_type_check
   // (Postgres). Un ítem cuyo .type no es uno de los 7 tipos canónicos del ecosistema nunca debe
   // llegar al upsert — 'patch' es instrucción de operación del parser, no un tipo de ítem, y no
   // debe persistir como valor de columna type bajo ninguna circunstancia, sin importar cómo llegó
@@ -1646,7 +1679,7 @@ function _filterValidItemsForUpsert(_rawItems) {
       _dispatch('storage:item-excluded', { code: it.code || '[pendiente-ID]', type: it.type, reason: 'status:historico es de solo lectura' });
       return false;
     }
-    // INC-[pendiente-ID]: excluir cualquier ítem con type no canónico — incluye el caso 'patch'
+    // INC histórico — sin CHECKPOINT confirmado: excluir cualquier ítem con type no canónico — incluye el caso 'patch'
     // que originó el INC (tracker_items_type_check, 23514). Se excluye ANTES del gate de
     // status+type porque _VALID_STATUS_BY_TYPE[it.type] sería undefined para un type inválido,
     // y `if (_validStatuses && ...)` con _validStatuses undefined NO filtra — dejaba pasar
@@ -1666,7 +1699,7 @@ function _filterValidItemsForUpsert(_rawItems) {
     }
     // B-202606-097: excluir combinaciones type+status que violarían chk_status_by_type en Postgres.
     // El ítem permanece en ITEMS en memoria — solo se bloquea del upsert hasta corrección.
-    // B-[pendiente-ID]: toast visible agregado — antes esta exclusión era silenciosa para el
+    // B histórico — sin CHECKPOINT confirmado: toast visible agregado — antes esta exclusión era silenciosa para el
     // founder (solo console.warn + evento), lo que hizo invisible el fallo de persistencia
     // tras el patch R→done de Finn en B-202606-100.
     const _validStatuses = _VALID_STATUS_BY_TYPE[it.type];
@@ -1724,7 +1757,7 @@ function _filterValidIncidentsForUpsert(_rawIncidents) {
       logger.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido del upsert — type:${inc.type} no puede tener incident_status:${_incStatusRaw} (viola chk_incident_status_by_type)`);
       return false;
     }
-    // INC-202607-[pendiente-ID]: sla_priority es NOT NULL en tracker_incidents y obligatorio
+    // INC histórico — sin CHECKPOINT confirmado: sla_priority es NOT NULL en tracker_incidents y obligatorio
     // en todo INC/PRB/KE/CHG (__BR-Ecosystem §5). Sin este gate, _toIncidentRow() enviaba
     // sla_priority:null y Postgres rechazaba el batch completo (23502) en cada upsert —
     // loop de error en cada evento Realtime. Se excluye la fila (mismo tratamiento que type/
@@ -1764,7 +1797,7 @@ function _filterValidIncidentsForUpsert(_rawIncidents) {
 // status/updated_at, que cada caller inyecta según su propio contrato (status en particular:
 // _toItemRow lee it.status, saveHistoricoItems lo fuerza a 'historico'). Motivo: ambas funciones
 // mapeaban las mismas ~28 columnas a mano en paralelo y ya divergieron una vez — archived_at/
-// done_at existían aquí pero no en saveHistoricoItems() (INC-[pendiente-ID], gap documentado en
+// done_at existían aquí pero no en saveHistoricoItems() (INC histórico — sin CHECKPOINT confirmado, gap documentado en
 // module-contracts §4 mod:44). Con este mapeador, un campo nuevo se agrega en un solo lugar.
 function _toItemColumns(it) {
   return {
@@ -1784,7 +1817,7 @@ function _toItemColumns(it) {
     sprint_id:            it.sprint_id !== undefined ? it.sprint_id : null,
     sprint_name:          it.sprint_name !== undefined ? it.sprint_name : null,
     role:                 it.role             || null,
-    // DDL: columna 'parent' TEXT (no 'parent_id') · T-[pendiente-ID]: parentId es el único
+    // DDL: columna 'parent' TEXT (no 'parent_id') · T histórico — sin CHECKPOINT confirmado: parentId es el único
     // campo canónico en JS — fallback it.parent eliminado (REQ-unify-parent TKT2)
     parent:               it.parentId         || null,
     // depends_on: array JS → text[] Postgres · campo canónico en JS es dependsOn (camelCase)
@@ -1802,7 +1835,7 @@ function _toItemColumns(it) {
     promovida_a:          it.promovida_a      || null,
     // DDL: columna renombrada origen_disc (Gen2) — era origin_p en Gen1
     origen_disc:          it.origenDisc       || null,
-    // INC-[pendiente-ID]: fallback a camelCase — item.discardReason es el campo que
+    // INC histórico — sin CHECKPOINT confirmado: fallback a camelCase — item.discardReason es el campo que
     // escribe la lógica de negocio (locus-backlog-core.js, sanitize-doneat-mismatch);
     // sin este fallback un ítem con status:'descartado' llegaba con discard_reason:null
     // y violaba tracker_items_discard_reason_check. Mismo motivo que el fallback ya
@@ -1827,11 +1860,11 @@ function _toItemColumns(it) {
     // ac: array JS → jsonb Postgres
     ac:                   Array.isArray(it.ac) ? it.ac : [],
     // intencion, contract_detail: objetos → jsonb Postgres
-    // T-[pendiente-ID] (REQ-contract-rename, TKT2): contract_detail reemplaza a contract —
+    // T histórico — sin CHECKPOINT confirmado (REQ-contract-rename, TKT2): contract_detail reemplaza a contract —
     // alineado a BR-Execution §2. Sin retrocompatibilidad — it.contract ya no se lee.
     intencion:            it.intencion        || null,
     contract_detail:      it.contract_detail  || null,
-    // Campos Gen2 agregados en ALTER TABLE (T-[pendiente-ID])
+    // Campos Gen2 agregados en ALTER TABLE (T histórico — sin CHECKPOINT confirmado)
     next_role:            it.nextRole          || null,
     design_intent:        it.designIntent      || null,
     blocked_at:           it.blockedAt         || null,
@@ -1852,7 +1885,7 @@ function _toItemColumns(it) {
     // Orden obligatorio: este fix debe estar deployado ANTES de correr el DDL — si el DDL
     // corre primero contra el código viejo, el upsert de saveBacklog() falla (columna
     // inexistente en payload).
-    // INC-[pendiente-ID] fix: archived_at/done_at no estaban mapeadas en ningún punto de
+    // INC histórico — sin CHECKPOINT confirmado fix: archived_at/done_at no estaban mapeadas en ningún punto de
     // _toItemRow() — el cierre de sprint (migrateClosedItemsToHistorico, locus-backlog-historico.js)
     // setea item.archivedAt en memoria pero nunca se persistía en Supabase. done_at no tenía
     // ningún productor de escritura hacia la fila — se persiste aquí desde item.doneAt
@@ -1881,14 +1914,14 @@ function _toItemRow(it, { projId, userId, updatedAtMs }) {
 
 // TKT-202607-044 (REQ-202607-015): _toIncidentRow() — mapeo hacia las columnas reales
 // de tracker_incidents (verificadas vía information_schema — 24 columnas tras el ALTER de
-// INC-[pendiente-ID], schema propio y más angosto que tracker_items en los campos Scrum:
+// INC histórico — sin CHECKPOINT confirmado, schema propio y más angosto que tracker_items en los campos Scrum:
 // sin status/priority/effort/area/sprint/parent/depends_on, que no existen en esta tabla).
 // onConflict:code — mismo target que _toItemRow().
 // TKT4 (REQ CAEL-01 · PP-S-02): ALTER TABLE aplicado por el founder — role, next_role, ac,
 // queue y verificado_por agregados a tracker_incidents (BR-Ecosystem §5/§8 los declara
 // parte del schema de INC/PRB/KE/CHG; antes se perdían al persistir). ac se envía siempre
 // como array — nunca null ni ausente (AC-3 de TKT4: `ac:[]` si el ítem no lo declara).
-// INC-[pendiente-ID] (gap cerrado — ALTER ejecutado y verificado vía information_schema):
+// INC histórico — sin CHECKPOINT confirmado (gap cerrado — ALTER ejecutado y verificado vía information_schema):
 // tracker_incidents ganó columna schema_version (integer · NOT NULL · default 2) — BR-Ecosystem
 // §5/§8 la declara obligatoria en ítems nuevos con valor inicial 2. _buildItilItem
 // (locus-session-parse.js) ya propagaba inc.schema_version al objeto en memoria; se agrega el
@@ -1924,7 +1957,7 @@ function _toIncidentRow(inc, { projId, userId, updatedAtMs }) {
     // vocabulario del ecosistema no comparte precedencia con los otros 3 tipos ITIL.
     incident_status:       inc.type === 'CHG' ? (inc.status || null) : incIncidentStatus(inc),
     resolution_type:       incResolutionType(inc),
-    // INC-[pendiente-ID]: mismo fallback camelCase que _toItemRow() — ver nota ahí.
+    // INC histórico — sin CHECKPOINT confirmado: mismo fallback camelCase que _toItemRow() — ver nota ahí.
     discard_reason:        inc.discard_reason     || inc.discardReason || null,
     // TKT4 (REQ CAEL-01): role/next_role sin transformación de nombre — mismo campo en
     // memoria y en columna. verificado_por (snake_case en columna, sin contraparte
@@ -1961,7 +1994,7 @@ function _toIncidentRow(inc, { projId, userId, updatedAtMs }) {
 
 export async function saveBacklog() {
   _markUserAction();
-  // T-[pendiente-ID]: purga inteligente — si localStorage supera el 80% de capacidad,
+  // T histórico — sin CHECKPOINT confirmado: purga inteligente — si localStorage supera el 80% de capacidad,
   // purgar ítems done/descartado >90 días del caché local antes de intentar escribir.
   // Los ítems purgados siguen existiendo en Supabase — solo se elimina el caché local.
   if (_localStorageUsageRatio() > 0.8) {
@@ -1991,7 +2024,7 @@ export async function saveBacklog() {
   // — mismos console.warn, mismo _dispatch('storage:item-excluded'), mismos toasts.
   const _rawItems = _getItems();
 
-  // INC-[pendiente-ID]: auto-sincronizar status con incidentStatus para ítems tipo INC.
+  // INC histórico — sin CHECKPOINT confirmado: auto-sincronizar status con incidentStatus para ítems tipo INC.
   // __BR-Core §4: incident_status reemplaza el ciclo pendiente→en-revision→done para ítems
   // ITIL — es la fuente de verdad del ciclo de vida real de un INC. chk_status_by_type (gate
   // dentro de _filterValidItemsForUpsert) valida la columna genérica `status` contra
@@ -2098,7 +2131,7 @@ export async function saveBacklog() {
   // DDL: updated_at BIGINT (epoch ms) — usado tal cual en cada fila del upsert a tracker_items.
   const _updatedAtMs = Date.now();
 
-  // INC-[pendiente-ID]: registrar _realtimeLastTs ANTES del await — mismo patrón que _saveFlush().
+  // INC histórico — sin CHECKPOINT confirmado: registrar _realtimeLastTs ANTES del await — mismo patrón que _saveFlush().
   // Fix: antes se asignaba _writeTs (ISO, calculado ~176 líneas antes en esta misma función,
   // instante distinto de reloj) en vez de _updatedAtMs (BIGINT, el valor real escrito en
   // updated_at de tracker_items). _toEpochMs() normaliza formato pero no corrige un valor que
@@ -2172,7 +2205,7 @@ export async function saveBacklog() {
     if (error) throw error;
 
     // Upsert exitoso → estampar _updatedAtMs en los objetos vivos de ITEMS.
-    // B-[pendiente-ID]: _updatedAtMs solo se seteaba en la hidratación de _loadFromSupabase.
+    // B histórico — sin CHECKPOINT confirmado: _updatedAtMs solo se seteaba en la hidratación de _loadFromSupabase.
     // Cualquier _loadFromSupabase que completara después del upsert encontraba localRowTs=0
     // (o el timestamp de la hidratación anterior) — la fila remota ganaba con la versión
     // vieja (sin parentId, sin el status recién cambiado). El stamp aquí garantiza que el
@@ -2239,7 +2272,7 @@ export async function saveBacklog() {
 
       // INC-202607-053 fix: estampar _updatedAtMs en los objetos vivos de INCIDENTS tras
       // upsert exitoso — mismo patrón que el bloque de ITEMS arriba (L1987, fix
-      // B-[pendiente-ID]). Sin este stamp, _mergeIncidentsFromRemote() comparaba localRowTs
+      // B histórico — sin CHECKPOINT confirmado). Sin este stamp, _mergeIncidentsFromRemote() comparaba localRowTs
       // (_updatedAtMs) contra remoteRowTs con localRowTs en 0 o en el valor de la última
       // hidratación — una fila remota leída antes de que este upsert fuera visible
       // (read-after-write) podía ganar con una versión vieja, revirtiendo un status recién
@@ -2365,7 +2398,7 @@ export async function backfillSprintFields() {
   return result;
 }
 
-// INC-[pendiente-ID] TKT-fix: _mapRowToItem() — única fuente del mapeo de columnas
+// INC histórico — sin CHECKPOINT confirmado TKT-fix: _mapRowToItem() — única fuente del mapeo de columnas
 // DDL (snake_case, tracker_items) → campos JS canónicos del schema de ítems (camelCase
 // donde aplica: parentId, nextRole, designIntent, blockedAt, incidentStatus, etc.).
 // Extraída del bloque inline que ya usaba la rehidratación de ítems activos (merge en
@@ -2387,7 +2420,7 @@ function _mapRowToItem(row) {
     // sprint_name (asignados condicionalmente más abajo) son la única fuente. Ver DDL
     // requerido declarado en _toItemRow().
     role:                  row.role,
-    // T-[pendiente-ID]: parentId es el único campo canónico en JS (REQ-unify-parent TKT2).
+    // T histórico — sin CHECKPOINT confirmado: parentId es el único campo canónico en JS (REQ-unify-parent TKT2).
     // 'parent' solo existe como nombre de columna en Supabase — se mapea aquí directo
     // a parentId, sin persistir item.parent en memoria.
     parentId:              row.parent,       // DDL: columna parent TEXT
@@ -2427,7 +2460,7 @@ function _mapRowToItem(row) {
     schema_version:        row.schema_version,
     ac:                    Array.isArray(row.ac) ? row.ac : [],
     intencion:             row.intencion,
-    // T-[pendiente-ID] (REQ-contract-rename, TKT2): rehidratación lee contract_detail.
+    // T histórico — sin CHECKPOINT confirmado (REQ-contract-rename, TKT2): rehidratación lee contract_detail.
     contract_detail:       row.contract_detail,
     nextRole:              row.next_role,
     designIntent:          row.design_intent,
@@ -2441,7 +2474,7 @@ function _mapRowToItem(row) {
     // vía _mapRowToIncident() — sin cambio ahí. _toItemColumns() (saliente) ya las había
     // retirado en mod:138; este mod cierra el mapeo entrante simétrico.
     createdAt:             row.created_at      || null,
-    // INC-[pendiente-ID] fix: archived_at/done_at no se rehidrataban — mismo gap que en
+    // INC histórico — sin CHECKPOINT confirmado fix: archived_at/done_at no se rehidrataban — mismo gap que en
     // _toItemRow() (outgoing). Sin esto, aunque el fix de escritura persista los timestamps,
     // la próxima carga los perdía de vuelta al no leerlos de la fila.
     archivedAt:            row.archived_at     || null,
@@ -2458,7 +2491,7 @@ function _mapRowToItem(row) {
   // (TKT1) leen contra la fila cruda de Supabase, no contra el ítem ya mapeado.
   item.sprint_id = typeof row.sprint_id === 'string' ? row.sprint_id : '';
   item.sprint_name = typeof row.sprint_name === 'string' ? row.sprint_name : '';
-  // INC-[pendiente-ID] fix: alias item.sprint↔sprint_id — mismo contrato getter/setter que
+  // INC histórico — sin CHECKPOINT confirmado fix: alias item.sprint↔sprint_id — mismo contrato getter/setter que
   // _normalizeSprintFields() (locus-backlog-core.js). Los ítems activos lo reciben igual vía
   // _normalizeScrumItems()/_normalizeIncidents() al cargar (loadBacklog()), pero los ítems
   // histórico rehidratados vía getHistoricoItems()/getHistoricoItemsSync() pasan únicamente
@@ -2626,7 +2659,7 @@ export async function saveHistoricoItems(items) {
 
 // Lee el array de ítems historico desde tracker_items — nunca mezclados con ITEMS activos.
 // Preferencia: Supabase si hay sesión activa, localStorage como fallback/caché.
-// INC-[pendiente-ID]: signature_change: false — projId es param opcional. Sin projId,
+// INC histórico — sin CHECKPOINT confirmado: signature_change: false — projId es param opcional. Sin projId,
 // mismo comportamiento que antes (_getActiveProjectFilter()). Con projId explícito,
 // permite lectura cross-proyecto — requerido por locus-analytics-core.js, que itera
 // todos los proyectos, no solo el activo.
@@ -2653,7 +2686,7 @@ export async function getHistoricoItems(projId) {
       const { data, error } = await query;
       if (error) throw error;
       const rawRows = Array.isArray(data) ? data : [];
-      // INC-[pendiente-ID] TKT-fix: mapear filas crudas → schema JS antes de cachear/retornar.
+      // INC histórico — sin CHECKPOINT confirmado TKT-fix: mapear filas crudas → schema JS antes de cachear/retornar.
       // localStorage conserva las filas crudas (fidelidad con la fila de Supabase para
       // fallback offline) — el mapeo se aplica en cada lectura, sea remota o local.
       try { localStorage.setItem(key, JSON.stringify(rawRows)); } catch (_) {}
@@ -2677,7 +2710,7 @@ export async function getHistoricoItems(projId) {
   return result;
 }
 
-// INC-[pendiente-ID]: cache sync de ítems historico — evita N llamadas async por render
+// INC histórico — sin CHECKPOINT confirmado: cache sync de ítems historico — evita N llamadas async por render
 // (sparklines de analytics, archivo histórico, export de retro). Poblado por
 // refreshHistoricoCache(); leído sync por getHistoricoItemsSync(). Invalidado en los
 // 2 puntos de escritura conocidos: cierre de sprint (locus-backlog-sprints.js) y
@@ -2786,7 +2819,7 @@ export function _subscribeRealtime() {
   // Realtime siga desactivado del lado servidor (Supabase Publications).
   if (!_REALTIME_ENABLED) return;
   if (!_supabase || !_supabaseUser) return;
-  // INC-[pendiente-ID] (triggered_by hallazgo fuera de scope, cierre INC-202607-009):
+  // INC histórico — sin CHECKPOINT confirmado (triggered_by hallazgo fuera de scope, cierre INC-202607-009):
   // supabase-js re-emite INITIAL_SESSION en cada _recoverAndRefresh (visibilitychange/foco
   // de pestaña), lo que llamaba a _subscribeRealtime() muchas veces por sesión larga.
   // unsubscribe+resubscribe en cada llamada dependía de que removeChannel() limpiara a
@@ -2838,7 +2871,7 @@ export function _subscribeRealtime() {
     _loadFromSupabase();
   }
 
-  // INC-[pendiente-ID]: handler compartido de status de canal. Antes, CHANNEL_ERROR solo
+  // INC histórico — sin CHECKPOINT confirmado: handler compartido de status de canal. Antes, CHANNEL_ERROR solo
   // hacía console.warn — _realtimeChannels seguía con length > 0 y _realtimeSubscribedFor
   // seguía apuntando al mismo user.id, así que el guard de idempotencia de arriba
   // (`if (_realtimeChannels.length > 0 && _realtimeSubscribedFor === _supabaseUser.id) return;`)
@@ -2848,7 +2881,7 @@ export function _subscribeRealtime() {
   // CHANNEL_ERROR/TIMED_OUT/CLOSED, remover el canal caído del tracking y resetear
   // _realtimeSubscribedFor a null para que la próxima llamada reconecte los tres canales.
   function _handleChannelStatus(channelName, getCh) {
-    // INC-[pendiente-ID] (triggered_by hallazgo fuera de scope, RangeError stack overflow):
+    // INC histórico — sin CHECKPOINT confirmado (triggered_by hallazgo fuera de scope, RangeError stack overflow):
     // removeChannel(ch) llamado sincrónicamente dentro de este mismo callback de status
     // reentraba — supabase-js dispara CLOSED de nuevo como parte del propio cierre del
     // canal, dentro del mismo _trigger, volviendo a entrar a este callback y a llamar
@@ -2981,7 +3014,7 @@ export function _resetWorker(ai) {
   ai.availableSince = Date.now();
 }
 
-// TKT-[pendiente-ID] (limpieza, hallazgo de sesión de auditoría de ciclo de vida de Worker):
+// TKT histórico — sin CHECKPOINT confirmado (limpieza, hallazgo de sesión de auditoría de ciclo de vida de Worker):
 // _autoResetExpiredWorkers() + _startAutoResetInterval() eliminadas — código muerto, sin
 // ningún caller en el repo (verificado por grep antes de retirar). Nacieron en TKT1
 // (REQ CAEL-0730-01) como el primer timer periódico de auto-reset, pero el mecanismo real
@@ -3054,7 +3087,9 @@ async function _applyStateRow(stateRows) {
   state.ais = await getWorkers();
   let _resetChanged = false;
   for (const ai of (state?.ais || [])) {
-    if (ai.status === 'exhausted' && ai.resetTime && _resetExpiredInternal(ai.resetTime, ai.resetEpoch)) {
+    // mod:169: !ai.interrupted — un worker interrumpido no se auto-resetea aunque su
+    // reset esté vencido. Ver comentario de header (INC-[pendiente-ID]).
+    if (ai.status === 'exhausted' && !ai.interrupted && ai.resetTime && _resetExpiredInternal(ai.resetTime, ai.resetEpoch)) {
       _resetWorker(ai);
       // TKT2 (CAEL-08111815-01): persistir en tracker_workers — save() de abajo ya no
       // sube ais al blob, así que el reset debe escribirse por su propio canal.
@@ -3114,10 +3149,10 @@ function _mergeSessionsFromRemote(sessResult) {
 // relacionales ──". Recibe itemsResult (ya resuelto del batch) y _itemsRef (mutado in-place,
 // mismo patrón que el código original — _itemsRef.length=0 + push, no reasignación).
 // Los 3 guards documentados en el bloque original se preservan íntegros:
-// (1) syncState.isSaveInFlight() — salta el merge si hay upsert en vuelo (B-[pendiente-ID])
+// (1) syncState.isSaveInFlight() — salta el merge si hay upsert en vuelo (B histórico — sin CHECKPOINT confirmado)
 // (2) TKT-fix-merge-gate — remoteActiveCount !== localCount detecta deletes ciegos a remoteMaxTs
 // (3) exclusión ITIL — filas INC/PRB/KE/CHG remanentes en tracker_items nunca se mergean aquí
-// INC-[pendiente-ID] fix (causa raíz, mod:140): async — antes disparaba _migrateItemTypes()
+// INC histórico — sin CHECKPOINT confirmado fix (causa raíz, mod:140): async — antes disparaba _migrateItemTypes()
 // (que llama saveBacklog() sin await) y retornaba de inmediato. saveBacklog() toma
 // syncState.withSaveLock() en su primer tramo síncrono (antes de su propio primer await),
 // así que el lock quedaba tomado cuando _loadFromSupabase() (única llamadora, ver abajo)
@@ -3211,7 +3246,7 @@ async function _mergeItemsFromRemote(itemsResult, _itemsRef) {
             return;
           }
           // Mapear nombres de columna DDL → nombres de campo JS del schema de ítems.
-          // INC-[pendiente-ID] TKT-fix: extraído a _mapRowToItem() — única fuente del
+          // INC histórico — sin CHECKPOINT confirmado TKT-fix: extraído a _mapRowToItem() — única fuente del
           // mapeo DDL→JS, reusada también por getHistoricoItems(). Antes de este fix,
           // getHistoricoItems() retornaba filas crudas de Supabase sin este mapeo: los
           // ítems historico nunca tenían parentId poblado (solo row.parent snake_case),
@@ -3459,7 +3494,7 @@ export async function _loadFromSupabase() {
     // ── 5. Procesar items relacionales — T-202606-009 ────────────────────
     // CAEL-0718-08: lógica extraída a _mergeItemsFromRemote() — mismo comportamiento,
     // guards (saveInFlight, TKT-fix-merge-gate, exclusión ITIL) preservados íntegros.
-    // INC-[pendiente-ID] fix: await agregado — ver comentario en la definición de la
+    // INC histórico — sin CHECKPOINT confirmado fix: await agregado — ver comentario en la definición de la
     // función (arriba en este mismo archivo) para la causa raíz completa.
     await _mergeItemsFromRemote(itemsResult, _itemsRef);
 
@@ -3624,7 +3659,7 @@ export async function _loadFromSupabase() {
     _dispatchBacklogRenderDirtyCoalesced();
     // B: re-render tab Sprint tras carga Supabase — evita empty state en refresh
     _renderSprintTabFn();
-    // INC-[pendiente-ID]: re-render tab Analytics tras carga Supabase — mismo motivo que
+    // INC histórico — sin CHECKPOINT confirmado: re-render tab Analytics tras carga Supabase — mismo motivo que
     // _renderSprintTabFn arriba. Sin esto, si Analytics se abre antes de que el batch remoto
     // (incluye tracker_sessions) termine, el empty-state queda congelado aunque getAllSessions()
     // ya tenga datos tras el merge — nada volvía a marcar dirty ni a re-renderizar.
@@ -3672,7 +3707,7 @@ export var state = {ais:[], theme:'dark', tags:[], projects:[], _stateVersion:3}
 // getState(): getter dinámico — siempre retorna la referencia actual de state.
 export function getState() { return state; }
 
-// B-[pendiente-ID] AC-5: fuente única de normalización de sesión — defaults de campos,
+// B histórico — sin CHECKPOINT confirmado AC-5: fuente única de normalización de sesión — defaults de campos,
 // fecha ISO y backfill de createdAt. Consumida por _applyStateData (migración local, todas
 // las sesiones) y por el merge remoto de Supabase (solo sesiones nuevas — ver AC-4).
 function _normalizeSessionFields(s) {
@@ -3804,8 +3839,10 @@ function load() {
     _applyStateData({ais: clone(DEFAULT_AIS), theme:'dark', tags:[]});
   }
   // B-202604-009: limpiar IAs expiradas antes del primer render — usar epoch cuando existe
+  // mod:169: !ai.interrupted — un worker interrumpido no se auto-resetea aunque su
+  // reset esté vencido. Ver comentario de header (INC-[pendiente-ID]).
   (state?.ais || []).forEach(ai => {
-    if (ai.status === 'exhausted' && ai.resetTime) {
+    if (ai.status === 'exhausted' && !ai.interrupted && ai.resetTime) {
       if (_resetExpiredInternal(ai.resetTime, ai.resetEpoch)) {
         _resetWorker(ai);
       }
@@ -3835,7 +3872,7 @@ export function _initApp(opts = {}) {
   else logger.warn('[AI Tracker] _initApp: getIncidents no recibido en opts — usando fallback []');
   // T-202606-006 T3: renderSprintTab inyectado para eliminar window.renderSprintTab
   if (opts.renderSprintTab) _renderSprintTabFn = opts.renderSprintTab;
-  // INC-[pendiente-ID]: renderAnalytics inyectado — mismo patrón que renderSprintTab, evita
+  // INC histórico — sin CHECKPOINT confirmado: renderAnalytics inyectado — mismo patrón que renderSprintTab, evita
   // ciclo storage ↔ locus-analytics-render.js.
   if (opts.renderAnalytics) _renderAnalyticsFn = opts.renderAnalytics;
   // B-202606-028: marcar referencias inyectadas — _loadFromSupabase puede reintentar ahora.

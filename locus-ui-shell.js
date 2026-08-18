@@ -1,3 +1,7 @@
+// [PP] mod:76 · autor:Rune · 2026-08-18 22:45 UTC-6
+// TKT · REQ-restauracion-tab-proyectos: comentarios de conteo .tab-btn (L997, L1005)
+// actualizados de (×5) a (×6) — #tab-btn-proyectos restaurado en index.html. Sin cambio de
+// lógica en switchTab()/delegación genérica.
 // [PP] mod:75 · autor:Rune · 2026-08-16 UTC-6
 // DISC-202608-154: comentario en initInfraVersionHandler() rotulaba el handler como
 // '#hdr-menu-infra-subpanel' — subpanel retirado del DOM desde TKT-infra-sync-modal
@@ -994,7 +998,7 @@ function _sk(id) { return _shortcutKey(id); }
 
 // ── T-202605-044: Migración de handlers inline → addEventListener ──────────
 // Reemplaza los onclick declarados en index.html para los elementos de shell:
-// logo-btn, tab-btn (×5), sstab-btn (×5), more-menu-theme,
+// logo-btn, tab-btn (×6), sstab-btn (×5), more-menu-theme,
 // botón Shortcuts en more-menu, botón Templates en proj-panel.
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -1002,7 +1006,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const logoBtn = document.getElementById('logo-btn');
   if (logoBtn) logoBtn.addEventListener('click', function () { switchTab('sesiones'); });
 
-  // .tab-btn (×5) — cada botón lleva su tab en el id: tab-btn-{tab}
+  // .tab-btn (×6) — cada botón lleva su tab en el id: tab-btn-{tab}
   document.querySelectorAll('.tab-btn').forEach(function (btn) {
     const tab = btn.id.replace('tab-btn-', '');
     btn.addEventListener('click', function () { switchTab(tab); });
