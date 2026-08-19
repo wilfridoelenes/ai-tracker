@@ -1,4 +1,4 @@
-// [PP] mod:95 · autor:Rune · 2026-08-19 UTC-6
+// [PP] mod:96 · autor:Rune · 2026-08-19 UTC-6
 // TKT1 (CAEL-08182200-02, DISC-202608-192): entrada de header mod:92 (línea abajo) no cumplía
 // el formato de timestamp de __BR-Execution §9 (YYYY-MM-DD HH:MM UTC-6) — la hora nunca quedó
 // registrada en esa entrega. Sin dato real que reponer, se anota explícitamente en vez de
@@ -973,20 +973,29 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // TKT-202608-420 (REQ-202608-169, depends_on TKT-202608-416): Captura de Flujo — tras
   // aplicar el batch de items (mergeResult + patches de arriba), persiste una fila en
   // tracker_checkpoint_flow con los campos de Flujo del CHECKPOINT parseado. sprint_id se
-  // resuelve contra mergeResult.created/.advanced/.updated — nunca contra tgItems crudo — un
-  // TKT hijo puede heredar sprint de su REQ padre (parent→hijo, __BR-Ecosystem §5) sin
-  // declararlo explícito en el bloque del CHECKPOINT; tgItems refleja el paste original,
-  // mergeResult refleja el ítem ya resuelto por mergeBacklogFromTG/_assignPendingIds, que sí
-  // aplica esa herencia (shape {code, sprint, ...} por ítem, ver _Locus-module-contracts §2).
-  // Ausente en los tres arrays → null, mismo caso que CHECKPOINTs de Q-Backlog/C-level/Q-INC
-  // (AC Edge CHECKPOINT lite). No await — complementaria al flujo crítico de guardado de
-  // sesión, mismo criterio de no bloqueo que saveWorker()/_upsertSprint().
+  // resuelve vía getAnyItem(code) sobre cada código de created+advanced+updated — nunca leyendo
+  // el campo `sprint` directo de esos objetos: mergeBacklogFromTG() (locus-backlog-item.js) solo
+  // puebla `sprint` en el shape de created/createdAndClosed (L3190/L3188) — advanced (L2870:
+  // {code,desc,from,to,idx}) y updated (L3019: {code,desc,changes,change,parent,idx}) no
+  // incluyen ese campo, así que un TKT existente que solo transiciona de status o actualiza
+  // campos (advanced/updated, el caso más común en sprint activo) quedaba sin lookup posible.
+  // getAnyItem(code) lee el backlog en memoria (ITEMS) ya actualizado por saveBacklog() —
+  // disparado dentro de _mergeBacklogWithProject(), ya resuelto (await en línea de arriba) —
+  // así que trae el sprint post-herencia parent→hijo (__BR-Ecosystem §5) sin importar por qué
+  // rama de mergeResult entró el ítem. Ausente en los tres arrays, o ningún ítem con sprint real
+  // entre los encontrados → null, mismo caso que CHECKPOINTs de Q-Backlog/C-level/Q-INC (AC Edge
+  // CHECKPOINT lite). No await — complementaria al flujo crítico de guardado de sesión, mismo
+  // criterio de no bloqueo que saveWorker()/_upsertSprint().
   {
-    const _flowSprintCandidates = [].concat(mergeResult.created || [], mergeResult.advanced || [], mergeResult.updated || []);
-    const _flowSprintItem = _flowSprintCandidates.find(it => it && it.sprint);
+    const _flowItemCodes = [].concat(mergeResult.created || [], mergeResult.advanced || [], mergeResult.updated || []).map(it => it && it.code).filter(Boolean);
+    let _flowSprint = null;
+    for (const _c of _flowItemCodes) {
+      const _real = getAnyItem(_c);
+      if (_real && _real.sprint) { _flowSprint = _real.sprint; break; }
+    }
     saveCheckpointFlow({
       projectId: activeProj.id,
-      sprintId:  _flowSprintItem ? _flowSprintItem.sprint : null,
+      sprintId:  _flowSprint,
       title:     parsed.title    || '',
       role:      parsed.rol      || '',
       summary:   parsed.summary  || '',
