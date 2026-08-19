@@ -1,4 +1,9 @@
-// [PP] mod:70 · autor:Rune · 2026-08-18 UTC-6
+// [PP] mod:71 · autor:Rune · 2026-08-19 07:00 UTC-6
+// TKT-202608-418 (REQ-202608-169, depends_on TKT-202608-420): _generateSprintRetroMd() ahora
+// async — sección Narrativa lee tracker_checkpoint_flow vía getCheckpointFlowsBySprintId()
+// (locus-storage.js) en vez del placeholder fijo '[Agregar narrativa por rol]'. Los 4 call
+// sites (openSprintRetroView, _openRetroDownloadPrompt, _scmDownloadRetro, _scmExecuteClose)
+// ganan await — sin cambio de comportamiento donde retroDoc ya existe (short-circuit del ||).
 // TKT-202608-375 (REQ-202608-151, origen_disc DISC-202608-156): extiende el gate duro de
 // cierre por origen_disc (_scmExecuteClose(), mod:65/TKT-202608-361) al caso huérfano —
 // origen_disc que no resuelve a ningún ítem real del backlog, antes explícitamente fuera de
@@ -228,7 +233,7 @@ import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render
 import { _templateTrigger } from './locus-session-hora.js';
 import { exportFullHistoryMd } from './locus-backlog-generator.js';
 import { renderSprintTab } from './locus-sprint.js';
-import { _blogLog, _docPrefix, _effectiveVersion, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, saveHistoricoItems, getHistoricoItems, _invalidateHistoricoCache, _getDocUpdateIndex, _setDocUpdateIndex, _getDocUpdateResolvedLog, _upsertSprint, _sprintDisplay } from './locus-storage.js'; // T-202606-107 · T-202606-005 · TKT1 (REQ-sprints-migration): _loadSprintsFromSupabase eliminado del import — sin call site real, solo referenciado en comentario línea ~959. Función reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js, sin uso en este módulo. TKT7 (REQ-202607-015): deleteIncidentRows removida del import — su único call site (_scmExecuteClose) fue eliminado; export retirado de locus-storage.js. TKT-202607-134: getAI retirada — su único call site (renderSprintWorkers) fue retirado. INC-202608-093: _getDocUpdateResolvedLog agregada — export existente de locus-storage.js (TKT-202608-236), ya consumido por locus-docs.js, sin cambio de firma.
+import { _blogLog, _docPrefix, _effectiveVersion, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, saveHistoricoItems, getHistoricoItems, _invalidateHistoricoCache, _getDocUpdateIndex, _setDocUpdateIndex, _getDocUpdateResolvedLog, _upsertSprint, _sprintDisplay, getCheckpointFlowsBySprintId } from './locus-storage.js'; // TKT-202608-418: getCheckpointFlowsBySprintId agregada — Narrativa real de retro // T-202606-107 · T-202606-005 · TKT1 (REQ-sprints-migration): _loadSprintsFromSupabase eliminado del import — sin call site real, solo referenciado en comentario línea ~959. Función reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js, sin uso en este módulo. TKT7 (REQ-202607-015): deleteIncidentRows removida del import — su único call site (_scmExecuteClose) fue eliminado; export retirado de locus-storage.js. TKT-202607-134: getAI retirada — su único call site (renderSprintWorkers) fue retirado. INC-202608-093: _getDocUpdateResolvedLog agregada — export existente de locus-storage.js (TKT-202608-236), ya consumido por locus-docs.js, sin cambio de firma.
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 // TKT-202607-134: import de navigateToItem retirado — sus únicos call sites (delegación
@@ -377,7 +382,7 @@ function _incEligibleForSprintClose(i, sprintOpenedAt) {
 // Campo "Migrado" eliminado del schema — ver __BR-Ecosystem §5, DOC-UPDATE 2026-07-02.
 // AC-8: el string se asigna a sprint.retroDoc antes de save() en _scmExecuteClose.
 // Accede a _scmState vía closure de módulo para leer docUpdates con resolución.
-function _generateSprintRetroMd(id, notes) {
+async function _generateSprintRetroMd(id, notes) {
 
   // ── AC-2: Done — ítems que estaban done al cerrar el sprint.
   // _scmExecuteClose ya mutó done/descartado → historico antes de llamar esta función.
@@ -475,8 +480,28 @@ function _generateSprintRetroMd(id, notes) {
     ? duDescartados.map(d => `- doc: ${d.doc} · sección: ${d.section} · descartado: ${_incDate(d.resolvedAt)}`).join('\n')
     : 'ninguno';
 
-  // AC-7: sección Narrativa — placeholder vacío
-  const narrativaSection = `## Narrativa · ${id}\n\n[Agregar narrativa por rol]`;
+  // TKT-202608-418 (REQ-202608-169, depends_on TKT-202608-420): AC-7 — Narrativa real, ya no
+  // placeholder fijo. Lee tracker_checkpoint_flow por sprint_id (filas insertadas por
+  // saveCheckpointFlow() en cada CHECKPOINT ingerido durante el sprint, ver TKT-202608-420,
+  // locus-storage.js) — orden de emisión (created_at ascendente, ya resuelto por la propia
+  // getCheckpointFlowsBySprintId()). Formato exacto de __BR-Ecosystem §5 "Schema mínimo de
+  // retro de sprint": '[título del CHECKPOINT] · [Rol]:' seguido de Resumen siempre presente y
+  // Bloqueantes/Aprendizaje/Decisión omitidos cuando el valor es 'n/a' — mismo criterio que ya
+  // usa saveCheckpointFlow() al persistir 'n/a' como marcador de ausencia, no como valor real.
+  // Estado vacío (AC edge): sprint cerrado sin ninguna fila de Flujo asociada — mensaje
+  // explícito en vez del placeholder genérico anterior. No implementa detección de
+  // recurrencia (no_incluye) — eso queda para el REQ futuro que consume esta misma tabla.
+  const _flowRows = await getCheckpointFlowsBySprintId(id);
+  const narrativaSection = _flowRows.length
+    ? `## Narrativa · ${id}\n\n` + _flowRows.map(f => {
+        const _lines = [`${f.checkpoint_title || '(sin título)'} · ${f.role || '(sin rol)'}:`];
+        _lines.push(`  Resumen: ${f.summary || ''}`);
+        if (f.blockers && f.blockers !== 'n/a') _lines.push(`  Bloqueantes: ${f.blockers}`);
+        if (f.learning && f.learning !== 'n/a') _lines.push(`  Aprendizaje: ${f.learning}`);
+        if (f.decision && f.decision !== 'n/a') _lines.push(`  Decisión: ${f.decision}`);
+        return _lines.join('\n');
+      }).join('\n\n')
+    : `## Narrativa · ${id}\n\nSin CHECKPOINTs con sprint asignado en este sprint`;
 
   // ── Componer output ──
   // Orden exacto de AC-1: ## Retro · [id] → Done · Descartado ·
@@ -542,8 +567,10 @@ export function openSprintRetroView(id) {
   if (dlBtn) {
     const newDlBtn = dlBtn.cloneNode(true);
     dlBtn.parentNode.replaceChild(newDlBtn, dlBtn);
-    newDlBtn.addEventListener('click', () => {
-      const md = retroDoc || _generateSprintRetroMd(id, sp.retroNotes || '');
+    newDlBtn.addEventListener('click', async () => {
+      // TKT-202608-418: _generateSprintRetroMd() es async — await agregado, sin cambio de
+      // comportamiento cuando retroDoc ya existe (short-circuit del ||, no se llama).
+      const md = retroDoc || await _generateSprintRetroMd(id, sp.retroNotes || '');
       const blob = new Blob([md], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -592,9 +619,10 @@ function _openRetroDownloadPrompt(id) {
   if (dlBtn) {
     const newDlBtn = dlBtn.cloneNode(true);
     dlBtn.parentNode.replaceChild(newDlBtn, dlBtn);
-    newDlBtn.addEventListener('click', () => {
+    newDlBtn.addEventListener('click', async () => {
       overlay.classList.remove('open');
-      const md = sp.retroDoc || _generateSprintRetroMd(id, sp.retroNotes || '');
+      // TKT-202608-418: await agregado — mismo short-circuit, sin efecto cuando sp.retroDoc ya existe.
+      const md = sp.retroDoc || await _generateSprintRetroMd(id, sp.retroNotes || '');
       const blob = new Blob([md], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1392,12 +1420,15 @@ function _scmStepMigracionHtml(pendingItems, migrations) {
 // B-202605-270: función nombrada para descarga de retro desde paso 3 del SCM
 // Extrae la lógica del IIFE inline para evitar problemas de parsing de atributos HTML
 // y adjunta el anchor al body antes del click para garantizar descarga en todos los browsers
-function _scmDownloadRetro() {
+async function _scmDownloadRetro() {
   if (!_scmState) return;
   const ta = document.getElementById('scm-retro-notes-ta');
   const notes = ta ? ta.value : '';
   _scmState.retroNotes = notes;
-  const md = _generateSprintRetroMd(_scmState.id || '', notes);
+  // TKT-202608-418: función ahora async — await agregado. Caller (delegación de click en
+  // 'scm-download-retro', más abajo en este archivo) no depende del valor de retorno — fire
+  // and forget, sin cambio necesario en el punto de invocación.
+  const md = await _generateSprintRetroMd(_scmState.id || '', notes);
   const now = new Date();
   const pad = n => String(n).padStart(2, '0');
   const ds = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
@@ -1767,7 +1798,9 @@ async function _scmExecuteClose() {
   const sp = _getSprintById(id);
   if (sp) {
     sp.retroNotes = retroNotes || '';
-    sp.retroDoc   = _generateSprintRetroMd(id, retroNotes || '');
+    // TKT-202608-418: _generateSprintRetroMd() es async — await agregado. _scmExecuteClose()
+    // ya es async (declaración de la función, línea ~1595), sin cambio de contrato externo.
+    sp.retroDoc   = await _generateSprintRetroMd(id, retroNotes || '');
     // TKT-202607-031: bloque T-202606-010 AC-8/AC-8b (auto-descarte silencioso vía
     // _setDocUpdateIndex({}) + log 'descartado · sprint cerrado' para toda entrada
     // sobreviviente, sin importar antigüedad) eliminado — violaba __BR-Ecosystem §3

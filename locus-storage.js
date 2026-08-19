@@ -1,4 +1,6 @@
-// [PP] mod:170 · autor:Rune · 2026-08-18 22:10 UTC-6
+// [PP] mod:171 · autor:Rune · 2026-08-19 07:00 UTC-6
+// TKT-202608-418 (REQ-202608-169, depends_on TKT-202608-420): getCheckpointFlowsBySprintId()
+// agregada — lee tracker_checkpoint_flow por sprint_id para la retro real.
 // TKT-202608-420 (REQ-202608-169): saveCheckpointFlow() nueva — insert a tracker_checkpoint_flow
 // (DDL propuesto por TKT-202608-416). Sin cambio en ninguna función existente de este archivo.
 // INC-[pendiente-ID] (triggered_by: reporte directo del founder — worker en sesión
@@ -4180,6 +4182,33 @@ export async function saveCheckpointFlow(flow) {
     .insert(row);
   if (error) {
     logger.error('[Locus] TKT-202608-420: insert a tracker_checkpoint_flow falló', error);
+  }
+}
+
+// TKT-202608-418 (REQ-202608-169, depends_on TKT-202608-420): getCheckpointFlowsBySprintId()
+// — lee las filas de tracker_checkpoint_flow asociadas a un sprint cerrado, para poblar la
+// sección Narrativa de la retro real (_generateSprintRetroMd(), locus-backlog-sprints.js).
+// Ordenado por created_at ascendente — mismo orden en que se emitieron los CHECKPOINTs durante
+// el sprint. Sin fallback a localStorage — tracker_checkpoint_flow no tiene contraparte local
+// (ver saveCheckpointFlow() arriba, misma nota). AC — sin auth/sin sprintId: retorna []
+// silenciosamente, sin excepción — mismo criterio que el resto de lecturas de Supabase de este
+// archivo ante ausencia de sesión. Sin caché intermedio: la retro es un evento puntual al
+// cierre de sprint, no una lectura recurrente que justifique cache local (a diferencia de
+// getHistoricoItems()).
+export async function getCheckpointFlowsBySprintId(sprintId) {
+  if (!_supabase || !_supabaseUser || !sprintId) return [];
+  try {
+    const { data, error } = await _supabase
+      .from('tracker_checkpoint_flow')
+      .select('checkpoint_title, role, summary, blockers, learning, decision, created_at')
+      .eq('user_id', _supabaseUser.id)
+      .eq('sprint_id', sprintId)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    logger.warn('[Locus] getCheckpointFlowsBySprintId: fallo Supabase, sin fallback local', err);
+    return [];
   }
 }
 
