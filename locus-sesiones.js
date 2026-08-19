@@ -1,16 +1,21 @@
-// [PP] mod:69 · autor:Rune · 2026-08-18 23:05 UTC-6
-// TKT1 (ref_id CAEL-08181430-02, REQ ref_id CAEL-08181430-01): dismiss directo de sesión
-// interrumpida. import dismissInterrupted agregado desde locus-sesiones-capture.js (junto a
-// openQuickCapture, ya importado) — case 'dismiss-interrupted' nuevo en el delegador de clicks
-// (DOMContentLoaded) invoca dismissInterrupted(aiId), mismo patrón que 'confirm-blind-exhaust'/
-// 'open-correct-hora' en el mismo switch. Firma asumida por convención — todo caso de este switch
-// invoca su función como fn(aiId); dismissInterrupted no tiene entrada de contrato propia en
-// _Locus-module-contracts (solo mencionada en prosa dentro de _resetWorker/mod:188-189) y
-// locus-sesiones-capture.js no está adjunto en esta sesión para confirmar el parámetro — supuesto
-// declarado, no verificado contra el archivo real. _populateWorkerHeader() gana bloque nuevo:
-// alterna is-hidden de #worker-header-dismiss-btn según isInterrupted y puebla dataset.aiId —
-// mismo criterio que quickBtn/cdInline en la misma función. Markup estático del botón vive en
-// index.html (mod:211), no generado aquí — ver __BR-Execution §5 regla 4.
+// [PP] mod:70 · autor:Rune · 2026-08-18 23:40 UTC-6
+// TKT-202608-413 (REQ-202608-166): gap cerrado — mod:69 declaraba en comentario el wiring de
+// dismiss directo de sesión interrumpida (TKT1, ref_id CAEL-08181430-02) pero el cuerpo real
+// del archivo no lo tenía: import ausente, case ausente del delegador, bloque ausente en
+// _populateWorkerHeader(). Verificado por Finn en auditoría de TKT1 — comentario sin código
+// correspondiente, mismo patrón de deuda ya registrado en mod:53 ("case 'dismiss-interrupted'
+// (código muerto, sin trigger de markup)"). Los tres bloques ahora sí presentes en este mod:
+// (1) import dismissInterrupted agregado desde locus-sesiones-capture.js, junto a
+// openQuickCapture ya importado; (2) case 'dismiss-interrupted' en el delegador de clicks
+// (DOMContentLoaded), invoca dismissInterrupted(aiId) — mismo patrón que 'confirm-blind-exhaust'/
+// 'open-correct-hora' en el mismo switch, todo caso invoca su función como fn(aiId);
+// (3) _populateWorkerHeader() alterna is-hidden de #worker-header-dismiss-btn según
+// isInterrupted y puebla dataset.aiId — mismo criterio que quickBtn/cdInline en la misma
+// función. Markup estático del botón vive en index.html (mod:211), no generado aquí — ver
+// __BR-Execution §5 regla 4. Firma de dismissInterrupted(aiId) sigue sin contrato propio
+// confirmado en _Locus-module-contracts (no adjunto en esta sesión) — mismo supuesto por
+// convención ya declarado en mod:69, no verificado contra locus-sesiones-capture.js (tampoco
+// adjunto).
 // [PP] mod:68 · autor:Rune · 2026-08-18 22:30 UTC-6
 // INC-ref:RUNE-08151405-01: causa raíz confirmada — _populateWorkerHeader() ocultaba
 //   correctHoraBtn (dot-correct-hora) con la condición equivocada (isAvail en vez de
@@ -123,7 +128,7 @@ import { archiveAI, closeCardMenu, confirmClear, deleteAI, openAddAI, openAvatar
 
 import { downloadReport } from './locus-reports.js';
 
-import { openQuickCapture } from './locus-sesiones-capture.js'; // T-202606-089 AC-3
+import { openQuickCapture, dismissInterrupted } from './locus-sesiones-capture.js'; // T-202606-089 AC-3 · dismissInterrupted: TKT-202608-413
 
 import { STATUS_LABELS, handlePaste, handleInput, _processIngestBatch, _renderIngestBlockPreview, _updateIngestBlockCount } from './locus-session-parse.js';
 // T-202606-058: registry extraído a locus-sesiones-registry.js (módulo sin dependencias).
@@ -1020,6 +1025,16 @@ function _populateWorkerHeader(ai) {
     }
   }
 
+  // TKT-202608-413 (REQ-202608-166): botón dismiss directo de sesión interrumpida — visible
+  // solo cuando isInterrupted, mismo criterio de toggle que quickBtn/cdInline arriba. Markup
+  // estático ya vive en index.html (#worker-header-dismiss-btn, mod:211) — este bloque solo
+  // alterna is-hidden y puebla dataset.aiId, sin generar HTML.
+  const dismissBtn = document.getElementById('worker-header-dismiss-btn');
+  if (dismissBtn) {
+    dismissBtn.dataset.aiId = ai.id;
+    dismissBtn.classList.toggle('is-hidden', !isInterrupted);
+  }
+
   // Botón de ingesta de CHECKPOINT (CAEL-33) — bloque dedicado, localizado por id fijo
   // (no se reasigna, a diferencia de resetIcon/dotmenu). No comparte loop con otros botones.
   const ingestBtn = document.getElementById('worker-header-ingest-btn');
@@ -1453,6 +1468,10 @@ document.addEventListener('DOMContentLoaded', () => {
       // Footer — blind exhaust
       case 'confirm-blind-exhaust':
         confirmBlindExhaust(aiId);
+        break;
+      // Header — descartar sesión interrumpida sin pasar por Quick Capture (TKT-202608-413)
+      case 'dismiss-interrupted':
+        dismissInterrupted(aiId);
         break;
       // Project chip (stopPropagation)
       case 'select-project-filter-stop':
