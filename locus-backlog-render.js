@@ -1,5 +1,5 @@
-// [PP] mod:113 · autor:Rune · 2026-08-16 UTC-6
-// INC-202608-XXX: renderSprintGroup() — buildBacklogItem(item) para el REQ padre ahora
+// [PP] mod:115 · autor:Rune · 2026-08-18 22:10 UTC-6
+// Fix (histórico — sin CHECKPOINT confirmado): renderSprintGroup() — buildBacklogItem(item) para el REQ padre ahora
 // pasa { suppressChildren: true } (L579). Sin el flag, buildBacklogItem() renderizaba su
 // propio bloque .req-children-block (mini-rows) además de los .bl-child-row que este mismo
 // bloque ya dibuja para cada hijo — duplicación visual confirmada en Vista Lista. Fix de una
@@ -99,12 +99,12 @@
 // también desde locus-incidents-render.js.
 //
 // [PP] mod:93 · autor:Rune · 2026-07-20 23:10 UTC-6
-// TKT-[pendiente-ID] (deuda técnica, DISC promovida en cierre de REQ CAEL-0720-01):
+// Deuda técnica (código real no identificable — DISC promovida en cierre de REQ CAEL-0720-01):
 // SLA_RIESGO_WINDOW_MS ya no es const local — importada de locus-inc-fields.js, mismo valor
 // (6h), _qincItemClasses() sin cambio de comportamiento.
 //
 // [PP] mod:92 · autor:Rune · 2026-07-20 22:35 UTC-6
-// TKT (REQ-[pendiente-ID] Paridad IDP Q-INC — Opción A, founder confirmó "vamos con opcion A
+// TKT (Paridad IDP Q-INC — Opción A, REQ sin código real identificable, founder confirmó "vamos con opcion A
 //   pure" sobre hallazgo #2 de la auditoría de render): _attachQIncDelegation gana wiring
 //   completo para abrir el IDP desde .qinc-item-header — mismo patrón que .bitem-header
 //   (locus-backlog-item.js). Import dinámico de openItemPanel (locus-backlog-panel.js) evita
@@ -116,13 +116,13 @@
 //   no requiere keydown propio — ya es <button> nativo tras el fix del hallazgo #1. Sin
 //   cambio de firma exportada. contract_update: no.
 // [PP] mod:90 · autor:Rune · 2026-07-18 UTC-6
-// TKT1 (REQ-[pendiente-ID] Import huérfano _renderPlanningView, ref CAEL-0717-03): import de
+// TKT1 (Import huérfano _renderPlanningView, ref CAEL-0717-03, REQ sin código real identificable): import de
 // _renderPlanningView retirado (línea 184) — sin call site en este archivo, confirmado con
 // grep contra el repo completo (52 archivos). Call site real intacto en locus-sprint.js
 // líneas 105/533. _attachPlanViewDelegation conservado — call site propio en línea 731.
 // contract_update: no.
 // [PP] mod:87 · autor:Rune · 2026-07-17 UTC-6
-// TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): AC2 — import de _statusPills
+// TKT1 (Consolidar wiring de Histórico, REQ sin código real identificable): AC2 — import de _statusPills
 // retirado (línea 178, sin call sites reales en este archivo — solo import + comentario
 // histórico L247). _renderPlanningView y _attachPlanViewDelegation conservados, ambos con
 // call site confirmado. Hallazgo fuera de scope registrado: _renderPlanningView sin call
@@ -134,7 +134,7 @@
 // TKT2 (REQ CAEL-01): _initQIncSubTab eliminado (target inexistente tras migración a tab
 // top-level) · shell:backlog-render-dirty corregido a getCurrentTab()==='incidentes' · 3
 // comentarios actualizados (#sspanel-qinc → #tab-incidentes). Sin cambio en renderQIncPanel() interno.
-// TKT3 (REQ-refactor-item-shape-itil-scrum, parent [pendiente-ID] — confirmar código real en
+// TKT3 (REQ-refactor-item-shape-itil-scrum, parent sin código real confirmado en
 //   Locus): concat(getItems()) eliminado en renderQIncPanel() y _updateSubtabBadges() — ambos
 //   leen exclusivamente getIncidents(), alineados con _getCountableBaseForSubtab('qinc')
 //   (locus-backlog-core.js). Ver comentarios inline en cada call site.
@@ -144,7 +144,7 @@
 //   subtab Backlog (sprint activo/programado) deja de contar ítems con draft:true, consistente
 //   con renderSprintItems (locus-backlog-sprints.js) sobre la misma condición.
 // [PP] mod:82 · autor:Rune · 2026-07-09 UTC-6
-// TKT-202607-INC-NAMING (INC-[pendiente-ID]): 4 lecturas de i.slaPriority en renderQIncPanel
+// TKT-202607-INC-NAMING (INC sin código real identificable): 4 lecturas de i.slaPriority en renderQIncPanel
 //   y el badge Q-INC (líneas ~1045/1077/1117/1412) sin fallback a sla_priority (snake) —
 //   rompía la clasificación visual SLA (colores vencido/riesgo, filtro por prioridad, badge
 //   urgente) para todo incidente hidratado desde Supabase. Fallback bidireccional agregado
@@ -152,7 +152,7 @@
 // TKT-202607-056 (REQ-202607-015 · TKT3): renderQIncPanel() construye allQInc con
 //   getItems().concat(getIncidents()) en vez de solo getItems() — badge y alerta SLA
 //   heredan el universo corregido sin cambio adicional (ya derivan de allQInc).
-// INC-202607-[pendiente-ID] (triggered_by: TKT-202607-056): _updateSubtabBadges() tenía el
+// INC sin código real identificable (triggered_by: TKT-202607-056): _updateSubtabBadges() tenía el
 //   mismo gap de universo en el badge Q-INC — corregido con el mismo patrón concat(getIncidents()).
 // TKT-202607-027 (REQ-202607-013 · Deprecar Vista Kanban) — completa el archivo que la entrega
 //   mod:79 de locus-backlog-item.js dejó pendiente ("locus-backlog-render.js debe dejar de
@@ -194,7 +194,7 @@
 // (reemplazado por .blf-badge, no por ID). No se reescribe la nota de mod:66 — sigue siendo
 // verdadera para el momento en que se escribió.
 // [PP] mod:70 · autor:Rune · 2026-07-04 17:01 UTC-6
-// TKT1 (REQ-[pendiente-ID] Ocultar bloque Terminados en Discoveries): _renderZonePanel acepta
+// TKT1 (Ocultar bloque Terminados en Discoveries, REQ sin código real identificable): _renderZonePanel acepta
 // opts.hasDoneState / opts.hasChildren (default true — sin cambio de comportamiento para
 // qbacklog). Con false: el bloque estático #[nsKey]-done-group se oculta vía .is-hidden (Nova,
 // design_intent "Ocultar bloque Terminados en Discoveries"), se omite el split done/active y
@@ -202,7 +202,7 @@
 // (__BR-Ecosystem §5) ni tiene jerarquía R→hijos.
 // [PP] mod:68 · autor:Rune · 2026-07-05 UTC-6
 // TKT1 (limpieza post-rename): comentario en L48 actualizado — describía capacidad vigente referenciando locus-backlog-archive.js; corregido a locus-backlog-historico.js. Notas históricas de L3/L25 (documentan el rename en sí) se conservan sin cambio.
-// REQ-[pendiente-ID] Unificar vocabulario historico — TKT2 (continuación): call sites
+// REQ Unificar vocabulario historico (código real sin identificar) — TKT2 (continuación): call sites
 // actualizados hacia locus-backlog-historico.js (ex locus-backlog-archive.js, ver TKT2 en
 // ese archivo, mod:22): import renombrado (renderArchivoHistorico→renderHistoricoSection,
 // getArchivoHistoricoCount→getHistoricoCount, getArchivoHistoricoStats→getHistoricoStats) +
@@ -213,7 +213,7 @@
 // histórico, ver header de locus-backlog-historico.js §criterio) ni el import huérfano ya
 // documentado como removido (toggleArchivoHistorico, línea de mod:66 arriba).
 // [PP] mod:66 · autor:Rune · 2026-07-04 UTC-6
-// INC-[pendiente-ID]: fix — renderSprintGroup() no renderizaba ítems con status:'historico' en
+// Fix (INC sin código real identificable): renderSprintGroup() no renderizaba ítems con status:'historico' en
 // grupos de sprint cerrado (isClosed:true). _rootPool y el bloque "Done items sueltos" excluían
 // 'historico' sin excepción — _buildChildMap ya tenía includeHistorico para los hijos (línea 96)
 // pero nunca se propagó a los filtros de root ni al bloque de done-sueltos. Efecto: el header del
@@ -223,22 +223,22 @@
 // por completo cuando isClosed:true — queda cubierto por el _rootPool ampliado, evita duplicado.
 // Afecta ambos consumidores de renderSprintGroup: panel Histórico (locus-backlog-historico.js) y
 // Backlog Vista Lista al mostrar un sprint closed.
-// TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): _initHistoricoSubTab eliminado —
+// TKT1 (Consolidar wiring de Histórico, REQ sin código real identificable): _initHistoricoSubTab eliminado —
 // renderHistoricoPanel pasa a ser el único listener de 'shell:render-historico'. Imports
 // huérfanos removidos: toggleArchivoHistorico (locus-backlog-archive.js, export eliminado) y
 // toggleClosedSprintsBody (locus-sprint-planificacion.js, dead code eliminado en ese archivo).
-// TKT1 (REQ-[pendiente-ID] unificar renderer de #active-filter-chips): updateClearFilterBtn()
+// TKT1 (unificar renderer de #active-filter-chips, REQ sin código real identificable): updateClearFilterBtn()
 //   reducida a delegar en renderActiveFilterChips() (core.js) — ya no construye innerHTML de
 //   #active-filter-chips ni referencia #bl-filter-badge/#fbar-filter-btn (elementos inexistentes
 //   desde el REQ de consolidación de toolbar). Listener shell:backlog-filter-changed duplicado
 //   eliminado — queda solo el de core.js. inline_fix: imports huérfanos removidos.
 // TKT (fix groupId): renderSprintGroup acepta contextPrefix — ver comentario en la función.
-//   Reaplicado sobre mod:60 (simplificación _useVistaLista, TKT-[pendiente-ID] paralelo) —
+//   Reaplicado sobre mod:60 (simplificación _useVistaLista, TKT paralelo sin código real identificable) —
 //   sin conflicto, cuerpos no se solapan.
-// TKT-[pendiente-ID]: eliminada la condición tautológica _useVistaLista (kanban ya desvía
+// Fix (TKT sin código real identificable): eliminada la condición tautológica _useVistaLista (kanban ya desvía
 //   incondicionalmente en L926, anterior en el flujo) — llamada directa a _renderVistaLista().
 //   Variable html huérfana eliminada — sin otro uso en la función tras la simplificación.
-// mod:59 · autor:Rune · TKT-[pendiente-ID] (REQ-[pendiente-ID] unificar render Sin AC — resuelve INC-[pendiente-ID]):
+// mod:59 · autor:Rune · fix (unificar render Sin AC — REQ/TKT/INC de origen sin código real identificable):
 //   _useVistaLista ya no excluye noAc — pendienteItems (ya filtrado por _getBacklogNoAcMode() en
 //   L957) se enruta por _renderVistaLista() en vez de un path standalone que nunca los renderizaba
 //   (bug: filtro 'Sin AC' dejaba el backlog list en blanco). Bloque Cerradas/empty-state/tail
@@ -355,7 +355,7 @@ export function updateClearFilterBtn() {
 // T-202604-213: _statusPills — migrada a locus-sprint-planificacion.js (B-202605-046)
 // R-202605-103: toggleClosedSprintsBody — migrada a locus-sprint-planificacion.js (B-202605-046)
 
-// INC-[pendiente-ID] TKT1: universo completo de ítems (activos + historico) con dedupe por code.
+// Fix (INC sin código real identificable) TKT1: universo completo de ítems (activos + historico) con dedupe por code.
 // getItems() (locus-backlog-core.js) nunca incluye status:historico desde T-202606-106 (_setITEMS) —
 // consumidores que necesitan contar/anidar ítems de un sprint closed deben mergear con
 // getHistoricoItemsSync(), ver invariant en _Locus-module-contracts.md.
@@ -372,7 +372,7 @@ function _getAllItemsWithHistorico() {
   return _merged;
 }
 
-// INC-[pendiente-ID] TKT1: cache de historico tibio para sprints closed en Vista Lista.
+// Fix (INC sin código real identificable) TKT1: cache de historico tibio para sprints closed en Vista Lista.
 // Mismo patrón que renderHistoricoPanel() (L1696) pero no-bloqueante — _renderVistaLista es
 // llamada sync desde renderBacklogList(), con ~30 call sites en 12 archivos que no pueden
 // volverse async sin impacto lateral fuera de scope de este TKT. Si el cache está frío
@@ -545,7 +545,7 @@ export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
     // construía desde el universo completo sin filtrar. Ver deuda declarada en header del archivo.
     const _childMap = _buildChildMap(sprintItems, isClosed);
     const _rCodesInGroup = new Set(sprintItems.filter(i => itemKind(i) === 'REQ').map(i => i.code));
-    // INC-[pendiente-ID]: en grupo cerrado (isClosed:true) todos los ítems terminan en
+    // Fix (INC sin código real identificable): en grupo cerrado (isClosed:true) todos los ítems terminan en
     // 'done'/'historico' — excluirlos de _rootPool dejaba el body sin nada que renderizar.
     // isClosed:true → solo se excluye 'descartado'.
     // Fix mod:107 (autorizado por founder, ver header del archivo): isClosed:false ya no
@@ -582,7 +582,7 @@ export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
         const _isRCollapsed = localStorage.getItem(_collapseKey) === '1';
 
         html += `<div class="bl-vl-req" data-r-code="${esc(item.code)}">`;
-        // INC-202608-XXX: suppressChildren:true — evita que buildBacklogItem() renderice
+        // Fix (histórico — sin CHECKPOINT confirmado): suppressChildren:true — evita que buildBacklogItem() renderice
         // su bloque interno .req-children-block (mini-rows) cuando este bloque ya va a
         // renderizar los hijos completos como .bl-child-row unas líneas más abajo. Sin este
         // flag, cada TKT hijo se dibujaba dos veces.
@@ -601,7 +601,7 @@ export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
   }
 
   // Done items sueltos — no anidados bajo un R ya renderizado en el bloque root.
-  // INC-[pendiente-ID]: en grupo cerrado (isClosed:true) el _rootPool ampliado ya cubrió done Y
+  // Fix (INC sin código real identificable): en grupo cerrado (isClosed:true) el _rootPool ampliado ya cubrió done Y
   // historico — repetir este bloque duplicaría el render. Solo corre para grupos no cerrados.
   if (!isClosed) {
     const _rCodesInGroupForDone = new Set(sprintItems.filter(i => itemKind(i) === 'REQ').map(i => i.code));
@@ -660,13 +660,13 @@ function _emptySprintHeaderHtml(sprintId, sprintObj) {
 
 function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _matchesQuery, _sortGroup, onRendered) {
   // B-202606-076 / TKT-C1: _isQBacklog/_isQDisc importadas desde locus-backlog-core.js — fuente única.
-  // TKT (REQ-[pendiente-ID]): ítems ITIL (INC/PRB/KE/CHG con queue Q-INC) excluidos de #backlog-list —
+  // TKT (REQ sin código real identificable): ítems ITIL (INC/PRB/KE/CHG con queue Q-INC) excluidos de #backlog-list —
   // panel dedicado vive en #tab-incidentes (TKT2 REQ CAEL-01: migrado de sub-tab a tab top-level). Filtro legacy por sprint string-match eliminado.
   // [tmp:tkt-isqinc-unify]: _isQInc local eliminada — usa isQIncItem() importada desde locus-backlog-core.js.
 
   // T-202606-090 AC-6 / TKT-C1: ítems sin sprint (Q-Backlog/Q-DISC) excluidos de #backlog-list —
   // viven en renderQBacklogPanel()/renderQDiscPanel() (sub-tabs dedicados).
-  // TKT (REQ-[pendiente-ID]): ítems ITIL excluidos del mismo modo — ver isQIncItem importada.
+  // TKT (REQ sin código real identificable): ítems ITIL excluidos del mismo modo — ver isQIncItem importada.
   const sprintableItems = pendienteItems.filter(i => !_isQBacklog(i) && !_isQDisc(i) && !isQIncItem(i));
 
   // Agrupar por sprint
@@ -684,7 +684,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
   // B-202606-002: sprints que solo tienen done items visibles no aparecen en sprintMap
   // (construido solo desde sprintableItems = pendientes). Registrarlos con array vacío
   // para que el loop de sprint groups los incluya y emita _doneInGroup.
-  // TKT (REQ-[pendiente-ID]): done items ITIL excluidos del mismo modo que icebox —
+  // TKT (REQ sin código real identificable): done items ITIL excluidos del mismo modo que icebox —
   // sin esto, un sprint con solo done items ITIL generaría un group header vacío en #backlog-list.
   if (_getActiveStatuses().has('done')) {
     doneItems.forEach(i => {
@@ -721,7 +721,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
 
   let html = '';
 
-  // INC-[pendiente-ID] fix: self-heal de status de REQ removido de este loop — corre una
+  // Fix (INC sin código real identificable): self-heal de status de REQ removido de este loop — corre una
   // sola vez, sobre el universo completo de ITEMS, en renderBacklogList() antes de calcular
   // `filtered`/pendienteItems (ver bloque al inicio de esa función). Este loop ya solo lee
   // item.status, corregido de antemano — evita que un REQ pase el filtro de status con su
@@ -786,14 +786,14 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
     html += renderSprintGroup(_groupItems, isClosed);
   });
 
-  // INC-[pendiente-ID] fix: saveBacklog() de self-heal ya no vive aquí — se dispara una sola
+  // Fix (INC sin código real identificable): saveBacklog() de self-heal ya no vive aquí — se dispara una sola
   // vez en renderBacklogList() (ver bloque previo a `filtered`), donde ahora corre el self-heal
   // sobre el universo completo. Guard anti-cascada realtime sigue cubierto genéricamente por
   // syncState.withSaveLock() dentro de saveBacklog() (locus-storage.js:1773).
 
   // T-202606-090 AC-6 / TKT-C1: bloque "Icebox al final" eliminado de #backlog-list — los ítems
   // sin sprint (Q-Backlog/Q-DISC) se muestran en renderQBacklogPanel()/renderQDiscPanel() (sub-tabs).
-  // TKT (REQ-[pendiente-ID]): ítems ITIL excluidos del mismo modo — ver #tab-incidentes.
+  // TKT (REQ sin código real identificable): ítems ITIL excluidos del mismo modo — ver #tab-incidentes.
 
   // Cerradas — R/T/B descartado + P descartado + P promovida — bloque unificado
   // Solo visible cuando fstatus-descartado está activo (activeStatuses incluye 'descartado' y 'promovida')
@@ -1004,7 +1004,7 @@ export function renderBacklogList(onRendered) {
 
   // TKT-202607-027: bloque de desvío a vista Kanban eliminado (T-202604-287 deprecado) — Vista Lista es el único modo
 
-  // INC-[pendiente-ID] fix: self-healing de status de REQ — recalcula sobre el universo
+  // Fix (INC sin código real identificable): self-healing de status de REQ — recalcula sobre el universo
   // COMPLETO de ITEMS (getItems(), sin filtrar por status todavía) y ANTES de construir
   // `filtered`/pendienteItems más abajo. Antes vivía dentro de _renderVistaLista, aplicado
   // solo sobre `group` (subconjunto ya filtrado por status) — un REQ podía pasar el filtro
@@ -1106,7 +1106,7 @@ export function renderBacklogList(onRendered) {
   const _dir = _getBacklogSortDir() === 'desc' ? -1 : 1;
 
   // T-202604-424: sort interno dentro de cada grupo de sprint — priority desc → effort asc
-  // B-[pendiente-ID]: aplicar _dir para respetar _getBacklogSortDir() — el botón ↑↓ ahora funciona en modo sprint group
+  // Fix histórico (código real no identificable, notación Gen1 'B-'): aplicar _dir para respetar _getBacklogSortDir() — el botón ↑↓ ahora funciona en modo sprint group
   function _sortGroup(arr) {
     return [...arr].sort((a, b) => {
       const pa = _priOrder[a.priority] ?? 1, pb = _priOrder[b.priority] ?? 1;
@@ -1150,7 +1150,7 @@ export function renderBacklogList(onRendered) {
   // T-202604-082: modo sprint = agrupado por sprint; otros modos = lista plana
   // R-202604-091: 'en curso' fusionado — todos los pendiente van juntos, decorador visual separa activos
   // T-202605-135: Ps integradas en pendienteItems — sin sección separada
-  // [pendiente-ID]: promovida excluida de pendienteItems — va a terminalItems
+  // Nota (ítem de origen sin código real identificable): promovida excluida de pendienteItems — va a terminalItems
   const pendienteItems = filtered.filter(i => i.status !== 'done' && i.status !== 'descartado' && !(itemKind(i) === 'DISC' && i.status === 'promoted')); // TKT-202606-009: Gen2 canónico
   // TKT-202608-290: _matchesQuery siempre true — búsqueda local retirada. Se conserva como
   // parámetro/predicado (en vez de eliminar su hilo por getDoneItems/_renderVistaLista) porque
@@ -1160,7 +1160,7 @@ export function renderBacklogList(onRendered) {
   const doneItems      = _getActiveStatuses().has('done')
     ? getDoneItems(_matchesQuery)  // T-202606-028: reutiliza getDoneItems global — evita getItems().filter() duplicado
     : [];
-  // [pendiente-ID]: terminalItems — bloque Cerradas unificado
+  // Nota (ítem de origen sin código real identificable): terminalItems — bloque Cerradas unificado
   // Incluye: R/T/B descartado + P descartado + P promovida
   // Solo visible cuando fstatus-descartado está activo (activeStatuses incluye 'descartado')
   // T-202606-060: typeOk aplicado sobre R/T/B — Ps siempre incluidas cuando el bloque es visible
@@ -1178,7 +1178,7 @@ export function renderBacklogList(onRendered) {
       })
     : [];
 
-  // R-202606-017 / INC-[pendiente-ID] fix: Vista Lista es la única vía de render para pendienteItems —
+  // R-202606-017 / fix (INC sin código real identificable): Vista Lista es la única vía de render para pendienteItems —
   // el path noAc standalone nunca los renderizaba (bug: lista en blanco con filtro Sin AC activo).
   // pendienteItems ya viene filtrado por _getBacklogNoAcMode() más arriba (L957) — _renderVistaLista
   // no requiere cambio, solo recibe el conjunto ya acotado. TKT-202607-027: Vista Lista es ahora el
@@ -1202,7 +1202,7 @@ export function renderBacklogList(onRendered) {
 // redundante pero inofensivo, evita acumulación en re-renders si el guard interno cambiara.
 // (mismo contrato que _renderVistaLista/renderBacklogList, que resetean listEl.innerHTML antes
 // de llamarla). AC-2, AC-6, AC-7, AC-8, AC-9.
-// INC-[pendiente-ID]: async — refresca el cache de historico antes de leer getHistoricoCount()/
+// Fix (INC sin código real identificable): async — refresca el cache de historico antes de leer getHistoricoCount()/
 // getHistoricoStats() (que dependen del mismo cache que _buildHistoricoPartitions en
 // locus-backlog-historico.js). Ambos call sites del handler (click sub-tab, shell:backlog-render-dirty)
 // se ajustan a async/await.
@@ -1304,7 +1304,7 @@ export async function renderHistoricoPanel() {
   _initHistoricoToolbar();
 }
 
-// TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): _initHistoricoSubTab eliminado —
+// TKT1 (Consolidar wiring de Histórico, REQ sin código real identificable): _initHistoricoSubTab eliminado —
 // era wiring manual duplicado (toggle de .tpl-nav-btn/.session-subpanel) sobre el mismo botón
 // que switchSubTab() (locus-ui-shell.js) ya activa para los otros 7 sub-tabs. Dos listeners
 // async e independientes sobre el mismo click, sin orden garantizado entre sí, eran la causa
