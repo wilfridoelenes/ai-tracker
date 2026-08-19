@@ -1,4 +1,4 @@
-// [PP] mod:94 · autor:Rune · 2026-08-18 22:35 UTC-6
+// [PP] mod:95 · autor:Rune · 2026-08-19 UTC-6
 // TKT1 (CAEL-08182200-02, DISC-202608-192): entrada de header mod:92 (línea abajo) no cumplía
 // el formato de timestamp de __BR-Execution §9 (YYYY-MM-DD HH:MM UTC-6) — la hora nunca quedó
 // registrada en esa entrega. Sin dato real que reponer, se anota explícitamente en vez de
@@ -973,12 +973,17 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // TKT-202608-420 (REQ-202608-169, depends_on TKT-202608-416): Captura de Flujo — tras
   // aplicar el batch de items (mergeResult + patches de arriba), persiste una fila en
   // tracker_checkpoint_flow con los campos de Flujo del CHECKPOINT parseado. sprint_id se
-  // hereda del primer tgItem del bloque que ya trae sprint real asignado (post-resolución de
-  // mergeBacklogFromTG) — ausente en todos → null, mismo caso que CHECKPOINTs de Q-Backlog/
-  // C-level/Q-INC (AC Edge CHECKPOINT lite). No await — complementaria al flujo crítico de
-  // guardado de sesión, mismo criterio de no bloqueo que saveWorker()/_upsertSprint().
+  // resuelve contra mergeResult.created/.advanced/.updated — nunca contra tgItems crudo — un
+  // TKT hijo puede heredar sprint de su REQ padre (parent→hijo, __BR-Ecosystem §5) sin
+  // declararlo explícito en el bloque del CHECKPOINT; tgItems refleja el paste original,
+  // mergeResult refleja el ítem ya resuelto por mergeBacklogFromTG/_assignPendingIds, que sí
+  // aplica esa herencia (shape {code, sprint, ...} por ítem, ver _Locus-module-contracts §2).
+  // Ausente en los tres arrays → null, mismo caso que CHECKPOINTs de Q-Backlog/C-level/Q-INC
+  // (AC Edge CHECKPOINT lite). No await — complementaria al flujo crítico de guardado de
+  // sesión, mismo criterio de no bloqueo que saveWorker()/_upsertSprint().
   {
-    const _flowSprintItem = tgItems.find(it => it && it.sprint);
+    const _flowSprintCandidates = [].concat(mergeResult.created || [], mergeResult.advanced || [], mergeResult.updated || []);
+    const _flowSprintItem = _flowSprintCandidates.find(it => it && it.sprint);
     saveCheckpointFlow({
       projectId: activeProj.id,
       sprintId:  _flowSprintItem ? _flowSprintItem.sprint : null,

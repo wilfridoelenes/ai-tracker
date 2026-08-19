@@ -1,4 +1,6 @@
-// [PP] mod:171 · autor:Rune · 2026-08-19 07:00 UTC-6
+// [PP] mod:172 · autor:Rune · 2026-08-19 07:00 UTC-6
+// TKT-202608-419 (REQ-202608-169, depends_on TKT-202608-420): getCheckpointFlowsWithoutSprint()
+// agregada — lee tracker_checkpoint_flow con sprint_id: null, para el Learning Log del proyecto.
 // TKT-202608-418 (REQ-202608-169, depends_on TKT-202608-420): getCheckpointFlowsBySprintId()
 // agregada — lee tracker_checkpoint_flow por sprint_id para la retro real.
 // TKT-202608-420 (REQ-202608-169): saveCheckpointFlow() nueva — insert a tracker_checkpoint_flow
@@ -4208,6 +4210,34 @@ export async function getCheckpointFlowsBySprintId(sprintId) {
     return Array.isArray(data) ? data : [];
   } catch (err) {
     logger.warn('[Locus] getCheckpointFlowsBySprintId: fallo Supabase, sin fallback local', err);
+    return [];
+  }
+}
+
+// TKT-202608-419 (REQ-202608-169, depends_on TKT-202608-420): getCheckpointFlowsWithoutSprint()
+// — lee las filas de tracker_checkpoint_flow con sprint_id: null (CHECKPOINTs sin sprint
+// asignado — sesiones C-level, Q-Backlog, rama Reactiva) para el Learning Log del proyecto
+// (`__OB-Strategy §5` — captura los campos de Flujo de todo CHECKPOINT cuyo items no incluye
+// un ítem con sprint real). AC — filtro de fecha opcional: sinceTs (epoch ms) aplica `.gte()`
+// sobre created_at solo si se declara — sin sinceTs, trae el histórico completo sin sprint
+// (no_incluye: no genera el .md automáticamente, no detecta recurrencia — eso lo hace Cael al
+// leer el resultado). Mismo criterio de tolerancia sin auth/sin projectId que
+// getCheckpointFlowsBySprintId() — retorna [] silenciosamente, sin excepción propagada.
+export async function getCheckpointFlowsWithoutSprint(projectId, sinceTs) {
+  if (!_supabase || !_supabaseUser || !projectId) return [];
+  try {
+    let q = _supabase
+      .from('tracker_checkpoint_flow')
+      .select('checkpoint_title, role, summary, blockers, learning, decision, created_at')
+      .eq('user_id', _supabaseUser.id)
+      .eq('project_id', projectId)
+      .is('sprint_id', null);
+    if (sinceTs) q = q.gte('created_at', sinceTs);
+    const { data, error } = await q.order('created_at', { ascending: true });
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    logger.warn('[Locus] getCheckpointFlowsWithoutSprint: fallo Supabase, sin fallback local', err);
     return [];
   }
 }
