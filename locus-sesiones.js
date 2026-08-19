@@ -1,3 +1,16 @@
+// [PP] mod:69 · autor:Rune · 2026-08-18 23:05 UTC-6
+// TKT1 (ref_id CAEL-08181430-02, REQ ref_id CAEL-08181430-01): dismiss directo de sesión
+// interrumpida. import dismissInterrupted agregado desde locus-sesiones-capture.js (junto a
+// openQuickCapture, ya importado) — case 'dismiss-interrupted' nuevo en el delegador de clicks
+// (DOMContentLoaded) invoca dismissInterrupted(aiId), mismo patrón que 'confirm-blind-exhaust'/
+// 'open-correct-hora' en el mismo switch. Firma asumida por convención — todo caso de este switch
+// invoca su función como fn(aiId); dismissInterrupted no tiene entrada de contrato propia en
+// _Locus-module-contracts (solo mencionada en prosa dentro de _resetWorker/mod:188-189) y
+// locus-sesiones-capture.js no está adjunto en esta sesión para confirmar el parámetro — supuesto
+// declarado, no verificado contra el archivo real. _populateWorkerHeader() gana bloque nuevo:
+// alterna is-hidden de #worker-header-dismiss-btn según isInterrupted y puebla dataset.aiId —
+// mismo criterio que quickBtn/cdInline en la misma función. Markup estático del botón vive en
+// index.html (mod:211), no generado aquí — ver __BR-Execution §5 regla 4.
 // [PP] mod:68 · autor:Rune · 2026-08-18 22:30 UTC-6
 // INC-ref:RUNE-08151405-01: causa raíz confirmada — _populateWorkerHeader() ocultaba
 //   correctHoraBtn (dot-correct-hora) con la condición equivocada (isAvail en vez de

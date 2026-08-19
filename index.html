@@ -1,3 +1,10 @@
+<!-- [PP] mod:211 · autor:Rune · 2026-08-18 23:05 UTC-6 -->
+<!-- TKT1 (ref_id CAEL-08181430-02, REQ ref_id CAEL-08181430-01): botón dismiss directo de sesión
+     interrumpida — <button class="sc-menu-btn is-hidden" id="worker-header-dismiss-btn"> insertado
+     en .sc-header-left, inmediatamente después de #worker-header-badge (design_intent:
+     dismiss_interrupted_wireframe). data-action="dismiss-interrupted" — wiring (visibilidad +
+     dispatch) en locus-sesiones.js, no en este archivo. Reutiliza .sc-menu-btn e ícono #ti-x del
+     sprite ya existentes — sin CSS ni símbolo SVG nuevo. -->
 <!-- TKT · REQ-restauracion-tab-proyectos (design_intent: restauracion_tab_proyectos_pre_analytics):
      #tab-btn-proyectos restaurado en la barra de tabs principal, entre Sesiones y Analytics —
      revierte TKT-202607-150. Comentario inline junto al botón (antes describía el retiro)
@@ -675,6 +682,8 @@
       <div class="sc-avatar" id="worker-header-avatar" data-action="dblclick-avatar" data-ai-id=""></div>
       <span class="sc-project" id="worker-header-name"></span>
       <span class="sc-badge" id="worker-header-badge"></span>
+      <button class="sc-menu-btn is-hidden" id="worker-header-dismiss-btn" data-action="dismiss-interrupted" data-ai-id=""
+        title="Descartar interrupción" aria-label="Descartar interrupción"><svg class="ti-svg" aria-hidden="true"><use href="#ti-x"></use></svg></button>
     </div>
     <div class="sc-header-right">
       <button class="worker-header-quick is-hidden" id="worker-header-quick"
