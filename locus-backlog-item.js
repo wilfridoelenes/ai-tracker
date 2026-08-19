@@ -1,4 +1,4 @@
-// [PP] mod:174 · autor:Rune · 2026-08-18 11:00 UTC-6
+// [PP] mod:175 · autor:Rune · 2026-08-19 05:53 UTC-6
 // TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog — Excepción de resolución
 // directa: hallazgo de código, nivel Patch, sin bifurcación de founder): retirado branch
 // huérfano act==='bl-r-toggle' (línea ~963 original) — sin emisor real de
@@ -7,7 +7,7 @@
 // colapso de hijos de R es vl-toggle-r (locus-backlog-render.js, delegación propia).
 // Mismo patrón de deuda ya resuelto una vez en este archivo (Propuesta de mejora #3,
 // _focusRank, mod:59 _Locus-ui-Inventory) — código muerto tras refactor de handler real.
-// TKT-[pendiente-ID] (Propuesta de mejora #3, mod:59 _Locus-ui-Inventory, parte CSS ya
+// TKT histórico sin código confirmado (Propuesta de mejora #3, mod:59 _Locus-ui-Inventory, parte CSS ya
 // retirada por Nova en locus-sesiones.css mod:51): retirado branch huérfano de
 // item._focusRank en buildBacklogItem() — nunca se asignaba en ningún flujo real, el
 // badge .bitem-focus-rank quedó inalcanzable desde su TKT de origen (T-202604-426).
@@ -36,7 +36,7 @@
 // .promote-modal-info con el mismo aviso de descarte que ya muestra _promoteTktToReq() —
 // antes P→T/R descartaba el DISC origen sin avisarlo. Reutiliza la clase .promote-modal-info
 // ya definida — sin CSS nueva. Cierra Hallazgo F de _Locus-ux-ref.
-// TKT2 (parent: [pendiente-ID] · contract_update: sí, ver _Locus-module-contracts): 
+// TKT2 (parent: histórico sin código confirmado · contract_update: sí, ver _Locus-module-contracts): 
 // _assignPendingIds() distingue ahora, en unresolvedRefs (campos escalares _refFields), entre
 // "código con formato real inexistente" (source:'ref_no_resuelta', sin cambio) y "valor sin
 // forma de código" (source:'formato_invalido', nuevo) — ej. triggeredBy:"n/a — alta manual de
@@ -147,7 +147,7 @@
 // no adyacente, se rechazaba sin dejar rastro en el retorno {patched,ignored} de la función). Sin
 // cambio de firma — applyPatchesFromTG() sigue retornando {patched, ignored}. contract_update: sí.
 // [PP] mod:142 · autor:Rune · 2026-07-24 UTC-6
-// INC-[pendiente-ID] (fix, sesión reactiva — root cause de 2 iteraciones fallidas de Cael/Finn
+// INC histórico sin código confirmado (fix, sesión reactiva — root cause de 2 iteraciones fallidas de Cael/Finn
 // al reparentar TKT-202607-098/099/100 vía type:patch hacia un REQ nuevo draft:true en el mismo
 // bloque): gate 'req-sin-tkt' en mergeBacklogFromTG (_hasChildInBatch) solo miraba tgItems —
 // nunca podía ver los objetos type:'patch' del mismo bloque porque todo caller los filtra fuera
@@ -268,7 +268,7 @@
 // [PP] mod:131 · autor:Rune · 2026-07-22 UTC-6
 // Fix inline (triggered_by análisis de rama Reactiva en locus-backlog-item.js, sesión sin
 // TKT activo): buildBacklogItem() — bloque "R padre" evaluaba (type === 'TKT' || type ===
-// 'INC'), rama INC inalcanzable desde el fix de creación/lookup ITIL (INC-[pendiente-ID]
+// 'INC'), rama INC inalcanzable desde el fix de creación/lookup ITIL (INC histórico sin código confirmado
 // arriba en este mismo archivo): un INC nunca llega a getItems()/ITEMS, vive en
 // getIncidents()/INCIDENTS y se renderiza exclusivamente vía buildQIncItem() (comentario
 // propio del builder: "No reutiliza buildBacklogItem"). Además parentId es exclusivo de TKT
@@ -285,7 +285,7 @@
 // por copy-code/qi-open-panel, cuyos handlers tampoco viven en este módulo).
 // Sin cambio de firma de buildQIncItem(item) — mismo contrato, solo HTML retornado.
 // [PP] mod:129 · autor:Rune · 2026-07-21 23:28 UTC-6
-// TKT (INC-[pendiente-ID] · descartado como destino universal ITIL): validateIncidentTransitions
+// TKT (INC histórico sin código confirmado · descartado como destino universal ITIL): validateIncidentTransitions
 //   ahora acepta incidentStatus:'descartado' desde cualquier estado no-terminal para INC/PRB —
 //   BR-Core §6 lo declara sin restricción de origen ("Cualquier status → descartado"), pero
 //   _VALID_INCIDENT_TRANSITIONS/_VALID_PRB_TRANSITIONS no lo tenían declarado en ningún estado
@@ -296,7 +296,7 @@
 //   transversal en un solo lugar. 'descartado' sigue siendo terminal — no habilita salida desde
 //   descartado. Sin cambio de firma. contract_update: no.
 // [PP] mod:128 · autor:Rune · 2026-07-21 23:20 UTC-6
-// TKT (INC-[pendiente-ID] · guard status ITIL en applyPatchesFromTG): field==='status' ahora
+// TKT (INC histórico sin código confirmado · guard status ITIL en applyPatchesFromTG): field==='status' ahora
 //   hace no-op silencioso (con log en DocLog) para INC/PRB/KE, mismo patrón ya usado en el branch
 //   field==='incidentStatus' (no-op para tipos no-ITIL). Antes, un patch con status:X (X != 'done')
 //   sobre un INC/PRB/KE mutaba existing.status sin tocar incidentStatus ni pasar por
@@ -305,7 +305,7 @@
 //   este fix cierra el resto del vocabulario. CHG no se excluye — sigue usando status con
 //   vocabulario Scrum por diseño (BR-Ecosystem §4b). Sin cambio de firma. contract_update: no.
 // [PP] mod:127 · autor:Rune · 2026-07-21 23:13 UTC-6
-// TKT (INC-[pendiente-ID] · retiro archivedInSprint): campo eliminado del modelo de ítems por
+// TKT (INC histórico sin código confirmado · retiro archivedInSprint): campo eliminado del modelo de ítems por
 //   BR-Ecosystem §4b ("no existe vínculo INC↔sprint que declarar" — incident_status:closed es
 //   terminal por sí mismo). Bloque de escritura en mergeBacklogFromTG retirado (antes ~L2523-2532).
 //   Import getActiveSprints retirado — sin otro caller en este archivo. Sin cambio de comportamiento
@@ -326,7 +326,7 @@
 // assignedCount>1 (placeholder ambiguo) — excluida en Fase 5 Gap 3 por falta de title/ref_id
 // utilizable por un buscador. Compat 100%: callers existentes sin el tercer argumento se
 // comportan exactamente igual que mod:124.
-// TKT1 (REQ CAEL-0720-[pendiente-ID] · gap 3, corregido tras hallazgo de Rune en sesión): fix vive
+// TKT1 (REQ CAEL-0720-XX histórico sin código confirmado · gap 3, corregido tras hallazgo de Rune en sesión): fix vive
 // en _normalizeRefIdValue (L2178, closure de mergeBacklogFromTG) — no en _assignPendingIds, que
 // nunca recibe el campo {ref_id,title} porque ya llega null/string desde aquí. unresolvedRefs nuevo
 // (variable de mergeBacklogFromTG, expuesta en el return) se puebla solo en la rama
@@ -345,7 +345,7 @@
 // TKT1+TKT2 (REQ CAEL-0720-10): parent/parentId restaurado como exclusivo de TKT — cierre
 // del widen indebido introducido en mod:79/87 de module-contracts. Ver _checkAndOrphanParentR
 // y el bloque de normalización de mergeBacklogFromTG/_buildCommonItemFields.
-// TKT-[pendiente-ID] (deuda técnica, gap detectado por Finn — tercera copia no anticipada
+// TKT histórico sin código confirmado (deuda técnica, gap detectado por Finn — tercera copia no anticipada
 // en AC original): SLA_RIESGO_WINDOW_MS importada de locus-inc-fields.js, reemplaza literal
 // 21600000 en buildQIncItem() (línea ~3329). Sin cambio de comportamiento en clasificación
 // --sla-riesgo/--sla-vencido.
@@ -375,7 +375,7 @@
 // bloque) dejaba parentId con el objeto crudo sin resolver — "Sin parent" o valor ilegible en
 // IDP/DIFF pese a ref_id/title correctos. Ver __BR-Ecosystem §4.
 // [PP] mod:111 · autor:Rune · 2026-07-18 08:15 UTC-6
-// INC-[pendiente-ID] (triggered_by REQ-202607-003/004/005): _assignPendingIds no seedeaba
+// INC histórico sin código confirmado (triggered_by REQ-202607-003/004/005): _assignPendingIds no seedeaba
 // slugMap con [tmp:REF_ID] al asignar código real a un ítem con refId — causa raíz de
 // parent:{ref_id,title} sin resolver ("Sin parent" en DIFF pese a ref_id/title correctos).
 // Fix en las dos ramas de Sub-paso 1a (código [tmp:slug] y código [pendiente-ID] genérico).
@@ -443,7 +443,7 @@
 //   campo de datos) y también está en la blacklist — ruido preexistente al modelo whitelist
 //   anterior, no introducido por este cambio. Registrado como TKT de refactor, priority: low.
 // [PP] mod:102 · autor:Rune · 2026-07-11 UTC-6
-// INC-[pendiente-ID] (fix — patches múltiples en un CHECKPOINT: solo el primero se aplicaba):
+// INC histórico sin código confirmado (fix — patches múltiples en un CHECKPOINT: solo el primero se aplicaba):
 //   applyPatchesFromTG() llamaba saveBacklog() dentro del forEach, una vez por patch — N
 //   upserts completos de tracker_items concurrentes sin await entre sí, capturados en
 //   instantes distintos del loop síncrono. Race condition: el upsert que completa al final
@@ -466,7 +466,7 @@
 //   edita para conservar el registro histórico de esa decisión previa.
 //   contract_update: no — mergeBacklogFromTG no cambia de firma ni de shape de retorno, solo
 //   gana una rama de logging sin side effect sobre el ítem persistido.
-// TKT (REQ-[pendiente-ID] · ref_id CAEL-01/CAEL-02 · Resolución de ref_id+title, parte 2/2 —
+// TKT (REQ histórico sin código confirmado · ref_id CAEL-01/CAEL-02 · Resolución de ref_id+title, parte 2/2 —
 //   normalización + guardrail): mergeBacklogFromTG gana un bloque nuevo, antes de la
 //   normalización parent→parentId existente — construye un Map refId→title a partir de
 //   tgItems ya combinado (sin necesidad de transportar nada desde _resolveCheckpointBatch,
@@ -510,7 +510,7 @@
 //   que la base de la sesión anterior no era la vigente) — la entrega previa (mod:93→94
 //   sobre copia desactualizada) queda descartada sin efecto sobre este archivo.
 // [PP] mod:94 · autor:Rune · 2026-07-10 18:05 UTC-6
-// TKT1 (parent: [pendiente-ID], REQ Countdown SLA — INC high en Q-INC): buildQIncItem() —
+// TKT1 (parent: histórico sin código confirmado, REQ Countdown SLA — INC high en Q-INC): buildQIncItem() —
 //   AC1/AC2: .qinc-sla-countdown recibe modificador --riesgo cuando slaClass es
 //   qinc-item--sla-riesgo (mismo umbral 6h, ya gateado a slaPrio 'high'). AC3 (badges
 //   huérfanos qinc-badge--sla-high/medium/low) ya estaba resuelto en JS — solo faltaba
@@ -519,14 +519,14 @@
 //   mi entrega anterior a esta sesión había quedado en "mod:92" sobre una copia
 //   desactualizada del archivo; el founder corrigió con la versión real y esta entrega
 //   parte de ahí, sin pisar el fix de TKT3.
-// TKT3 (deuda detectada por Finn en QA de TKT1+TKT2, mismo INC-[pendiente-ID]): _undoSnapshotIncidents()
+// TKT3 (deuda detectada por Finn en QA de TKT1+TKT2, mismo INC histórico sin código confirmado): _undoSnapshotIncidents()
 //   en applyPatchesFromTG() se disparaba incondicionalmente aunque el batch de patches no
 //   trajera ningún ítem ITIL — limpiaba _redoStackIncidents como side-effect de un patch
 //   puramente Scrum (REQ/TKT). Fix: pre-scan de patches.some(getAnyItem+itemKind ITIL) antes
 //   del snapshot — mismo criterio de gating que mergeBacklogFromTG() ya usa vía
 //   _pendingNewIncidents.length. signature_change: false — applyPatchesFromTG() conserva firma
 //   y contrato público, solo cambia cuándo dispara el snapshot interno de Incidents.
-// INC-[pendiente-ID] (triggered_by REQ-202607-022 · TKT1+TKT2): fix de undo/redo para ITIL —
+// INC histórico sin código confirmado (triggered_by REQ-202607-022 · TKT1+TKT2): fix de undo/redo para ITIL —
 //   mergeBacklogFromTG() y applyPatchesFromTG() solo llamaban _undoSnapshotItems(), nunca
 //   _undoSnapshotIncidents() (agregada en TKT-202607-091/092, core.js mod:110) — la creación de
 //   un INC/PRB/KE/CHG nuevo vía push directo sobre getIncidents() y el patch vía mutación
@@ -541,7 +541,7 @@
 //   _setIncidents() exportada desde core.js (antes interna) — signature_change: false, mismo
 //   contrato, solo se agregó `export`. Sin cambio en la rama ITEMS de ninguna de las dos
 //   funciones.
-// INC-[pendiente-ID] (triggered_by [tmp:req-separar-undo-inc]): fix de creación/lookup ITIL —
+// INC histórico sin código confirmado (triggered_by [tmp:req-separar-undo-inc]): fix de creación/lookup ITIL —
 //   un INC/PRB/KE/CHG nuevo emitido en CHECKPOINT nacía vía getItems().push(), nunca llegaba a
 //   INCIDENTS y por lo tanto nunca al upsert de tracker_incidents en saveBacklog() — se perdía
 //   silenciosamente. Fix en 4 puntos: (1) creación en mergeBacklogFromTG() enrutada por
@@ -564,7 +564,7 @@
 //   declarado con cualquier valor, señal de que quien emitió el CHECKPOINT sigue asumiendo que
 //   zona se valida. Regla relajada — ver __BR-Ecosystem §8 y doc_update aplicado en _pp-strategy.
 //   No aplica a REQ/TKT (no declaran zona en su schema).
-// TKT-202607-INC-NAMING (INC-[pendiente-ID]): applyPatchesFromTG() aplicaba `priority` sobre
+// TKT-202607-INC-NAMING (INC histórico sin código confirmado): applyPatchesFromTG() aplicaba `priority` sobre
 //   cualquier tipo de ítem, incluyendo INC/PRB/KE/CHG — __BR-Ecosystem §8 declara ese campo
 //   no-op silencioso para tipos ITIL (usan sla_priority en su lugar). No-op explícito
 //   agregado antes del fallback genérico de campos patcheables. Sin cambio de firma.
@@ -608,7 +608,7 @@
 //   'parent' en ese momento, así que la resolución se saltaba silenciosamente y el placeholder
 //   quedaba copiado sin resolver. Fix: normalización movida antes de _assignPendingIds —
 //   mismo orden que ya usaba applyPatchesFromTG (sin bug). Ver detalle en el bloque de código.
-// TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
+// TKT2 (REQ histórico sin código confirmado · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
 //   cross-CHECKPOINT): _assignPendingIds(tgItems, seedSlugMap?) — parámetro nuevo, opcional,
 //   sin cambio de comportamiento si ausente. Seed copiado al inicio del slugMap con precedencia
 //   — guard nuevo en sub-paso 1a evita reasignar código a un [tmp:slug] ya resuelto en el seed.
@@ -617,7 +617,7 @@
 //   vacío para no romper la cadena del orquestador de batch. Ver contrato completo y la función
 //   orquestadora nueva (_applyCheckpointBatch) en locus-session-save.js.
 // [PP] mod:61 · autor:Rune · 2026-07-01 UTC-6
-// INC-[pendiente-ID] (triggered_by TKT1 REQ1 S'02 — _getActiveRoleFilter eliminada de
+// INC histórico sin código confirmado (triggered_by TKT1 REQ1 S'02 — _getActiveRoleFilter eliminada de
 //   locus-backlog-core.js sin actualizar este consumidor): import roto → SyntaxError en
 //   carga de módulo, bloqueaba toda la app. Import retirado + roleOk eliminado de
 //   _renderKanban (línea ~132). El filtro de rol en Kanban queda inactivo — mismo estado
@@ -625,7 +625,7 @@
 // TKT-202606-013 (REQ-202606-003 · AC1/AC2): mergeBacklogFromTG — gate duro REQ nuevo sin TKT
 //   hijo. Reemplaza la degradación orphaned:true (T-202606-010) por bloqueo real: ignored con
 //   reason 'req-sin-tkt', sin creación, toast en corrida real. __BR-Core §4 Gate de parser.
-// TKT-PARSER-2b (REQ-[pendiente-ID] · fix chk_status_by_type para INC/PRB/KE/CHG nuevos):
+// TKT-PARSER-2b (REQ histórico sin código confirmado · fix chk_status_by_type para INC/PRB/KE/CHG nuevos):
 //   Gate en bloque Scrum de merge (L2007 orig.): INC/PRB/KE excluidos vía _skipScrumGate —
 //   ahora llegan con item.status poblado (mirror, ver locus-session-parse.js) y sin esta
 //   exclusión validateLifecycleTransitions (vocabulario Scrum) rechazaría transiciones ITIL
@@ -633,7 +633,7 @@
 //   agregados los 7 campos ITIL (incidentStatus, slaPriority, slaDeadline, comportamientoActual,
 //   originModule, derivedItems, resolutionType) + queue — antes solo la rama merge-sobre-existente
 //   los persistía, dejando INC/PRB/KE/CHG nuevos sin estos campos desde su creación.
-// TKT-PARSER-2a (REQ-[pendiente-ID] · validación de transición ITIL y merge de campos ITIL):
+// TKT-PARSER-2a (REQ histórico sin código confirmado · validación de transición ITIL y merge de campos ITIL):
 //   validateIncidentTransitions() nueva — valida pares origen→destino de incidentStatus contra
 //   _VALID_INCIDENT_TRANSITIONS, independiente de validateLifecycleTransitions (Scrum, sin
 //   cambio). mergeBacklogFromTG: rama paralela al bloque de status Scrum — invoca la validación
@@ -648,10 +648,10 @@
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _setIncidents, _skelHide, _undoSnapshotItems, _undoSnapshotIncidents, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass, _newBacklogItem, _syncParentRStatus, _computeRStatusFromChildren } from './locus-backlog-core.js'; // TKT1 (REQ CAEL-0720-01): _computeRStatusFromChildren agregada — reutilizada por _checkAndOrphanParentR // TKT2 (REQ-202607-025): _newBacklogItem agregado // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · TKT-202608-290: _getBacklogSearchQuery retirado del import (búsqueda local eliminada) · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202608-268: _isQDiscActive + QDISC_ACTIVE_LIMIT retirados del import — gate de límite Q-DISC eliminado (infra_version 92, sin tope de entrada), sin caller en este archivo · TKT1 (REQ-202607-021): _syncParentRStatus agregada — reemplaza a _checkAndAdvanceParentR (función local eliminada, duplicaba la misma regla con criterio divergente)
+import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _setIncidents, _skelHide, _undoSnapshotItems, _undoSnapshotIncidents, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass, _newBacklogItem, _syncParentRStatus, _computeRStatusFromChildren } from './locus-backlog-core.js'; // TKT1 (REQ CAEL-0720-01): _computeRStatusFromChildren agregada — reutilizada por _checkAndOrphanParentR // TKT2 (REQ-202607-025): _newBacklogItem agregado // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · TKT-202608-290: _getBacklogSearchQuery retirado del import (búsqueda local eliminada) · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ histórico sin código confirmado) · INC histórico sin código confirmado: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC histórico sin código confirmado: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202608-268: _isQDiscActive + QDISC_ACTIVE_LIMIT retirados del import — gate de límite Q-DISC eliminado (infra_version 92, sin tope de entrada), sin caller en este archivo · TKT1 (REQ-202607-021): _syncParentRStatus agregada — reemplaza a _checkAndAdvanceParentR (función local eliminada, duplicaba la misma regla con criterio divergente)
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges · TKT (REQ CAEL-0720-24): setItemParent retirado — función eliminada, sin callers
 import { _normalizeSprint } from './locus-session-parse.js'; // INC — fix producción 2026-07-24: _VALID_INCIDENT_STATUS/_VALID_PRB_STATUS/_VALID_KE_STATUS retirados del import — ninguno se usaba en este archivo (buildIncidentItem/validateIncidentTransitions, únicos consumidores plausibles, ya viven en locus-incidents-item.js desde TKT2 mod:133). _VALID_KE_STATUS dejó de existir como export en TKT1 de CAEL-0724-01 (locus-session-parse.js mod:136) — causaba SyntaxError de módulo ESM al cargar. _VALID_INCIDENT_STATUS/_VALID_PRB_STATUS seguían existiendo pero igual de muertos aquí — mismo patrón de deuda, retirados por consistencia (causa raíz: imports huérfanos post-TKT2, no solo el síntoma que rompió hoy)
-import { _blogLog, _tplKey, getAI, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito // INC-[pendiente-ID] (retiro archivedInSprint): getActiveSprints retirado — sin caller tras eliminar el bloque de escritura de archivedInSprint
+import { _blogLog, _tplKey, getAI, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito // INC histórico sin código confirmado (retiro archivedInSprint): getActiveSprints retirado — sin caller tras eliminar el bloque de escritura de archivedInSprint
 
 
 import { _buildItemMentionedIn, _buildItemMigratedBlock, openItemPanel, _openMigrateItem, _confirmMigrateItem, _acvToggle, _acvStartEdit, _acvConfirm } from './locus-backlog-panel.js'; // T-202606-089 AC-3 · TKT1 REQ CAEL-0719-01
@@ -675,7 +675,7 @@ import { _setBacklogModified } from './locus-docs.js';
 import { _gconfirmOpen } from './locus-modals.js';
 
 import { validateLifecycleTransitions } from './locus-session-save.js'; // T-202606-020
-// TKT1 REQ-centralizar-accesores-itil + TKT-[pendiente-ID] (SLA_RIESGO_WINDOW_MS
+// TKT1 REQ-centralizar-accesores-itil + TKT histórico sin código confirmado (SLA_RIESGO_WINDOW_MS
 // centralizado, ex-literal en buildQIncItem) + TKT-A (REQ CAEL-0722-01, ref_id
 // CAEL-0722-05): incOriginModule agregado — línea meta secundaria de la card.
 // Corrección de ubicación (TKT3, REQ split-itil-item): este comentario documentaba el
@@ -698,14 +698,6 @@ import { showToast } from './locus-toast.js';
 import { esc, getCurrentTab, switchTab } from './locus-ui-shell.js';
 import { openDetail } from './locus-session-popup.js';
 
-// Nota de archivo — literal "[pendiente-ID]" en comentarios históricos (DISC-202608-131):
-// Comentarios de este archivo que citan el literal "[pendiente-ID]" como parte de un código de
-// ítem (ej. "INC-[pendiente-ID]", "TKT-[pendiente-ID]", "REQ-[pendiente-ID]") documentan qué
-// ítem originó un cambio en el momento de escribirse el comentario — provienen de sesiones
-// anteriores a la Regla dura de __BR-Execution §9 (infra_version 91, "Referencias a ítems del
-// backlog embebidas en código"). No son referencias pendientes de resolución activa ni bloquean
-// aval de Locus — no se reescriben retroactivamente a código real.
-
 // Constantes canónicas del ecosistema — roles disponibles para el select de ítem
 // [tmp:tkt-roles-cleanup]: copia local eliminada — consolidada en locus-backlog-core.js (import), mismo patrón que _getActiveProjectFilter/getProjectById (mod:24)
 
@@ -718,7 +710,7 @@ export const _collapsedChildren = new Set();
 // Labels de tipo de ítem para display en UI
 export const TYPE_LABELS = { REQ: 'Requerimiento', TKT: 'Ticket', INC: 'Incidente', DISC: 'Discovery', PRB: 'Problem', CHG: 'Change' }; // TKT-B2a: PRB/CHG — ningún ítem ITIL muestra undefined en badge de tipo. TKT1 (REQ split-itil-item): exportada — buildQIncItem() la consume y se mueve a locus-incidents-item.js en TKT2. TKT4 (TKT-202607-068, REQ-202607-018): entrada 'KE' retirada — fusión KE→PRB.root_cause_confirmed (infra_version 51); itemKind() ya no puede resolver a 'KE' desde _GEN2_TYPES (locus-backlog-core.js mod:131), la clave era inalcanzable. Fallback `type || '—'`/`type` en ambos consumidores (buildBacklogItem local, buildQIncItem vía import) cubre cualquier valor no mapeado sin cambio de comportamiento observable.
 
-// INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass consolidados en
+// INC histórico sin código confirmado: badgeLabel/badgeClass/statusLabel/statusClass consolidados en
 // locus-backlog-core.js — importadas arriba. Las copias locales generaban clases CSS
 // inexistentes (badge-prio-*, badge-status-pendiente) en el render de child items.
 
@@ -730,7 +722,7 @@ const _acReplacedSet = new Set();
 // B-202606-023: guard de delegación como variable de módulo — evita que la propiedad DOM
 // persista entre renders cuando renderBacklogList reemplaza innerHTML de #backlog-list.
 // renderBacklogList llama _resetBacklogListDelegation() antes de llamar _attachBacklogListDelegation().
-// INC-[pendiente-ID]: state por contenedor — antes un solo flag/AbortController module-level
+// INC histórico sin código confirmado: state por contenedor — antes un solo flag/AbortController module-level
 // asumía #backlog-list como único caller posible. Un Map permite adjuntar la misma delegación
 // a #qbacklog-panel-body y #qdisc-panel-body sin que el guard de uno bloquee a los otros.
 const _blListDelegationState = new Map(); // containerId -> { attached: bool, abortCtrl: AbortController|null }
@@ -1205,7 +1197,7 @@ function _buildItemTimestamps(item) {
   return `<div class="bitem-timestamps">${rows.join('')}</div>`;
 }
 
-// R-[pendiente-ID]: bloque de origen P padre — muestra enlace al P que originó este ítem
+// R histórico sin código confirmado: bloque de origen P padre — muestra enlace al P que originó este ítem
 function _buildItemPOriginBlock(item) {
   if (!item.origin) return '';
   // TKT-202607-045: getAnyItem() — item.origin puede apuntar a un código ITIL (INC/PRB/KE/CHG),
@@ -1722,7 +1714,7 @@ export function buildBacklogItem(item, opts = {}) {
   </div>`;
 }
 
-// R-[pendiente-ID]: Promover ítem P → T o R con trazabilidad de origen
+// R histórico sin código confirmado: Promover ítem P → T o R con trazabilidad de origen
 function _promoteItem(code) {
   const item = getItems().find(i => i.code === code);
   if (!item) return;
@@ -2172,7 +2164,7 @@ function _findTmpMatch(tmpCode, desc, existingItems, incomingType) {
 // no tener title ni ref_id que un buscador pueda usar como semilla — sigue conservada en silencio,
 // sin cambio de comportamiento respecto a mod:124.
 export async function _assignPendingIds(tgItems, seedSlugMap, unresolvedRefs) {
-  // TKT1 (REQ-[pendiente-ID] · Integridad de generación y persistencia de código de ítems):
+  // TKT1 (REQ histórico sin código confirmado · Integridad de generación y persistencia de código de ítems):
   //   validTypes Gen1 (P/T/R/B) reemplazado por _GEN2_TYPES — los 7 tipos canónicos
   //   (REQ/TKT/DISC/INC/PRB/KE/CHG). Causa raíz confirmada: con el set Gen1, todo ítem
   //   Gen2 entrante con [pendiente-ID] o [tmp:slug] quedaba sin asignar silenciosamente.
@@ -2182,7 +2174,7 @@ export async function _assignPendingIds(tgItems, seedSlugMap, unresolvedRefs) {
   // T-202605-140 T2 · Paso 1: construir slugMap mientras se asignan IDs
   const slugMap = new Map();
 
-  // TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs): seedSlugMap ausente/undefined →
+  // TKT2 (REQ histórico sin código confirmado · Ingesta batch de CHECKPOINTs): seedSlugMap ausente/undefined →
   //   comportamiento idéntico al actual, slugMap se construye desde cero. Si está presente
   //   (slugMap acumulado de un bloque previo del mismo batch), sus entradas se copian primero
   //   y tienen precedencia como identidad ya resuelta — ver guard en sub-paso 1a, que evita
@@ -2237,7 +2229,7 @@ export async function _assignPendingIds(tgItems, seedSlugMap, unresolvedRefs) {
       reservedCodes.add(newCode);
       slugMap.set(item.code, newCode); // tmp:slug → código real asignado
       slugMap.set(newCode, newCode);   // identidad del código asignado
-      // INC-[pendiente-ID] (triggered_by REQ-202607-003/004/005 — parent:{ref_id,title} no
+      // INC histórico sin código confirmado (triggered_by REQ-202607-003/004/005 — parent:{ref_id,title} no
       // resolvía): un ítem con refId nunca quedaba seedeado en slugMap bajo su clave
       // [tmp:REF_ID] — mergeBacklogFromTG normaliza parent/depends_on/triggered_by/
       // origen_disc/promovida_a de OTROS ítems a exactamente ese string ([tmp:${ref_id}])
@@ -2264,7 +2256,7 @@ export async function _assignPendingIds(tgItems, seedSlugMap, unresolvedRefs) {
     // como clave de identidad; la clave '[pendiente-ID]' es solo el último asignado (compat legacy).
     slugMap.set('[pendiente-ID]', newCode); // identidad de la última asignación — compat legacy bloques de un ítem
     slugMap.set(newCode, newCode);          // identidad del código asignado — para resolución directa
-    // INC-[pendiente-ID] (triggered_by REQ-202607-003/004/005 — parent:{ref_id,title} no
+    // INC histórico sin código confirmado (triggered_by REQ-202607-003/004/005 — parent:{ref_id,title} no
     // resolvía): causa raíz. Todo ítem nuevo declarado con ref_id llega aquí con
     // code:'[pendiente-ID]' — nunca con code:'[tmp:REF_ID]' (ese formato no es parte del
     // schema de emisión, ver __BR-Ecosystem §4). Sin este seed, slugMap nunca tenía entrada
@@ -2298,7 +2290,7 @@ export async function _assignPendingIds(tgItems, seedSlugMap, unresolvedRefs) {
   //   null/[] + _blogLog('ref-no-resuelta') — el código debería existir y no existe.
   const _refFields = ['parentId', 'triggeredBy', 'origenDisc', 'promovida_a'];
   const _listFields = ['dependsOn'];
-  // TKT2 (parent: [pendiente-ID]): formato de código real del ecosistema — __BR-Ecosystem §4.
+  // TKT2 (parent: histórico sin código confirmado): formato de código real del ecosistema — __BR-Ecosystem §4.
   // Usado solo en la rama escalar (_refFields) — TKT2 no toca dependsOn (no_incluye declarado).
   const _REAL_CODE_FORMAT_RE = /^(TKT|REQ|DISC|INC|PRB|CHG)-\d{6}-\d+$/i;
 
@@ -2338,7 +2330,7 @@ export async function _assignPendingIds(tgItems, seedSlugMap, unresolvedRefs) {
         }
         // [pendiente-ID] sin resolucion — conservar literal para pasadas posteriores
       } else if (!_REAL_CODE_FORMAT_RE.test(val)) {
-        // TKT2 (parent: [pendiente-ID] · contract_update: sí): val no matchea ni placeholder
+        // TKT2 (parent: histórico sin código confirmado · contract_update: sí): val no matchea ni placeholder
         // canónico ni formato de código real (/^(TKT|REQ|DISC|INC|PRB|CHG)-\d{6}-\d+$/i) — ej.
         // "n/a — alta manual de prueba". Antes de este fix caía aquí igual y se trataba como
         // "código con formato real que no existe" (ref_no_resuelta) — mismo tratamiento que un
@@ -2573,14 +2565,14 @@ function buildScrumItem(item, ctx) {
 // él, se descartaba siempre como 'req-sin-tkt'. opts.patchItems es opcional — ausente en
 // callers no actualizados, mismo comportamiento que hoy (ningún patch cuenta como hijo).
 export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
-  // TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs): slugMap: new Map() agregado al
+  // TKT2 (REQ histórico sin código confirmado · Ingesta batch de CHECKPOINTs): slugMap: new Map() agregado al
   // resultado de items vacíos — sin esto, el orquestador de batch (_applyCheckpointBatch,
   // locus-session-save.js) pierde la cadena de seedSlugMap si un bloque del batch no trae ítems.
-  if (!tgItems || !tgItems.length) return { created:[], advanced:[], retroceso:[], discarded:[], updated:[], ignored:[], createdAndClosed:[], tmpSuggestions:[], invalidTransition:[], slugMap: (opts && opts.seedSlugMap instanceof Map) ? opts.seedSlugMap : new Map(), refIdTitleMap: new Map(), unresolvedRefs: [] }; // TKT1 (REQ-[pendiente-ID] · CAEL-04): refIdTitleMap vacío en el guard temprano — sin tgItems no hay refId que declarar, pero el campo debe existir siempre en el objeto de retorno para que los callers no necesiten un guard adicional de undefined. TKT1 (REQ CAEL-0720-[pendiente-ID] · gap 3): unresolvedRefs vacío por el mismo motivo — sin tgItems no hay ref-id-sin-declarante que registrar.
+  if (!tgItems || !tgItems.length) return { created:[], advanced:[], retroceso:[], discarded:[], updated:[], ignored:[], createdAndClosed:[], tmpSuggestions:[], invalidTransition:[], slugMap: (opts && opts.seedSlugMap instanceof Map) ? opts.seedSlugMap : new Map(), refIdTitleMap: new Map(), unresolvedRefs: [] }; // TKT1 (REQ histórico sin código confirmado · CAEL-04): refIdTitleMap vacío en el guard temprano — sin tgItems no hay refId que declarar, pero el campo debe existir siempre en el objeto de retorno para que los callers no necesiten un guard adicional de undefined. TKT1 (REQ CAEL-0720-XX histórico sin código confirmado · gap 3): unresolvedRefs vacío por el mismo motivo — sin tgItems no hay ref-id-sin-declarante que registrar.
   const _dryRun   = !!(opts && opts.dryRun);
   const _ckptRol  = (opts && opts.ckptRol) || '';
 
-  // TKT (REQ-[pendiente-ID] · ref_id+title en 2 archivos — BR-Ecosystem §4/§8): un campo de
+  // TKT (REQ histórico sin código confirmado · ref_id+title en 2 archivos — BR-Ecosystem §4/§8): un campo de
   // referencia (parent/depends_on/triggered_by/promovida_a/origen_disc) puede llegar como
   // objeto {ref_id, title} en vez de string — el rol emisor lo declaró así porque el ítem
   // referenciado nació en el mismo CHECKPOINT o en uno anterior de la misma tanda sin código
@@ -2604,7 +2596,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // '[tmp:REF_ID]' solo si el title coincide exactamente con el declarante; si no coincide,
   // se bloquea con null + DocLog. Si el ref_id no tiene declarante en este tgItems, también
   // null + DocLog — mismo criterio que un [tmp:slug] sin item correspondiente.
-  // TKT1 (REQ CAEL-0720-[pendiente-ID] · gap 3, corregido tras hallazgo de Rune): ref-id-sin-declarante
+  // TKT1 (REQ CAEL-0720-XX histórico sin código confirmado · gap 3, corregido tras hallazgo de Rune): ref-id-sin-declarante
   // ahora puebla unresolvedRefs con {field, ref_id, title} — es el único caso de esta función con
   // suficiente información (title) para que el resolver de búsqueda de TKT2 prellene el input.
   // ref-id-title-mismatch permanece bloqueo duro sin entrada — posible integridad de dato falseada,
@@ -2643,7 +2635,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
     return `[tmp:${val.ref_id}]`;
   }
 
-  // TKT1 (REQ CAEL-0720-[pendiente-ID] · gap 3): unresolvedRefs vive a nivel de mergeBacklogFromTG —
+  // TKT1 (REQ CAEL-0720-XX histórico sin código confirmado · gap 3): unresolvedRefs vive a nivel de mergeBacklogFromTG —
   // acumula entradas de ref-id-sin-declarante de todos los ítems del batch, se expone en el objeto
   // de retorno (ver return final más abajo) para que el resolver de búsqueda de TKT2 lo consuma.
   const unresolvedRefs = [];
@@ -2671,7 +2663,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // T-202606-009: normalizar depends_on (schema) → dependsOn (campo interno) — mismo patrón.
   // Sin esta normalización los slugs en depends_on nunca llegan a _listFields de _assignPendingIds
   // y se pierden silenciosamente: el campo queda undefined en lugar de [] con slugs resueltos.
-  // T-[pendiente-ID] (REQ-unify-parent TKT2): tras normalizar a parentId, eliminar item.parent del
+  // T histórico sin código confirmado (REQ-unify-parent TKT2): tras normalizar a parentId, eliminar item.parent del
   // objeto en memoria — parentId es el único campo canónico en JS desde aquí en adelante. Sin esto,
   // ítems recién ingresados arrastraban .parent como campo legacy durante toda su vida en memoria.
   // TKT1 (REQ CAEL-0720-10): parent/parentId es exclusivo de TKT (__BR-Ecosystem §5) — un
@@ -2702,7 +2694,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
   tgItems = _assignedItems;
 
   let changed = false;
-  const created = [], advanced = [], retroceso = [], discarded = [], updated = [], ignored = [], invalidTransition = []; // invalidTransition: T-[pendiente-ID]
+  const created = [], advanced = [], retroceso = [], discarded = [], updated = [], ignored = [], invalidTransition = []; // invalidTransition: T histórico sin código confirmado
   // B-202604-198: grupo propio para ítems que nacen y cierran en el mismo CHECKPOINT
   const createdAndClosed = [];
   // B-202604-198: sugerencias de match [tmp:slug] → ID real existente (para confirmación del usuario)
@@ -2724,7 +2716,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // B-202605-007: snapshot antes de cualquier mutación — incluye cierre automático de P padre
   if (!_dryRun) _undoSnapshotItems();
 
-  // INC-[pendiente-ID] (fix undo/redo ITIL, TKT1 · triggered_by REQ-202607-022): ítems ITIL
+  // INC histórico sin código confirmado (fix undo/redo ITIL, TKT1 · triggered_by REQ-202607-022): ítems ITIL
   // nuevos del batch se acumulan aquí en vez de getIncidents().push() directo — un solo
   // _setIncidents(array) al cerrar el forEach dispara un único _undoSnapshotIncidents() para
   // todo el batch, mismo criterio que _undoSnapshotItems() ya aplica a ITEMS. Push directo
@@ -2762,7 +2754,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
     // B-202604-198: REGLA DE TMP — detectar si [tmp:slug] corresponde a un ID real existente
     // por similitud de título. Si hay match potencial, registrar sugerencia y NO crear duplicado.
     if (isPlaceholder && /^\[tmp:[a-z0-9_-]+\]$/i.test(item.code)) {
-      // INC-[pendiente-ID] (fix creación/lookup ITIL): concatenar getIncidents() — un [tmp:slug]
+      // INC histórico sin código confirmado (fix creación/lookup ITIL): concatenar getIncidents() — un [tmp:slug]
       // de tipo INC/PRB/KE/CHG vive en INCIDENTS, no en ITEMS. _findTmpMatch ya filtra por
       // incomingType === item.type, así que concatenar no afecta el resultado para BACKLOG_TYPES.
       const tmpMatch = _findTmpMatch(item.code, item.title, getItems().concat(getIncidents()), item.type);
@@ -2780,7 +2772,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
     }
 
     // B-202604-198: si es placeholder, saltar directamente a rama "nuevo"
-    // INC-[pendiente-ID] (fix creación/lookup ITIL): getAnyItem() en vez de getItems().find() —
+    // INC histórico sin código confirmado (fix creación/lookup ITIL): getAnyItem() en vez de getItems().find() —
     // un ítem ITIL con código real vive en INCIDENTS desde el fix de creación de este mismo INC;
     // getItems().find() nunca lo encontraba y el merge lo trataba como ítem nuevo (duplicado).
     const existing = isPlaceholder ? null : getAnyItem(item.code);
@@ -2789,10 +2781,10 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
       const oldStatus = existing.status || 'pendiente';
       const changes = [];
 
-      // T-[pendiente-ID] · AC-1: filtro pre-clasificación — transición inválida interceptada antes de _statusRank
+      // T histórico sin código confirmado · AC-1: filtro pre-clasificación — transición inválida interceptada antes de _statusRank
       // AC-2: type desconocido → no interceptar. AC-3: sin status → no interceptar.
       // TKT0c-gen2: itemKind(existing) reemplaza la inferencia local por prefijo (eliminada) y la tabla inline.
-      // TKT-PARSER-2b (REQ-[pendiente-ID]): INC/PRB/KE ahora llegan con item.status poblado
+      // TKT-PARSER-2b (REQ histórico sin código confirmado): INC/PRB/KE ahora llegan con item.status poblado
       // (mirror de incidentStatus, ver locus-session-parse.js _buildItilItem) — sin esta
       // exclusión, validateLifecycleTransitions (Scrum, vocabulario TKT/REQ/DISC) interceptaría
       // transiciones ITIL válidas (ej. detected→assigned) como inválidas por desconocer ese
@@ -2833,7 +2825,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
         }
       }
 
-      // TKT-PARSER-2a (REQ-[pendiente-ID]): validación de transición ITIL — paralela al bloque
+      // TKT-PARSER-2a (REQ histórico sin código confirmado): validación de transición ITIL — paralela al bloque
       // Scrum de arriba. TKT-PARSER-2b: INC/PRB/KE quedan excluidos del bloque Scrum vía
       // _skipScrumGate — su único camino de validación de status es esta rama
       // (validateIncidentTransitions). CHG sí pasa por el bloque Scrum (vocabulario compatible)
@@ -2890,13 +2882,13 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
       if (item.desc && item.desc !== existing.desc) { changes.push({ field: 'desc', from: existing.desc || '—', to: item.desc }); if (!_dryRun) { existing.desc = item.desc; changed = true; } }
       if (item.effort && item.effort !== existing.effort) { changes.push({ field: 'effort', from: existing.effort || '—', to: item.effort }); if (!_dryRun) { existing.effort = item.effort; changed = true; } }
       if (item.area && item.area !== existing.area) { changes.push({ field: 'area', from: existing.area || '—', to: item.area }); if (!_dryRun) { existing.area = item.area; changed = true; } }
-      // TKT-PARSER-2a (REQ-[pendiente-ID]): campos ITIL — mismo patrón entrante-gana-si-trae-valor.
+      // TKT-PARSER-2a (REQ histórico sin código confirmado): campos ITIL — mismo patrón entrante-gana-si-trae-valor.
       // incidentStatus respeta _noIncidentStatus (transición rechazada arriba) — el resto de campos
       // ITIL del mismo CHECKPOINT sí mergea aunque la transición de estado se haya excluido (AC-5).
       if (_isItilExisting) {
         if (!_noIncidentStatus && item.incidentStatus && item.incidentStatus !== existing.incidentStatus) {
           changes.push({ field: 'incidentStatus', from: existing.incidentStatus || '—', to: item.incidentStatus });
-          // INC-[pendiente-ID] (sin camino de reparación para status corrupto en ítems ITIL):
+          // INC histórico sin código confirmado (sin camino de reparación para status corrupto en ítems ITIL):
           // _skipScrumGate (arriba) excluye a INC/PRB/KE del bloque de avance/retroceso Scrum —
           // ese bloque era el único que escribía existing.status. Sin este mirror, existing.status
           // queda congelado en el valor con el que el ítem nació (ej. 'pendiente' pre-TKT-PARSER-2b)
@@ -2912,7 +2904,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
           // ver TKT0). Limitación conocida: se pierde al rehidratar desde Supabase tras reload.
           if (!_dryRun) { existing.incidentStatus = item.incidentStatus; existing.status = item.incidentStatus; existing.statusChangedAt = Date.now(); changed = true; }
         }
-        // INC-[pendiente-ID] (retiro archivedInSprint): bloque de escritura de archivedInSprint
+        // INC histórico sin código confirmado (retiro archivedInSprint): bloque de escritura de archivedInSprint
         // eliminado — BR-Ecosystem §4b declara el campo retirado del modelo de ítems ("no existe
         // vínculo INC↔sprint que declarar"; incident_status:closed es terminal por sí mismo, sin
         // requerir asociación a ningún sprint). Sin cambio de comportamiento del ciclo ITIL —
@@ -3143,13 +3135,13 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
         ? (getItems().find(p => p.code === _resolvedParentId) || {}).sprint || ''
         : '';
       if (!_dryRun) {
-        // INC-[pendiente-ID] (fix creación/lookup ITIL): destino según tipo — INCIDENT_TYPES
+        // INC histórico sin código confirmado (fix creación/lookup ITIL): destino según tipo — INCIDENT_TYPES
         // (INC/PRB/KE/CHG) vive en INCIDENTS, no en ITEMS. Antes este push era incondicional a
         // getItems() para los 7 tipos — un ITIL nuevo nunca llegaba a INCIDENTS y saveBacklog()
         // lo excluía de ambos upserts (tracker_items por ser ITIL, tracker_incidents por no
         // estar en INCIDENTS) — se perdía silenciosamente. Mismo criterio de destino que
         // _setITEMS() ya aplica en core.js (BACKLOG_TYPES → ITEMS, INCIDENT_TYPES → INCIDENTS).
-        // INC-[pendiente-ID] (fix undo/redo ITIL, TKT1): ITIL ya no hace push directo sobre
+        // INC histórico sin código confirmado (fix undo/redo ITIL, TKT1): ITIL ya no hace push directo sobre
         // getIncidents() — se acumula en _pendingNewIncidents y se aplica en un solo
         // _setIncidents(array) al cerrar el forEach (ver flush post-loop). ITEMS conserva push
         // directo — su snapshot único ya está cubierto por _undoSnapshotItems() de arriba.
@@ -3171,7 +3163,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
           _syncParentRStatus(item.code, initialStatus);
         }
 
-        // R-[pendiente-ID]: si el nuevo ítem tiene origin → cerrar automáticamente el P padre
+        // R histórico sin código confirmado: si el nuevo ítem tiene origin → cerrar automáticamente el P padre
         if (item.origin) {
           const pParent = getItems().find(p => p.code === item.origin);
           if (pParent && pParent.status !== 'done') {
@@ -3185,7 +3177,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
       }
       // B-202604-198: si el ítem nace con status done en el mismo CHECKPOINT → grupo propio
       const initialStatusForGroup = item.status || 'pendiente'; // T-202606-034: item.status ya canónico desde T1
-      // INC-[pendiente-ID] (triggered_by INC-202607-004 — mismo módulo, gap distinto): el
+      // INC histórico sin código confirmado (triggered_by INC-202607-004 — mismo módulo, gap distinto): el
       // objeto pusheado a created/createdAndClosed solo llevaba code/desc/_wasAssigned. El
       // panel de diff (locus-backlog-merge.js, _card/_parentHtml) lee i.parent/i.sprint/
       // i.type/i.dependsOn sobre estos objetos — todos undefined, "Parent: Sin parent" para
@@ -3216,7 +3208,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
     }
   });
 
-  // INC-[pendiente-ID] (fix undo/redo ITIL, TKT1): flush único de ITIL nuevos del batch —
+  // INC histórico sin código confirmado (fix undo/redo ITIL, TKT1): flush único de ITIL nuevos del batch —
   // _setIncidents() dispara _undoSnapshotIncidents() una sola vez aquí, no una vez por ítem.
   if (!_dryRun && _pendingNewIncidents.length) _setIncidents(_pendingNewIncidents);
 
@@ -3252,7 +3244,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
     }
   });
 
-  return { created, advanced, retroceso, discarded, updated, ignored, createdAndClosed, tmpSuggestions, invalidTransition, slugMap: _slugMap, refIdTitleMap: _refIdTitleMap, unresolvedRefs }; // T-[pendiente-ID]: invalidTransition poblado pre-clasificación · B-202606-022: slugMap para resolución de [tmp:slug] en applyPatchesFromTG · TKT1 (REQ-[pendiente-ID] · CAEL-04): refIdTitleMap expuesto — ya se construía internamente (L2056) para normalizar parentId/triggeredBy/origenDisc/promovida_a/dependsOn, pero nunca salía de esta función. applyPatchesFromTG lo necesita para resolver patch.code cuando llega como {ref_id,title} o [tmp:REF_ID] · TKT1 (REQ CAEL-0720-[pendiente-ID] · gap 3): unresolvedRefs expuesto — poblado en _normalizeRefIdValue con entradas ref-id-sin-declarante ({code, field, ref_id, title}), consumido por el resolver de búsqueda de TKT2
+  return { created, advanced, retroceso, discarded, updated, ignored, createdAndClosed, tmpSuggestions, invalidTransition, slugMap: _slugMap, refIdTitleMap: _refIdTitleMap, unresolvedRefs }; // T histórico sin código confirmado: invalidTransition poblado pre-clasificación · B-202606-022: slugMap para resolución de [tmp:slug] en applyPatchesFromTG · TKT1 (REQ histórico sin código confirmado · CAEL-04): refIdTitleMap expuesto — ya se construía internamente (L2056) para normalizar parentId/triggeredBy/origenDisc/promovida_a/dependsOn, pero nunca salía de esta función. applyPatchesFromTG lo necesita para resolver patch.code cuando llega como {ref_id,title} o [tmp:REF_ID] · TKT1 (REQ CAEL-0720-XX histórico sin código confirmado · gap 3): unresolvedRefs expuesto — poblado en _normalizeRefIdValue con entradas ref-id-sin-declarante ({code, field, ref_id, title}), consumido por el resolver de búsqueda de TKT2
 }
 
 
@@ -3396,7 +3388,7 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
   // B-202606-022: slugMap pasado desde mergeBacklogFromTG via llamador — resuelve [tmp:slug] en parentId
   const _slugMap = (opts && opts.slugMap instanceof Map) ? opts.slugMap : null;
 
-  // TKT1 (REQ-[pendiente-ID] · CAEL-04): refIdTitleMap pasado desde mergeBacklogFromTG — mismo
+  // TKT1 (REQ histórico sin código confirmado · CAEL-04): refIdTitleMap pasado desde mergeBacklogFromTG — mismo
   // mapa refId→title que _normalizeRefIdValue usa internamente en esa función. Ausente en
   // callers que no lo propaguen todavía (opts.refIdTitleMap === undefined) → comportamiento
   // idéntico al actual: patch.code con ref_id/tmp:slug no se resuelve, cae en 'no-existe'.
@@ -3438,7 +3430,7 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
   const ignoredPatches = [];
 
   _undoSnapshotItems();
-  // INC-[pendiente-ID] TKT2 (triggered_by REQ-202607-022): existing (getAnyItem) se muta
+  // INC histórico sin código confirmado TKT2 (triggered_by REQ-202607-022): existing (getAnyItem) se muta
   // field-by-field in-place más abajo — para INC/PRB/KE/CHG eso es mutación directa sobre
   // INCIDENTS que nunca pasa por _setIncidents(). Enrutar por el setter después de mutar
   // snapshotearía el estado ya mutado, no el previo — inútil para undo. El snapshot explícito
@@ -3580,7 +3572,7 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
         .filter(v => v !== undefined);
     }
 
-    // TKT1 (REQ-[pendiente-ID] · CAEL-04): resolver patch.code cuando llega como {ref_id,title}
+    // TKT1 (REQ histórico sin código confirmado · CAEL-04): resolver patch.code cuando llega como {ref_id,title}
     // (objeto) o ya normalizado a '[tmp:REF_ID]' (string) — mismo criterio de guardrail que
     // _normalizeRefIdValue en mergeBacklogFromTG (title debe coincidir exactamente con el
     // declarante), seguido de la misma resolución de slugMap que ya usa parentId (L2796-2806).
@@ -3630,7 +3622,7 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
     const code = patch.code;
 
     // AC-5: código no existe en backlog → advertencia DocLog
-    // INC-[pendiente-ID] (fix creación/lookup ITIL): getAnyItem() en vez de getItems().find() —
+    // INC histórico sin código confirmado (fix creación/lookup ITIL): getAnyItem() en vez de getItems().find() —
     // un patch sobre un INC/PRB/KE/CHG (código real, vive en INCIDENTS desde el fix de creación
     // de este mismo INC) se ignoraba antes como "código no existe en el backlog".
     const existing = getAnyItem(code) || null;
@@ -3667,7 +3659,7 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
       const current  = existing[field];
 
       if (field === 'status') {
-        // INC-[pendiente-ID] (gap detectado en auditoría Q-INC): status de INC/PRB/KE vive
+        // INC histórico sin código confirmado (gap detectado en auditoría Q-INC): status de INC/PRB/KE vive
         // exclusivamente en incidentStatus (BR-Core §6) — mismo guard que ya existe para el
         // branch field==='incidentStatus' (no-op para tipos no-ITIL, ver abajo), replicado aquí
         // en la dirección inversa. Antes de este fix, un patch con field:'status' sobre un
@@ -3829,7 +3821,7 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
             }
           }
         } else if (normalized === 'done' && existing.parentId) {
-          // INC-[pendiente-ID] (fix idempotencia): un patch status:done sobre un ítem que YA
+          // INC histórico sin código confirmado (fix idempotencia): un patch status:done sobre un ítem que YA
           // estaba done no entraba nunca al bloque de arriba — la sincronización del R padre
           // nunca se re-evaluaba para ese ingest. Si este era el último hijo pendiente de
           // considerar (ej. re-envío del mismo patch en un CHECKPOINT posterior, o dos
@@ -3846,7 +3838,7 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
       }
 
       if (field === 'incidentStatus') {
-        // INC-[pendiente-ID]: incidentStatus solo aplica a tipos ITIL — no-op silencioso en el resto
+        // INC histórico sin código confirmado: incidentStatus solo aplica a tipos ITIL — no-op silencioso en el resto
         const _patchItilKind = itemKind(existing);
         if (!['INC', 'PRB'].includes(_patchItilKind)) return;
         if (incoming && incoming !== existing.incidentStatus) {
@@ -4160,7 +4152,7 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
 
   // TKT2 (REQ-202607-061 · depends_on: TKT-202607-176): consumo de patchIntencionItems —
   // pase separado del forEach de patches ordinarios de arriba (line ~3428), mismo criterio de
-  // batch-then-save que ya rige ahí (INC-[pendiente-ID] comentado abajo) — una sola
+  // batch-then-save que ya rige ahí (INC histórico sin código confirmado comentado abajo) — una sola
   // saveBacklog() al final cubre ambos pases, no una por instrucción.
   const _piNowTs = Date.now();
   _patchIntencionItems.forEach(pi => {
@@ -4226,7 +4218,7 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
     }
   });
 
-  // INC-[pendiente-ID] (fix — múltiples patches en un mismo CHECKPOINT: solo el primero
+  // INC histórico sin código confirmado (fix — múltiples patches en un mismo CHECKPOINT: solo el primero
   // se aplicaba): saveBacklog() se llamaba dentro de este forEach, una vez por patch con
   // cambios — cada llamada disparaba un upsert completo de tracker_items (items.map(_toItemRow),
   // locus-storage.js) capturado en un instante distinto del loop síncrono, sin await entre
