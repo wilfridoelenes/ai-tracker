@@ -1,3 +1,23 @@
+// [PP] mod:93 · autor:Rune · 2026-08-18 22:10 UTC-6
+// TKT-202608-420 (REQ-202608-169, depends_on TKT-202608-416): _doApplyMergeAndFinish() —
+// tras aplicar el batch de items (mergeResult + patches), llamada a saveCheckpointFlow()
+// (locus-storage.js) con title/summary/blockers/learning/decision/role del CHECKPOINT
+// parseado + sprint_id heredado del primer tgItem del bloque con sprint real. Import de
+// saveCheckpointFlow agregado. Sin cambio en el resto de la función.
+// [PP] mod:92 · autor:Rune · 2026-08-18 UTC-6
+// TKT-202608-411 (REQ-202608-164): reescritas las 29 líneas (31 ocurrencias — dos líneas con
+//   dos cada una) que citaban el placeholder de código pendiente en comentarios embebidos,
+//   violación de __BR-Execution §9. Resueltas a código real cuando el ref_id ya estaba
+//   confirmado (ref_id CAEL-0804-02 → REQ-202608-091/TKT-202608-239, ver mod:156 de
+//   _Locus-module-contracts §2; ref_id CAEL-04/CAEL-05 → REQ CAEL-03, ver mod:53 del mismo
+//   doc). Sin código real ni ref_id resoluble contra los docs de infraestructura adjuntos en
+//   esta sesión (TKT-202607-077, DISC-202607-010, TKT-PARSER-2b y los INC genéricos) →
+//   reescritos en prosa histórica de tipo "[TKT|REQ|INC] histórico — sin CHECKPOINT
+//   confirmado", sin inventar código real. L947 (documentación del mecanismo de resolución de
+//   _mergeBacklogWithProject, no una referencia a un ítem específico) también reescrita sin el
+//   placeholder — este TKT no declaró excepción de sentinela/documentación en `No incluye`, a
+//   diferencia de TKT-202608-399 a 405, así que el gate de verificación exige cero sin
+//   exclusión declarada. Sin cambio de comportamiento — solo texto de comentario.
 // [PP] mod:91 · autor:Rune · 2026-08-12 06:15 UTC-6
 // TKT2 (CAEL-08111815-01): saveWorker(_liveAi) agregado tras el único saveImmediate() de
 // este archivo — excepción de _liveAi.status='in_session' preservada sin cambio de condición.
@@ -23,14 +43,14 @@
 // correctamente en cada guardado exitoso.
 // [PP] mod:85 · autor:Rune · 2026-08-04 UTC-6
 // TKT-202608-239 (parent: REQ-202608-091): resuelta la referencia — mod:83 implementó este mismo
-//   fix bajo ref_id CAEL-0804-02/REQ-[pendiente-ID], ambos ya confirmados con código real por
+//   fix bajo ref_id CAEL-0804-02/REQ-202608-091, ambos ya confirmados con código real por
 //   Cael/Finn. Sin cambio de comportamiento — solo actualización de comentario a los códigos
 //   reales, mismo criterio de __BR-Execution §9 (una referencia embebida en código se resuelve al
 //   código real una vez asignado, nunca queda en placeholder). Los tres AC del TKT ya estaban
 //   cubiertos por el código de mod:83, verificados línea por línea en esta sesión — ver detalle
 //   abajo.
 // [PP] mod:83 · autor:Rune · 2026-08-04 UTC-6
-// TKT (ref_id CAEL-0804-02, REQ-[pendiente-ID]): VALID_TRANSITIONS.REQ no incluía 'done' — pese a
+// TKT-202608-239 (REQ-202608-091): VALID_TRANSITIONS.REQ no incluía 'done' — pese a
 //   ser transición terminal válida de REQ (__BR-Core §4, en-revision→done exclusiva de Finn en
 //   sesión de cierre). El backend (applyPatchesFromTG) ya aceptaba y aplicaba el patch sin
 //   objeción — el panel de preview marcaba como inválida una transición que el guardado real ya
@@ -39,7 +59,7 @@
 //   Sin cambio de firma en validateLifecycleTransitions() — mismo shape de retorno, mismo mensaje
 //   de error reason ya existente, sin fragmentar.
 // [PP] mod:82 · autor:Rune · 2026-08-04 UTC-6
-// INC-[pendiente-ID]: _markTrackerDirty no estaba ni importado en este archivo — los 3 render()
+// INC histórico — sin CHECKPOINT confirmado: _markTrackerDirty no estaba ni importado en este archivo — los 3 render()
 //   del flujo de guardado de sesión (await saveImmediate(); render() · render() condicional por
 //   tab · segundo render() dentro del rAF) quedaban como no-op silencioso salvo que otra
 //   interacción previa ya hubiera dejado _trackerDirty en true. Mismo patrón ya corregido en
@@ -71,7 +91,7 @@
 // es la excepción de vocabulario de la rama Reactiva (__BR-Ecosystem §4b) — vocabulario Scrum,
 // no ITIL. Nuevo _CHG_STATUS_SET declarado; comentario adyacente que agrupaba
 // "INC/PRB/KE/CHG" como homogéneo corregido. Ver detalle junto a VALID_TRANSITIONS, más abajo.
-// INC-[pendiente-ID] (fix gate req-sin-tkt vs reparenting — ver locus-backlog-item.js mod:142
+// INC histórico — sin CHECKPOINT confirmado (fix gate req-sin-tkt vs reparenting — ver locus-backlog-item.js mod:142
 // para el detalle completo): parámetro patchItems agregado a _mergeBacklogWithProject() y a
 // _applyCheckpointBatch() — propagado hasta mergeBacklogFromTG en sus 2 call sites reales de
 // este archivo (single-CHECKPOINT y batch).
@@ -89,12 +109,12 @@
 //   (_gatedDoApplyBatch en locus-session-parse.js, ckptMeta:{} hardcodeado) — deuda
 //   preexistente ya señalada en ese archivo, no ampliada aquí.
 // [PP] mod:70 · autor:Rune · 2026-07-13 16:10 UTC-6
-// TKT1 (REQ-[pendiente-ID] · promovida de DISC-202607-010): eliminado el import huérfano
+// TKT1 (REQ histórico — sin CHECKPOINT confirmado · promovida de DISC-202607-010): eliminado el import huérfano
 //   _tryIngestSprintProposal (sin FromParsed) — cero call sites en este archivo confirmado
 //   via grep. Resto de la línea de import (_setPhase, parseSprintProposal, parsePaste,
 //   _buildTriggeredBySuggestion) sin cambio.
 // [PP] mod:64 · autor:Rune · 2026-07-12 UTC-6
-// TKT (REQ-[pendiente-ID] · ref: consolidación de punto de entrada único de sprint_proposal —
+// TKT (REQ histórico — sin CHECKPOINT confirmado · ref: consolidación de punto de entrada único de sprint_proposal —
 //   decisión del founder): revertido TKT1 (mod:62) — retirados el import de
 //   setPendingSprintProposal y el bloque que persistía _validSpProposal a storage por proyecto
 //   desde el flujo de card del worker. Pegar un CHECKPOINT con sprint_proposal en la card ya no
@@ -122,10 +142,10 @@
 //   separado, ya no llama a _assignPendingIds — registrado como deuda distinta, no parte de
 //   este INC). No modifica locus-session-parse.js — draft ya se propaga correctamente ahí.
 // [PP] mod:62 · autor:Rune · 2026-07-11 23:12 UTC-6
-// TKT1 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): sprint_proposal
+// TKT1 (REQ histórico — sin CHECKPOINT confirmado · migración Step 0 DIFF → panel Sprint subtab): sprint_proposal
 // válido ahora también se persiste vía setPendingSprintProposal(proj.id, _validSpProposal) —
 // en paralelo a ckptMeta.sprintProposal, sin alterar el Step 0 del DIFF en este TKT.
-// TKT-202607-077 (REQ-[pendiente-ID] · cadena de merge async, depends_on: TKT3):
+// TKT-202607-077 (REQ histórico — sin CHECKPOINT confirmado · cadena de merge async, depends_on: TKT3):
 //   _mergeBacklogWithProject() pasa a async — await mergeBacklogFromTG(tgItems, sessId) en
 //   vez de asignación síncrona, propagando la cadena async iniciada aguas abajo (mismo patrón
 //   de TKT3/TKT-202607-076: _getNextItemCode() requiere await). _applyCheckpointBatch() pasa
@@ -154,7 +174,7 @@
 //   sin scope nuevo, verificable por Finn junto con la causa raíz — variante ligera aplicable
 //   si el founder confirma la carga del módulo en app.
 // [PP] mod:55 · autor:Rune · 2026-07-02 08:10 UTC-6
-// TKT4 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
+// TKT4 (REQ histórico — sin CHECKPOINT confirmado · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
 //   cross-CHECKPOINT, depends_on: TKT3 done): _applyCheckpointBatch(blocks, sessionId) de
 //   TKT2 se separa en dos responsabilidades — decisión de arquitectura del founder: batch debe
 //   pasar por showMergeDiffPanel antes de persistir, igual que el flujo single. Esta función
@@ -165,7 +185,7 @@
 //   antes de abrirse. parseCheckpoint, _splitCheckpointBlocks y _blogLog quedan sin uso en
 //   este archivo tras el traslado — retirados del import.
 // [PP] mod:54 · autor:Rune · 2026-07-02 03:40 UTC-6
-// TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
+// TKT2 (REQ histórico — sin CHECKPOINT confirmado · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
 //   cross-CHECKPOINT): agregada _applyCheckpointBatch(blocks, sessionId) — orquestador nuevo,
 //   no declarado en contract_detail original de Cael (ver nota junto a la función). Recibe
 //   bloques de _splitCheckpointBlocks (TKT1), parsea cada uno, aplica gate de duplicados
@@ -179,7 +199,7 @@
 // Responsabilidad: changelog, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
 import { loadBacklog, renderStats, getItems, getAnyItem, itemKind } from './locus-backlog-core.js'; // [tmp:tkt7-session-save-preview]: getAnyItem agregada
-import { mergeBacklogFromTG, applyPatchesFromTG } from './locus-backlog-item.js'; // INC-[pendiente-ID]: applyPatchesFromTG restaurado — ver header mod:53
+import { mergeBacklogFromTG, applyPatchesFromTG } from './locus-backlog-item.js'; // INC histórico — sin CHECKPOINT confirmado: applyPatchesFromTG restaurado — ver header mod:53
 import { showMergeDiffPanel } from './locus-backlog-merge.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 // Fix INC-202608-094: renderSprintTab agregado — mismo criterio que renderBacklogList,
@@ -192,7 +212,7 @@ import { _markRadarDirty, renderGlobalRadarSidebar, toggleRadarSidebar } from '.
 import { stopSessionTimer } from './locus-sesiones-utils.js';
 import { _getLocalStorageUsage } from './locus-sprint-project.js';
 import { _generateBacklogContent, _generateBacklogMd } from './locus-backlog-generator.js';
-import { LOCUS_KEYS, _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, getSupabaseContext, saveImmediate, _mutateSessions, saveWorker } from './locus-storage.js'; // TKT4: _blogLog retirado — DocLog de duplicados ahora vive en _resolveCheckpointBatch (locus-session-parse.js) · TKT1 REQ-sessions-mutator: _mutateSessions agregado · TKT (REQ-[pendiente-ID] · consolidación sprint_proposal): setPendingSprintProposal retirado del import — la persistencia paralela que agregó se revierte, ver header mod nuevo
+import { LOCUS_KEYS, _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, getSupabaseContext, saveImmediate, _mutateSessions, saveWorker, saveCheckpointFlow } from './locus-storage.js'; // TKT-202608-420: saveCheckpointFlow agregado // TKT4: _blogLog retirado — DocLog de duplicados ahora vive en _resolveCheckpointBatch (locus-session-parse.js) · TKT1 REQ-sessions-mutator: _mutateSessions agregado · TKT (REQ histórico — sin CHECKPOINT confirmado · consolidación sprint_proposal): setPendingSprintProposal retirado del import — la persistencia paralela que agregó se revierte, ver header mod nuevo
 // TKT-202608-321 (REQ-202608-127): import namespace — withSaveLock es el único símbolo
 // consumido de este módulo en este archivo. namespace en vez de named import porque
 // locus-sync-state.js expone getters de los 3 ejes (echo/subscripción/save) que no
@@ -211,7 +231,7 @@ import { renderProyectos } from './locus-projects.js'; // INC-202608-097: idem p
 
 import { _showProjRequiredInPanel, interpretHora } from './locus-session-hora.js';
 
-import { _setPhase, parseSprintProposal, parsePaste, _buildTriggeredBySuggestion, _markCheckpointProcessed } from './locus-session-parse.js'; // Fix inline (Opción A): _markCheckpointProcessed agregado — registra el hash de duplicado en el momento real de persistencia (_doApplyMergeAndFinish), no al intentar guardar. T-202606-032: isParseInFlight eliminado — AC-5 | T-202606-021: _buildTriggeredBySuggestion | TKT3 (REQ-[pendiente-ID]): _tryIngestSprintProposalFromParsed/_applySprintInheritanceToItems retirados del import — sin consumidor en este archivo tras mover la aprobación a locus-sprint.js (TKT2) | TKT1 (REQ-[pendiente-ID] · promovida de DISC-202607-010): _tryIngestSprintProposal (sin FromParsed) retirado del import — confirmado sin call site en este archivo (Hallazgo fuera de scope de TKT3, resuelto aquí); el símbolo en sí sigue exportado en locus-session-parse.js, ver Hallazgo fuera de scope declarado en CHECKPOINT | TKT4: parseCheckpoint + _splitCheckpointBlocks retirados — el uso se trasladó a _resolveCheckpointBatch en locus-session-parse.js, no requiere importarlos de vuelta | INC-202607-XXX: _tryIngestPlan + _tryIngestPlanFromParsed retirados del import — locus-session-parse.js mod:95 (REQ-execution-plan-deprecation) eliminó ambos exports; este archivo seguía importándolos y rompía la carga del módulo
+import { _setPhase, parseSprintProposal, parsePaste, _buildTriggeredBySuggestion, _markCheckpointProcessed } from './locus-session-parse.js'; // Fix inline (Opción A): _markCheckpointProcessed agregado — registra el hash de duplicado en el momento real de persistencia (_doApplyMergeAndFinish), no al intentar guardar. T-202606-032: isParseInFlight eliminado — AC-5 | T-202606-021: _buildTriggeredBySuggestion | TKT3 (REQ histórico — sin CHECKPOINT confirmado): _tryIngestSprintProposalFromParsed/_applySprintInheritanceToItems retirados del import — sin consumidor en este archivo tras mover la aprobación a locus-sprint.js (TKT2) | TKT1 (REQ histórico — sin CHECKPOINT confirmado · promovida de DISC-202607-010): _tryIngestSprintProposal (sin FromParsed) retirado del import — confirmado sin call site en este archivo (Hallazgo fuera de scope de TKT3, resuelto aquí); el símbolo en sí sigue exportado en locus-session-parse.js, ver Hallazgo fuera de scope declarado en CHECKPOINT | TKT4: parseCheckpoint + _splitCheckpointBlocks retirados — el uso se trasladó a _resolveCheckpointBatch en locus-session-parse.js, no requiere importarlos de vuelta | INC-202607-XXX: _tryIngestPlan + _tryIngestPlanFromParsed retirados del import — locus-session-parse.js mod:95 (REQ-execution-plan-deprecation) eliminó ambos exports; este archivo seguía importándolos y rompía la carga del módulo
 
 import { _getAllSessionsChron, _rebuildLogBody } from './locus-session-popup.js';
 
@@ -219,7 +239,7 @@ import { showToast } from './locus-toast.js';
 
 import { esc, getCurrentTab } from './locus-ui-shell.js';
 
-// Changelog — INC-[pendiente-ID] (mod:53, triggered_by TKT-202606-014): applyPatchesFromTG(parsed.patchItems, ...)
+// Changelog — INC histórico — sin CHECKPOINT confirmado (mod:53, triggered_by TKT-202606-014): applyPatchesFromTG(parsed.patchItems, ...)
 //   restaurado en _doApplyMergeAndFinish — se había eliminado por "redundante" con la llamada de
 //   locus-backlog-merge.js (_mdiffDoApply), que en realidad nunca aplica patches sobre ítems
 //   existentes (filtra tgItems por type==='patch', pero _buildPatchTgImes convierte esos patches
@@ -235,7 +255,7 @@ import { esc, getCurrentTab } from './locus-ui-shell.js';
 //   Step 0 — solo se activa cuando llega el CHECKPOINT final de Finn con draft:false.
 //   Corrección de header: una sesión previa insertó un segundo header "mod:1" en primera línea,
 //   sin detectar el header canónico ya existente aquí — eliminado, mod continúa desde 49.
-// TKT-PARSER-2b (REQ-[pendiente-ID] · VALID_TRANSITIONS PRB/KE/CHG, counters, code.match,
+// TKT-PARSER-2b (REQ histórico — sin CHECKPOINT confirmado · VALID_TRANSITIONS PRB/KE/CHG, counters, code.match,
 //   eliminar isHotfix): PRB/KE/CHG agregados a VALID_TRANSITIONS con el mismo Set ITIL de INC
 //   — antes caían en "tipo desconocido → ignorar silenciosamente". Counters del tracker y
 //   pattern de code.match ampliados con PRB-/KE-/CHG-. Filtro isHotfix eliminado de
@@ -251,7 +271,7 @@ import { esc, getCurrentTab } from './locus-ui-shell.js';
 // con el mismo vocabulario Scrum que TKT, nunca ITIL. Corregido en INC-202607-019 (ver abajo);
 // este comentario asumía "INC/PRB/KE/CHG" como grupo homogéneo — no lo es.
 // Nota: tipo desconocido → no validar (AC-6, ignorar silenciosamente).
-// TKT-PARSER-2b (REQ-[pendiente-ID]): PRB agregado con el mismo Set ITIL que ya
+// TKT-PARSER-2b (REQ histórico — sin CHECKPOINT confirmado): PRB agregado con el mismo Set ITIL que ya
 // declaraba INC — antes caía en "tipo desconocido → ignorar silenciosamente" (AC-6 de arriba).
 // Caso de error, no de uso normal: _buildItilItem (locus-session-parse.js) nunca deja pasar
 // item.status en un ítem ITIL — esta detección solo se activa ante status Scrum residual.
@@ -554,7 +574,7 @@ function _buildPatchTgItems(patchItems, existingTgItems) {
 // uso obligatorio). Wirear ckptRol aquí agregaría superficie para cerrar un riesgo inalcanzable
 // en el flujo compliant — no se hace por default de resolución de raíz sin justificación real.
 export async function _mergeBacklogWithProject(tgItems, sessId, projId, patchItems, ckptRol) {
-  if (!tgItems || !tgItems.length) return { created:[], updated:[], ignored:[], advanced:[], retroceso:[], discarded:[], slugMap: new Map(), refIdTitleMap: new Map() }; // TKT2 (REQ-[pendiente-ID] · CAEL-05): slugMap/refIdTitleMap agregados al guard — sin esto, un batch de solo patches (tgItems vacío) nunca obtenía estos mapas para resolver code de sus propios patches
+  if (!tgItems || !tgItems.length) return { created:[], updated:[], ignored:[], advanced:[], retroceso:[], discarded:[], slugMap: new Map(), refIdTitleMap: new Map() }; // TKT2 (REQ CAEL-03): slugMap/refIdTitleMap agregados al guard — sin esto, un batch de solo patches (tgItems vacío) nunca obtenía estos mapas para resolver code de sus propios patches
   const _prevFilter = localStorage.getItem('current-project-filter') || '';
   const _filterChanged = projId && projId !== _prevFilter;
   if (_filterChanged) {
@@ -576,7 +596,7 @@ export async function _mergeBacklogWithProject(tgItems, sessId, projId, patchIte
   return result; // B-202606-022: result ya incluye slugMap desde mergeBacklogFromTG
 }
 
-// TKT4 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
+// TKT4 (REQ histórico — sin CHECKPOINT confirmado · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
 //   cross-CHECKPOINT, depends_on: TKT3 done): _applyCheckpointBatch — ahora solo persiste.
 //   Recibe tgItems ya combinados y resueltos por _resolveCheckpointBatch (locus-session-parse.js),
 //   que corrió el gate de duplicados [tmp:slug] antes de que showMergeDiffPanel se abriera.
@@ -593,12 +613,12 @@ export async function _mergeBacklogWithProject(tgItems, sessId, projId, patchIte
 // sideEffects:
 //   - Persiste a backlog vía saveBacklog() (dentro de _mergeBacklogWithProject) — mismo side
 //     effect que _doApply del flujo single, ahora con el array combinado del batch.
-// TKT2 (REQ-[pendiente-ID] · CAEL-05): agregado `return` del resultado de _mergeBacklogWithProject
+// TKT2 (REQ CAEL-03): agregado `return` del resultado de _mergeBacklogWithProject
 // — antes no retornaba nada. Cambio aditivo: ningún caller existente leía el valor de retorno
 // (era efectivamente void), así que no hay regresión sobre comportamiento previo. El caller de
 // locus-session-parse.js (_gatedDoApplyBatch) ahora lo necesita para acceder a slugMap/refIdTitleMap
 // y aplicar patchItems del batch después del merge — mismo patrón que _doApply del flujo single.
-// TKT2 (REQ-[pendiente-ID] · CAEL-05): agregado `return` del resultado de _mergeBacklogWithProject
+// TKT2 (REQ CAEL-03): agregado `return` del resultado de _mergeBacklogWithProject
 // — antes no retornaba nada. Cambio aditivo: ningún caller existente leía el valor de retorno
 // (era efectivamente void), así que no hay regresión sobre comportamiento previo. El caller de
 // locus-session-parse.js (_gatedDoApplyBatch) ahora lo necesita para acceder a slugMap/refIdTitleMap
@@ -702,7 +722,7 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     archivos: _parseFilesField(parsed.archivos || ''),
     // T-202606-030: sprint activo del proyecto al momento de guardar — único sprint con status
     // 'active' por invariante T-202606-023 AC-4 (sprints.filter(active).length ≤ 1)
-    // TKT-PARSER-2b (REQ-[pendiente-ID]): filtro isHotfix eliminado — S-HOTFIX deprecado.
+    // TKT-PARSER-2b (REQ histórico — sin CHECKPOINT confirmado): filtro isHotfix eliminado — S-HOTFIX deprecado.
     sprintId: (getActiveSprints().find(sp => sp.status === 'active') || {}).id || '',
     // T-202606-013: señal de doc_updates para badge en mini-historial (_renderRow)
     hasDocUpdates: Array.isArray(parsed.docUpdates) && parsed.docUpdates.length > 0,
@@ -731,7 +751,7 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   // completa newSess.resetAt y recalcula durationMs como horaResult.epoch - (Date.now() - newSess.durationMs).
   const _ckptMeta = {
     resumen:     parsed.summary    || '',
-    // TKT-[pendiente-ID] (REQ-[pendiente-ID] · AC-1): rol del CHECKPOINT — antes ausente de este
+    // TKT histórico — sin CHECKPOINT confirmado (AC-1): rol del CHECKPOINT — antes ausente de este
     // objeto. newSess.rol (línea ~403) sí lo capturaba, pero _ckptMeta (el objeto que llega a
     // showMergeDiffPanel → mergeBacklogFromTG/applyPatchesFromTG) nunca lo incluía, por lo que
     // _ckptMeta.rol||'' resolvía siempre a '' downstream — los guards de rol para
@@ -786,7 +806,7 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   const _spProposal = parsed.sprintProposal  // path JSON puro (T-202606-017)
     || ((raw && raw.includes('---SPRINT-PROPOSAL---')) ? parseSprintProposal(raw) : null);
   const _validSpProposal = (_spProposal && !_spProposal.error) ? _spProposal : null;
-  // TKT (REQ-[pendiente-ID] · ref: consolidación de punto de entrada único de sprint_proposal):
+  // TKT (REQ histórico — sin CHECKPOINT confirmado · ref: consolidación de punto de entrada único de sprint_proposal):
   // persistencia paralela vía setPendingSprintProposal (TKT1 mod:62) revertida — decisión del
   // founder: pegar un CHECKPOINT en la card del worker ya no alimenta el panel "+ Sprint nuevo"
   // de Tab Sprint. La única ruta de creación de sprint es el paste propio de ese panel
@@ -796,7 +816,7 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   // (_jsonParseError) independientemente de este bloque.
   // TKT-202606-011 AC4: con draftPending, sprint_proposal tampoco se aplica — no se ofrece
   // Step 0 de aprobación. El CHECKPOINT final emitido por Finn (draft:false) sí lo activa.
-  // TKT3 (REQ-[pendiente-ID] · migración Step 0 → panel Sprint subtab): _ckptMeta.sprintProposal
+  // TKT3 (REQ histórico — sin CHECKPOINT confirmado · migración Step 0 → panel Sprint subtab): _ckptMeta.sprintProposal
   // se mantiene — sigue siendo la fuente del gate de exclusividad §12 en showMergeDiffPanel.
   // onApproveProposal se retira: sin consumidores tras el retiro de Step 0 en locus-backlog-merge.js
   // (mod:50) — la aprobación ahora vive en locus-sprint.js vía _tryIngestSprintProposalFromParsed
@@ -875,7 +895,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
 
   // v3.0.0: tracker del proyecto activo — también aquí para atomicidad con sessions[].
   // Sin esto, tracker.items quedaría con sessionId huérfano si el usuario cancela el panel.
-  // TKT-PARSER-2b (REQ-[pendiente-ID]): PRB/CHG agregados a counters — antes solo DISC/TKT/REQ/INC.
+  // TKT-PARSER-2b (REQ histórico — sin CHECKPOINT confirmado): PRB/CHG agregados a counters — antes solo DISC/TKT/REQ/INC.
   // Hallazgo fuera de scope (resuelto en la misma sesión, INC-202607-019): 'KE' retirado del
   // objeto inicial — inalcanzable, mismo motivo que en VALID_TRANSITIONS más arriba.
   if (!activeProj.tracker) activeProj.tracker = { items: [], counters: { DISC: 0, TKT: 0, REQ: 0, INC: 0, PRB: 0, CHG: 0 } };
@@ -925,7 +945,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
     showToast('error', '⚠ Error al aplicar backlog — reintentar guardado');
     return;
   }
-  // INC-[pendiente-ID] (triggered_by TKT-202606-014 · fix): applyPatchesFromTG(parsed.patchItems, ...)
+  // INC histórico — sin CHECKPOINT confirmado (triggered_by TKT-202606-014 · fix): applyPatchesFromTG(parsed.patchItems, ...)
   // restaurado. Se había eliminado como "redundante" con la llamada de locus-backlog-merge.js
   // (_mdiffDoApply, post-onApply) — pero esa llamada nunca fue equivalente: opera sobre
   // tgItems.filter(i => i.type === 'patch'), y tgItems ahí es _tgItemsForPanel, construido por
@@ -940,11 +960,32 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // correcto en el path standalone (locus-session-parse.js:1999, _doApply). El bug original que
   // motivó la eliminación (rol nunca propagado, siempre '') se corrige aquí pasando parsed.rol.
   if (parsed.patchItems && parsed.patchItems.length) {
-    applyPatchesFromTG(parsed.patchItems, sessId, { ckptHeaderRole: parsed.rol || '', slugMap: mergeResult.slugMap, refIdTitleMap: mergeResult.refIdTitleMap }); // TKT1 (REQ-[pendiente-ID] · CAEL-04): refIdTitleMap agregado
+    applyPatchesFromTG(parsed.patchItems, sessId, { ckptHeaderRole: parsed.rol || '', slugMap: mergeResult.slugMap, refIdTitleMap: mergeResult.refIdTitleMap }); // TKT1 (REQ CAEL-03): refIdTitleMap agregado
+  }
+
+  // TKT-202608-420 (REQ-202608-169, depends_on TKT-202608-416): Captura de Flujo — tras
+  // aplicar el batch de items (mergeResult + patches de arriba), persiste una fila en
+  // tracker_checkpoint_flow con los campos de Flujo del CHECKPOINT parseado. sprint_id se
+  // hereda del primer tgItem del bloque que ya trae sprint real asignado (post-resolución de
+  // mergeBacklogFromTG) — ausente en todos → null, mismo caso que CHECKPOINTs de Q-Backlog/
+  // C-level/Q-INC (AC Edge CHECKPOINT lite). No await — complementaria al flujo crítico de
+  // guardado de sesión, mismo criterio de no bloqueo que saveWorker()/_upsertSprint().
+  {
+    const _flowSprintItem = tgItems.find(it => it && it.sprint);
+    saveCheckpointFlow({
+      projectId: activeProj.id,
+      sprintId:  _flowSprintItem ? _flowSprintItem.sprint : null,
+      title:     parsed.title    || '',
+      role:      parsed.rol      || '',
+      summary:   parsed.summary  || '',
+      blockers:  parsed.blockers || 'n/a',
+      learning:  parsed.learning || 'n/a',
+      decision:  parsed.decision || 'n/a'
+    });
   }
 
   // B-202604-XXX: actualizar trackerRefs con códigos reales post-_assignPendingIds
-  // _mergeBacklogWithProject resuelve [pendiente-ID] → código real en tgItems
+  // _mergeBacklogWithProject resuelve ítems con código pendiente → código real en tgItems
   // newSess.trackerRefs fue construido antes de esa resolución — se sincroniza aquí
   if (newSess && tgItems.length) {
     newSess.trackerRefs = tgItems.map(x => x.code).filter(c => c && /^[PTRB]-\d{6}-\d{3}/.test(c));
@@ -1039,7 +1080,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   localStorage.removeItem('draft-' + id);
   localStorage.removeItem('draft-' + id + '-ts');
   // R-3: eliminar borrador de Supabase al guardar sesión
-  // INC-[pendiente-ID]: typeof _supabase !== 'undefined' era guard siempre falso — _supabase
+  // INC histórico — sin CHECKPOINT confirmado: typeof _supabase !== 'undefined' era guard siempre falso — _supabase
   // no es global ni estaba importado en este módulo. Este delete nunca se ejecutaba.
   {
     const _sbCtx = getSupabaseContext();

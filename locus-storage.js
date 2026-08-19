@@ -1,4 +1,6 @@
-// [PP] mod:169 · autor:Rune · 2026-08-18 UTC-6
+// [PP] mod:170 · autor:Rune · 2026-08-18 22:10 UTC-6
+// TKT-202608-420 (REQ-202608-169): saveCheckpointFlow() nueva — insert a tracker_checkpoint_flow
+// (DDL propuesto por TKT-202608-416). Sin cambio en ninguna función existente de este archivo.
 // INC-[pendiente-ID] (triggered_by: reporte directo del founder — worker en sesión
 // interrumpida, badge morado, con reset_epoch ya vencido no permitía guardar Quick
 // Capture ni para re-interrumpirlo ni para desinterrumpirlo): los dos barridos de
@@ -4140,6 +4142,44 @@ export async function _upsertSprint(sprintObj, projId) {
   } else {
     // Actualizar localStorage como caché post-write
     try { localStorage.setItem(lsKey, JSON.stringify(list)); } catch(e) {}
+  }
+}
+
+// TKT-202608-420 (REQ-202608-169, depends_on TKT-202608-416): saveCheckpointFlow() sobre
+// tracker_checkpoint_flow — tabla dedicada (DDL propuesto por TKT-202608-416, mismo patrón
+// de columnas ya usado en tracker_workers: id/created_at con default de la propia tabla,
+// resto de columnas por-fila). Append-only — sin update ni dedupe por título (no_incluye del
+// TKT). Alimenta retro real (TKT-202608-418, lee por sprint_id) y Learning Log de CHECKPOINTs
+// sin sprint (TKT-202608-419, lee sprint_id: null). Caller: _doApplyMergeAndFinish()
+// (locus-session-save.js), tras aplicar el batch de items del CHECKPOINT.
+// AC — sin auth: no-op silencioso, mismo criterio que saveWorker()/_upsertSprint() — la
+// captura de Flujo es complementaria al guardado de sesión, nunca lo bloquea ni reintenta vía
+// offline queue (fuera de scope de este TKT).
+// AC — estado ausente: blockers/learning/decision llegan ya normalizados a 'n/a' por el
+// caller cuando el CHECKPOINT no los declara — esta función persiste lo recibido tal cual,
+// sin volver a normalizar.
+// AC — sprint_id: el caller resuelve cuál ítem del bloque tiene sprint real y pasa ese valor
+// (o null) — esta función no inspecciona items, solo persiste flow.sprintId.
+export async function saveCheckpointFlow(flow) {
+  if (!_supabase || !_supabaseUser || !flow) return;
+  const row = {
+    user_id:          _supabaseUser.id,
+    project_id:       flow.projectId || null,
+    sprint_id:        flow.sprintId || null,
+    checkpoint_title: flow.title || '',
+    role:             flow.role || '',
+    summary:          flow.summary || '',
+    blockers:         flow.blockers || 'n/a',
+    learning:         flow.learning || 'n/a',
+    decision:         flow.decision || 'n/a',
+    files:            Array.isArray(flow.files) ? flow.files : [],
+    created_at:       Date.now()
+  };
+  const { error } = await _supabase
+    .from('tracker_checkpoint_flow')
+    .insert(row);
+  if (error) {
+    logger.error('[Locus] TKT-202608-420: insert a tracker_checkpoint_flow falló', error);
   }
 }
 

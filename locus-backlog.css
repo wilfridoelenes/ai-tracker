@@ -1,4 +1,11 @@
-/* [PP] mod:166 · autor:Nova · 2026-08-18 UTC-6 */
+/* [PP] mod:167 · autor:Nova · 2026-08-18 UTC-6 */
+/* TKT-202608-415 (REQ-202608-168): swap DISC↔REQ en .stat-type-chip/.filter-type-btn (tc-DISC/
+   tc-REQ base+active+all-active, filter-type-btn.active-DISC/-REQ) — cierra el gap de mod:55
+   ya registrado en _Locus-css-ref y en el comentario junto a .stat-type-chip--qdisc-discovery.
+   .stat-type-chip.tc-PRB/.active.tc-PRB: --amber-text → --orange-text (mismatch de token, no
+   swap semántico — el background ya era naranja canónico). Verificado: grep 'amber-text' sin
+   apariciones en tc-PRB; los 8 selectores tc-DISC/tc-REQ/active-DISC/active-REQ alineados a
+   item-type-pill. */
 /* TKT-202608-393 (Effort 1 · CSS — sistema de badges de status, REQ-202608-163): retirados
    .status-pill (base) + .status-pill--pendiente/--done/--en-revision — sistema legacy sin
    call site en JS ni HTML, reemplazado de facto por .badge-status-* (statusClass()); --descartado
@@ -816,13 +823,13 @@
 }
 
 .s-types--all-active .stat-type-chip.active.tc-REQ {
-  background: var(--blue-dim);
-  border-color: rgb(56 189 248 / 25%);
+  background: var(--purple-dim);
+  border-color: rgb(124 106 247 / 25%);
 }
 
 .s-types--all-active .stat-type-chip.active.tc-DISC {
-  background: var(--purple-dim);
-  border-color: rgb(124 106 247 / 25%);
+  background: var(--blue-dim);
+  border-color: rgb(56 189 248 / 25%);
 }
 
 /* Label indicando estado neutro */
@@ -848,15 +855,15 @@
 }
 
 .stat-type-chip.tc-REQ {
-  background: rgb(56 189 248 / 12%);
-  border-color: var(--blue-text);
-  color: var(--blue-text);
-}
-
-.stat-type-chip.tc-DISC {
   background: rgb(124 106 247 / 12%);
   border-color: var(--purple-text);
   color: var(--purple-text);
+}
+
+.stat-type-chip.tc-DISC {
+  background: rgb(56 189 248 / 12%);
+  border-color: var(--blue-text);
+  color: var(--blue-text);
 }
 
 /* TKT-202608-281: mismo mecanismo — fill sólido del color identidad + texto de alto contraste,
@@ -875,22 +882,22 @@
 }
 
 .stat-type-chip.active.tc-REQ {
-  background: var(--blue-text);
-  border-color: var(--blue-text);
+  background: var(--purple-text);
+  border-color: var(--purple-text);
   color: var(--on-fill-vivid);
 }
 
 .stat-type-chip.active.tc-DISC {
-  background: var(--purple-text);
-  border-color: var(--purple-text);
+  background: var(--blue-text);
+  border-color: var(--blue-text);
   color: var(--on-fill-vivid);
 }
 
 /* Gen2 — tipos ITIL: PRB (#f59e0b amber) · KE (#eab308 yellow) · CHG (#64748b slate) */
 .stat-type-chip.tc-PRB {
   background: rgb(245 158 11 / 12%);
-  border-color: var(--amber-text, #e8a832);
-  color: var(--amber-text, #e8a832);
+  border-color: var(--orange-text);
+  color: var(--orange-text);
 }
 
 .stat-type-chip.tc-CHG {
@@ -900,8 +907,8 @@
 }
 
 .stat-type-chip.active.tc-PRB {
-  background: var(--amber-text, #e8a832);
-  border-color: var(--amber-text, #e8a832);
+  background: var(--orange-text);
+  border-color: var(--orange-text);
   color: var(--on-fill-vivid);
 }
 
@@ -2118,9 +2125,9 @@
 }
 
 .filter-type-btn.active-DISC {
-  background: var(--purple-text);
+  background: var(--blue-text);
   color: var(--on-fill-vivid);
-  border-color: var(--purple-text);
+  border-color: var(--blue-text);
 }
 
 .filter-type-btn.active-TKT {
@@ -2130,9 +2137,9 @@
 }
 
 .filter-type-btn.active-REQ {
-  background: var(--blue-text);
+  background: var(--purple-text);
   color: var(--on-fill-vivid);
-  border-color: var(--blue-text);
+  border-color: var(--purple-text);
 }
 
 .filter-type-btn.active-INC {
@@ -6048,9 +6055,9 @@
 
 /* Discovery/Promoted en la fila compacta — mismos valores de color que .qdisc-stat-cell--discovery/
    --promoted (retirados arriba): azul rgb(56 189 248) / verde rgb(46 204 120). NO reusan
-   .stat-type-chip.tc-DISC (púrpura) a propósito — ese selector quedó desalineado del swap
-   DISC→azul de mod:55 (gap ya registrado en _Locus-css-ref, fuera de scope corregirlo aquí; usarlo
-   habría introducido un choque de color dentro del mismo panel que se está homologando). */
+   .stat-type-chip.tc-DISC — decisión de componente (valores propios de esta fila compacta, no
+   del sistema de chips de filtro), no de color: .stat-type-chip.tc-DISC ya está alineado a azul
+   desde TKT-202608-415 (REQ-202608-168), gap de mod:55 cerrado. */
 .stat-type-chip--qdisc-discovery {
   background: rgb(56 189 248 / 12%);
   border-color: rgb(56 189 248 / 40%);
@@ -6423,7 +6430,8 @@
    queda comentada (no borrada) en locus-backlog-qdisc.js — restaurable como fila aparte bajo
    .stats-row--compact si el founder la quiere de vuelta. Nota aparte detectada en el proceso:
    .qdisc-proportion-seg--discovery usaba var(--purple) — mismo gap de mod:55 (DISC→azul) que
-   .stat-type-chip.tc-DISC, no corregido aquí porque toda la regla se retira. ══ */
+   .stat-type-chip.tc-DISC (cerrado en TKT-202608-415, REQ-202608-168) — no corregido aquí porque
+   toda la regla se retira, sin consumidor vivo. ══ */
 /* ── TKT2 (REQ CAEL-08111700-00, ref_id) — retirada la barra de progreso mini que vivía
    aquí (.qdisc-limit-bar / .qdisc-limit-bar-fill, pieza 3 de "Mejora visual DISC" — piezas
    1/2 ya retiradas arriba). Desde infra_version 92 (__BR-Ecosystem §5), Q-DISC no tiene

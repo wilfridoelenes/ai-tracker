@@ -1,4 +1,4 @@
-// [PP] mod:173 · autor:Rune · 2026-08-12 10:15 UTC-6
+// [PP] mod:174 · autor:Rune · 2026-08-18 11:00 UTC-6
 // TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog — Excepción de resolución
 // directa: hallazgo de código, nivel Patch, sin bifurcación de founder): retirado branch
 // huérfano act==='bl-r-toggle' (línea ~963 original) — sin emisor real de
@@ -727,8 +727,6 @@ const _acReplacedSet = new Set();
 
 // ── Estado del módulo ──────────────────────────────────────────────────────
 // TKT-202608-290: búsqueda local de Backlog retirada — reemplazada por ⌘K
-// Filtro de tipo activo
-let currentFilter = 'all';
 // B-202606-023: guard de delegación como variable de módulo — evita que la propiedad DOM
 // persista entre renders cuando renderBacklogList reemplaza innerHTML de #backlog-list.
 // renderBacklogList llama _resetBacklogListDelegation() antes de llamar _attachBacklogListDelegation().
@@ -2091,10 +2089,6 @@ function toggleAc(idx) {
 }
 
 export function setFilter(f) {
-  currentFilter = f;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  const btn = document.querySelector('.f-' + f);
-  if (btn) btn.classList.add('active');
   _markBacklogListDirty(); renderBacklogList();
 }
 

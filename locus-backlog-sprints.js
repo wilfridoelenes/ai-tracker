@@ -1,4 +1,4 @@
-// [PP] mod:69 · autor:Rune · 2026-08-17 09:40 UTC-6
+// [PP] mod:70 · autor:Rune · 2026-08-18 UTC-6
 // TKT-202608-375 (REQ-202608-151, origen_disc DISC-202608-156): extiende el gate duro de
 // cierre por origen_disc (_scmExecuteClose(), mod:65/TKT-202608-361) al caso huérfano —
 // origen_disc que no resuelve a ningún ítem real del backlog, antes explícitamente fuera de
@@ -156,7 +156,7 @@
 // Sin cambio de firma exportada.
 
 // [PP] mod:53 · autor:Rune · 2026-07-21 23:13 UTC-6
-// TKT (INC-[pendiente-ID] · retiro archivedInSprint): _incEligibleForSprintClose pierde el
+// TKT (INC histórico — sin CHECKPOINT confirmado · retiro archivedInSprint): _incEligibleForSprintClose pierde el
 //   parámetro sprintId y el criterio archivedInSprint (campo eliminado del modelo, BR-Ecosystem
 //   §4b) — único criterio de elegibilidad ahora es la ventana de tiempo closedAt/statusChangedAt
 //   >= sprintOpenedAt, ya existente como fallback. Call site en _generateSprintRetroMd actualizado
@@ -176,7 +176,7 @@
 // ningún dato de sprints (__BR-Ecosystem §7). Re-importada para los 2 call sites internos.
 // Sin cambio de lógica ni de firma — navigateToItem(code) → void.
 // [PP] mod:49 · autor:Rune · 2026-07-12 UTC-6
-// INC-[pendiente-ID]: navigateToItem() agrega rama DISC — switchSubTab('qdisc') en vez de
+// INC histórico — sin CHECKPOINT confirmado: navigateToItem() agrega rama DISC — switchSubTab('qdisc') en vez de
 // 'backlog' cuando itemKind(item) === 'DISC'. Selector de scroll sin cambio (.item[data-code],
 // DISC comparte shell con REQ/TKT vía buildBacklogItem()). contract_update: n/a — firma sin cambio.
 // TKT3 (REQ CAEL-01, contract_update: sí): navigateToItem() ahora distingue ítems ITIL
@@ -205,10 +205,10 @@
 //   fue reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js y este módulo
 //   nunca la invocaba (solo quedaba en comentario línea ~959). Sin este fix, TKT1 entregado solo
 //   rompía la carga de la app — import ESM con nombre inexistente lanza SyntaxError.
-// INC-[pendiente-ID]: confirmEditSprint() no persistía label/goal/version_target/release_type
+// INC histórico — sin CHECKPOINT confirmado: confirmEditSprint() no persistía label/goal/version_target/release_type
 //   a tracker_sprints — save() excluye sprints del blob. Fix: _upsertSprint(sp, projId) tras
 //   save(), mismo patrón que setSprintStatus.
-// TKT-PARSER-sprints (REQ-[pendiente-ID] · retro Q-INC, gate cierre sin isHotfix):
+// TKT-PARSER-sprints (REQ histórico — sin CHECKPOINT confirmado · retro Q-INC, gate cierre sin isHotfix):
 //   _getActiveSprint sin !isHotfix — todos los sprints son expuestos por status:active únicamente.
 //   Bloque retro S-HOTFIX reemplazado por INC/PRB/KE/CHG con incidentStatus:'closed'
 //   cuyo closedAt >= sprint.startedAt — incluidos en sección "Incidentes cerrados".
@@ -252,7 +252,7 @@ function _sprintsForProject(projId) {
 
 export function _getActiveSprint() {
   // T-202606-072: _sprintsForProject(null) — sin filtro de proyecto, comportamiento original preservado.
-  // TKT-PARSER-sprints (REQ-[pendiente-ID]): isHotfix eliminado — S-HOTFIX deprecado Gen2.
+  // TKT-PARSER-sprints (REQ histórico — sin CHECKPOINT confirmado): isHotfix eliminado — S-HOTFIX deprecado Gen2.
   // TKT-202607-130 (REQ-202607-040): fallback a all[0] retirado — mismo criterio estricto que
   // renderSprintBurndown() (línea ~1604): solo current:true cuenta como sprint activo.
   const all = _sprintsForProject(null).filter(s => s.status === 'active');
@@ -360,7 +360,7 @@ function _suggestVersionTarget(releaseType) {
 // en la retro del sprint — compartido con _generateSprintRetroMd (texto de retro), para que
 // ambos coincidan exactamente (AC de contrato). No migra el ítem a historico — Q-INC no
 // depende del ciclo de vida de sprint (BR-Ecosystem §4b).
-// INC-[pendiente-ID] (retiro archivedInSprint): parámetro sprintId retirado — sin uso una vez
+// INC histórico — sin CHECKPOINT confirmado (retiro archivedInSprint): parámetro sprintId retirado — sin uso una vez
 // eliminado el criterio de archivedInSprint (campo retirado del modelo, BR-Ecosystem §4b: "no
 // existe vínculo INC↔sprint que declarar"). Único criterio de elegibilidad ahora es la ventana
 // de tiempo closedAt/statusChangedAt >= sprintOpenedAt — mismo fallback que ya existía.
@@ -413,7 +413,7 @@ function _generateSprintRetroMd(id, notes) {
 
   // Ventana del sprint — movida antes del bloque de Doc-Updates (INC-202608-093): la
   // ventana debe existir antes de filtrar el log de resueltos, no solo para incidentes.
-  // TKT-PARSER-sprints (REQ-[pendiente-ID]): INC closed de Q-INC con closedAt >= sprint.openedAt
+  // TKT-PARSER-sprints (REQ histórico — sin CHECKPOINT confirmado): INC closed de Q-INC con closedAt >= sprint.openedAt
   // reemplaza bloque de S-HOTFIX — Gen2: Q-INC es la cola ITIL, S-HOTFIX deprecado.
   // INC closed antes de la apertura del sprint no se incluyen.
   const _sprintForRetro = _getSprintById(id);
@@ -631,7 +631,7 @@ export async function setSprintStatus(id, newStatus) {
       return (s.projId === _projIdForGate || s.projectId === _projIdForGate);
     });
     if (_existingActive) {
-      // TKT2-[pendiente-ID]: _sprintDisplay aplica patrón id · label en mensaje de conflicto
+      // TKT2 histórico — sin CHECKPOINT confirmado: _sprintDisplay aplica patrón id · label en mensaje de conflicto
       showToast('error', `Ya hay un sprint activo: ${_sprintDisplay(_existingActive.id)}. Ciérralo antes de activar otro.`);
       return false; // B-202606-042: retorno explícito — permite que callers detecten el rechazo
     }
@@ -702,7 +702,7 @@ export async function setSprintStatus(id, newStatus) {
       for (let _idx = _itemsArr.length - 1; _idx >= 0; _idx--) {
         if (_historicoCodesDirectClose.has(_itemsArr[_idx].code)) _itemsArr.splice(_idx, 1);
       }
-      // INC-[pendiente-ID]: invalidar cache sync de historico — independiente de si
+      // INC histórico — sin CHECKPOINT confirmado: invalidar cache sync de historico — independiente de si
       // saveHistoricoItems tuvo éxito (ITEMS ya se mutó arriba; el próximo read debe reflejarlo).
       _invalidateHistoricoCache();
     }
@@ -830,7 +830,7 @@ export function setItemSprint(code, sprintId) {
   _undoSnapshotItems();
   saveBacklog();
   _setBacklogModified();
-  // INC-[pendiente-ID]: renderBacklogList() directo reemplazado — era ciego a qué panel disparó
+  // INC histórico — sin CHECKPOINT confirmado: renderBacklogList() directo reemplazado — era ciego a qué panel disparó
   // el cambio (Q-Backlog/Q-DISC quedaban con la vista vieja al reasignar sprint desde esas cards).
   // shell:backlog-render-dirty ya lo escuchan #backlog-list, qbacklog-panel-body y qdisc-panel-body
   // (ver locus-backlog-render.js).
@@ -907,7 +907,7 @@ function confirmEditSprint(sprintId) {
   if (inp) inp.classList.remove('sprint-inline-input--warn');
   const sp = _getSprintById(sprintId);
   if (!sp) { _markBacklogListDirty(); renderBacklogList(); return; }
-  // B-[pendiente-ID]: label NO concatena el ID — id y label son campos separados (BR-Ecosystem §5)
+  // B histórico — sin CHECKPOINT confirmado: label NO concatena el ID — id y label son campos separados (BR-Ecosystem §5)
   sp.label = raw;
   // R-202605-123: persistir goal si el campo existe
   const goalInp = document.getElementById(goalId);
@@ -920,17 +920,17 @@ function confirmEditSprint(sprintId) {
   if (vtInp !== null) sp.version_target = vtInp.value.trim();
   if (rtSel !== null) sp.release_type   = rtSel.value;
   save();
-  // INC-[pendiente-ID]: confirmEditSprint mutaba sp.label/goal/version_target/release_type
+  // INC histórico — sin CHECKPOINT confirmado: confirmEditSprint mutaba sp.label/goal/version_target/release_type
   // solo en _sprintsCache sin persistir a tracker_sprints — save() excluye sprints del blob
   // (T-202606-005 AC-3). El edit se veía aplicado en la sesión activa por mutación de la
   // misma referencia, pero se perdía en el siguiente _loadSprintsFromSupabase(). Mismo
   // patrón que setSprintStatus (línea ~703): _upsertSprint persiste el sprint mutado.
   const _projIdForEditUpsert = sp.projId || sp.projectId || getActiveProject()?.id || '';
   _upsertSprint(sp, _projIdForEditUpsert).catch(err => {
-    console.error('[Locus] INC-[pendiente-ID]: confirmEditSprint upsert falló', err);
+    console.error('[Locus] INC histórico — sin CHECKPOINT confirmado: confirmEditSprint upsert falló', err);
   });
   _markBacklogListDirty(); renderBacklogList();
-  // TKT2-[pendiente-ID]: _sprintDisplay aplica patrón id · label en confirmación
+  // TKT2 histórico — sin CHECKPOINT confirmado: _sprintDisplay aplica patrón id · label en confirmación
   showToast('success', '✓ Sprint actualizado: ' + _sprintDisplay(sp.id));
 }
 
@@ -957,7 +957,7 @@ export function markRetroEvaluated(id) {
 // R-202604-089: estado del modal de cierre de sprint
 let _scmState = null; // { id, step, pendingItems, doneItems, migrations, docUpdates, retroNotes, ... }
 
-// B-[pendiente-ID]: normaliza el campo sprint de un ítem al ID canónico (PP-S-XX).
+// B histórico — sin CHECKPOINT confirmado: normaliza el campo sprint de un ítem al ID canónico (PP-S-XX).
 // Ítems legacy pueden tener sprint: "PP-S-07 · label completo" — extraer solo el prefijo.
 // Si el valor ya es un ID canónico o no matchea el patrón, devuelve el valor original.
 function _sprintIdOf(item) {
@@ -1721,7 +1721,7 @@ async function _scmExecuteClose() {
     for (let _idx = _itemsArr.length - 1; _idx >= 0; _idx--) {
       if (_historicoCodesThisClose.has(_itemsArr[_idx].code)) _itemsArr.splice(_idx, 1);
     }
-    // INC-[pendiente-ID]: invalidar cache sync de historico — independiente de si
+    // INC histórico — sin CHECKPOINT confirmado: invalidar cache sync de historico — independiente de si
     // saveHistoricoItems tuvo éxito (ITEMS ya se mutó arriba; el próximo read debe reflejarlo).
     _invalidateHistoricoCache();
   }
@@ -1778,7 +1778,7 @@ async function _scmExecuteClose() {
     // __BR-Ecosystem §3. El sprint que se está cerrando en este ciclo ya cuenta — su
     // status/closedAt se mutan de forma síncrona en setSprintStatus() (línea ~1427, antes
     // de este bloque) sobre la misma referencia que retorna getActiveSprints(). Entradas
-    // sin createdAt (persistidas antes de TKT-[pendiente-ID] · createdAt en docUpdateIndex)
+    // sin createdAt (persistidas antes de TKT histórico — sin CHECKPOINT confirmado · createdAt en docUpdateIndex)
     // no se marcan — antigüedad desconocida, mismo criterio de _docUpdateStaleness()
     // (locus-sesiones-stats.js). Entradas ya aplicadas/descartadas nunca llegan aquí — se
     // eliminan del índice en el momento de resolución (processDocUpdate/resolveDocUpdate/
