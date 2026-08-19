@@ -1,10 +1,17 @@
+// [PP] mod:94 · autor:Rune · 2026-08-18 22:35 UTC-6
+// TKT1 (CAEL-08182200-02, DISC-202608-192): entrada de header mod:92 (línea abajo) no cumplía
+// el formato de timestamp de __BR-Execution §9 (YYYY-MM-DD HH:MM UTC-6) — la hora nunca quedó
+// registrada en esa entrega. Sin dato real que reponer, se anota explícitamente en vez de
+// fabricar una hora — mismo criterio ya usado en este archivo para referencias sin código real
+// ("histórico — sin CHECKPOINT confirmado"). Ninguna otra entrada de header tocada. Sin cambio
+// de comportamiento.
 // [PP] mod:93 · autor:Rune · 2026-08-18 22:10 UTC-6
 // TKT-202608-420 (REQ-202608-169, depends_on TKT-202608-416): _doApplyMergeAndFinish() —
 // tras aplicar el batch de items (mergeResult + patches), llamada a saveCheckpointFlow()
 // (locus-storage.js) con title/summary/blockers/learning/decision/role del CHECKPOINT
 // parseado + sprint_id heredado del primer tgItem del bloque con sprint real. Import de
 // saveCheckpointFlow agregado. Sin cambio en el resto de la función.
-// [PP] mod:92 · autor:Rune · 2026-08-18 UTC-6
+// [PP] mod:92 · autor:Rune · 2026-08-18 · hora no registrada · UTC-6
 // TKT-202608-411 (REQ-202608-164): reescritas las 29 líneas (31 ocurrencias — dos líneas con
 //   dos cada una) que citaban el placeholder de código pendiente en comentarios embebidos,
 //   violación de __BR-Execution §9. Resueltas a código real cuando el ref_id ya estaba
