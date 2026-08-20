@@ -1,4 +1,4 @@
-/* [PP] mod:167 · autor:Nova · 2026-08-18 UTC-6 */
+/* [PP] mod:168 · autor:Nova · 2026-08-19 19:35 UTC-6 */
 /* TKT-202608-415 (REQ-202608-168): swap DISC↔REQ en .stat-type-chip/.filter-type-btn (tc-DISC/
    tc-REQ base+active+all-active, filter-type-btn.active-DISC/-REQ) — cierra el gap de mod:55
    ya registrado en _Locus-css-ref y en el comentario junto a .stat-type-chip--qdisc-discovery.
@@ -3437,6 +3437,26 @@
 .bl-strip-btn.active.s-pendiente {
   border-color: var(--amber-text);
   background: var(--amber-text);
+  color: var(--on-fill-vivid);
+}
+
+/* INC-[ref_id:NOVA-08191930-01]: Hecho — mismos tokens que .filter-done-chip.active
+   (_Locus-css-ref §Cambios v1.4x, mod:160) — vocabulario ya unificado para "done" en el
+   resto del ecosistema (badge-status-done, REQ-202608-158). Sin esto, Hecho caía al
+   fallback .active genérico y quedaba indistinguible de Pendiente/Descartado. */
+.bl-strip-btn.active.s-done {
+  border-color: var(--green-text);
+  background: var(--green-text);
+  color: var(--on-fill-vivid);
+}
+
+/* INC-[ref_id:NOVA-08191930-01]: Descartado — el markup real (index.html) ya declara la
+   clase s-descartado en el botón #fstatus-descartado, pero el modificador nunca existió en
+   este archivo — caía al fallback .active genérico. Mismos tokens que
+   .badge-status-descartado (--red-*, REQ-202608-158). */
+.bl-strip-btn.active.s-descartado {
+  border-color: var(--red-text);
+  background: var(--red-text);
   color: var(--on-fill-vivid);
 }
 

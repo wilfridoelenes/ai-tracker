@@ -1,4 +1,4 @@
-<!-- [PP] mod:211 · autor:Rune · 2026-08-18 23:05 UTC-6 -->
+<!-- [PP] mod:214 · autor:Nova · 2026-08-19 19:35 UTC-6 -->
 <!-- TKT1 (ref_id CAEL-08181430-02, REQ ref_id CAEL-08181430-01): botón dismiss directo de sesión
      interrumpida — <button class="sc-menu-btn is-hidden" id="worker-header-dismiss-btn"> insertado
      en .sc-header-left, inmediatamente después de #worker-header-badge (design_intent:
@@ -841,6 +841,9 @@
     <!-- TKT-202608-317 (REQ-202608-126, TKT1): botón Export Sprints — dispara shell:export-sprints,
          mismo patrón que btn-export-backlog-full (sibling en #tpl-toolbar) -->
     <button class="tpl-action-btn is-hidden" id="btn-export-sprints" title="Descargar historial de sprints como .md">⬇ Historial de sprints</button>
+    <!-- TKT-202608-426 (REQ-202608-171, TKT5): botón Export Learning Log — dispara
+         shell:export-learning-log, mismo patrón que btn-export-backlog-full/btn-export-sprints -->
+    <button class="tpl-action-btn is-hidden" id="btn-export-learning-log" title="Descargar candidatos de Learning Log como .md">⬇ Learning Log</button>
   </div>
 
   <!-- Panel de detalle -->
@@ -868,9 +871,9 @@
       <div class="bl-toolbar-divider"></div>
       <!-- G2: filtros status + secundarios -->
       <div class="bl-toolbar-group">
-        <button class="bl-strip-btn active" id="fstatus-pendiente">Pendiente</button>
+        <button class="bl-strip-btn s-pendiente active" id="fstatus-pendiente">Pendiente</button>
         <button class="bl-strip-btn s-en-revision active" id="fstatus-en-revision">En revisión</button>
-        <button class="bl-strip-btn" id="fstatus-done">Hecho</button>
+        <button class="bl-strip-btn s-done" id="fstatus-done">Hecho</button>
         <button class="bl-strip-btn s-descartado" id="fstatus-descartado">Descartado</button>
         <div class="bl-filter-strip-sep"></div>
         <button class="bl-strip-btn" id="fbar-deps-btn" title="Filtrar por dependencias explícitas — bloqueados / libres">🔗 Deps</button>
@@ -1455,6 +1458,11 @@
     <button class="spt-tab is-hidden" id="sstab-btn-contratos" role="tab" aria-selected="false">
       Contratos<span class="spt-tab-badge" id="tpl-badge-contratos"></span>
     </button>
+    <!-- TKT-202608-427 (REQ-202608-171, ref_id CAEL-08191710-01 lo consume vía locus-docs.js):
+         sub-tab hermano de DOC-UPDATEs/Contratos — mismo mecanismo .spt-nav/.spt-tab, sin CSS nuevo. -->
+    <button class="spt-tab" id="sstab-btn-learning-log" role="tab" aria-selected="false">
+      Learning Log
+    </button>
   </div>
 
   <!-- Acciones de Documentos — migradas desde #tpl-toolbar de Backlog -->
@@ -1577,6 +1585,18 @@
       <div class="ctr-detail-panel" id="ctr-detail-panel"><div class="ctr-detail-placeholder"><span>← Selecciona un módulo para ver sus contratos</span></div></div>
     </div>
   </div><!-- /sspanel-contratos -->
+
+  <!-- Sub-panel: Learning Log — TKT-202608-427 (REQ-202608-171). Reutiliza íntegramente
+       la familia .du-* (panel-header, du-list, du-empty-state) — cero clase CSS nueva.
+       #llog-list poblado por renderLearningLog() (locus-docs.js). -->
+  <div class="session-subpanel" id="sspanel-learning-log">
+    <div class="du-panel-header">
+      <div class="du-panel-title">Learning Log</div>
+    </div>
+    <div id="llog-list" class="du-list" aria-live="polite">
+      <div class="du-empty-state">Sin candidatos pendientes de evaluación</div>
+    </div>
+  </div><!-- /sspanel-learning-log -->
 
 </div>
 

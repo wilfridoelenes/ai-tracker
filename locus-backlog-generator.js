@@ -1,3 +1,17 @@
+// [PP] mod:65 · autor:Rune · 2026-08-19 17:40 UTC-6
+// TKT-202608-423 (REQ-202608-171, TKT2, ref_id CAEL-08191500-01): agregado
+// _generateLearningLogCandidatesMd(projectId) — función pura de lectura + formateo, insumo
+// crudo para curación manual de Cael/Vera del Learning Log (__OB-Strategy §5). Consume
+// getCheckpointFlowsWithoutSprint(projectId) (locus-storage.js, entrada de contrato agregada
+// en TKT-202608-422) — mismo patrón de agregación que _generateSprintRetroMd()
+// (locus-backlog-sprints.js), sin filtro de sinceTs en este TKT. No persiste, no muta
+// tracker_checkpoint_flow, no escribe _[PREFIJO]-learning-log.md en sí (__BR-Core §8, MD
+// editable) — solo genera el bloque '## Narrativa · Learning Log' por fila con contenido real
+// (learning/blockers/decision no simultáneamente vacíos/n-a), agrupado por role, orden
+// cronológico ascendente por created_at. Import agregado: getCheckpointFlowsWithoutSprint
+// desde locus-storage.js (línea de imports del archivo). Sin listener shell:* ni export UI en
+// este TKT — TKT3 (marcado de evaluado, bloqueado por DDL learning_log_evaluated en
+// tracker_checkpoint_flow, escalate_to: Vera) y TKT4 (badge) quedan sin especificar.
 // [PP] mod:63 · autor:Rune · 2026-08-18 22:30 UTC-6
 // RUNE-08151230-01: _isActiveQIncItem() — rama PRB leía i.status en vez de incIncidentStatus(i).
 // PRB no declara `status` (solo CHG lo hace, __BR-Ecosystem §4b) — la comparación siempre daba
@@ -178,7 +192,7 @@
 // Dependencias: locus-storage.js · locus-backlog-core.js · locus-toast.js
 // T-202606-166: _docPrefix movida a locus-storage.js — import actualizado.
 
-import { _blogLog, _docPrefix, _effectiveVersion, _sprintDisplay, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getState, getInfraVersionData, refreshHistoricoCache, getHistoricoItemsSync, _loadFromSupabase } from './locus-storage.js'; // INC-202607-047: _loadFromSupabase agregado — ver header
+import { _blogLog, _docPrefix, _effectiveVersion, _sprintDisplay, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getState, getInfraVersionData, refreshHistoricoCache, getHistoricoItemsSync, _loadFromSupabase, getCheckpointFlowsWithoutSprint } from './locus-storage.js'; // INC-202607-047: _loadFromSupabase agregado — ver header. TKT-202608-423: getCheckpointFlowsWithoutSprint agregado — ver header mod:64
 import { getItems, getIncidents, itemKind, updateBacklogBanner } from './locus-backlog-core.js'; // [tmp:tkt2-qinc-count]: getIncidents agregada — _allItemsWithHistorico()
 import { showToast } from './locus-toast.js';
 import { incSlaPriority, incIncidentStatus } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil · incIncidentStatus: TKT3 (ref_id CAEL-0722-04)
@@ -350,6 +364,17 @@ export async function exportFullHistoryMd() {
   _showExportConfirmModal('Historial completo', `_${pfx}-backlog-full-${_canonVer2(ver)}.md`, () => _generateFullHistoryBySprintMd(ver));
 }
 
+// TKT-202608-426 (REQ-202608-171, TKT5): exportLearningLogMd — mismo flujo que
+// exportSprintsMd() (modal de confirmación + _generateLearningLogCandidatesMd() ya
+// implementada, TKT-202608-423). Sin manejo de error propio — si el generador retorna
+// su string de fallo, se descarga igual (no_incluye del TKT).
+export async function exportLearningLogMd() {
+  const pfx = _docPrefix();
+  const project = getActiveProject();
+  const projectId = project ? project.id : null;
+  _showExportConfirmModal('Learning Log — candidatos', `_${pfx}-learning-log-candidatos.md`, () => _generateLearningLogCandidatesMd(projectId));
+}
+
 // R-202605-132: Export "Por sprint"
 export async function exportSprintsMd() {
   // TKT1: backlog vacío ya no bloquea el export — _ob-DocStandards §3 v1.10
@@ -505,6 +530,69 @@ function _generateSprintsExportMd(newVersion) {
   a.click();
   URL.revokeObjectURL(url);
   showToast('download', `📥 ${fileName} descargado`);
+}
+
+// TKT-202608-423 (REQ-202608-171, TKT2): candidato tiene contenido real de Flujo si al menos
+// uno de learning/blockers/decision no es null/undefined/string vacío/'n/a' (case-insensitive).
+// Evita bloques de Narrativa vacíos por sesiones sin contenido real — AC4 de TKT2.
+function _hasLearningContent(row) {
+  const isEmpty = v => v == null || String(v).trim() === '' || String(v).trim().toLowerCase() === 'n/a';
+  return !isEmpty(row.learning) || !isEmpty(row.blockers) || !isEmpty(row.decision);
+}
+
+// TKT-202608-423 (REQ-202608-171, TKT2): _generateLearningLogCandidatesMd — función pura de
+// lectura + formateo, insumo crudo para curación manual de Cael/Vera del Learning Log
+// (__OB-Strategy §5) — no persiste, no muta tracker_checkpoint_flow, no escribe
+// _[PREFIJO]-learning-log.md en sí (__BR-Core §8). Consume getCheckpointFlowsWithoutSprint()
+// (locus-storage.js) — mismo patrón de agregación que _generateSprintRetroMd()
+// (locus-backlog-sprints.js), sin filtro de sinceTs en este TKT.
+export async function _generateLearningLogCandidatesMd(projectId) {
+  let rows;
+  try {
+    rows = await getCheckpointFlowsWithoutSprint(projectId);
+  } catch (err) {
+    return `# Learning Log — candidatos sin evaluar\n\n_Fallo al obtener candidatos: ${err && err.message ? err.message : 'error desconocido'}._\n`;
+  }
+  if (!Array.isArray(rows)) {
+    return `# Learning Log — candidatos sin evaluar\n\n_Fallo al obtener candidatos: respuesta inválida de getCheckpointFlowsWithoutSprint()._\n`;
+  }
+
+  const candidates = rows.filter(_hasLearningContent);
+  if (!candidates.length) {
+    return `# Learning Log — candidatos sin evaluar\n\n_Sin candidatos pendientes de evaluación._\n`;
+  }
+
+  // Orden cronológico ascendente por created_at; roles agrupados en el orden de su primera
+  // aparición cronológica — mismo criterio de agrupación que la retro de sprint por rol.
+  const sorted = [...candidates].sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
+  const roleOrder = [];
+  const byRole = {};
+  sorted.forEach(row => {
+    const role = row.role || 'Sin rol';
+    if (!byRole[role]) { byRole[role] = []; roleOrder.push(role); }
+    byRole[role].push(row);
+  });
+
+  const fmtField = v => {
+    const isEmpty = x => x == null || String(x).trim() === '' || String(x).trim().toLowerCase() === 'n/a';
+    return isEmpty(v) ? null : String(v).trim();
+  };
+
+  const blocks = roleOrder.flatMap(role => byRole[role].map(row => {
+    const title = row.checkpoint_title || '(sin título)';
+    const resumen = fmtField(row.summary);
+    const bloqueantes = fmtField(row.blockers);
+    const aprendizaje = fmtField(row.learning);
+    const decision = fmtField(row.decision);
+    const lines = [`## Narrativa · Learning Log`, `${title} · ${role}:`];
+    if (resumen) lines.push(`  Resumen: ${resumen}`);
+    if (bloqueantes) lines.push(`  Bloqueantes: ${bloqueantes}`);
+    if (aprendizaje) lines.push(`  Aprendizaje: ${aprendizaje}`);
+    if (decision) lines.push(`  Decisión: ${decision}`);
+    return lines.join('\n');
+  }));
+
+  return `# Learning Log — candidatos sin evaluar\n\n${blocks.join('\n\n')}\n`;
 }
 
 // B-202605-515: _generateFullHistoryContent — función pura que retorna el string Markdown
@@ -1668,3 +1756,5 @@ window.addEventListener('shell:export-history', () => exportFullHistoryMd());
 window.addEventListener('shell:export-context', () => exportContextMd());
 // TKT-202608-317 (REQ-202608-126, TKT1) — AC1: dispara exactamente exportSprintsMd()
 window.addEventListener('shell:export-sprints', () => exportSprintsMd());
+// TKT-202608-426 (REQ-202608-171, TKT5): dispara exactamente exportLearningLogMd()
+window.addEventListener('shell:export-learning-log', () => exportLearningLogMd());

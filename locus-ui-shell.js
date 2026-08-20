@@ -1,4 +1,4 @@
-// [PP] mod:76 · autor:Rune · 2026-08-18 22:45 UTC-6
+// [PP] mod:78 · autor:Rune · 2026-08-19 17:40 UTC-6
 // TKT · REQ-restauracion-tab-proyectos: comentarios de conteo .tab-btn (L997, L1005)
 // actualizados de (×5) a (×6) — #tab-btn-proyectos restaurado en index.html. Sin cambio de
 // lógica en switchTab()/delegación genérica.
@@ -242,7 +242,7 @@ export function switchTab(tab) {
   const _backlogSubs = ['backlog', 'qbacklog', 'qdisc', 'historico'];
   // TKT1 (REQ ref_id CAEL-0731-04): 'dashboard' agregado — fallback pasa de 'htmlmap' a
   // 'dashboard' porque Dashboard vuelve a ser la sub-tab inicial de Tab Proyectos.
-  const _proyectosSubs = ['dashboard', 'htmlmap', 'context', 'docupdates', 'contratos'];
+  const _proyectosSubs = ['dashboard', 'htmlmap', 'context', 'docupdates', 'contratos', 'learning-log'];
   if (tab === 'backlog' && !_backlogSubs.includes(currentSubTab)) currentSubTab = 'backlog';
   if (tab === 'proyectos' && !_proyectosSubs.includes(currentSubTab)) currentSubTab = 'dashboard';
 
@@ -306,7 +306,12 @@ export function switchSubTab(sub) {
   // sin renombrar el id (ver entregable de Nova) — resuelto con el ternario de panel.
   // INC (PP-Q-INC, high, TKT-202608-237): 'resueltos' faltaba en este array — mismo patrón
   // ya documentado arriba para 'docupdates'. Sub-tab Resueltos nunca activaba botón ni panel.
-  ['backlog','qbacklog','qdisc','htmlmap','context','plan','docupdates','contratos','historico','dashboard','resueltos'].forEach(s => {
+  // TKT-[ref_id:CAEL-08191710-01] (REQ-202608-171): 'learning-log' agregado — mismo
+  // patrón de gap ya documentado dos veces arriba para 'docupdates' y 'resueltos':
+  // un sub-tab con botón/panel reales en index.html que no recibía .active/aria-selected
+  // sin figurar aquí. Verificado antes de emitir contra código real (locus-ui-shell.js),
+  // no asumido.
+  ['backlog','qbacklog','qdisc','htmlmap','context','plan','docupdates','contratos','historico','dashboard','resueltos','learning-log'].forEach(s => {
     const btn = document.getElementById('sstab-btn-' + s);
     const panel = document.getElementById(s === 'dashboard' ? 'tab-proyectos-inner' : 'sspanel-' + s);
     if (btn) {
@@ -1012,7 +1017,10 @@ document.addEventListener('DOMContentLoaded', function () {
     btn.addEventListener('click', function () { switchTab(tab); });
   });
 
-  // .sstab-btn (×7) — cada botón lleva su sub-tab en el id: sstab-btn-{tab}
+  // .sstab-btn (×8) — cada botón lleva su sub-tab en el id: sstab-btn-{tab}
+  // TKT-[ref_id:CAEL-08191710-01]: conteo actualizado de ×7 a ×8 — #sstab-btn-learning-log
+  // agregado en index.html mod:212. Sin cambio de lógica — querySelectorAll genérico ya
+  // lo cubre sin requerir entrada propia aquí.
   document.querySelectorAll('[id^="sstab-btn-"]').forEach(function (btn) {
     const stab = btn.id.replace('sstab-btn-', '');
     btn.addEventListener('click', function () { switchSubTab(stab); });
@@ -1206,6 +1214,14 @@ document.addEventListener('DOMContentLoaded', function () {
   const btnExportSprints = document.getElementById('btn-export-sprints');
   if (btnExportSprints) btnExportSprints.addEventListener('click', function () {
     window.dispatchEvent(new CustomEvent('shell:export-sprints'));
+  });
+
+  // btn-export-learning-log — TKT-202608-426 (REQ-202608-171): mismo patrón que
+  // btn-export-sprints — dispara shell:export-learning-log, consumido en
+  // locus-backlog-generator.js vía exportLearningLogMd()
+  const btnExportLearningLog = document.getElementById('btn-export-learning-log');
+  if (btnExportLearningLog) btnExportLearningLog.addEventListener('click', function () {
+    window.dispatchEvent(new CustomEvent('shell:export-learning-log'));
   });
 
   // btn-import-htmlmap

@@ -1,3 +1,9 @@
+// [PP] mod:173 · autor:Rune · 2026-08-19 UTC-6
+// TKT-202608-424 (REQ-202608-171, TKT3): markLearningLogEvaluated(projectId, throughTs) agregada
+// — UPDATE puntual sobre tracker_checkpoint_flow, transiciona learning_log_evaluated false→true
+// para filas sin sprint (candidatos a Learning Log) con created_at <= throughTs. Requiere columna
+// booleana `learning_log_evaluated` en tracker_checkpoint_flow — DDL no ejecutado desde este TKT,
+// registrado como deuda escalate_to: Vera (__BR-Execution §2). Ver comentario de la función.
 // [PP] mod:172 · autor:Rune · 2026-08-19 07:00 UTC-6
 // TKT-202608-419 (REQ-202608-169, depends_on TKT-202608-420): getCheckpointFlowsWithoutSprint()
 // agregada — lee tracker_checkpoint_flow con sprint_id: null, para el Learning Log del proyecto.
@@ -4239,6 +4245,50 @@ export async function getCheckpointFlowsWithoutSprint(projectId, sinceTs) {
   } catch (err) {
     logger.warn('[Locus] getCheckpointFlowsWithoutSprint: fallo Supabase, sin fallback local', err);
     return [];
+  }
+}
+
+// TKT-202608-424 (REQ-202608-171, TKT3, depends_on getCheckpointFlowsWithoutSprint arriba):
+// markLearningLogEvaluated(projectId, throughTs) — marca como evaluadas (para efectos de
+// Learning Log) las filas de tracker_checkpoint_flow sin sprint cuyo created_at es <= throughTs.
+// Mismo criterio de tolerancia sin auth/sin parámetro requerido que el resto de este archivo —
+// no-op silencioso, nunca lanza al caller (AC2: el fallo se registra en DocLog vía logger.warn,
+// el resto del CHECKPOINT ya aplicado por el caller no se revierte porque esta función nunca
+// propaga la excepción).
+// AC3 — nunca revierte true→false: el UPDATE solo escribe `learning_log_evaluated: true`, y el
+// filtro `.eq('learning_log_evaluated', false)` en el WHERE excluye filas ya marcadas — evita
+// escrituras redundantes, no altera la garantía de solo-avance (que ya se cumple por construcción
+// al no existir ningún UPDATE que escriba `false` en esta función).
+// Filtro `.is('sprint_id', null)`: mismo scope que getCheckpointFlowsWithoutSprint() — solo
+// candidatos a Learning Log, nunca filas de retro real (con sprint_id asignado).
+//
+// Requiere columna booleana `learning_log_evaluated` en tracker_checkpoint_flow — no existe aún
+// (ver _Locus-module-contracts §2, entrada getCheckpointFlowsWithoutSprint/getCheckpointFlowsBySprintId,
+// mod:193: "no marca filas como evaluadas — TKT3, pendiente de wiring"). DDL propuesto, no
+// ejecutado desde este TKT — registrado como deuda con escalate_to: Vera, mismo gate de
+// OWNERSHIP DE DOCUMENTOS para infraestructura de Supabase (__BR-Execution §2, "Declaración de
+// DDL en TKTs que tocan schema"):
+//   ALTER TABLE tracker_checkpoint_flow
+//     ADD COLUMN learning_log_evaluated boolean DEFAULT false;
+// Sin esa columna en producción, el UPDATE fallará con error de columna inexistente — capturado
+// por el mismo try/catch que cualquier otro fallo de Supabase de esta función (logger.warn,
+// no-op). El wiring del campo top-level learning_log_evaluated_through_ts en el CHECKPOINT
+// (locus-session-parse.js) llama a esta función asumiendo la columna ya aplicada por Vera.
+export async function markLearningLogEvaluated(projectId, throughTs) {
+  if (!_supabase || !_supabaseUser || !projectId) return;
+  if (typeof throughTs !== 'number' || !Number.isFinite(throughTs)) return;
+  try {
+    const { error } = await _supabase
+      .from('tracker_checkpoint_flow')
+      .update({ learning_log_evaluated: true })
+      .eq('user_id', _supabaseUser.id)
+      .eq('project_id', projectId)
+      .is('sprint_id', null)
+      .eq('learning_log_evaluated', false)
+      .lte('created_at', throughTs);
+    if (error) throw error;
+  } catch (err) {
+    logger.warn('[Locus] markLearningLogEvaluated: fallo Supabase (¿columna learning_log_evaluated pendiente de DDL?), ignorado', err);
   }
 }
 

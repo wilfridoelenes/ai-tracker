@@ -1,3 +1,11 @@
+// [PP] mod:38 · autor:Rune · 2026-08-19 UTC-6
+// TKT-202608-425 (REQ-202608-171): _getFooterAlert() — quinta rama de prioridad, la más
+// baja — CHECKPOINTs con contenido de Flujo (blockers/learning/decision) sin sprint y sin
+// marcar evaluados para el Learning Log. Consume getCheckpointFlowsWithoutSprint()
+// (locus-storage.js, import agregado) filtrado por learning_log_evaluated !== true y
+// contenido real — mismo criterio que _generateLearningLogCandidatesMd() (TKT-202608-423).
+// Solo se evalúa si inc/sprint/backlog/docupdate no dispararon antes. targetTab:'proyectos'
+// sin targetSubTab — supuesto declarado, no hay sub-tab dedicado en la UI todavía.
 // [PP] mod:37 · autor:Rune · 2026-08-16 UTC-6
 // INC-202608-124 (triggered_by DISC-202608-149): 'gf-ckpt--link' reincorporado en la rama
 // de alerta de #gf-ckpt — el retiro previo dejó el onclick inalcanzable (pointer-events:none
@@ -93,7 +101,9 @@ import { _zoneStaleness } from './locus-backlog-zone-engine.js';
 import { incSlaPriority, incIncidentStatus } from './locus-inc-fields.js';
 // selectTrackerAI y _markTrackerDirty desacoplados vía shell:* events (T-202606-084)
 // T-202606-166: _getActiveProjectFilter y getProjectById movidas a locus-storage.js
-import { _effectiveVersion, _getActiveProjectFilter, _getDocUpdateIndex, _isInSession, getAISessions, getActiveProject, getActiveTracker, getAllSessions, getInfraVersionData, getProjectById, save } from './locus-storage.js';
+// TKT-202608-425 (REQ-202608-171): getCheckpointFlowsWithoutSprint agregado — fuente de
+// candidatos a Learning Log pendientes de evaluación, consumida en _getFooterAlert().
+import { _effectiveVersion, _getActiveProjectFilter, _getDocUpdateIndex, _isInSession, getAISessions, getActiveProject, getActiveTracker, getAllSessions, getCheckpointFlowsWithoutSprint, getInfraVersionData, getProjectById, save } from './locus-storage.js';
 
 import { switchSubTab, switchTab, openInfraSync } from './locus-ui-shell.js';
 
@@ -301,6 +311,32 @@ export function _getFooterAlert() {
         ? `1 DOC-UPDATE sin resolver +${DOC_UPDATE_STALE_DAYS}d`
         : `${docUpdateStale} DOC-UPDATEs sin resolver +${DOC_UPDATE_STALE_DAYS}d`;
       return { type: 'docupdate', text, targetTab: 'proyectos', targetSubTab: 'docupdates' };
+    }
+
+    // TKT-202608-425 (REQ-202608-171) — AC prioridad 5 (la más baja): CHECKPOINTs con
+    // contenido de Flujo (blockers/learning/decision) sin sprint asignado y sin marcar como
+    // evaluados para el Learning Log. Solo se evalúa si ninguna de las 4 alertas anteriores
+    // aplicó. Mismo criterio de contenido real que _generateLearningLogCandidatesMd()
+    // (TKT-202608-423) — filas con learning/blockers/decision distintos de 'n/a' y ausentes
+    // excluidas. No hay sub-tab dedicado en la UI todavía (la lista se consume vía export MD,
+    // §Doc Refs) — targetTab apunta a 'proyectos' como la tab más cercana, mismo destino que
+    // 'docupdate', sin targetSubTab declarado. Supuesto declarado — AC no especifica destino
+    // de click, solo el texto y el gate de prioridad.
+    const proj = getActiveProject();
+    if (proj) {
+      const llCandidates = (typeof getCheckpointFlowsWithoutSprint === 'function'
+        ? (getCheckpointFlowsWithoutSprint(proj.id) || [])
+        : []
+      ).filter(f =>
+        f.learning_log_evaluated !== true &&
+        ((f.learning && f.learning !== 'n/a') || (f.blockers && f.blockers !== 'n/a') || (f.decision && f.decision !== 'n/a'))
+      );
+      if (llCandidates.length > 0) {
+        const text = llCandidates.length === 1
+          ? '1 CHECKPOINT pendiente de evaluación — Learning Log'
+          : `${llCandidates.length} CHECKPOINTs pendientes de evaluación — Learning Log`;
+        return { type: 'learninglog', text, targetTab: 'proyectos' };
+      }
     }
 
     return null;

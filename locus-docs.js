@@ -1,4 +1,4 @@
-// [PP] mod:40 · autor:Rune · 2026-08-18 22:30 UTC-6
+// [PP] mod:41 · autor:Rune · 2026-08-19 17:35 UTC-6
 // Fix inline #2 sobre INC (colisión TKT2 ↔ TKT-202608-325): los botones de copia individual
 // (data-du-copy-key / data-du-copy-resolved) compartían clase .du-btn-copy-group con el botón
 // de grupo — el listener solo leía dataset.duCopyGroup, así que un click individual entraba al
@@ -167,7 +167,7 @@ import { _updateUndoUI } from './locus-backlog-core.js';
 import { closeDocLog, openDocLog, _updateDocLogCount } from './locus-doc-log.js';
 import { _mgGetVersion } from './locus-map-generator.js';
 import { parseHtmlMapMd, renderHtmlMap, updateHtmlMapBanner } from './locus-map-viewer.js';
-import { _blogLog, _docPrefix, _effectiveVersion, _getDocUpdateIndex, _getDocUpdateResolvedLog, _projKey, _setDocUpdateIndex, _setDocUpdateResolvedLog, _tplKey, getActiveProject, saveContextDocs } from './locus-storage.js';
+import { _blogLog, _docPrefix, _effectiveVersion, _getDocUpdateIndex, _getDocUpdateResolvedLog, _projKey, _relTs, _setDocUpdateIndex, _setDocUpdateResolvedLog, _tplKey, getActiveProject, getCheckpointFlowsWithoutSprint, markLearningLogEvaluated, saveContextDocs } from './locus-storage.js';
 import { APP_VERSION } from './locus-workers.js'; // INC histórico — sin CHECKPOINT confirmado (gap documentado — DISC-202608-130): import real — antes typeof-guard muerto sobre variable privada
 
 // T-202606-166: _docPrefix movida a locus-storage.js
@@ -302,8 +302,9 @@ export function _updateSubTabButtons(sub) {
   // sub de la familia Proyectos, no solo al activar el sub-tab que el fix debía revelar.
   // TKT2 (REQ-vista-consolidada-doc-updates): 'resueltos' retirado del array — ya no es un
   // sub-tab alcanzable (sub-tab único #sstab-btn-docupdates, ver index.html mod:195).
-  if (['dashboard', 'htmlmap', 'context', 'docupdates', 'contratos'].includes(sub)) {
+  if (['dashboard', 'htmlmap', 'context', 'docupdates', 'contratos', 'learning-log'].includes(sub)) {
     renderDocUpdatesUnified();
+    renderLearningLog();
   }
   // Collapse danger body when switching tabs
   const dangerBody = document.getElementById('tpl-danger-body');
@@ -314,6 +315,10 @@ export function _updateSubTabButtons(sub) {
   }
   // sub-tab docupdates — sin danger zone
   if (sub === 'docupdates') {
+    if (dangerZone) dangerZone.classList.add('is-hidden');
+  }
+  // sub-tab learning-log — sin danger zone, mismo criterio que docupdates
+  if (sub === 'learning-log') {
     if (dangerZone) dangerZone.classList.add('is-hidden');
   }
   // Hide actions section label if no buttons visible
@@ -1276,6 +1281,84 @@ export function renderDocUpdatesUnified() {
   _updateDocUpdatesUnifiedBadge(pendingKeys.length, conflictCount);
 }
 
+// ── TKT-[ref_id:CAEL-08191710-01] (REQ-202608-171): renderLearningLog() ────────
+// Sub-tab hermano de DOC-UPDATEs (#sspanel-learning-log, shell entregado en
+// TKT-202608-427). Reutiliza el mismo lenguaje visual .du-* — sin selector CSS
+// nuevo. Snippet: primer campo no vacío entre learning/blockers/decision, en ese
+// orden — mismo criterio que _generateLearningLogCandidatesMd() (TKT-202608-423).
+function _learningLogSnippet(row) {
+  const candidates = [row.learning, row.blockers, row.decision];
+  for (const c of candidates) {
+    if (c && c !== 'n/a') return c;
+  }
+  return '';
+}
+
+export function renderLearningLog() {
+  const container = document.getElementById('llog-list');
+  if (!container) return;
+
+  const project = getActiveProject();
+  if (!project) {
+    container.innerHTML = '<div class="du-empty-state">Sin candidatos pendientes de evaluación</div>';
+    return;
+  }
+
+  let rows;
+  try {
+    rows = getCheckpointFlowsWithoutSprint(project.id) || [];
+  } catch {
+    rows = [];
+  }
+
+  // Estado de error y edge (0 filas) comparten el mismo empty state — consistente
+  // con no_incluye del TKT: sin manejo de error diferenciado.
+  if (!rows.length) {
+    container.innerHTML = '<div class="du-empty-state">Sin candidatos pendientes de evaluación</div>';
+    return;
+  }
+
+  container.innerHTML = rows.map(row => {
+    const snippet = esc(_learningLogSnippet(row));
+    const truncated = snippet.length > 140 ? snippet.slice(0, 140) + '…' : snippet;
+    return `
+      <div class="du-entry" data-llog-ts="${esc(String(row.created_at))}">
+        <div class="du-meta">
+          <span class="du-meta-doc">${esc(row.role || '—')}</span>
+          <span class="du-meta-sep">·</span>
+          <span class="du-meta-section">${esc(_relTs(row.created_at))}</span>
+        </div>
+        <div class="du-content-preview">${truncated}</div>
+        <button type="button" class="btn-ghost" data-action="mark-learning-log-evaluated" data-ts="${esc(String(row.created_at))}">Marcar evaluado</button>
+      </div>`;
+  }).join('');
+}
+
+// _initLearningLogListeners — delega click de "Marcar evaluado" sobre #llog-list,
+// mismo patrón de delegación que _initDocUpdatesUnifiedListeners(). Tras resolución
+// de markLearningLogEvaluated() (invariant: nunca lanza al caller), remueve la fila
+// del DOM sin re-fetch completo — si falla silenciosamente, la fila permanece.
+function _initLearningLogListeners() {
+  const list = document.getElementById('llog-list');
+  if (!list) return;
+  list.addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-action="mark-learning-log-evaluated"]');
+    if (!btn) return;
+    const project = getActiveProject();
+    if (!project) return;
+    const throughTs = parseInt(btn.dataset.ts, 10);
+    if (!Number.isFinite(throughTs)) return;
+    const entry = btn.closest('.du-entry');
+    Promise.resolve(markLearningLogEvaluated(project.id, throughTs)).then(() => {
+      if (entry) entry.remove();
+      if (!list.children.length) {
+        list.innerHTML = '<div class="du-empty-state">Sin candidatos pendientes de evaluación</div>';
+      }
+    });
+  });
+}
+// ── END TKT-[ref_id:CAEL-08191710-01] ───────────────────────────────────────────
+
 // setDuFilter — cambia el filtro activo (todos/pendientes/resueltos), refleja estado en las
 // pills (.active + aria-selected) y re-renderiza.
 export function setDuFilter(filter) {
@@ -1746,6 +1829,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // _initDocUpdatesResolvedListeners() en una sola función (gap detectado en
   // validación post-TKT2 — este call site no se había actualizado).
   _initDocUpdatesUnifiedListeners();
+  // TKT-[ref_id:CAEL-08191710-01] (REQ-202608-171): inicializar listener de
+  // "Marcar evaluado" sobre #llog-list — mismo momento de bootstrap que DOC-UPDATEs.
+  _initLearningLogListeners();
 
   // .conflict-banner-dismiss → remove banner — delegado en #context-conflict-area
   const conflictArea = document.getElementById('context-conflict-area');

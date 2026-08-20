@@ -1,3 +1,34 @@
+// [PP] mod:200 · autor:Rune · 2026-08-19 UTC-6
+// TKT1 (REQ-202608-XXX pendiente-ID, ref_id CAEL-08192015-02, origen DISC-202608-195):
+// saveCheckpointFlow() (locus-storage.js) wireada también en _onApplyBatch — antes solo se
+// invocaba desde _doApplyMergeAndFinish (locus-session-save.js, flujo single). Todo CHECKPOINT
+// pegado en bloque (patrón estándar de sesiones auto-orquestadas, __BR-Core — pegado de 2+
+// CHECKPOINTs juntos) nunca generaba fila en tracker_checkpoint_flow — causa raíz confirmada de
+// DISC-202608-195 (Learning Log vacío en PP-S-40/PP-S-41 pese a ítems done en ambos sprints).
+// Un insert por bloque del batch con m.resumen no vacío (AC — CHECKPOINT lite sin summary real
+// no genera fila, mismo criterio de guard que el flujo single). sprint_id resuelto vía nueva
+// función _resolveBatchFlowSprintId(idx, batchMergeResult) — mismo mecanismo documentado en
+// _Locus-module-contracts §saveCheckpointFlow (mod:192: recolectar code de created/advanced/
+// updated, primer .sprint truthy vía getAnyItem() gana), extendido con filtro por idx porque
+// _batchMergeResult mezcla los ítems de todos los bloques del batch en los mismos arrays.
+// Imports nuevos: getAnyItem (locus-backlog-core.js, ya importado en este archivo — solo se
+// agrega el símbolo), saveCheckpointFlow (locus-storage.js, ídem). Sin ciclo ESM nuevo — ambos
+// módulos ya eran dependencias de este archivo antes de este cambio. contract_update: sí — ver
+// contract_detail en el CHECKPOINT de entrega, saveCheckpointFlow gana un segundo call site.
+// [PP] mod:199 · autor:Rune · 2026-08-19 UTC-6
+// TKT-202608-424 (REQ-202608-171, TKT3, depends_on TKT-202608-377 para el patrón de wiring):
+// wiring del campo top-level learning_log_evaluated_through_ts del schema JSON de CHECKPOINT —
+// mismo patrón de extracción/aplicación que retro_evaluated_sprint (TKT-202608-377): guard de
+// tipo en parseCheckpoint, propagado vía _extractCkptMeta hacia ambos flujos de aplicación,
+// single (parsePaste, junto al bloque de retro_evaluated_sprint) y batch (_onApplyBatch, ídem).
+// Import nuevo: markLearningLogEvaluated de locus-storage.js. Diferencia con
+// _applyRetroEvaluatedSprint: no hay ítem real que resolver/validar (throughTs es un timestamp,
+// no una referencia) — el guard vive enteramente en markLearningLogEvaluated() (locus-storage.js,
+// tolera projectId/throughTs inválidos como no-op). Requiere projectId, que _getSprintById no
+// necesitaba — resuelto vía getActiveProject() en el flujo single (sin project en scope de
+// parsePaste hasta este punto) y vía activeProj.id ya resuelto en el flujo batch (_onApplyBatch).
+// AC4: guardado por `if (m.learningLogEvaluatedThroughTs)` / `if (ckpt._rawLearningLogEvaluatedThroughTs)`
+// antes de invocar — campo ausente nunca dispara la llamada.
 // [PP] mod:198 · autor:Rune · 2026-08-18 09:40 UTC-6
 // TKT-202608-408 (REQ-202608-164): reescritas 44 de las 74 ocurrencias del marcador de
 // ítem sin resolver en comentarios — ningún código real identificable para ninguna, todas
@@ -1110,7 +1141,7 @@ export function _splitCheckpointBlocks(text) {
 //   inalcanzable desde la unificación del split view (TKT1-3, mismo REQ).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-hora.js
 
-import { renderStats, getItems, getIncidents, normalizeStatus, itemKind, _GEN2_TYPES } from './locus-backlog-core.js'; // TKT0-gen2: itemKind agregado · TKT1: _GEN2_TYPES (REQ histórico — sin CHECKPOINT confirmado) · TKT2 (ref_id CAEL-08111800-03, REQ CAEL-08111800-01): getIncidents agregado — resolución de existencia real del código de origen en el badge de trazabilidad (AC "Link de origen"), mismo criterio de doble-fuente ya usado por navigateToItem (locus-item-navigator.js)
+import { renderStats, getItems, getIncidents, normalizeStatus, itemKind, _GEN2_TYPES, getAnyItem } from './locus-backlog-core.js'; // TKT0-gen2: itemKind agregado · TKT1: _GEN2_TYPES (REQ histórico — sin CHECKPOINT confirmado) · TKT2 (ref_id CAEL-08111800-03, REQ CAEL-08111800-01): getIncidents agregado — resolución de existencia real del código de origen en el badge de trazabilidad (AC "Link de origen"), mismo criterio de doble-fuente ya usado por navigateToItem (locus-item-navigator.js) · TKT1 (REQ CAEL-08192015-01): getAnyItem agregado — resuelve sprint_id post-merge por code para saveCheckpointFlow() en el flujo batch, mismo mecanismo que _doApplyMergeAndFinish (locus-session-save.js) usa en el flujo single (ver _Locus-module-contracts §saveCheckpointFlow, mod:192)
 import { _isPlaceholderCode, _isNonCanonicalPlaceholder, applyPatchesFromTG, _assignPendingIds } from './locus-backlog-item.js'; // T-202606-089 AC-3 · TKT3 (REQ CAEL-0716-01): mergeBacklogFromTG retirado del import — sin consumidores directos en este archivo (dry-run per-keystroke ya se había removido antes; dry-run de batch removido en este TKT, ver _processIngestBatch). La persistencia real sigue viva vía _applyCheckpointBatch (locus-session-save.js), que la invoca internamente · TKT (ref_id CAEL-0725-03): _isNonCanonicalPlaceholder agregado — gap paralelo al ya corregido en locus-backlog-item.js (CAEL-0725-01), ver uso en el panel de validación de ingesta más abajo
 import { showMergeDiffPanel } from './locus-backlog-merge.js'; // TKT3 (REQ CAEL-0716-01): chipTonesFromDiff retirado — _processIngestBatch ya no renderiza resumen de chips, invoca showMergeDiffPanel real (mismo panel que el flujo single). Sigue vivo en locus-backlog-merge.js (uso interno propio, L726) — no se elimina de ese archivo
 import { renderBacklogList } from './locus-backlog-render.js';
@@ -1125,7 +1156,7 @@ import { _ctrMergeFromItem } from './locus-contracts.js';
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 import { _checkStorageQuota, _mergeBacklogWithProject, saveSession, _applyCheckpointBatch } from './locus-session-save.js'; // T-202606-032: saveSession para auto-trigger | TKT4: _applyCheckpointBatch — persistencia de batch, invocada solo en el callback de confirmación de showMergeDiffPanel (no en tiempo de evaluación del módulo, mismo patrón ya usado por _mergeBacklogWithProject en esta misma línea)
-import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, getSupabaseContext, save, saveImmediate, saveWorker, _upsertSprint, LOCUS_KEYS, CANONICAL_PROJECTS, _PREFIX_MAP, getInfraVersionData } from './locus-storage.js'; // INC histórico — sin CHECKPOINT confirmado: saveWorker agregado — persistencia de status exhausted/in_session desde _onApplyBatch, tracker_workers es su único canal (mod:169-171 de _Locus-module-contracts §1)
+import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, getSupabaseContext, save, saveImmediate, saveWorker, _upsertSprint, LOCUS_KEYS, CANONICAL_PROJECTS, _PREFIX_MAP, getInfraVersionData, markLearningLogEvaluated, saveCheckpointFlow } from './locus-storage.js'; // INC histórico — sin CHECKPOINT confirmado: saveWorker agregado — persistencia de status exhausted/in_session desde _onApplyBatch, tracker_workers es su único canal (mod:169-171 de _Locus-module-contracts §1) · TKT-202608-424: markLearningLogEvaluated agregado — wiring de learning_log_evaluated_through_ts · TKT1 (REQ CAEL-08192015-01, DISC-202608-195): saveCheckpointFlow agregado — antes esta función solo se invocaba desde _doApplyMergeAndFinish (locus-session-save.js, flujo single); todo CHECKPOINT pegado en bloque (_onApplyBatch, este archivo) nunca generaba fila en tracker_checkpoint_flow, dejando el Learning Log (__OB-Strategy §5) vacío para sesiones auto-orquestadas — patrón estándar de pegado, __BR-Core
 // T-202606-029: INFRA_VERSION_ACTIVE (constante) reemplazada por getInfraVersionActive() / setInfraVersionActive() — AC-4 de T-202606-027
 import { showToast, toast } from './locus-toast.js';
 import { _markRadarDirty, renderGlobalRadarSidebar } from './locus-radar.js'; // INC histórico — sin CHECKPOINT confirmado (triggered_by INC-202608-113): mismas 2 funciones que _doApplyMergeAndFinish (locus-session-save.js) invoca tras mutar ai.status — sin ellas, saveWorker() persiste el status pero el Radar sidebar no se re-renderiza hasta el próximo trigger no relacionado, sin importar zero-arg confirmado contra locus-radar.js real (_markRadarDirty()/renderGlobalRadarSidebar(), ninguna toma parámetros)
@@ -1575,6 +1606,12 @@ export function parseCheckpoint(text) {
     const _rawRetroEvaluatedSprint = _rawRetroEvaluatedSprintCandidate.length > 0
       ? _rawRetroEvaluatedSprintCandidate
       : null;
+    // TKT-202608-424 (REQ-202608-171, TKT3): extraer learning_log_evaluated_through_ts — epoch
+    //   ms top-level del schema JSON, null si ausente/no-numérico. Mismo criterio de guard que
+    //   retro_evaluated_sprint arriba — valor real o null, nunca undefined.
+    const _rawLearningLogEvaluatedThroughTs = (typeof _parsed.learning_log_evaluated_through_ts === 'number' && Number.isFinite(_parsed.learning_log_evaluated_through_ts))
+      ? _parsed.learning_log_evaluated_through_ts
+      : null;
     // T-202606-018: extraer finn_observations — array de objetos tipados (null si ausente o vacío)
     const _rawFinnObservations = Array.isArray(_parsed.finn_observations) && _parsed.finn_observations.length
       ? _parsed.finn_observations
@@ -1652,6 +1689,7 @@ export function parseCheckpoint(text) {
       _rawDocUpdates,                   // T-202606-017: array de doc_updates del schema JSON
       _rawSprintProposal,               // T-202606-017: objeto sprint_proposal del schema JSON (null si ausente)
       _rawRetroEvaluatedSprint,         // TKT-202608-377: string retro_evaluated_sprint del schema JSON (null si ausente)
+      _rawLearningLogEvaluatedThroughTs, // TKT-202608-424: epoch ms learning_log_evaluated_through_ts del schema JSON (null si ausente)
       _rawFinnObservations,             // T-202606-018: array de finn_observations del schema JSON (null si ausente)
       _rawFinnRelease,                  // TKT2 (REQ CAEL-0717-01): objeto finn_release del schema JSON (null si ausente)
       draft: _parsed.draft === true,    // T-202606-006: exponer draft para guard en parsePaste
@@ -1760,6 +1798,46 @@ function _applyRetroEvaluatedSprint(sprintId) {
   markRetroEvaluated(sprintId); // AC2: no-op propio si ya estaba en true — sin toast/error extra aquí
 }
 
+// TKT-202608-424 (REQ-202608-171, TKT3 · AC1-4): aplica el campo learning_log_evaluated_through_ts
+// al confirmar ingesta — invocado desde ambos flujos (single y batch), mismo patrón de
+// centralización que _applyRetroEvaluatedSprint arriba. Sin equivalente al guard "sprint
+// inexistente" de esa función: throughTs es un timestamp, no una referencia a un ítem real —
+// markLearningLogEvaluated() (locus-storage.js) ya tolera projectId/throughTs inválidos como
+// no-op silencioso, sin propagar error (AC2), así que no hay nada que este helper deba capturar.
+function _applyLearningLogEvaluated(projectId, throughTs) {
+  if (!projectId || typeof throughTs !== 'number') return;
+  markLearningLogEvaluated(projectId, throughTs); // AC2: no-op propio ante fallo de Supabase — sin toast/error extra aquí
+}
+
+// TKT1 (REQ CAEL-08192015-01, DISC-202608-195): resuelve sprint_id para un bloque del batch —
+// mismo mecanismo que _doApplyMergeAndFinish (locus-session-save.js) usa para el flujo single,
+// ver _Locus-module-contracts §saveCheckpointFlow mod:192 — pero acotado al idx del bloque:
+// created/advanced/updated de _batchMergeResult mezclan ítems de todos los bloques del batch en
+// los mismos tres arrays (mergeBacklogFromTG procesa tgItems completo de una sola vez), así que
+// sin el filtro por idx un CHECKPOINT del batch heredaría el sprint de otro. Los cuatro shapes
+// (created/advanced/discarded/updated) comparten code+idx como único subset garantizado
+// (_Locus-module-contracts §mergeBacklogFromTG, invariant mod:194) — discarded se excluye a
+// propósito (mismo criterio que el flujo single: sin item.sprint útil para un ítem descartado).
+// created/createdAndClosed sí traen `sprint` directo en su shape, pero se resuelve igual vía
+// getAnyItem() para no duplicar la lógica de "primer code con .sprint truthy gana" en dos formas
+// distintas dentro de la misma función — mismo resultado, un solo camino.
+function _resolveBatchFlowSprintId(idx, batchMergeResult) {
+  const _br = batchMergeResult || {};
+  const _codes = [
+    ...(_br.created || []),
+    ...(_br.createdAndClosed || []),
+    ...(_br.advanced || []),
+    ...(_br.updated || [])
+  ]
+    .filter(it => it && it.idx === idx && it.code)
+    .map(it => it.code);
+  for (const code of _codes) {
+    const _it = getAnyItem(code);
+    if (_it && _it.sprint) return _it.sprint;
+  }
+  return null;
+}
+
 function _extractCkptMeta(ckpt) {
   const _c = ckpt || {};
   return {
@@ -1777,6 +1855,7 @@ function _extractCkptMeta(ckpt) {
     finnObservations: _c._isJsonFormat ? (_c._rawFinnObservations || null) : null,
     finnRelease:      _c._isJsonFormat ? (_c._rawFinnRelease || null)      : null,
     retroEvaluatedSprint: _c._isJsonFormat ? (_c._rawRetroEvaluatedSprint || null) : null, // TKT-202608-377
+    learningLogEvaluatedThroughTs: _c._isJsonFormat ? (_c._rawLearningLogEvaluatedThroughTs || null) : null, // TKT-202608-424
     inlineFixes:      _c._isJsonFormat ? (_c._inlineFixes || [])          : [], // TKT1 (REQ CAEL-0727-01 · ref_id CAEL-0727-02)
     // TKT-202607-185 (REQ-202607-069 · origen DISC-202607-060): campo `archivosNombres` agregado —
     //   deriva de ckpt.archivos (string de nivel-sesión, campo Archivos: del CHECKPOINT, formato
@@ -2105,6 +2184,14 @@ export function parsePaste(id) {
         // ingesta que doc_updates, arriba en este mismo bloque.
         if (ckpt._rawRetroEvaluatedSprint) {
           _applyRetroEvaluatedSprint(ckpt._rawRetroEvaluatedSprint);
+        }
+        // TKT-202608-424 (REQ-202608-171, TKT3): flujo single — mismo punto de confirmación de
+        // ingesta que retro_evaluated_sprint, arriba. Sin project en scope de parsePaste hasta
+        // este punto (a diferencia del flujo batch, que ya resuelve activeProj más arriba en su
+        // propia función) — resuelto aquí vía getActiveProject().
+        if (ckpt._rawLearningLogEvaluatedThroughTs) {
+          const _activeProjForLLE = getActiveProject();
+          if (_activeProjForLLE) _applyLearningLogEvaluated(_activeProjForLLE.id, ckpt._rawLearningLogEvaluatedThroughTs);
         }
       }
     }
@@ -3250,6 +3337,35 @@ export async function _processIngestBatch(id) {
       // TKT-202608-377 (REQ-202608-150): flujo batch — mismo punto de confirmación de ingesta
       // que doc_updates/inline_fix/finn_release, por bloque del batch.
       if (m.retroEvaluatedSprint) _applyRetroEvaluatedSprint(m.retroEvaluatedSprint);
+      // TKT-202608-424 (REQ-202608-171, TKT3): flujo batch — mismo punto de confirmación de
+      // ingesta que retro_evaluated_sprint, por bloque del batch. activeProj ya resuelto arriba
+      // en esta función (guard de proyecto antes de procesar el batch) — sin lookup adicional.
+      if (m.learningLogEvaluatedThroughTs) _applyLearningLogEvaluated(activeProj.id, m.learningLogEvaluatedThroughTs);
+      // TKT1 (REQ CAEL-08192015-01, DISC-202608-195): flujo batch — un insert en
+      // tracker_checkpoint_flow por bloque del batch con contenido real (AC — summary vacío no
+      // genera fila), mismo punto de confirmación de ingesta que retro_evaluated_sprint/
+      // learning_log_evaluated_through_ts arriba. Antes de este fix, saveCheckpointFlow() solo se
+      // invocaba desde _doApplyMergeAndFinish (locus-session-save.js, flujo single) — todo
+      // CHECKPOINT pegado en bloque (patrón estándar de sesiones auto-orquestadas, __BR-Core)
+      // dejaba el Learning Log (__OB-Strategy §5) sin datos, causa raíz de DISC-202608-195.
+      // sprint_id resuelto por bloque vía _resolveBatchFlowSprintId (arriba) — created/advanced/
+      // updated de _batchMergeResult mezclan ítems de todo el batch, filtrados aquí por m.idx.
+      // Fire-and-forget, sin await — mismo criterio de no bloqueo que saveWorker()/_upsertSprint()
+      // en este mismo bloque y que el propio saveCheckpointFlow() ya declara en su contrato.
+      if (m.resumen) {
+        saveCheckpointFlow({
+          project_id: activeProj.id,
+          sprint_id: _resolveBatchFlowSprintId(m.idx, _batchMergeResult),
+          checkpoint_title: m.titulo || '',
+          role: m.rol || '',
+          summary: m.resumen,
+          blockers: m.bloqueantes || null,
+          learning: m.aprendizaje || null,
+          decision: m.decision || null,
+          files: (m.archivosNombres && m.archivosNombres.length) ? m.archivosNombres : null,
+          created_at: Date.now()
+        });
+      }
     });
     if (_allInlineFixes.length) {
       showCheckpointPanel({ ...(_batchMergeResult || {}), inlineFixes: _allInlineFixes });
