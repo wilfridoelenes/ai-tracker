@@ -1,3 +1,11 @@
+// [PP] mod:13 · autor:Rune · 2026-08-20 15:10 UTC-6
+// origen: CAEL-08201510-01 — fix de causa raíz: 'icebox' (vocabulario Vista Icebox, deprecado desde
+// REQ-C 2026-06-28, ver _PP-context §5) se escribía como literal en item.sprint en 3 write-paths de
+// confirmItemEditor() (edición sin parent, propagación R→hijos, creación) y en los fallbacks de
+// _refreshSprintInherited/_refreshSprintSelect. Reemplazado por '' (vacío) — mismo valor canónico
+// que representa Q-Backlog en el resto del ecosistema (__BR-Ecosystem §5, "Campo real por tipo").
+// No normaliza ítems ya persistidos con sprint:"icebox" — requiere locus-backlog-core.js
+// (_normalizeSprintFields, no adjunto en esta sesión) para self-heal, ver pendientes del CHECKPOINT.
 // [PP] mod:12 · autor:Rune · 2026-08-18 22:30 UTC-6
 // INC histórico — sin CHECKPOINT confirmado: saveBacklog agregado al import de locus-storage.js — la función existe
 // ahí (mod:106+, ver module-contracts) y locus-backlog-editor.js está documentado como uno de
@@ -48,7 +56,7 @@ function _refreshParentIdDropdown(selectedType, selectedParentId) {
 // B-202606-036: mostrar sprint heredado del R padre en el IDP — solo cuando T tiene parentId
 // AC-1: campo visible con texto '[sprint] (heredado de [rCode])' — no editable
 // AC-2: solo visible cuando parentId tiene valor y el ítem es T o B
-// AC-3: si el parent está en icebox, muestra 'icebox (heredado de [rCode])'
+// AC-3 (corregido mod:13 — CAEL-08201510-01): si el parent no tiene sprint (Q-Backlog), muestra 'Q-Backlog (heredado de [rCode])'
 function _refreshSprintInherited(parentId) {
   const fieldEl        = document.getElementById('field-sprint-inherited');
   const valEl          = document.getElementById('item-sprint-inherited-val');
@@ -62,7 +70,7 @@ function _refreshSprintInherited(parentId) {
     return;
   }
   const parentR = getItems().find(i => i.code === parentId);
-  const sprintVal = parentR ? (parentR.sprint || 'icebox') : 'icebox';
+  const sprintVal = (parentR && parentR.sprint) ? parentR.sprint : 'Q-Backlog';
   valEl.textContent = sprintVal + ' (heredado de ' + parentId + ')';
   fieldEl.classList.remove('is-hidden');
   // B-202606-043: con parent → ocultar select editable (sprint se hereda)
@@ -74,15 +82,15 @@ function _refreshSprintSelect(currentSprintId) {
   const sel = document.getElementById('item-sprint');
   if (!sel) return;
   const sprints = getActiveSprints().filter(s => s.status !== 'closed');
-  const cur = currentSprintId || 'icebox';
+  const cur = currentSprintId || '';
   sel.innerHTML =
-    '<option value="icebox"' + (cur === 'icebox' ? ' selected' : '') + '>icebox</option>' +
+    '<option value=""' + (cur === '' ? ' selected' : '') + '>— Sin sprint (Q-Backlog) —</option>' +
     sprints.map(s =>
       '<option value="' + s.id + '"' + (cur === s.id ? ' selected' : '') + '>' +
       _sprintDisplay(s.id) + (s.status === 'active' ? ' ★' : '') + '</option>'
     ).join('') +
     // ghost option si el sprint actual ya no existe en la lista (cerrado)
-    (cur !== 'icebox' && !sprints.find(s => s.id === cur)
+    (cur !== '' && !sprints.find(s => s.id === cur)
       ? '<option value="' + cur + '" selected>' + cur + ' (cerrado)</option>'
       : '');
 }
@@ -148,7 +156,7 @@ export function openItemEditor(itemId = null, itemCode = null) {
     const archivosEl = document.getElementById('item-archivos');
     if (archivosEl) archivosEl.value = (item.archivos || []).join(', ');
     _refreshParentIdDropdown(item.code[0], item.parentId || '');
-    _refreshSprintSelect(item.sprint || 'icebox');  // B-202606-043
+    _refreshSprintSelect(item.sprint || '');  // B-202606-043
     _refreshSprintInherited(item.parentId || '');
     // T-202606-111 AC-4: poblar no_incluye si existe, vaciar si no
     const noIncluyeElEdit = document.getElementById('item-no-incluye');
@@ -183,7 +191,7 @@ export function openItemEditor(itemId = null, itemCode = null) {
     const archivosElNew = document.getElementById('item-archivos');
     if (archivosElNew) archivosElNew.value = '';
     _refreshParentIdDropdown('T', '');
-    _refreshSprintSelect(_activeSprint() || 'icebox');  // B-202606-043
+    _refreshSprintSelect(_activeSprint() || '');  // B-202606-043
     _refreshSprintInherited('');
     // T-202606-111 AC-5: campo vacío en ítem nuevo
     const noIncluyeElNew = document.getElementById('item-no-incluye');
@@ -203,7 +211,7 @@ export function openItemEditor(itemId = null, itemCode = null) {
   typeSelect.onchange = () => {
     _refreshParentIdDropdown(typeSelect.value, document.getElementById('item-parentid').value);
     _refreshSprintInherited(document.getElementById('item-parentid').value);
-    _refreshSprintSelect(document.getElementById('item-sprint') ? document.getElementById('item-sprint').value : 'icebox');  // B-202606-043
+    _refreshSprintSelect(document.getElementById('item-sprint') ? document.getElementById('item-sprint').value : '');  // B-202606-043
     _refreshNoIncluye(typeSelect.value); // T-202606-111 AC-6
     _refreshIntencion(typeSelect.value); // T-202606-112 AC-6
   };
@@ -479,7 +487,7 @@ export async function confirmItemEditor() {
     // B-202606-043: leer sprint del select editable — solo cuando no hay parent (herencia lo gestiona el bloque siguiente)
     if (!parentId) {
       const sprintSelEl = document.getElementById('item-sprint');
-      if (sprintSelEl) item.sprint = sprintSelEl.value || 'icebox';
+      if (sprintSelEl) item.sprint = sprintSelEl.value || '';
     }
     // B-202606-025 AC-3: si se edita un T con parent R, forzar su sprint al del parent
     if ((item.type === 'T' || (item.code && item.code[0] === 'T')) && item.parentId) {
@@ -491,10 +499,10 @@ export async function confirmItemEditor() {
     }
     // T-202606-036 AC1+AC2 · B-202606-025: si se edita un R y cambia su sprint, propagar a todos sus hijos T y B
     if (item.type === 'R' || (!item.type && item.code && item.code[0] === 'R')) {
-      const normalizedSprint = item.sprint || 'icebox';
+      const normalizedSprint = item.sprint || '';
       getItems().forEach(child => {
         if (child.parentId === item.code && (child.type === 'T' || child.type === 'B' || (child.code && (child.code[0] === 'T' || child.code[0] === 'B')))) {
-          if ((child.sprint || 'icebox') !== normalizedSprint) {
+          if ((child.sprint || '') !== normalizedSprint) {
             child.sprint = normalizedSprint;
             _blogLog('sprint-heredado', child.code, `${child.code} sprint ajustado al de su parent ${item.code}: ${normalizedSprint}`, 'backlog');
           }
@@ -519,7 +527,7 @@ export async function confirmItemEditor() {
     const _sprintSelVal = (() => { const el = document.getElementById('item-sprint'); return el ? el.value : ''; })();
     const _newItemSprint = parentId
       ? ((getItems().find(p => p.code === parentId) || {}).sprint || _activeSprint())
-      : (_sprintSelVal || _activeSprint() || 'icebox');
+      : (_sprintSelVal || _activeSprint() || '');
     // TKT2 (REQ-202607-025): _newBacklogItem() reemplaza el push literal — garantiza
     // sprint_id/sprint_name poblados desde la creación, sin depender de normalización posterior.
     getItems().push(_newBacklogItem({

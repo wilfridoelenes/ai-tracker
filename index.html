@@ -1,4 +1,9 @@
-<!-- [PP] mod:215 · autor:Rune · 2026-08-20 14:35 UTC-6 -->
+<!-- [PP] mod:216 · autor:Rune · 2026-08-20 15:10 UTC-6 -->
+<!-- INC (ref_id CAEL-08201510-01): opción estática del select #item-sprint (item-editor-overlay)
+     tenía value="icebox" — literal deprecado (Vista Icebox, reemplazada por Q-Backlog/Q-DISC desde
+     REQ-C 2026-06-28). Cambiado a value="" — cambio puramente cosmético/pre-paint, _refreshSprintSelect()
+     en locus-backlog-editor.js (mismo mod) sobreescribe sel.innerHTML síncronamente al abrir el modal,
+     así que este markup nunca era visible en runtime real — el fix funcional vive en el JS. -->
 <!-- TKT1 (ref_id CAEL-08201430-02, REQ ref_id CAEL-08201430-01): #ingest-process-batch-btn
      retirado — investigación end-to-end (grounding en locus-session-parse.js mod:201,
      _routeParse L3072-3095) confirmó que todo camino que puebla #ingest-ta (paste, input,
@@ -1975,7 +1980,7 @@
         <div class="ie-field ie-field-mt">
           <label for="item-sprint" class="ie-label">Sprint</label>
           <select id="item-sprint" class="ie-select">
-            <option value="icebox">icebox</option>
+            <option value="">— Sin sprint (Q-Backlog) —</option>
           </select>
           <span class="ie-hint">Las opciones se cargan desde los sprints activos del proyecto</span>
         </div>
