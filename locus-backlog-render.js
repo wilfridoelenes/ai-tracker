@@ -1,4 +1,6 @@
-// [PP] mod:115 · autor:Rune · 2026-08-18 22:10 UTC-6
+// [PP] mod:116 · autor:Rune · 2026-08-20 UTC-6
+// TKT-202608-434 (REQ-202608-176): terminalItems (renderBacklogList) excluye draft:true —
+// ver comentario inline junto al filtro (~L1172) para el detalle completo.
 // Fix (histórico — sin CHECKPOINT confirmado): renderSprintGroup() — buildBacklogItem(item) para el REQ padre ahora
 // pasa { suppressChildren: true } (L579). Sin el flag, buildBacklogItem() renderizaba su
 // propio bloque .req-children-block (mini-rows) además de los .bl-child-row que este mismo
@@ -1169,8 +1171,14 @@ export function renderBacklogList(onRendered) {
   // El caso especial anterior (TKT-202606-009) mostraba DISC descartada/promoted en Cerradas
   // — decisión de código sin registro en _ob-history-log como decisión de founder. Sobreescrita
   // con confirmación explícita del founder en sesión REQ CAEL-0718-02.
+  // TKT-202608-434 (REQ-202608-176): excluye draft:true — __BR-Ecosystem §8 exige que un ítem
+  // en draft quede fuera de toda vista activa del backlog (Q-Backlog, sprint, Kanban); Vista
+  // Lista quedaba fuera del alcance real de REQ-202607-026/AC2, que solo cubrió el sub-tab
+  // Q-Backlog (_isQBacklogActive/_isQDiscActive). Sin cambio para ítems draft:false o sin
+  // campo draft (legado) — mismo comportamiento que antes del fix.
   const terminalItems = _getActiveStatuses().has('descartado')
     ? getItems().filter(i => {
+        if (i.draft) return false;
         const type = itemKind(i);
         if (type === 'DISC') return false;
         const typeOk = type ? _getActiveTypes().has(type) : true;
