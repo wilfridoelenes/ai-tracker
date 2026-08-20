@@ -1,4 +1,16 @@
-<!-- [PP] mod:214 · autor:Nova · 2026-08-19 19:35 UTC-6 -->
+<!-- [PP] mod:215 · autor:Rune · 2026-08-20 14:35 UTC-6 -->
+<!-- TKT1 (ref_id CAEL-08201430-02, REQ ref_id CAEL-08201430-01): #ingest-process-batch-btn
+     retirado — investigación end-to-end (grounding en locus-session-parse.js mod:201,
+     _routeParse L3072-3095) confirmó que todo camino que puebla #ingest-ta (paste, input,
+     restauración/discard de draft) ya dispara _processIngestBatch() automáticamente vía
+     _routeParse() desde que el gate se amplió a >=1 bloque (TKT-202608-276). El botón manual
+     no gateaba ningún commit real (eso vive en _onApplyBatch, disparado por "Aplicar" del
+     panel DIFF) y, por invocar _processIngestBatch() sin `id`, degradaba el resultado frente
+     al camino automático (perdía contexto de worker — sin mutación de status posible, ver
+     locus-session-parse.js mod:179). El wrapper `.modal-actions.ingest-modal-actions` se
+     retira completo — sin otro botón dentro. Detalle completo → _Locus-module-contracts.md
+     §Anti-patterns (mismo TKT). no_incluye: no se toca #ingest-validation-panel ni
+     #ingest-block-preview-anchor, ambos con caller vivo. -->
 <!-- TKT1 (ref_id CAEL-08181430-02, REQ ref_id CAEL-08181430-01): botón dismiss directo de sesión
      interrumpida — <button class="sc-menu-btn is-hidden" id="worker-header-dismiss-btn"> insertado
      en .sc-header-left, inmediatamente después de #worker-header-badge (design_intent:
@@ -2087,10 +2099,6 @@
           </div>
         </div>
       </div>
-  </div>
-
-  <div class="modal-actions ingest-modal-actions">
-    <button class="btn-primary" id="ingest-process-batch-btn" type="button">Procesar batch</button>
   </div>
   </div>
 </div>

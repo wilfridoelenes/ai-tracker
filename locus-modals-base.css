@@ -1,4 +1,7 @@
-/* [PP] mod:34 · autor:Nova · 2026-08-16 UTC-6 */
+/* [PP] mod:35 · autor:Nova · 2026-08-20 UTC-6 */
+/* TKT1 (ref_id CAEL-08201430-02): .ingest-modal-actions retirada — hallazgo fuera de scope
+   (_Locus-ui-Inventory mod:70), sin nodo consumidor tras el retiro de #ingest-process-batch-btn
+   (index.html/locus-sesiones.js). Ver comentario junto a .ingest-modal-header más abajo. */
 /* TKT-202608-364 (REQ-202608-145): .modal--infra-sync agregado — override de ancho,
    ver bloque junto a .modal-split-shell más abajo en este archivo. */
 /* [PP] mod:33 · autor:Nova · 2026-08-14 20:05 UTC-6 */
@@ -553,13 +556,6 @@
   resize: none;
 }
 
-.ingest-modal-actions {
-  margin: 0;
-  padding: 12px var(--subtab-gutter) 16px;
-  border-top: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
 .ingest-modal-header {
   display: flex;
   align-items: flex-start;
@@ -638,8 +634,10 @@
    .sc-stepper retirado — el stepper del modal (#ingest-phasebar) se removió del DOM; la clase
    sigue viva para AI Card (locus-sesiones-card.css), sin instancia dentro de .modal--ingest.
    REQ CAEL-0717-02 (TKT1, Nova): 18px → var(--subtab-gutter) (12px) — mismo token que ahora
-   comparten .ingest-modal-header/.ingest-modal-columns/.ingest-modal-actions (ver arriba),
-   consolidando las 4 secciones del modal de ingesta al mismo inset horizontal. */
+   comparten .ingest-modal-header/.ingest-modal-columns (antes también .ingest-modal-actions,
+   retirada — hallazgo fuera de scope, TKT1 ref_id CAEL-08201430-02 — sin nodo consumidor
+   tras el retiro de #ingest-process-batch-btn), consolidando las secciones del modal de
+   ingesta al mismo inset horizontal. */
 .modal--ingest .ingest-modal-meta,
 .modal--ingest .ingest-validation-panel,
 .modal--ingest .ingest-block-preview {

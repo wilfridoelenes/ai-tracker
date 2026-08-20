@@ -1,3 +1,11 @@
+// [PP] mod:202 · autor:Rune · 2026-08-20 14:35 UTC-6
+// TKT1 (ref_id CAEL-08201430-02, REQ ref_id CAEL-08201430-01): comentario de
+// _processIngestBatch(id) corregido — ya no cita #ingest-process-batch-btn (retirado en el
+// mismo TKT, locus-sesiones.js/index.html) como justificación de `id` opcional. Sin cambio de
+// lógica ni de firma — impacto lateral de la remoción del botón, no cambio funcional propio.
+// Módulo crítico (locus-session-parse.js, `_pp-context §6`) — cambio de solo comentario, sin
+// tocar ninguna rama ejecutable; verificación de regresiones de Finn limitada a confirmar que
+// el archivo compila/parsea igual (sin diff de comportamiento posible en un cambio de comment).
 // [PP] mod:201 · autor:Rune · 2026-08-19 22:40 UTC-6
 // Fix (QA, esta sesión): saveCheckpointFlow() en _onApplyBatch pasaba claves snake_case
 // (project_id/sprint_id/checkpoint_title) — la función real lee camelCase (flow.projectId/
@@ -3151,12 +3159,14 @@ export function handleInput(id) {
 // no_incluye (TKT3): no modifica mergeBacklogFromTG. No agrega selección item-por-item — Aplicar
 // aplica el batch completo. No toca locus-session-save.js.
 export async function _processIngestBatch(id) {
-  // INC histórico — sin CHECKPOINT confirmado: id (worker card que abrió #ingest-modal-overlay) — opcional para no
-  // romper el caller manual de #ingest-process-batch-btn si algún día se invoca sin contexto
-  // de worker, pero ambos call sites reales (handlePaste/handleInput vía _routeParse, y el
-  // click del botón en locus-sesiones.js) ya lo propagan. Sin id, _onApplyBatch simplemente
-  // no toca ningún status de worker — mismo comportamiento (silencioso) que antes de este fix,
-  // nunca peor.
+  // TKT1 (ref_id CAEL-08201430-02, REQ ref_id CAEL-08201430-01): comentario corregido —
+  // la justificación original de mantener `id` opcional citaba el caller manual
+  // #ingest-process-batch-btn (locus-sesiones.js), retirado en este mismo TKT por ser
+  // redundante y degradado frente a _routeParse(). `id` sigue siendo opcional en la firma
+  // porque no rompe nada mantenerlo así, pero el único call site real hoy
+  // (handlePaste/handleInput vía _routeParse) siempre lo propaga. Sin id, _onApplyBatch
+  // simplemente no toca ningún status de worker — mismo comportamiento silencioso que ya
+  // tenía, sin caller vivo que lo ejercite.
   const ta = document.getElementById('ingest-ta') /* CAEL-22 */;
   if (!ta) return;
 

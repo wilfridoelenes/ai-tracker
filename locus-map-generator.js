@@ -1,3 +1,9 @@
+// [PP] mod:40 · autor:Rune · 2026-08-20 03:15 UTC-6
+// TKT1 (ref_id CAEL-08201545-02, REQ ref_id CAEL-08201545-01, origen DISC-202608-200/201):
+// _mgChangedIn() acotada al bloque de header más reciente — ver comentario junto a la función
+// (línea ~771) para el detalle de la lógica. Cierre de sesión anterior: la lógica se implementó
+// pero el header de identidad no se incrementó — corregido en esta sesión de retomada, sin
+// cambio adicional de código (__BR-Core §VERIFICACIÓN DE CIERRE DE EDICIÓN).
 // [PP] mod:39 · autor:Rune · 2026-08-18 22:30 UTC-6
 // TKT-202608-367 (REQ-202608-147): _mgParseHeaderVersion() nueva — extrae la versión declarada
 // en la 2ª línea del header interno del MAP recién generado (docs.map). _mgShowPreview() la
@@ -768,11 +774,27 @@ function _generateMap(ver) {
   const sprintIdPattern = /(?:REQ|TKT|DISC|INC|PRB|CHG)-\d{6}-\d{3}/g;
 
   // AC-06: Construir changed_in por archivo
+  // TKT1 (ref_id CAEL-08201545-02, REQ ref_id CAEL-08201545-01, origen DISC-202608-200/201):
+  // acotado al bloque de header más reciente — antes escaneaba el archivo completo y tomaba el
+  // máximo lexicográfico global, lo que enmascaraba con un código antiguo cualquier mod
+  // introducido vía ref_id (que por diseño nunca se reescribe a código real en el texto,
+  // __BR-Ecosystem §4). El bloque más reciente es todo lo anterior a la segunda línea que
+  // matchea el patrón de header `// [PP] mod:` (headers se apilan con el más nuevo arriba,
+  // ver locus-session-parse.js real). Sin segundo header → todo el archivo es "el bloque".
+  const _mgHeaderLinePattern = /^\/\/\s*\[[A-Z]+\]\s*mod:\d+/;
   function _mgChangedIn(fileLines) {
-    const text = fileLines.join('\n');
+    let blockEnd = fileLines.length;
+    let seenHeaders = 0;
+    for (let i = 0; i < fileLines.length; i++) {
+      if (_mgHeaderLinePattern.test(fileLines[i])) {
+        seenHeaders++;
+        if (seenHeaders === 2) { blockEnd = i; break; }
+      }
+    }
+    const text = fileLines.slice(0, blockEnd).join('\n');
     const matches = text.match(sprintIdPattern);
     if (!matches || !matches.length) return null;
-    // Ordenar descendente (YYYYMM-NNN lexicográfico) y tomar el más reciente
+    // Ordenar descendente (YYYYMM-NNN lexicográfico) y tomar el más reciente dentro del bloque
     const sorted = [...new Set(matches)].sort((a, b) => b.localeCompare(a));
     return sorted[0];
   }

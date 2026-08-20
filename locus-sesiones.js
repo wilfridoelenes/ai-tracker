@@ -1,3 +1,8 @@
+// [PP] mod:71 · autor:Rune · 2026-08-20 14:35 UTC-6
+// TKT1 (ref_id CAEL-08201430-02, REQ ref_id CAEL-08201430-01): retirado el wiring de
+// #ingest-process-batch-btn ("Procesar batch") — ver bloque de detalle más abajo, en el punto
+// donde vivía el listener (dentro de _openIngestModal). Sin cambio de firma pública, sin
+// contract_update.
 // [PP] mod:70 · autor:Rune · 2026-08-18 23:40 UTC-6
 // TKT-202608-413 (REQ-202608-166): gap cerrado — mod:69 declaraba en comentario el wiring de
 // dismiss directo de sesión interrumpida (TKT1, ref_id CAEL-08181430-02) pero el cuerpo real
@@ -1332,14 +1337,11 @@ export function _openIngestModal(aiId) {
     discardBtn._draftDiscardWired = true;
     discardBtn.addEventListener('click', () => _discardDraft(overlay.dataset.aiId));
   }
-  // TKT3 (REQ CAEL-01): #ingest-process-batch-btn existe en el DOM desde TKT1, sin listener.
-  // Guard ta._ingestWired ya cubre paste/input — este botón usa su propio guard porque vive
-  // fuera del textarea (mismo criterio, distinto nodo).
-  const batchBtn = document.getElementById('ingest-process-batch-btn');
-  if (batchBtn && !batchBtn._ingestBatchWired) {
-    batchBtn._ingestBatchWired = true;
-    batchBtn.addEventListener('click', () => _processIngestBatch());
-  }
+  // TKT1 (ref_id CAEL-08201430-02, REQ ref_id CAEL-08201430-01): wiring de
+  // #ingest-process-batch-btn retirado junto con el botón (index.html mod:215) — invocaba
+  // _processIngestBatch() sin `id`, redundante y degradado frente al mismo call site que
+  // paste/input ya disparan vía _routeParse() (gate >=1, TKT-202608-276). Detalle completo →
+  // _Locus-module-contracts.md §Anti-patterns.
   // Fix inline (TKT3, REQ CAEL-01) + TKT2 (REQ CAEL-0716-01): #diff-preview-modal/#ingest-diff-empty
   // (guard original) se retiraron del shell en TKT1 (CAEL-0716-02, AC5). El mecanismo que los
   // reemplazó (#merge-diff-overlay en modo mdiff-overlay--docked) fue a su vez retirado por
