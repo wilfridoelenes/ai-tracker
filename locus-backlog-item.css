@@ -1,4 +1,9 @@
-/* [PP] mod:111 · autor:Nova · 2026-08-18 22:40 UTC-6 */
+/* [PP] mod:112 · autor:Nova · 2026-08-20 01:10 UTC-6 */
+/* TKT-202608-430 (REQ-202608-173): .mdiff-right-sprint-pending-row migrado de
+   --amber a --blue — el caso "Q-Backlog sin sprint" es válido y no bloqueante
+   (INC-202607-002), --amber transmitía advertencia incorrecta. Ver bloque
+   junto a .mdiff-right-banner--warn/.mdiff-pending-item (~L4460/L2507),
+   ambos sin cambio — siguen en --amber por ser advertencias reales. */
 /* TKT-202608-364 (REQ-202608-145): .gf-infra-version--link agregado — espeja
    .gf-ckpt--link para el trigger clickeable del footer. Ver bloque junto a
    .gf-ckpt--link (~L3277). */
@@ -4786,9 +4791,9 @@ body {
   flex-direction: column;
   gap: 2px;
   padding: 6px 8px;
-  border-left: 2px solid color-mix(in srgb, var(--amber) 50%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--blue) 50%, transparent);
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--amber) 6%, transparent);
+  background: color-mix(in srgb, var(--blue) 6%, transparent);
 }
 
 .mdiff-right-sprint-pending-desc {

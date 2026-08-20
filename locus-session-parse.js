@@ -1,4 +1,9 @@
-// [PP] mod:200 · autor:Rune · 2026-08-19 UTC-6
+// [PP] mod:201 · autor:Rune · 2026-08-19 22:40 UTC-6
+// Fix (QA, esta sesión): saveCheckpointFlow() en _onApplyBatch pasaba claves snake_case
+// (project_id/sprint_id/checkpoint_title) — la función real lee camelCase (flow.projectId/
+// flow.sprintId/flow.title), mismo mismatch nunca detectado porque JS no falla ante propiedades
+// desconocidas en un objeto. Corregido al shape ya verificado del path single. Ver bloque en
+// _onApplyBatch, forEach(metas), más abajo en este archivo.
 // TKT1 (REQ-202608-XXX pendiente-ID, ref_id CAEL-08192015-02, origen DISC-202608-195):
 // saveCheckpointFlow() (locus-storage.js) wireada también en _onApplyBatch — antes solo se
 // invocaba desde _doApplyMergeAndFinish (locus-session-save.js, flujo single). Todo CHECKPOINT
@@ -3353,17 +3358,24 @@ export async function _processIngestBatch(id) {
       // Fire-and-forget, sin await — mismo criterio de no bloqueo que saveWorker()/_upsertSprint()
       // en este mismo bloque y que el propio saveCheckpointFlow() ya declara en su contrato.
       if (m.resumen) {
+        // Fix mismatch camelCase/snake_case (detectado en QA, 2026-08-19): saveCheckpointFlow()
+        // (locus-storage.js) lee flow.projectId/flow.sprintId/flow.title — este call site pasaba
+        // project_id/sprint_id/checkpoint_title (snake_case), dejando cada fila del path batch con
+        // project_id:null (filtrada fuera por getCheckpointFlowsWithoutSprint()) y checkpoint_title
+        // ignorado. Alineado al shape ya verificado del path single (_doApplyMergeAndFinish(),
+        // locus-session-save.js línea ~996). `files`/`created_at` retirados — no forman parte del
+        // shape confirmado contra el path single; sin locus-storage.js adjunto en esta sesión para
+        // verificar si esos dos campos tienen efecto real, se prefiere el shape ya probado antes que
+        // asumir soporte no confirmado.
         saveCheckpointFlow({
-          project_id: activeProj.id,
-          sprint_id: _resolveBatchFlowSprintId(m.idx, _batchMergeResult),
-          checkpoint_title: m.titulo || '',
-          role: m.rol || '',
-          summary: m.resumen,
-          blockers: m.bloqueantes || null,
-          learning: m.aprendizaje || null,
-          decision: m.decision || null,
-          files: (m.archivosNombres && m.archivosNombres.length) ? m.archivosNombres : null,
-          created_at: Date.now()
+          projectId: activeProj.id,
+          sprintId:  _resolveBatchFlowSprintId(m.idx, _batchMergeResult),
+          title:     m.titulo || '',
+          role:      m.rol || '',
+          summary:   m.resumen,
+          blockers:  m.bloqueantes || 'n/a',
+          learning:  m.aprendizaje || 'n/a',
+          decision:  m.decision || 'n/a'
         });
       }
     });

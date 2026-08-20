@@ -1,4 +1,9 @@
-// [PP] mod:41 · autor:Rune · 2026-08-19 17:35 UTC-6
+// [PP] mod:42 · autor:Rune · 2026-08-19 21:10 UTC-6
+// INC — renderLearningLog() sin await sobre getCheckpointFlowsWithoutSprint() (async): rows
+// quedaba siempre asignado al objeto Promise (truthy), rows.length era undefined, y !rows.length
+// evaluaba siempre true — el empty state se renderizaba sin importar cuántas filas existieran en
+// tracker_checkpoint_flow. La función pasa a async; el único caller (línea ~307, dentro del switch
+// de sub-tab) no depende del valor de retorno, no requiere propagar await hacia arriba.
 // Fix inline #2 sobre INC (colisión TKT2 ↔ TKT-202608-325): los botones de copia individual
 // (data-du-copy-key / data-du-copy-resolved) compartían clase .du-btn-copy-group con el botón
 // de grupo — el listener solo leía dataset.duCopyGroup, así que un click individual entraba al
@@ -1294,7 +1299,7 @@ function _learningLogSnippet(row) {
   return '';
 }
 
-export function renderLearningLog() {
+export async function renderLearningLog() {
   const container = document.getElementById('llog-list');
   if (!container) return;
 
@@ -1306,7 +1311,7 @@ export function renderLearningLog() {
 
   let rows;
   try {
-    rows = getCheckpointFlowsWithoutSprint(project.id) || [];
+    rows = await getCheckpointFlowsWithoutSprint(project.id) || [];
   } catch {
     rows = [];
   }
