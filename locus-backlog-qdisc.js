@@ -1,3 +1,16 @@
+// [PP] mod:15 · autor:Rune · 2026-08-20 21:40 UTC-6
+// TKT-202608-431 (REQ-202608-174 · Q-DISC): chips de filtro de área en Promoted/Descartadas —
+// mismo componente visual .stat-area-chip/.qdisc-area-chips que ya usa Discovery
+// (locus-backlog-zone-engine.js), sin clase ni token CSS nuevo (AC de coherencia del REQ padre).
+// No reutiliza el mecanismo _nsGetArea/_nsToggleArea de locus-backlog-core.js — ese namespace
+// es fijo a 'qbacklog'|'qdisc'|'qinc' (single-select por subtab, no por bloque de status dentro
+// de qdisc) y _nsGetArea('qdisc') sigue siendo exclusivo del bloque Discovery, fuera de scope de
+// este TKT ("No toca Discovery"). Estado propio, local a este módulo: _qdiscBlockAreaFilter,
+// single-select por bloque (mismo comportamiento de toggle que _nsToggleArea — click en la
+// misma área limpia, click en otra reemplaza), sin persistir en storage ni en namespace
+// compartido. contract_update: no — no se modifica ningún export ni firma existente; la
+// función nueva (_qdiscAreaChipsHtml) y el estado (_qdiscBlockAreaFilter) son internos, sin
+// caller fuera de este archivo.
 // [PP] mod:14 · autor:Rune · 2026-08-11 UTC-6
 // TKT3 (REQ-202607-alineacion-qbacklog-qdisc, design_intent: alineacion-render-qbacklog-qdisc):
 // renderQDiscPanel pasa statsBarId:'qdisc-filter-bar' — la stats-bar interactiva (prioridad+
@@ -151,20 +164,76 @@ function _renderQDiscDiscoveryCount() {
 // búsqueda (mismo criterio que _renderQDiscDiscoveryCount vía _renderZonePanel) — con
 // búsqueda activa y 0 matches, el header muestra "0" en vez de esconderse (AC-2 ya vigente
 // para el estado vacío de estos bloques, sin cambio).
+// TKT-202608-431: sentinel idéntico al de zone-engine.js — mismo bucket "Sin área" que
+// Discovery, misma clase .stat-area-chip--none. Estado single-select por bloque de status
+// ('promoted' | 'descartado'), independiente entre sí y de Discovery.
+const _QDISC_SIN_AREA = '__sin_area__';
+const _qdiscBlockAreaFilter = { promoted: null, descartado: null };
+
+// TKT-202608-431: construye el bloque de chips de área para Promoted/Descartadas — conteo
+// sobre _statusItems (universo completo del bloque de status, previo a búsqueda), mismo
+// criterio que zone-engine.js (los chips reflejan la zona base, no el subconjunto ya angostado
+// por texto). AC edge case "bloque sin ítems": _statusItems.length===0 → '' → sin chips, sin
+// depender de si había un filtro de área activo de una render anterior.
+function _qdiscAreaChipsHtml(status, statusItems) {
+  if (!statusItems.length) return '';
+  const activeArea = _qdiscBlockAreaFilter[status];
+  const countByArea = {};
+  let sinAreaCount = 0;
+  statusItems.forEach(i => {
+    const a = (i.area || '').trim();
+    if (!a) { sinAreaCount++; return; }
+    countByArea[a] = (countByArea[a] || 0) + 1;
+  });
+  const areaBtns = Object.entries(countByArea)
+    .sort((a, b) => b[1] - a[1])
+    .map(([area, count]) =>
+      `<button class="stat-area-chip${activeArea === area ? ' active' : ''}" data-qdisc-area="${area.replace(/"/g, '&quot;')}" title="Filtrar por área ${area.replace(/"/g, '&quot;')}"><span class="sac-n">${count}</span><span class="sac-label">${area}</span></button>`
+    ).join('');
+  const sinAreaBtn = sinAreaCount > 0
+    ? `<button class="stat-area-chip stat-area-chip--none${activeArea === _QDISC_SIN_AREA ? ' active' : ''}" data-qdisc-area="${_QDISC_SIN_AREA}" title="Filtrar ítems sin área declarada"><span class="sac-n">${sinAreaCount}</span><span class="sac-label">Sin área</span></button>`
+    : '';
+  return (areaBtns || sinAreaBtn) ? `<div class="qdisc-area-chips">${areaBtns}${sinAreaBtn}</div>` : '';
+}
+
 function _renderQDiscStatusGroup(status, containerId, countId) {
   const container = document.getElementById(containerId);
   const countEl = document.getElementById(countId);
   if (!container || !countEl) return;
   const _q = (_nsGetQuery('qdisc') || '').trim().toLowerCase();
-  const items = getItems().filter(i => {
-    if (!_isQDisc(i) || i.status !== status) return false;
+  // TKT-202608-431: _statusItems — universo completo del bloque (status, sin búsqueda ni área)
+  // — base para los chips. `items` (abajo) es el subconjunto ya angostado por área + búsqueda,
+  // el que efectivamente se renderiza como cards.
+  const _statusItems = getItems().filter(i => _isQDisc(i) && i.status === status);
+  const _activeArea = _qdiscBlockAreaFilter[status];
+  const items = _statusItems.filter(i => {
+    if (_activeArea) {
+      const areaOk = _activeArea === _QDISC_SIN_AREA ? !(i.area || '').trim() : (i.area || '').trim() === _activeArea;
+      if (!areaOk) return false;
+    }
     if (!_q) return true;
     return i.code.toLowerCase().includes(_q) || (i.title || '').toLowerCase().includes(_q) || (i.area || '').toLowerCase().includes(_q);
   });
   countEl.textContent = items.length;
-  container.innerHTML = items.map(i => buildBacklogItem(i, {})).join('');
+  container.innerHTML = _qdiscAreaChipsHtml(status, _statusItems) + items.map(i => buildBacklogItem(i, {})).join('');
   _resetBacklogListDelegation(containerId);
   _attachBacklogListDelegation(containerId);
+  // TKT-202608-431: delegación propia para el click de chip de área — permanente (a diferencia
+  // de _resetBacklogListDelegation/_attachBacklogListDelegation, que reciclan su listener vía
+  // AbortController en cada render), guardada por flag en el propio container. No colisiona con
+  // la delegación de cards: esa escucha por [data-action], esta por [data-qdisc-area] — mismo
+  // patrón de separación de namespace de atributo que zp-type/zp-priority/zp-area en
+  // zone-engine.js usan frente al resto del DOM.
+  if (!container._qdiscAreaDelegationAttached) {
+    container._qdiscAreaDelegationAttached = true;
+    container.addEventListener('click', e => {
+      const btn = e.target.closest('[data-qdisc-area]');
+      if (!btn) return;
+      const area = btn.dataset.qdiscArea;
+      _qdiscBlockAreaFilter[status] = (_qdiscBlockAreaFilter[status] === area) ? null : area;
+      _renderQDiscStatusGroup(status, containerId, countId);
+    });
+  }
 }
 
 // B-202606-052 → TKT-C1: renderQDiscPanel — sub-tab Discoveries (Q-DISC: DISC).
