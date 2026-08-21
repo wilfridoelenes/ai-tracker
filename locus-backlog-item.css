@@ -1,4 +1,8 @@
-/* [PP] mod:112 · autor:Nova · 2026-08-20 01:10 UTC-6 */
+/* [PP] mod:114 · autor:Nova · 2026-08-20 [hora pendiente] UTC-6 */
+/* TKT1 (ref_id CAEL-08201600-02, parent CAEL-08201600-01): .mdiff-discard-reason-chip agregada
+   junto a .mdiff-pill--discarded — chip subordinado que muestra discard_reason en un patch
+   DISC→descartado del panel DIFF (mockup aprobado por el founder, design_intent
+   disc_status_transition_patch_card). Consumidor JS: locus-backlog-merge.js (TKT2, pendiente). */
 /* TKT-202608-430 (REQ-202608-173): .mdiff-right-sprint-pending-row migrado de
    --amber a --blue — el caso "Q-Backlog sin sprint" es válido y no bloqueante
    (INC-202607-002), --amber transmitía advertencia incorrecta. Ver bloque
@@ -2873,6 +2877,24 @@
   border: 1px solid var(--red-border);
 }
 
+/* TKT1 (ref_id CAEL-08201600-02, parent CAEL-08201600-01) — chip subordinado de discard_reason,
+   junto a un patch DISC→descartado en el panel DIFF. Mismo tono que .mdiff-pill--discarded
+   (arriba) — no es un estado distinto, es el motivo del mismo estado — pero sin ícono y en
+   --text-2xs (piso de la escala) para quedar subordinado visualmente al chip de transición,
+   que es la noticia principal del bloque. */
+.mdiff-discard-reason-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-2xl);
+  flex-shrink: 0;
+  background: var(--red-dim);
+  color: var(--red);
+  border: 1px solid var(--red-border);
+}
+
 .mdiff-pill--warn {
   background: color-mix(in srgb, var(--amber) 10%, transparent);
   color: var(--amber-text);
@@ -5203,6 +5225,19 @@ body {
   color: var(--text3);
   font-size: var(--text-xs);
   line-height: 1;
+}
+
+/* TKT3 (ref_id CAEL-08201600-04, parent CAEL-08201600-01): modificador de la pill destino
+   cuando la transición real de status es hacia `descartado` (ej. DISC→descartado) — mismo
+   tono que .mdiff-pill--discarded y .mdiff-discard-reason-chip (arriba en este archivo), para
+   que las tres señales del mismo evento (transición, chip de motivo, pill destino) compartan
+   un solo código de color. Solo sobreescribe color — hereda padding/radius/font de
+   .mdiff-transition-pill base. Consumidor JS: locus-backlog-merge.js (_transitionOrFieldPatchHtml,
+   TKT2-202608-436 — pendiente de esta clase para desbloquear). */
+.mdiff-transition-pill--discarded {
+  background: var(--red-dim);
+  color: var(--red);
+  border: 1px solid var(--red-border);
 }
 
 /* Patch de campo suelto (ej. sprint): icono lápiz + texto plano, nunca pill */

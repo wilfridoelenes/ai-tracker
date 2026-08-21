@@ -1,4 +1,4 @@
-// [PP] mod:101 · autor:Rune · 2026-08-18 22:30 UTC-6
+// [PP] mod:103 · autor:Rune · 2026-08-20 [hora pendiente] UTC-6
 // TKT1 (REQ ref_id CAEL-08141930-01/02): footer del panel DIFF reducido a 2 botones —
 // #mdiff-backlog-btn retirado del template y de su listener; backlogBtn retirado del sync de
 // disabled/blocked en _mdiffUpdateConfirmBtn(). _mdiffDoApply() pierde el parámetro
@@ -865,18 +865,33 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // pill-flecha-pill) de un patch de campo suelto (.mdiff-field-patch, ícono lápiz +
   // texto plano) — reemplaza el chip genérico .mdiff-field-chip para ítems type:patch.
   // El campo `draft` no pasa por aquí — _statusChipHtml ya lo consume aparte.
+  // TKT2 (ref_id CAEL-08201600-03, parent CAEL-08201600-01): dos extensiones sobre el AC2
+  // original — (a) la pill destino de una transición de status hacia `descartado` toma
+  // .mdiff-transition-pill--discarded (mismo tono que .mdiff-pill--discarded, ver css-ref) en
+  // vez del tono neutro genérico — la transición DISC→descartado (u otro tipo→descartado) ya
+  // no se confunde visualmente con un avance ordinario; (b) `discard_reason` deja de caer al
+  // fallback genérico .mdiff-field-patch (ícono lápiz + texto plano) — se renderiza con
+  // .mdiff-discard-reason-chip, subordinado visualmente a la transición de status de la que
+  // depende semánticamente. Solo aplica cuando el patch también trae `status`; un
+  // discard_reason sin status en el mismo patch (edge case no visto en código real) sigue
+  // cayendo al fallback genérico, sin caso especial no verificado.
   const _transitionOrFieldPatchHtml = (changes) => {
     const rest = changes.filter(c => c.field !== 'draft');
     if (!rest.length) return '';
+    const hasStatusChange = rest.some(c => c.field === 'status');
     const parts = rest.map(({ field, from, to }) => {
       const fromStr = from != null ? esc(String(from)) : '—';
       const toStr   = to   != null ? esc(String(to))   : '—';
       if (field === 'status') {
+        const toPillCls = to === 'descartado' ? 'mdiff-transition-pill mdiff-transition-pill--discarded' : 'mdiff-transition-pill';
         return `<span class="mdiff-transition">
           <span class="mdiff-transition-pill">${fromStr}</span>
           <span class="mdiff-transition-arrow">→</span>
-          <span class="mdiff-transition-pill">${toStr}</span>
+          <span class="${toPillCls}">${toStr}</span>
         </span>`;
+      }
+      if (field === 'discard_reason' && hasStatusChange) {
+        return `<span class="mdiff-discard-reason-chip">${toStr}</span>`;
       }
       return `<span class="mdiff-field-patch"><svg class="ti-svg"><use href="#ti-pencil"></use></svg>${esc(field)}: ${fromStr} → ${toStr}</span>`;
     }).join('');
