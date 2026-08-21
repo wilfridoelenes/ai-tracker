@@ -1,3 +1,8 @@
+// [PP] mod:19 · autor:Rune · 2026-08-21 21:15 UTC-6
+// TKT-202608-432 (REQ-202608-175, TKT1): _renderZonePanel gana opts.sortComparator opcional —
+// permite a qdisc.js reemplazar el sort tipo/prioridad por defecto con un comparator propio
+// (antigüedad) sin tocar el comportamiento de qbacklog, que nunca lo declara. Ver detalle inline
+// junto al bloque de sort más abajo. contract_update: sí — opt nuevo, sin cambio de firma.
 // [PP] mod:18 · autor:Rune · 2026-08-14 21:30 UTC-6
 // TKT (ref_id CAEL-08142200-04, parent ref_id CAEL-08142200-01): _activeGroupWrap() corrige
 // agrupación — label vuelve a ser hijo directo del header (izquierda), .bl-active-header-meta
@@ -708,15 +713,24 @@ export function _renderZonePanel(opts) {
     return;
   }
 
-  // Ordenar: tipo (REQ→TKT→INC→DISC) y dentro de cada tipo por prioridad (high→medium→low)
+  // Ordenar: tipo (REQ→TKT→INC→DISC) y dentro de cada tipo por prioridad (high→medium→low) —
+  // comportamiento por defecto, sin cambio para callers existentes (qbacklog).
+  // TKT-202608-432 (REQ-202608-175, TKT1): opts.sortComparator opcional — cuando se declara,
+  // reemplaza el sort tipo/prioridad de arriba. Solo qdisc lo pasa, y solo cuando el founder activó
+  // "Antigüedad" en el control propio (ver locus-backlog-qdisc.js) — sin selección explícita, qdisc
+  // no declara el opt y este bloque preserva el comportamiento exacto anterior (AC-3, "orden de
+  // aparición"). contract_update: sí — opt nuevo, opcional, sin cambio de firma para callers
+  // existentes.
   const _typeOrder = { REQ: 0, TKT: 1, INC: 2, DISC: 3 };
   const _priOrder  = { high: 0, important: 0, critical: 0, importante: 0, medium: 1, low: 2, futura: 2, baja: 2 };
-  const sorted = [...filteredItems].sort((a, b) => {
-    const ta = _typeOrder[itemKind(a)] ?? 9, tb = _typeOrder[itemKind(b)] ?? 9;
-    if (ta !== tb) return ta - tb;
-    const pa = _priOrder[a.priority] ?? 1, pb = _priOrder[b.priority] ?? 1;
-    return pa - pb;
-  });
+  const sorted = opts.sortComparator
+    ? [...filteredItems].sort(opts.sortComparator)
+    : [...filteredItems].sort((a, b) => {
+        const ta = _typeOrder[itemKind(a)] ?? 9, tb = _typeOrder[itemKind(b)] ?? 9;
+        if (ta !== tb) return ta - tb;
+        const pa = _priOrder[a.priority] ?? 1, pb = _priOrder[b.priority] ?? 1;
+        return pa - pb;
+      });
 
   // TKT1 REQ hide-done-qdisc: con hasChildren:false se omite _buildChildMap — DISC no tiene
   // depends_on ni jerarquía R→hijos, todo ítem filtrado es raíz.

@@ -1,4 +1,10 @@
-// [PP] mod:15 · autor:Rune · 2026-08-20 21:40 UTC-6
+// [PP] mod:16 · autor:Rune · 2026-08-21 21:15 UTC-6
+// TKT-202608-432 (REQ-202608-175, TKT1): sort por antigüedad en Discovery — estado local
+// (_qdiscSortField/_qdiscSortDir), comparator (_qdiscAntiguedadComparator), sortComparator
+// pasado a _renderZonePanel, y wiring de #qdisc-sort-select/#qdisc-sort-dir-btn en
+// _initQDiscToolbar(). El header de este archivo no se había incrementado en la sesión
+// anterior pese a que el contenido ya incluía parte de este cambio — corregido aquí junto
+// con el gap de wiring detectado en retomada (ver comentario inline junto a _initQDiscToolbar).
 // TKT-202608-431 (REQ-202608-174 · Q-DISC): chips de filtro de área en Promoted/Descartadas —
 // mismo componente visual .stat-area-chip/.qdisc-area-chips que ya usa Discovery
 // (locus-backlog-zone-engine.js), sin clase ni token CSS nuevo (AC de coherencia del REQ padre).
@@ -170,6 +176,24 @@ function _renderQDiscDiscoveryCount() {
 const _QDISC_SIN_AREA = '__sin_area__';
 const _qdiscBlockAreaFilter = { promoted: null, descartado: null };
 
+// TKT-202608-432 (REQ-202608-175, TKT1): estado de sort de Discovery — local a este módulo, sin
+// persistir (mismo criterio que _qdiscBlockAreaFilter, arriba). field: '' (default, "orden de
+// aparición" — AC-3) | 'antiguedad'. dir: 'asc' | 'desc' — solo tiene efecto con field==='antiguedad'.
+let _qdiscSortField = '';
+let _qdiscSortDir = 'desc';
+
+// Comparator de antigüedad — mismo campo de referencia que _zoneStaleness (statusChangedAt ||
+// createdAt, locus-backlog-zone-engine.js). asc = más antiguo primero (AC "Antigüedad ↑"), desc =
+// más reciente primero (AC "Antigüedad ↓"). Ítems sin ninguno de los dos timestamps caen al final
+// en ambas direcciones (Infinity), sin romper el sort ni requerir un tercer AC de edge case — no
+// se declaró comportamiento explícito para ese caso, y este es el menos sorpresivo (nunca
+// desplaza ítems con timestamp real fuera de su orden relativo esperado).
+function _qdiscAntiguedadComparator(a, b) {
+  const ta = a.statusChangedAt || a.createdAt || Infinity;
+  const tb = b.statusChangedAt || b.createdAt || Infinity;
+  return _qdiscSortDir === 'asc' ? ta - tb : tb - ta;
+}
+
 // TKT-202608-431: construye el bloque de chips de área para Promoted/Descartadas — conteo
 // sobre _statusItems (universo completo del bloque de status, previo a búsqueda), mismo
 // criterio que zone-engine.js (los chips reflejan la zona base, no el subconjunto ya angostado
@@ -262,7 +286,12 @@ export function renderQDiscPanel() {
     // TKT1 REQ hide-done-qdisc: DISC nunca alcanza status 'done' (__BR-Ecosystem §5) — bloque
     // Terminados era código muerto. DISC no tiene depends_on ni jerarquía R→hijos.
     hasDoneState: false,
-    hasChildren: false
+    hasChildren: false,
+    // TKT-202608-432 (REQ-202608-175, TKT1): sin selección explícita (_qdiscSortField==='') se
+    // omite el opt — _renderZonePanel preserva el sort tipo/prioridad por defecto (AC-3). Con
+    // 'antiguedad' activo, el comparator reemplaza ese sort para Discovery únicamente — no
+    // aplica a Promoted/Descartadas (_renderQDiscStatusGroup no lo consume, no_incluye del TKT).
+    sortComparator: _qdiscSortField === 'antiguedad' ? _qdiscAntiguedadComparator : undefined
   });
   // TKT-202607-010: indicador independiente del universo filtrado de _renderZonePanel —
   // siempre refleja el conteo real de activos, incluso sin proyecto seleccionado (getItems()
@@ -345,6 +374,29 @@ function _initQDiscToolbar() {
       _nsSetQuery('qdisc', '');
       renderQDiscPanel();
       searchInput.focus();
+    });
+  }
+
+  // TKT-202608-432 (REQ-202608-175, TKT1): wiring del control de sort — gap detectado en
+  // retomada de sesión. El estado (_qdiscSortField/_qdiscSortDir) y el comparator ya existían
+  // y renderQDiscPanel() ya los consumía, pero ningún listener los mutaba desde el DOM — el
+  // control era visualmente funcional pero no operable (AC "Happy path asc/desc" no se cumplía).
+  const sortSelect = document.getElementById('qdisc-sort-select');
+  const sortDirBtn = document.getElementById('qdisc-sort-dir-btn');
+  if (sortSelect && sortDirBtn) {
+    sortSelect.value = _qdiscSortField;
+    sortDirBtn.disabled = _qdiscSortField !== 'antiguedad';
+    sortDirBtn.textContent = _qdiscSortDir === 'asc' ? '↑' : '↓';
+    sortSelect.addEventListener('change', () => {
+      _qdiscSortField = sortSelect.value;
+      sortDirBtn.disabled = _qdiscSortField !== 'antiguedad';
+      renderQDiscPanel();
+    });
+    sortDirBtn.addEventListener('click', () => {
+      if (sortDirBtn.disabled) return;
+      _qdiscSortDir = _qdiscSortDir === 'asc' ? 'desc' : 'asc';
+      sortDirBtn.textContent = _qdiscSortDir === 'asc' ? '↑' : '↓';
+      renderQDiscPanel();
     });
   }
 }

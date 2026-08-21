@@ -1,4 +1,10 @@
-<!-- [PP] mod:216 · autor:Rune · 2026-08-20 15:10 UTC-6 -->
+<!-- [PP] mod:217 · autor:Rune · 2026-08-21 21:15 UTC-6 -->
+<!-- TKT-202608-432 (REQ-202608-175, TKT1, design_intent: qdisc_sort_antiguedad_borrador):
+     control de sort por antigüedad agregado en #qdisc-toolbar — reuso del patrón vivo
+     .bl-sort-wrap/.bl-sort-select/.bl-sort-dir-btn de Vista Lista, reducido a una opción
+     ("Antigüedad") + orden por defecto. Shell estático (BR-Execution §5, AC edge case
+     0/1 ítems). Ver comentario inline junto al bloque (#qdisc-sort-select/#qdisc-sort-dir-btn)
+     para el detalle completo. Wiring del control → locus-backlog-qdisc.js. -->
 <!-- INC (ref_id CAEL-08201510-01): opción estática del select #item-sprint (item-editor-overlay)
      tenía value="icebox" — literal deprecado (Vista Icebox, reemplazada por Q-Backlog/Q-DISC desde
      REQ-C 2026-06-28). Cambiado a value="" — cambio puramente cosmético/pre-paint, _refreshSprintSelect()
@@ -1073,6 +1079,22 @@
             </button>
           </div>
           <div class="bl-toolbar-spacer"></div>
+          <!-- TKT-202608-432 (REQ-202608-175, TKT1, design_intent: qdisc_sort_antiguedad_borrador):
+               control de sort por antigüedad — reuso del patrón vivo .bl-sort-wrap/.bl-sort-select/
+               .bl-sort-dir-btn ya usado en la toolbar de Vista Lista (#fbar-sort-select/
+               #fbar-sort-dir-btn, ver arriba en este archivo), reducido a un solo criterio.
+               Estático — el control existe siempre, independiente de si hay ítems (BR-Execution §5;
+               AC edge case 0/1 ítems visibles). Solo aplica al bloque Discovery — no a
+               Promoted/Descartadas (no_incluye del TKT). Default: value="" ("Orden por defecto" —
+               orden de aparición, sin cambio de comportamiento previo, AC-3). Dir-btn solo relevante
+               con "Antigüedad" seleccionado; wiring en locus-backlog-qdisc.js _initQDiscToolbar(). -->
+          <div class="bl-sort-wrap">
+            <select class="bl-sort-select" id="qdisc-sort-select" title="Ordenar Discovery">
+              <option value="">Orden por defecto</option>
+              <option value="antiguedad">Antigüedad</option>
+            </select>
+            <button class="bl-sort-dir-btn" id="qdisc-sort-dir-btn" title="Invertir dirección" disabled>↓</button>
+          </div>
           <div class="fbar-search-wrap">
             <input class="fbar-search-input" id="qdisc-search-input" type="text" placeholder="🔍 Buscar en Discoveries…" autocomplete="off">
             <button class="fbar-search-clear" id="qdisc-search-clear" title="Limpiar búsqueda">✕</button>
