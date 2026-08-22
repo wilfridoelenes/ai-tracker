@@ -1,3 +1,7 @@
+/* [PP] mod:115 · autor:Nova · 2026-08-21 UTC-6 */
+/* TKT3b (REQ-202608-177, ref_id NOVA-08211800-01, parent TKT-202608-436 — bloqueo de Rune):
+   .mdiff-transition-pill--disc-origin agregada junto a .mdiff-transition-pill--discarded —
+   ver comentario inline en la clase (línea ~5237) para verificación de tokens ausentes. */
 /* [PP] mod:114 · autor:Nova · 2026-08-20 [hora pendiente] UTC-6 */
 /* TKT1 (ref_id CAEL-08201600-02, parent CAEL-08201600-01): .mdiff-discard-reason-chip agregada
    junto a .mdiff-pill--discarded — chip subordinado que muestra discard_reason en un patch
@@ -5238,6 +5242,27 @@ body {
   background: var(--red-dim);
   color: var(--red);
   border: 1px solid var(--red-border);
+}
+
+/* TKT3b (REQ-202608-177, ref_id NOVA-08211800-01, parent TKT-202608-436 — Rune):
+   modificador de la pill origen para la card ancha de patch DISC→descartado
+   (_buildDiscDiscardCard, locus-backlog-merge.js mod:104) — 'discovery' en
+   --purple-text, mismo token ya verificado ≥4.5:1 en ambos temas (_Locus-css-ref
+   §Tabla de color, fila --purple). Solo sobreescribe color — hereda
+   padding/radius/font de .mdiff-transition-pill base, mismo patrón que
+   --discarded (arriba). No confundir con .mdiff-type--disc (acento de card,
+   ya existente) — este pinta el chip de texto plano 'discovery', no el borde.
+   --purple-dim/--purple-border NO existen como variables en este proyecto
+   (verificado — grep sin resultado en css-ref ni en locus-base.css citado por
+   css-ref) — igual que --amber/--red carecen de la familia completa
+   (_Locus-css-ref §Cambios mod:175, "no existen --amber-dim/--amber-border/
+   --red-dim/--red-border como variables completas"). Se resuelve con
+   color-mix() inline, mismo patrón ya vigente ahí (10%/28% sobre --surface/
+   transparent) — no variable nueva declarada, decisión explícita, no implícita. */
+.mdiff-transition-pill--disc-origin {
+  background: color-mix(in srgb, var(--purple) 10%, transparent);
+  color: var(--purple-text);
+  border: 1px solid color-mix(in srgb, var(--purple) 28%, transparent);
 }
 
 /* Patch de campo suelto (ej. sprint): icono lápiz + texto plano, nunca pill */

@@ -1,3 +1,20 @@
+// [PP] mod:105 · autor:Rune · 2026-08-22 UTC-6
+// TKT2b (REQ-202608-177, ref_id CAEL-08211730-01): corrección tras 2da auditoría de Finn
+// (AC5) — retirado el footer con clase .mdiff-card-footer--patch, sin definición CSS y sin
+// respaldo en ningún AC del TKT. _buildDiscDiscardCard() ahora solo renderiza lo que AC1-4
+// piden: tipo, transición origen→destino, motivo de descarte condicional. Sin impacto
+// lateral — misma función interna, sin firma exportada, contract_update: no.
+// [PP] mod:104 · autor:Rune · 2026-08-21 UTC-6
+// TKT2 (REQ-202608-177, ref_id CAEL-08211730-01): _buildPatchCard() bifurca a
+// _buildDiscDiscardCard() cuando el patch es DISC con status destino 'descartado' —
+// card ancha en vez del chip compacto genérico (gap señalado por Finn en QA de este
+// mismo TKT: AC1/AC2 no cumplidos por la extensión previa de _transitionOrFieldPatchHtml,
+// que seguía siendo el layout compacto). Usa .item-type-pill.DISC y .mdiff-pill--discarded
+// — ambos ya confirmados existentes en _Locus-css-ref (líneas 239/304/163), no se crean
+// aquí. .mdiff-transition-pill--disc-origin es CSS dependency nueva — declarada en el
+// CSS dependencies block de este CHECKPOINT, pendiente de Nova (color: var(--purple-text)
+// sobre el chip de origen 'discovery'; no se resuelve inline por CSS Purity, __BR-Execution
+// §3). contract_update: no — función interna sin firma exportada.
 // [PP] mod:103 · autor:Rune · 2026-08-20 [hora pendiente] UTC-6
 // TKT1 (REQ ref_id CAEL-08141930-01/02): footer del panel DIFF reducido a 2 botones —
 // #mdiff-backlog-btn retirado del template y de su listener; backlogBtn retirado del sync de
@@ -1043,7 +1060,40 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // existingItem para construir el string HTML. El lookup de existingItem lo resuelve el caller
   // (map sobre _patchItems, ver bloque de sección 'patches' más abajo) vía getAnyItem(code) —
   // nunca getItems().find() suelto, que no resuelve ítems ITIL (INC/PRB/KE/CHG).
+  // TKT2b (REQ-202608-177, ref_id CAEL-08211730-01, corrección tras 2da auditoría de Finn —
+  // AC5): footer retirado — .mdiff-card-footer--patch no existía en ningún .css, y el
+  // contenido (role/next_role) nunca estuvo pedido por ningún AC de este TKT; fue agregado
+  // por mí sin base en la especificación. AC5 exigía reuso de tokens existentes "sin clase
+  // nueva" — el camino correcto no es forzar una clase con --text3/--hint sobre contenido
+  // no especificado, es no renderizar ese contenido. La card ahora solo produce lo que
+  // los AC1-4 piden explícitamente: tipo, transición origen→destino, motivo de descarte.
+  const _isDiscDiscardedPatch = (patchItem) =>
+    _itemKindFn({ code: patchItem.code }) === 'DISC' && patchItem.status === 'descartado';
+
+  const _buildDiscDiscardCard = (patchItem) => {
+    const discardReasonHtml = patchItem.discard_reason
+      ? `<span class="mdiff-discard-reason-chip">${esc(String(patchItem.discard_reason))}</span>`
+      : '';
+    return `
+    <div class="mdiff-card mdiff-card--accent mdiff-type--disc mdiff-zone-card">
+      <div class="mdiff-card-accent"></div>
+      <div class="mdiff-card-body">
+        <div class="mdiff-card-top">
+          <span class="item-type-pill DISC">DISC</span>
+          <span class="mdiff-code mdiff-card-title">${esc(patchItem.code)} · patch</span>
+          <span class="mdiff-transition">
+            <span class="mdiff-transition-pill mdiff-transition-pill--disc-origin">discovery</span>
+            <span class="mdiff-transition-arrow">→</span>
+            ${_pill('discarded', 'descartado')}
+          </span>
+          ${discardReasonHtml}
+        </div>
+      </div>
+    </div>`;
+  };
+
   const _buildPatchCard = (patchItem, existingItem) => {
+    if (_isDiscDiscardedPatch(patchItem)) return _buildDiscDiscardCard(patchItem);
     const itemType  = _itemKindFn({ code: patchItem.code });
     const typeCls   = _typeClass[itemType] || 'mdiff-type--unknown';
     const changes = Object.keys(patchItem)
