@@ -1,4 +1,9 @@
-// [PP] mod:116 · autor:Rune · 2026-08-20 UTC-6
+// [PP] mod:117 · autor:Rune · 2026-08-23 UTC-6
+// TKT-202608-440 (REQ-202608-180): self-heal de status de REQ extraído a
+// _selfHealReqStatuses() (locus-backlog-core.js) — bloque inline L1009-1046 reemplazado
+// por una sola línea que consume el boolean de retorno para decidir saveBacklog().
+// inline_fix: imports huérfanos removidos — _computeRStatusFromChildren (core.js) y
+// _blogLog (locus-storage.js), sin call site real tras la extracción.
 // TKT-202608-434 (REQ-202608-176): terminalItems (renderBacklogList) excluye draft:true —
 // ver comentario inline junto al filtro (~L1172) para el detalle completo.
 // Fix (histórico — sin CHECKPOINT confirmado): renderSprintGroup() — buildBacklogItem(item) para el REQ padre ahora
@@ -293,7 +298,7 @@ import { _buildChildMap } from './locus-backlog-hierarchy.js';
 // REQ refactor-zonas TKT5: _zoneStaleness extraído a locus-backlog-zone-engine.js — único uso
 // restante en este archivo es _updateSubtabBadges() (badges qbacklog/qdisc).
 import { _zoneStaleness } from './locus-backlog-zone-engine.js';
-import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshotItems, itemKind, renderStats, renderActiveFilterChips, updateStatusFilterUI, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getCollapsedVersions, toggleVersionCollapse, toggleSectionGroup, getDoneItems, getItems, getIncidents, _computeRStatusFromChildren } from './locus-backlog-core.js'; // TKT2 (REQ CAEL-0720-01): getIncidents + _computeRStatusFromChildren reintroducidas — self-heal de status de REQ en _renderVistaLista, universo completo ITEMS+INCIDENTS · TKT1 REQ unificar chips: renderActiveFilterChips agregada · toggleTypeFilter/toggleStatusFilter/toggleEffortFilter/toggleBacklogNoAcMode huérfanos removidos (inline_fix) · REQ refactor-zonas TKT5: _nsGetStatuses removido — único uso vivía en _renderZonePanel (extraído a zone-engine.js) · TKT-202607-027: _getBacklogKanbanMode removida — ya no exportada desde core.js · TKT2 (REQ CAEL-0720-03): getIncidents (reintroducida arriba por TKT2 CAEL-0720-01) , _nsGetTypes/_nsGetPriority/_nsGetQuery/_nsSetQuery/_nsToggleType/_nsTogglePriority/_nsReset removidos — sin uso tras extraer renderQIncPanel a locus-incidents-render.js
+import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshotItems, itemKind, renderStats, renderActiveFilterChips, updateStatusFilterUI, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getCollapsedVersions, toggleVersionCollapse, toggleSectionGroup, getDoneItems, getItems, getIncidents, _selfHealReqStatuses } from './locus-backlog-core.js'; // TKT1 (REQ-202608-180): _computeRStatusFromChildren removida (inline_fix) — sin call site real en este archivo desde que el self-heal se extrajo a _selfHealReqStatuses(), único consumidor de esa función ahora vive en locus-backlog-core.js · TKT2 (REQ CAEL-0720-01): getIncidents reintroducida — self-heal de status de REQ en _renderVistaLista, universo completo ITEMS+INCIDENTS · TKT1 REQ unificar chips: renderActiveFilterChips agregada · toggleTypeFilter/toggleStatusFilter/toggleEffortFilter/toggleBacklogNoAcMode huérfanos removidos (inline_fix) · REQ refactor-zonas TKT5: _nsGetStatuses removido — único uso vivía en _renderZonePanel (extraído a zone-engine.js) · TKT-202607-027: _getBacklogKanbanMode removida — ya no exportada desde core.js · TKT2 (REQ CAEL-0720-03): getIncidents (reintroducida arriba por TKT2 CAEL-0720-01) , _nsGetTypes/_nsGetPriority/_nsGetQuery/_nsSetQuery/_nsToggleType/_nsTogglePriority/_nsReset removidos — sin uso tras extraer renderQIncPanel a locus-incidents-render.js
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, buildBacklogItem } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation · TKT-202607-027: _renderKanban removida — ya no exportada · TKT2 (REQ CAEL-0720-03): buildQIncItem removida — usada solo en renderQIncPanel, ahora en locus-incidents-render.js
 
@@ -301,7 +306,7 @@ import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } 
 
 import { _setBacklogModified } from './locus-docs.js';
 
-import { _getActiveProjectFilter, getActiveSprints, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync, state, _blogLog } from './locus-storage.js'; // TKT2 (REQ CAEL-0720-01): _blogLog agregada — log del self-heal de status de REQ en render, mismo formato que _syncParentRStatus · INC-fix: 'state' faltaba en este import — renderBacklogList() lo usa (state.projects) desde antes de mod:82/83 sin que nunca se importara, ReferenceError en runtime · TKT2 (REQ CAEL-0720-03): _docPrefix removido — solo usado en renderQIncPanel (qi-export-incidents), ahora en locus-incidents-render.js
+import { _getActiveProjectFilter, getActiveSprints, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync, state } from './locus-storage.js'; // TKT1 (REQ-202608-180): _blogLog removida (inline_fix) — sin call site real en este archivo tras extraer el self-heal a _selfHealReqStatuses() (locus-backlog-core.js, que ya importa _blogLog por su cuenta) · INC-fix: 'state' faltaba en este import — renderBacklogList() lo usa (state.projects) desde antes de mod:82/83 sin que nunca se importara, ReferenceError en runtime · TKT2 (REQ CAEL-0720-03): _docPrefix removido — solo usado en renderQIncPanel (qi-export-incidents), ahora en locus-incidents-render.js
 
 // TKT2 (REQ CAEL-0720-03): import de _generateIncidentsMd removido — solo usado en renderQIncPanel (qi-export-incidents), ahora en locus-incidents-render.js
 
@@ -1006,44 +1011,15 @@ export function renderBacklogList(onRendered) {
 
   // TKT-202607-027: bloque de desvío a vista Kanban eliminado (T-202604-287 deprecado) — Vista Lista es el único modo
 
-  // Fix (INC sin código real identificable): self-healing de status de REQ — recalcula sobre el universo
-  // COMPLETO de ITEMS (getItems(), sin filtrar por status todavía) y ANTES de construir
-  // `filtered`/pendienteItems más abajo. Antes vivía dentro de _renderVistaLista, aplicado
-  // solo sobre `group` (subconjunto ya filtrado por status) — un REQ podía pasar el filtro
-  // de status con su valor viejo y mutar a un status que ya no calza con el filtro activo
-  // en esta misma pasada, quedando fuera recién en la siguiente pasada (ej. al tocar la
-  // barra de filtros) → flicker aparece/desaparece del card. Mismo mecanismo, mismo orden
-  // que _renderZonePanel (locus-backlog-zone-engine.js:178-219, self-heal sobre zoneItems
-  // sin filtrar, antes de derivar activeZoneItems/doneZoneItems) — ese archivo ya lo hacía
-  // bien; este bloque alinea _renderVistaLista al mismo patrón. La construcción de HTML por
-  // sprint group más abajo ya no recalcula self-heal — solo lee item.status ya corregido.
-  let _reqSelfHealDirty = false;
-  getItems().forEach(item => {
-    if (itemKind(item) !== 'REQ') return;
-    if (item.status === 'done' || item.status === 'bloqueado' || item.status === 'descartado') return;
-
-    const _childrenStatuses = getItems()
-      .filter(i => itemKind(i) === 'TKT' && i.parentId === item.code)
-      .map(i => i.status);
-
-    const _nextStatus = _computeRStatusFromChildren(item.status, _childrenStatuses);
-    if (!_nextStatus) return;
-
-    const _prevStatus = item.status;
-    let _label;
-    if (_nextStatus === 'orphaned') { _label = 'todos los hijos descartados'; }
-    else if (_nextStatus === 'en-revision') { _label = 'todos los hijos activos done'; }
-    else if (_prevStatus === 'en-revision') { _label = 'hijo retrocedió de done'; }
-    else { _label = 'hijo activo avanzó'; }
-
-    item.status = _nextStatus;
-    item.statusChangedAt = Date.now();
-    if (!item.history) item.history = [];
-    item.history.push({ type: 'status', ts: item.statusChangedAt, data: { from: _prevStatus, to: _nextStatus, reason: 'render-selfheal' } });
-    _blogLog('status-auto →', item.code, _prevStatus + ' → ' + _nextStatus + ' (' + _label + ' — self-heal en render)', 'backlog');
-    _reqSelfHealDirty = true;
-  });
-  if (_reqSelfHealDirty) saveBacklog();
+  // TKT1 (REQ-202608-180): self-heal de status de REQ extraído a _selfHealReqStatuses()
+  // (locus-backlog-core.js) — antes vivía inline aquí. Se ejecuta sobre el universo COMPLETO
+  // de ITEMS y ANTES de construir `filtered`/pendienteItems más abajo (mismo orden que ya
+  // usaba _renderZonePanel, locus-backlog-zone-engine.js — causa raíz del INC de flicker era
+  // que este bloque corría solo sobre `group`, subconjunto ya filtrado). La construcción de
+  // HTML por sprint group más abajo ya no recalcula self-heal — solo lee item.status ya
+  // corregido. saveBacklog() se decide aquí según el boolean de retorno, no dentro de la
+  // función extraída.
+  if (_selfHealReqStatuses()) saveBacklog();
 
   // Filtrado por tipo + status + effort (T-071)
   // B-202604-193: excluir ítems históricos del plano activo — van a sección colapsada al fondo

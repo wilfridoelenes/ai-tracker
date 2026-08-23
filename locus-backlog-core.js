@@ -1,4 +1,7 @@
-// [PP] mod:144 · autor:Rune · 2026-08-15 14:20 UTC-6
+// [PP] mod:145 · autor:Rune · 2026-08-23 UTC-6
+// TKT-202608-440 (REQ-202608-180): agrega _selfHealReqStatuses() — extracción del self-heal
+// de status de REQ que vivía inline en renderBacklogList() (locus-backlog-render.js).
+// No llama saveBacklog() — devuelve boolean, el caller decide si persiste.
 // TKT CAEL-08151400-01: _purgeStaleBacklogCache — removido console.log del bloque
 // de purga (>90 días done/descartado). Sin cambio de lógica, firma ni side effects —
 // solo se elimina el mensaje recurrente en consola. saveBacklog() sigue invocándose igual.
@@ -2026,6 +2029,45 @@ export function _computeRStatusFromChildren(reqStatus, childrenStatuses) {
   if (reqStatus === 'en-proceso' && activeChildren.every(s => s === 'pendiente')) return 'pendiente';
 
   return null;
+}
+
+// TKT1 (REQ-202608-180): self-heal de status de REQ extraído a función compartida —
+// antes duplicado inline en renderBacklogList() (locus-backlog-render.js, L1020-1046)
+// y en _renderZonePanel (locus-backlog-zone-engine.js, ver TKT2 del mismo REQ). Recalcula
+// sobre el universo COMPLETO de ITEMS (getItems(), sin filtrar por status todavía) —
+// mismo orden que ya usaba _renderZonePanel, aplicado ahora también al caller de
+// renderBacklogList() (antes corría solo sobre `group`, subconjunto ya filtrado —
+// causa raíz del INC de flicker). No llama saveBacklog() — el caller decide si persiste
+// según el boolean de retorno, mismo criterio que antes usaba la variable local
+// `_reqSelfHealDirty` en cada copia inline.
+export function _selfHealReqStatuses() {
+  let dirty = false;
+  getItems().forEach(item => {
+    if (itemKind(item) !== 'REQ') return;
+    if (item.status === 'done' || item.status === 'bloqueado' || item.status === 'descartado') return;
+
+    const _childrenStatuses = getItems()
+      .filter(i => itemKind(i) === 'TKT' && i.parentId === item.code)
+      .map(i => i.status);
+
+    const _nextStatus = _computeRStatusFromChildren(item.status, _childrenStatuses);
+    if (!_nextStatus) return;
+
+    const _prevStatus = item.status;
+    let _label;
+    if (_nextStatus === 'orphaned') { _label = 'todos los hijos descartados'; }
+    else if (_nextStatus === 'en-revision') { _label = 'todos los hijos activos done'; }
+    else if (_prevStatus === 'en-revision') { _label = 'hijo retrocedió de done'; }
+    else { _label = 'hijo activo avanzó'; }
+
+    item.status = _nextStatus;
+    item.statusChangedAt = Date.now();
+    if (!item.history) item.history = [];
+    item.history.push({ type: 'status', ts: item.statusChangedAt, data: { from: _prevStatus, to: _nextStatus, reason: 'render-selfheal' } });
+    _blogLog('status-auto →', item.code, _prevStatus + ' → ' + _nextStatus + ' (' + _label + ' — self-heal en render)', 'backlog');
+    dirty = true;
+  });
+  return dirty;
 }
 
 export function _syncParentRStatus(changedItemCode, newTStatus) {
