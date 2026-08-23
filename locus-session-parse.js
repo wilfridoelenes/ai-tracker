@@ -1,4 +1,4 @@
-// [PP] mod:203 · autor:Rune · 2026-08-22 UTC-6
+// [PP] mod:204 · autor:Rune · 2026-08-22 UTC-6
 // Fix INC-202608-[pendiente-ID] (hallazgo de sesión de soporte, triggered_by patch-intencion
 // de REQ-202608-177): guard temprano de _processIngestBatch() no incluía patchIntencionItems
 // en su condición de entrada — un batch de un solo bloque con solo type:'patch-intencion'
@@ -3469,6 +3469,20 @@ export async function _processIngestBatch(id) {
       }
     }
     window.dispatchEvent(new CustomEvent('shell:render-tracker'));
+    // Fix INC-202608-135 (hallazgo de sesión de soporte 2026-08-22): el footer global
+    // (#gf-ckpt, contador "X ITEMS · Y INC pendientes" en locus-sesiones-stats.js) no se
+    // refrescaba tras aplicar un batch — renderStatusBar() tiene guard de dirty-flag
+    // (`if (!_statusBarDirty) return;`) y ningún punto de este flujo lo marcaba. Mismo
+    // patrón de desacoplamiento ya usado por locus-storage.js para este mismo módulo
+    // (comentario en locus-sesiones-stats.js: "despacha shell:mark-statusbar-dirty +
+    // shell:render-statusbar ... en lugar de llamar directamente a las funciones de este
+    // módulo") — se reutiliza aquí en vez de importar locus-sesiones-stats.js directo,
+    // evitando una dependencia nueva entre módulos. El flujo single (_doApplyMergeAndFinish,
+    // locus-session-save.js) no fue auditado en esta sesión — si tampoco dispara estos dos
+    // eventos, mismo gap ahí, fuera de `archivos` de este fix.
+    // [PP] mod:204 · autor:Rune · 2026-08-22 UTC-6
+    window.dispatchEvent(new CustomEvent('shell:mark-statusbar-dirty'));
+    window.dispatchEvent(new CustomEvent('shell:render-statusbar'));
     const _totalApplied = tgItems.length + (patchItems ? patchItems.length : 0);
     // TKT-202608-234 (REQ-202608-089, AC edge case): cuando el batch mezcla bloques que
     // aportaron ítems con bloques válidos sin ítems propios (items:[] — trazabilidad de
