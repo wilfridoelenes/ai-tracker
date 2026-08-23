@@ -1,4 +1,8 @@
-// [PP] mod:145 · autor:Rune · 2026-08-23 UTC-6
+// [PP] mod:146 · autor:Rune · 2026-08-23 UTC-6
+// TKT3 CAEL-08231830-01 (REQ-202608-180): _selfHealReqStatuses() ahora recibe candidateItems
+// explícito y retorna {changed, count} en vez de boolean — permite consumo por scope (Q-Backlog/
+// Q-DISC vía zone-engine.js) sin correr sobre getItems() completo. Ver detalle inline junto a la
+// función. contract_update: sí — cambio de firma, ver call sites verificados abajo.
 // TKT-202608-440 (REQ-202608-180): agrega _selfHealReqStatuses() — extracción del self-heal
 // de status de REQ que vivía inline en renderBacklogList() (locus-backlog-render.js).
 // No llama saveBacklog() — devuelve boolean, el caller decide si persiste.
@@ -2040,9 +2044,18 @@ export function _computeRStatusFromChildren(reqStatus, childrenStatuses) {
 // causa raíz del INC de flicker). No llama saveBacklog() — el caller decide si persiste
 // según el boolean de retorno, mismo criterio que antes usaba la variable local
 // `_reqSelfHealDirty` en cada copia inline.
-export function _selfHealReqStatuses() {
-  let dirty = false;
-  getItems().forEach(item => {
+export function _selfHealReqStatuses(candidateItems) {
+  // TKT3 (REQ-202608-180): generalizada — antes iteraba getItems() completo de forma
+  // implícita (universo fijo). Ahora recibe el universo explícito como parámetro: el caller
+  // decide el scope (renderBacklogList() pasa getItems() completo — mismo comportamiento que
+  // tenía antes; _renderZonePanel, locus-backlog-zone-engine.js, pasa su zoneItems). Los hijos
+  // (TKT) de cada REQ candidato se resuelven siempre contra getItems() completo — un REQ dentro
+  // del scope puede tener TKTs con sprint asignado fuera de él, y el status del hijo no depende
+  // de en qué zona vive. changed/count reemplazan el boolean previo — count permite a cada
+  // caller construir su propio mensaje de log sin recalcular.
+  let changed = false;
+  let count = 0;
+  (candidateItems || []).forEach(item => {
     if (itemKind(item) !== 'REQ') return;
     if (item.status === 'done' || item.status === 'bloqueado' || item.status === 'descartado') return;
 
@@ -2065,9 +2078,10 @@ export function _selfHealReqStatuses() {
     if (!item.history) item.history = [];
     item.history.push({ type: 'status', ts: item.statusChangedAt, data: { from: _prevStatus, to: _nextStatus, reason: 'render-selfheal' } });
     _blogLog('status-auto →', item.code, _prevStatus + ' → ' + _nextStatus + ' (' + _label + ' — self-heal en render)', 'backlog');
-    dirty = true;
+    changed = true;
+    count++;
   });
-  return dirty;
+  return { changed, count };
 }
 
 export function _syncParentRStatus(changedItemCode, newTStatus) {

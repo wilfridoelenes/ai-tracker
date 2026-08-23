@@ -1,4 +1,7 @@
-// [PP] mod:117 · autor:Rune · 2026-08-23 UTC-6
+// [PP] mod:118 · autor:Rune · 2026-08-23 UTC-6
+// TKT3 CAEL-08231830-01 (REQ-202608-180): call site actualizado a la firma generalizada de
+// _selfHealReqStatuses(candidateItems) → {changed,count} — pasa getItems() explícito, mismo
+// universo que antes. Sin cambio de comportamiento observable en renderBacklogList().
 // TKT-202608-440 (REQ-202608-180): self-heal de status de REQ extraído a
 // _selfHealReqStatuses() (locus-backlog-core.js) — bloque inline L1009-1046 reemplazado
 // por una sola línea que consume el boolean de retorno para decidir saveBacklog().
@@ -1017,9 +1020,10 @@ export function renderBacklogList(onRendered) {
   // usaba _renderZonePanel, locus-backlog-zone-engine.js — causa raíz del INC de flicker era
   // que este bloque corría solo sobre `group`, subconjunto ya filtrado). La construcción de
   // HTML por sprint group más abajo ya no recalcula self-heal — solo lee item.status ya
-  // corregido. saveBacklog() se decide aquí según el boolean de retorno, no dentro de la
-  // función extraída.
-  if (_selfHealReqStatuses()) saveBacklog();
+  // corregido. saveBacklog() se decide aquí según el resultado, no dentro de la función extraída.
+  // TKT3 CAEL-08231830-01 (REQ-202608-180): firma generalizada — pasa getItems() explícito
+  // (mismo universo COMPLETO que ya usaba, sin cambio de comportamiento observable aquí).
+  if (_selfHealReqStatuses(getItems()).changed) saveBacklog();
 
   // Filtrado por tipo + status + effort (T-071)
   // B-202604-193: excluir ítems históricos del plano activo — van a sección colapsada al fondo

@@ -1,4 +1,14 @@
-// [PP] mod:208 · autor:Rune · 2026-08-23 UTC-6
+// [PP] mod:209 · autor:Rune · 2026-08-23 UTC-6
+// CHG-202608-003 (parent/triggered_by INC-202608-138): _onApplyBatch() nunca invocaba
+// _mutateSessions() — a diferencia del path single (_doApplyMergeAndFinish(),
+// locus-session-save.js), el batch de ingesta no registraba sesión de Worker por bloque
+// calificado. Fix: 4to side effect declarativo (sessionRegister) en _BATCH_META_SIDE_EFFECTS
+// + extensión de _extractCkptMeta() con los campos narrativos que faltaban para reproducir el
+// shape de newSess() (locus-session-save.js L708-746). AC3/AC4 originales (resolución de
+// Worker por `role` de bloque) simplificados por Cael vía patch — getAI() solo resuelve por
+// id, no existe mecanismo de resolución por role en este archivo; toda sesión creada por este
+// side effect se atribuye a ctx.id (el Worker que abrió el modal), mismo criterio ya vigente
+// en el bloque de status/hora (mod:179/180, líneas ~3551).
 // TKT-202608-439 (REQ-202608-179, ref_id CAEL-08221600-01): 3 side effects de _onApplyBatch()
 // (retro_evaluated_sprint / learning_log_evaluated_through_ts / checkpoint_flow — antes ifs
 // sueltos intercalados en el mismo forEach(metas), insertados en TKTs distintos sin registro
@@ -1195,7 +1205,7 @@ import { _ctrMergeFromItem } from './locus-contracts.js';
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 import { _checkStorageQuota, _mergeBacklogWithProject, saveSession, _applyCheckpointBatch } from './locus-session-save.js'; // T-202606-032: saveSession para auto-trigger | TKT4: _applyCheckpointBatch — persistencia de batch, invocada solo en el callback de confirmación de showMergeDiffPanel (no en tiempo de evaluación del módulo, mismo patrón ya usado por _mergeBacklogWithProject en esta misma línea)
-import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, getSupabaseContext, save, saveImmediate, saveWorker, _upsertSprint, LOCUS_KEYS, CANONICAL_PROJECTS, _PREFIX_MAP, getInfraVersionData, markLearningLogEvaluated, saveCheckpointFlow } from './locus-storage.js'; // INC histórico — sin CHECKPOINT confirmado: saveWorker agregado — persistencia de status exhausted/in_session desde _onApplyBatch, tracker_workers es su único canal (mod:169-171 de _Locus-module-contracts §1) · TKT-202608-424: markLearningLogEvaluated agregado — wiring de learning_log_evaluated_through_ts · TKT1 (REQ CAEL-08192015-01, DISC-202608-195): saveCheckpointFlow agregado — antes esta función solo se invocaba desde _doApplyMergeAndFinish (locus-session-save.js, flujo single); todo CHECKPOINT pegado en bloque (_onApplyBatch, este archivo) nunca generaba fila en tracker_checkpoint_flow, dejando el Learning Log (__OB-Strategy §5) vacío para sesiones auto-orquestadas — patrón estándar de pegado, __BR-Core
+import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, getSupabaseContext, save, saveImmediate, saveWorker, _mutateSessions, _upsertSprint, LOCUS_KEYS, CANONICAL_PROJECTS, _PREFIX_MAP, getInfraVersionData, markLearningLogEvaluated, saveCheckpointFlow } from './locus-storage.js'; // CHG-202608-003: _mutateSessions agregado — antes solo lo importaba locus-session-save.js; el side effect sessionRegister de este archivo lo necesita para persistir sesiones creadas desde el batch, mismo mecanismo que el path single. INC histórico — sin CHECKPOINT confirmado: saveWorker agregado — persistencia de status exhausted/in_session desde _onApplyBatch, tracker_workers es su único canal (mod:169-171 de _Locus-module-contracts §1) · TKT-202608-424: markLearningLogEvaluated agregado — wiring de learning_log_evaluated_through_ts · TKT1 (REQ CAEL-08192015-01, DISC-202608-195): saveCheckpointFlow agregado — antes esta función solo se invocaba desde _doApplyMergeAndFinish (locus-session-save.js, flujo single); todo CHECKPOINT pegado en bloque (_onApplyBatch, este archivo) nunca generaba fila en tracker_checkpoint_flow, dejando el Learning Log (__OB-Strategy §5) vacío para sesiones auto-orquestadas — patrón estándar de pegado, __BR-Core
 // T-202606-029: INFRA_VERSION_ACTIVE (constante) reemplazada por getInfraVersionActive() / setInfraVersionActive() — AC-4 de T-202606-027
 import { showToast, toast } from './locus-toast.js';
 import { _markRadarDirty, renderGlobalRadarSidebar } from './locus-radar.js'; // INC histórico — sin CHECKPOINT confirmado (triggered_by INC-202608-113): mismas 2 funciones que _doApplyMergeAndFinish (locus-session-save.js) invoca tras mutar ai.status — sin ellas, saveWorker() persiste el status pero el Radar sidebar no se re-renderiza hasta el próximo trigger no relacionado, sin importar zero-arg confirmado contra locus-radar.js real (_markRadarDirty()/renderGlobalRadarSidebar(), ninguna toma parámetros)
@@ -1925,6 +1935,67 @@ const _BATCH_META_SIDE_EFFECTS = [
       learning:  m.aprendizaje || 'n/a',
       decision:  m.decision || 'n/a'
     })
+  },
+  {
+    // CHG-202608-003 (parent/triggered_by INC-202608-138): antes de este side effect,
+    // _onApplyBatch() nunca invocaba _mutateSessions() — todo CHECKPOINT pegado en batch
+    // (único path desde TKT-202608-276, AC1) quedaba sin sesión de Worker registrada, a
+    // diferencia del path single (_doApplyMergeAndFinish(), locus-session-save.js).
+    // AC3 (simplificado por Cael, patch sobre el CHG): atribución exclusiva a ctx.id — no
+    // existe mecanismo de resolución de Worker por `role` de bloque en este archivo (getAI()
+    // solo resuelve por id). AC4 original (fallback ante rol sin Worker) queda sin efecto —
+    // no hay resolución por rol que pueda fallar.
+    name: 'sessionRegister',
+    when: m => !!m.resumen, // AC6 — mismo gate que checkpoint_flow
+    run: (m, ctx) => {
+      if (!ctx.id) return; // AC3 — sin Worker que abrió el modal, no hay a quién atribuir
+      const _liveAi = getAI(ctx.id);
+      if (!_liveAi) return; // mismo guard que el bloque de status/hora (líneas ~3551)
+      const _now = new Date();
+      const _dateShort = _now.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+      const _dateFull  = _now.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) +
+                          ' ' + _now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+      // R-202605-049: mismo criterio de sessionGroupId que _doSaveSession() (locus-session-save.js
+      // L699-704) — hereda del último grupo abierto del mismo Worker, o genera uno nuevo.
+      const _allSessForGroup = (ctx.activeProj.sessions || []).filter(s => s.aiId === ctx.id && !s.resetAt);
+      const _lastSessForGroup = _allSessForGroup.length ? _allSessForGroup[_allSessForGroup.length - 1] : null;
+      const _sessionGroupId = (_lastSessForGroup && _lastSessForGroup.sessionGroupId)
+        ? _lastSessForGroup.sessionGroupId
+        : 'sg-' + Date.now();
+      // trackerRefs por bloque — mismo criterio idx-based ya usado por _resolveBatchFlowSprintId
+      // y _roleByIdx en este archivo, aplicado aquí a tgItems/patchItems del batch completo.
+      const _trackerRefs = [...(ctx.tgItems || []), ...(ctx.patchItems || [])]
+        .filter(it => it.idx === m.idx)
+        .map(it => it.code)
+        .filter(Boolean);
+      const newSessBatch = {
+        id: Date.now().toString() + '-' + Math.random().toString(36).slice(2, 7),
+        aiId: ctx.id,
+        title: m.titulo || '', summary: m.resumen || '', files: m.archivosRaw || '',
+        pending: m.pending || '', tags: [],
+        nextStep: m.nextStep || '',
+        trackerRefs: _trackerRefs,
+        ckptProyecto: m.ckptProyecto || '',
+        decision:    m.decision    || '',
+        contexto:    m.contexto    || '',
+        bloqueantes: m.bloqueantes || '',
+        aprendizaje: m.aprendizaje || '',
+        duration:         m.duration         || '',
+        docsVerified:     m.docsVerified      || '',
+        tensionsResolved: m.tensionsResolved  || '',
+        finnObservations: m.finnObservations  || null,
+        rol:      m.rol || '',
+        archivos: _batchParseFilesField(m.archivosRaw || ''),
+        sprintId: (getActiveSprints().find(sp => sp.status === 'active') || {}).id || '',
+        hasDocUpdates: Array.isArray(m.docUpdates) && m.docUpdates.length > 0,
+        resetAt: '',
+        sessionGroupId: _sessionGroupId,
+        // AC5 — sin timer interactivo dentro de un paste múltiple, durationMs siempre 0.
+        durationMs: 0,
+        dateShort: _dateShort, date: _dateFull
+      };
+      _mutateSessions(ctx.activeProj, 'add', newSessBatch);
+    }
   }
 ];
 
@@ -1972,7 +2043,28 @@ function _extractCkptMeta(ckpt) {
     draft:            _c.draft === true,
     draftRaw:         _c.draftRaw,
     rol:              _c.rol    || '',
-    titulo:           _c.titulo || ''
+    titulo:           _c.titulo || '',
+    // CHG-202608-003 (parent INC-202608-138, AC2): 6 campos que _doSaveSession() lee de
+    // `parsed` (locus-session-save.js L717-724) y que este objeto nunca exponía — contexto,
+    // duration, docsVerified, tensionsResolved, ckptProyecto vienen de campos reales del ckpt
+    // JSON (_c.context→contexto, _c.duration, _c.docsVerified, _c.tensionsResolved,
+    // _c.proyecto→ckptProyecto — mismo mapeo ya usado en ai._parsed, línea ~2325/2337-2339).
+    // `pending` es la excepción: no existe ningún campo `pending`/`ckpt.pending` en todo este
+    // archivo — ai._parsed.pending tampoco se popula en el flujo single (grep confirmado, sin
+    // AC de este CHG que lo cubra) — se agrega en '' para igualar el mismo estado inerte del
+    // path single, sin fingir una fuente que no existe. Gap pre-existente, fuera de scope.
+    contexto:         _c.contexto || '',
+    duration:         _c.duration || '',
+    docsVerified:     _c.docsVerified || '',
+    tensionsResolved: _c.tensionsResolved || '',
+    ckptProyecto:     _c.proyecto || '',
+    pending:          '',
+    // AC1: newSess.files = parsed.files, y parsed.files === ckpt.archivos (string crudo, ver
+    // línea ~2205: `files = ckpt.archivos`) — distinto de archivosNombres (ya parseado a solo
+    // nombres, arriba). Se expone crudo aquí para que sessionRegister pueda reproducir tanto
+    // `files` (string) como `archivos` (array estructurado, vía _batchParseFilesField) igual
+    // que newSess().
+    archivosRaw:      _c.archivos || ''
   };
 }
 
@@ -1987,6 +2079,31 @@ function _ckptArchivosToNames(rawArchivos) {
     .split('|')
     .map(seg => seg.split('·')[0].trim())
     .filter(name => name.length > 0);
+}
+
+// CHG-202608-003 (parent INC-202608-138, AC1): réplica deliberada de _parseFilesField()
+// (locus-session-save.js L663-680) — misma lógica exacta (mismos separadores, mismos regex,
+// mismo criterio de omitir segmentos sin mod:/autor:), no una reinterpretación. No se importa
+// desde locus-session-save.js porque la función original no está exportada, y exportarla
+// ampliaría el cambio a un segundo archivo — el CHG (`archivos`, _Locus-module-contracts)
+// declara alcance de un solo archivo. Necesaria para que sessionRegister reproduzca el campo
+// `archivos` de newSess() con el mismo shape ({nombre,mod,autor}[]), no solo `archivosNombres`
+// (nombres sueltos, consumidor distinto — chip de resumen del panel DIFF).
+function _batchParseFilesField(raw) {
+  if (!raw || typeof raw !== 'string') return [];
+  const result = [];
+  const segments = raw.split(/\s*\|\s*/);
+  for (const seg of segments) {
+    const trimmed = seg.trim();
+    if (!trimmed) continue;
+    const modM   = trimmed.match(/mod\s*:\s*(\d+)/i);
+    const autorM = trimmed.match(/autor\s*:\s*([^·|]+)/i);
+    if (!modM || !autorM) continue;
+    const nombreM = trimmed.match(/^([^·]+)/);
+    const nombre = nombreM ? nombreM[1].trim() : trimmed;
+    result.push({ nombre, mod: parseInt(modM[1]), autor: autorM[1].trim() });
+  }
+  return result;
 }
 
 // T-202604-200: actualiza la mini barra de progreso 3 fases del card
@@ -3510,7 +3627,10 @@ export async function _processIngestBatch(id) {
       // un registro único (_BATCH_META_SIDE_EFFECTS, definido arriba en este archivo). Mismo
       // orden relativo y mismas precondiciones que antes de este TKT — un side effect nuevo se
       // agrega a ese registro, no a este forEach.
-      _applyBatchMetaSideEffects(m, { activeProj, batchMergeResult: _batchMergeResult });
+      // CHG-202608-003: id/tgItems/patchItems agregados al ctx — requeridos por el side
+      // effect sessionRegister (atribución del Worker + trackerRefs por bloque). Sin cambio
+      // para los 3 side effects ya existentes, que no leen esos campos.
+      _applyBatchMetaSideEffects(m, { id, activeProj, batchMergeResult: _batchMergeResult, tgItems, patchItems });
     });
     if (_allInlineFixes.length) {
       showCheckpointPanel({ ...(_batchMergeResult || {}), inlineFixes: _allInlineFixes });

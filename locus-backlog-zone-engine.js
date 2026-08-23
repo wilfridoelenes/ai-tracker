@@ -1,4 +1,7 @@
-// [PP] mod:20 · autor:Rune · 2026-08-23 UTC-6
+// [PP] mod:21 · autor:Rune · 2026-08-23 UTC-6
+// TKT-202608-441 (REQ-202608-180), patch tras TKT3 CAEL-08231830-01: self-heal pasa a consumir
+// _selfHealReqStatuses(zoneItems) — scoped a la zona, no getItems() completo. Ver detalle inline
+// junto al bloque. contract_update: n/a — no exporta función nueva ni cambia firma propia.
 // TKT-202608-432 (REQ-202608-175, TKT1): _renderZonePanel gana opts.sortComparator opcional —
 // permite a qdisc.js reemplazar el sort tipo/prioridad por defecto con un comparator propio
 // (antigüedad) sin tocar el comportamiento de qbacklog, que nunca lo declara. Ver detalle inline
@@ -419,14 +422,15 @@ export function _renderZonePanel(opts) {
 
   const zoneItems = getItems().filter(isZone);
 
-  // TKT-202608-441 (REQ-202608-180): self-heal consolidado en _selfHealReqStatuses()
-  // (locus-backlog-core.js) — mismo consumo que renderBacklogList() (locus-backlog-render.js).
-  // Cambio de comportamiento declarado en AC (no es un bug): la función opera sobre getItems()
-  // completo, no solo sobre zoneItems — un REQ con sprint asignado también puede corregirse y
-  // persistirse al renderizar un panel de zona, no solo al renderizar Vista Lista. Gateado por
-  // hasChildren — DISC (hasChildren:false) no tiene jerarquía R→hijos, se preserva el guard para
-  // no correr el scan completo de REQs del proyecto en un panel que nunca los muestra (qdisc).
-  const _reqSelfHealDirty = hasChildren ? _selfHealReqStatuses() : false;
+  // TKT-202608-441 (REQ-202608-180), corregido vía TKT3 CAEL-08231830-01: self-heal consolidado
+  // en _selfHealReqStatuses(candidateItems) — a diferencia del intento anterior (que corría sobre
+  // getItems() completo), aquí se pasa zoneItems explícito: solo corrige REQs que ya viven en esta
+  // zona, mismo universo que el panel renderiza — evita que un panel de zona (ej. Q-Backlog)
+  // dispare self-heal/saveBacklog sobre REQs con sprint asignado que renderBacklogList() ya
+  // gestiona por su cuenta. Gateado por hasChildren — DISC (hasChildren:false) no tiene jerarquía
+  // R→hijos, se preserva el guard para no correr el scan en un panel que nunca los muestra (qdisc).
+  const _reqSelfHeal = hasChildren ? _selfHealReqStatuses(zoneItems) : { changed: false, count: 0 };
+  const _reqSelfHealDirty = _reqSelfHeal.changed;
 
   // Badge — universo SIN filtrar (conteo real de la zona), igual que B-202606-075.
   const badge = document.getElementById(badgeId);
