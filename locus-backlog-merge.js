@@ -1,4 +1,13 @@
-// [PP] mod:105 · autor:Rune · 2026-08-22 UTC-6
+// [PP] mod:107 · autor:Rune · 2026-08-22 UTC-6
+// Corrección de header — mod:106 (línea siguiente) describía TKT2b (footer retirado)
+// pero el cuerpo del archivo ya contenía el trabajo de TKT2c (footer de metadata
+// reincorporado vía .mdiff-card-body-footer, comentario inline ~L1076-1080, "AC5
+// corregido por Cael tras ambigüedad de clase CSS", parent TKT-202608-436) sin que el
+// header hubiera sido incrementado en esa entrega. Detectado en verificación de Finn
+// contra el archivo real (Hallazgo fuera de scope, resuelto en sesión — dueño co-presente,
+// nivel Patch, sin bifurcación de founder). Sin cambio de comportamiento — solo alinea el
+// header con el estado real del código. contract_update: no.
+// [PP] mod:106 · autor:Rune · 2026-08-22 UTC-6
 // TKT2b (REQ-202608-177, ref_id CAEL-08211730-01): corrección tras 2da auditoría de Finn
 // (AC5) — retirado el footer con clase .mdiff-card-footer--patch, sin definición CSS y sin
 // respaldo en ningún AC del TKT. _buildDiscDiscardCard() ahora solo renderiza lo que AC1-4
@@ -1070,9 +1079,20 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   const _isDiscDiscardedPatch = (patchItem) =>
     _itemKindFn({ code: patchItem.code }) === 'DISC' && patchItem.status === 'descartado';
 
+  // TKT2c (REQ-202608-177, parent TKT-202608-436, AC5 corregido por Cael tras ambigüedad de
+  // clase CSS): footer de metadata reincorporado. role/next_role NO viven en patchItem — son
+  // campos de nivel raíz del CHECKPOINT, resueltos por closure vía _ckptMeta.role y
+  // _metaSiguiente (mismo patrón que el resto del archivo). .mdiff-card-body-footer es clase
+  // nueva autorizada explícitamente — no existía patrón de footer reutilizable en mdiff-* (única
+  // clase con --text3 en el mismo namespace no aplicaba a este contexto).
   const _buildDiscDiscardCard = (patchItem) => {
     const discardReasonHtml = patchItem.discard_reason
       ? `<span class="mdiff-discard-reason-chip">${esc(String(patchItem.discard_reason))}</span>`
+      : '';
+    const _footerRole = _ckptMeta.role ? esc(String(_ckptMeta.role)) : '';
+    const _footerNext = _metaSiguiente ? esc(String(_metaSiguiente)) : '';
+    const footerHtml = (_footerRole || _footerNext)
+      ? `<div class="mdiff-card-body-footer">${[_footerRole, _footerNext].filter(Boolean).join(' · ')}</div>`
       : '';
     return `
     <div class="mdiff-card mdiff-card--accent mdiff-type--disc mdiff-zone-card">
@@ -1088,6 +1108,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
           </span>
           ${discardReasonHtml}
         </div>
+        ${footerHtml}
       </div>
     </div>`;
   };

@@ -1,4 +1,20 @@
-/* [PP] mod:115 · autor:Nova · 2026-08-21 UTC-6 */
+/* [PP] mod:117 · autor:Nova · 2026-08-22 16:40 UTC-6 */
+/* TKT-202608-437 (REQ-202608-177, parent TKT-202608-436 — bloqueo de
+   Rune): .mdiff-card-body-footer corregida — el bloque ya presente en el archivo (línea ~2825,
+   comentario "TKT2c ... AC5 corregido por Cael") no tenía entrada de header que lo respaldara y
+   no cumplía el AC1 vigente de este TKT (padding/border-radius ausentes, font-size --text-2xs
+   en vez de --text-xs, margin-top sin base en el AC). Corregida en el mismo selector, sin
+   duplicar clase: hereda base dimensional de .mdiff-pill (padding: 2px 8px, border-radius:
+   var(--radius-2xl), font-size: var(--text-xs)), color: var(--text3) directo, sin fondo ni
+   borde. Hallazgo fuera de scope resuelto en sesión — dueña presente (Nova), nivel Patch (el
+   selector aún no tiene consumidor real: TKT-202608-436 sigue `pendiente`, bloqueado por este
+   mismo TKT — cero riesgo de regresión visual), sin bifurcación de founder. AC3 (contraste
+   ≥4.5:1 sobre "--bg-panel"): no existe ese token literal en el proyecto (grep sin resultado en
+   este archivo y en `_Locus-css-ref`) — es término descriptivo del REQ para la superficie del
+   panel DIFF, que aquí es `--surface2` (mismo contexto que el resto de `.mdiff-*` de este
+   bloque). `var(--text3)` sobre `--surface2` ya está verificado ≥4.5:1 en ambos temas
+   (`_Locus-css-ref §Tokens — Color`: 5.21:1 dark / 5.56:1 light) — cubre el AC sin cálculo
+   nuevo. */
 /* TKT3b (REQ-202608-177, ref_id NOVA-08211800-01, parent TKT-202608-436 — bloqueo de Rune):
    .mdiff-transition-pill--disc-origin agregada junto a .mdiff-transition-pill--discarded —
    ver comentario inline en la clase (línea ~5237) para verificación de tokens ausentes. */
@@ -2815,6 +2831,19 @@
   color: var(--text2);
   line-height: 1.45;
   min-width: 0;
+}
+
+/* TKT-202608-437 (REQ-202608-177, parent TKT-202608-436): footer de
+   metadata (role · next_role/next_step) para _buildDiscDiscardCard() en locus-backlog-merge.js.
+   Hereda base dimensional de .mdiff-pill (padding/radius/font-size, arriba en este archivo) —
+   sin fondo ni borde, var(--text3) directo, texto secundario neutro subordinado visualmente al
+   resto de la card. Corrige el bloque anterior sin entrada de header — ver comentario de
+   mod:117 al inicio de este archivo. */
+.mdiff-card-body-footer {
+  font-size: var(--text-xs);
+  padding: 2px 8px;
+  border-radius: var(--radius-2xl);
+  color: var(--text3);
 }
 
 .mdiff-change-hint {

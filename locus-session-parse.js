@@ -1,3 +1,10 @@
+// [PP] mod:203 · autor:Rune · 2026-08-22 UTC-6
+// Fix INC-202608-[pendiente-ID] (hallazgo de sesión de soporte, triggered_by patch-intencion
+// de REQ-202608-177): guard temprano de _processIngestBatch() no incluía patchIntencionItems
+// en su condición de entrada — un batch de un solo bloque con solo type:'patch-intencion'
+// (sin tgItems ni patchItems) tomaba la rama "sin cambios de backlog", mostraba toast de éxito
+// silencioso y retornaba antes de showMergeDiffPanel/_onApplyBatch. Ver comentario completo
+// junto a la condición modificada, más abajo en este archivo.
 // [PP] mod:202 · autor:Rune · 2026-08-20 14:35 UTC-6
 // TKT1 (ref_id CAEL-08201430-02, REQ ref_id CAEL-08201430-01): comentario de
 // _processIngestBatch(id) corregido — ya no cita #ingest-process-batch-btn (retirado en el
@@ -3224,7 +3231,27 @@ export async function _processIngestBatch(id) {
     _showIngestValidationError(`&#9940; ${esc(skipped[0].reason)}`);
     return;
   }
-  if (!tgItems.length && !(patchItems && patchItems.length)) {
+  // Fix INC-202608-[pendiente-ID] (gap de especificación de TKT-202607-061/TKT2, hallazgo de
+  // sesión de soporte 2026-08-22): este guard ya excluía patchItems (type:'patch' ordinario) de
+  // la rama "sin cambios de backlog" desde antes de INC-202608-104, pero patchIntencionItems
+  // (type:'patch-intencion', agregado en TKT-202607-061/mod:150-168, posterior a ese guard) nunca
+  // se sumó a la condición. Un batch de un único bloque con solo un patch-intencion (tgItems:[],
+  // patchItems:[]) caía en esta rama, mostraba el toast de éxito silencioso "solo trazabilidad de
+  // archivo" y retornaba antes de llegar a showMergeDiffPanel/_onApplyBatch — el patch-intencion
+  // nunca se aplicaba, sin error visible. Mismo síntoma de fondo que INC-202608-104 (doc_updates
+  // perdidos en batch sin tgItems/patchItems), causa distinta: ahí el guard no verificaba
+  // contenido antes de tomar la rama de éxito; aquí el guard ni siquiera dejaba pasar el tipo de
+  // ítem nuevo agregado después de que el guard fue escrito. Fix: patchIntencionItems se suma a
+  // la condición de entrada — con contenido, el batch salta esta rama completa y sigue el mismo
+  // camino que ya recorren los batches de solo patchItems (activeProj → showMergeDiffPanel →
+  // _onApplyBatch, que ya invoca applyPatchesFromTG con patchIntencionItems desde TKT2 de
+  // REQ-202607-061 — ver guard "((patchItems...||patchIntencionItems...) && _batchMergeResult)"
+  // más abajo). No introduce camino nuevo — reutiliza el mismo fall-through ya probado en
+  // producción para patchItems-only. contract_update: no — cambio de condición de guard, sin
+  // firma ni comportamiento nuevo para los casos ya cubiertos (tgItems/patchItems no vacíos, o
+  // batch realmente sin ítems de ningún tipo).
+  // [PP] mod:203 · autor:Rune · 2026-08-22 UTC-6
+  if (!tgItems.length && !(patchItems && patchItems.length) && !(patchIntencionItems && patchIntencionItems.length)) {
     // TKT-202608-234 (REQ-202608-089): distingue un batch de CHECKPOINTs válidos sin ítems
     // (items:[] en todos los bloques — solo trazabilidad de archivo, sin doc_updates ni
     // sprint_proposal que hayan sobrevivido hasta aquí) de un batch donde ningún bloque llegó
