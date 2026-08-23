@@ -1,4 +1,4 @@
-// [PP] mod:19 · autor:Rune · 2026-08-21 21:15 UTC-6
+// [PP] mod:20 · autor:Rune · 2026-08-23 UTC-6
 // TKT-202608-432 (REQ-202608-175, TKT1): _renderZonePanel gana opts.sortComparator opcional —
 // permite a qdisc.js reemplazar el sort tipo/prioridad por defecto con un comparator propio
 // (antigüedad) sin tocar el comportamiento de qbacklog, que nunca lo declara. Ver detalle inline
@@ -142,9 +142,9 @@
 // early-return de empty-state (activeZoneItems/filteredItems vacíos) — un REQ self-healed puede
 // no llegar al final de la función si el filtro activo lo excluye.
 
-import { itemKind, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsToggleType, _nsTogglePriority, _nsGetArea, _nsToggleArea, _getBacklogSortDir, _computeRStatusFromChildren } from './locus-backlog-core.js'; // TKT-202607-011: _nsGetArea/_nsToggleArea agregados · TKT self-heal-qbacklog: _computeRStatusFromChildren agregada — self-heal de status de REQ en _renderZonePanel, mismo mecanismo que _renderVistaLista (locus-backlog-render.js)
+import { itemKind, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsToggleType, _nsTogglePriority, _nsGetArea, _nsToggleArea, _getBacklogSortDir, _selfHealReqStatuses } from './locus-backlog-core.js'; // TKT-202607-011: _nsGetArea/_nsToggleArea agregados · TKT-202608-441 (REQ-202608-180): _computeRStatusFromChildren removida (inline_fix) — self-heal de status de REQ delegado a _selfHealReqStatuses(), único consumidor de _computeRStatusFromChildren ahora vive en locus-backlog-core.js
 import { _attachBacklogListDelegation, _resetBacklogListDelegation, buildBacklogItem } from './locus-backlog-item.js';
-import { _getActiveProjectFilter, saveBacklog, _blogLog } from './locus-storage.js'; // TKT self-heal-qbacklog: saveBacklog/_blogLog agregadas — persistir y loguear la corrección de status de REQ, mismo patrón que _renderVistaLista
+import { _getActiveProjectFilter, saveBacklog } from './locus-storage.js'; // TKT-202608-441 (REQ-202608-180): _blogLog removida (inline_fix) — sin call site real tras delegar el self-heal a _selfHealReqStatuses() (locus-backlog-core.js, que ya importa _blogLog por su cuenta). saveBacklog se conserva — sigue disparándose sobre _reqSelfHealDirty
 import { _buildChildMap } from './locus-backlog-hierarchy.js';
 
 // T-202606-163 / TKT-C1: _zoneStaleness (antes _iceboxStaleness) — umbral de alerta por tipo de
@@ -419,46 +419,14 @@ export function _renderZonePanel(opts) {
 
   const zoneItems = getItems().filter(isZone);
 
-  // TKT self-heal-qbacklog (autónomo — sin REQ padre): self-healing de status de REQ — recalcula ANTES
-  // de badge/counts/HTML, mismo mecanismo y misma fuente de hijos que _renderVistaLista
-  // (locus-backlog-render.js, REQ CAEL-0720-01) — un REQ en Q-Backlog con TKT hijo fuera de
-  // pendiente ahora sale corregido en este mismo pase, sin depender de que ese REQ también
-  // renderice en Vista Lista (requiere sprint asignado). Gateado por hasChildren — DISC
-  // (hasChildren:false, ver TKT1 REQ hide-done-qdisc) no tiene jerarquía R→hijos, sin REQs en su
-  // universo; sin este guard el loop sería un no-op costoso en qdisc, no un bug, pero se excluye
-  // explícitamente para no iterar sobre un universo donde itemKind==='REQ' nunca ocurre.
-  // Batching: como máximo 1 saveBacklog() por pase de render (flag _reqSelfHealDirty, evaluado al
-  // final de la función) — mismo criterio anti-N-escrituras que _renderVistaLista.
-  let _reqSelfHealDirty = false;
-  if (hasChildren) {
-    zoneItems.forEach(item => {
-      if (itemKind(item) !== 'REQ') return;
-      if (item.status === 'done' || item.status === 'bloqueado' || item.status === 'descartado') return;
-
-      // Mismo universo que _renderVistaLista: solo TKT (parentId es exclusivo de TKT,
-      // __BR-Ecosystem §5), incluye descartados (necesario para que →orphaned se recalcule aquí).
-      const _childrenStatuses = getItems()
-        .filter(i => itemKind(i) === 'TKT' && i.parentId === item.code)
-        .map(i => i.status);
-
-      const _nextStatus = _computeRStatusFromChildren(item.status, _childrenStatuses);
-      if (!_nextStatus) return;
-
-      const _prevStatus = item.status;
-      let _reason, _label;
-      if (_nextStatus === 'orphaned') { _reason = 'auto-all-children-discarded'; _label = 'todos los hijos descartados'; }
-      else if (_nextStatus === 'en-revision') { _reason = 'auto-all-children-done'; _label = 'todos los hijos activos done'; }
-      else if (_prevStatus === 'en-revision') { _reason = 'auto-child-retroceded'; _label = 'hijo retrocedió de done'; }
-      else { _reason = 'auto-child-advanced'; _label = 'hijo activo avanzó'; }
-
-      item.status = _nextStatus;
-      item.statusChangedAt = Date.now();
-      if (!item.history) item.history = [];
-      item.history.push({ type: 'status', ts: item.statusChangedAt, data: { from: _prevStatus, to: _nextStatus, reason: 'render-selfheal-zone' } });
-      _blogLog('status-auto →', item.code, _prevStatus + ' → ' + _nextStatus + ' (' + _label + ' — self-heal en render Q-Backlog)', 'backlog');
-      _reqSelfHealDirty = true;
-    });
-  }
+  // TKT-202608-441 (REQ-202608-180): self-heal consolidado en _selfHealReqStatuses()
+  // (locus-backlog-core.js) — mismo consumo que renderBacklogList() (locus-backlog-render.js).
+  // Cambio de comportamiento declarado en AC (no es un bug): la función opera sobre getItems()
+  // completo, no solo sobre zoneItems — un REQ con sprint asignado también puede corregirse y
+  // persistirse al renderizar un panel de zona, no solo al renderizar Vista Lista. Gateado por
+  // hasChildren — DISC (hasChildren:false) no tiene jerarquía R→hijos, se preserva el guard para
+  // no correr el scan completo de REQs del proyecto en un panel que nunca los muestra (qdisc).
+  const _reqSelfHealDirty = hasChildren ? _selfHealReqStatuses() : false;
 
   // Badge — universo SIN filtrar (conteo real de la zona), igual que B-202606-075.
   const badge = document.getElementById(badgeId);
