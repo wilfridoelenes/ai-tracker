@@ -1,3 +1,7 @@
+// [PP] mod:176 · autor:Rune · 2026-08-23 00:00 UTC-6
+// TKT-202608-XXX (REQ-202608-XXX): .bitem-subline-sprint retirado de la subline — redundante
+// con el header de sprint que agrupa todo ítem con item.sprint (Backlog activo + Histórico,
+// mismo motor renderSprintGroup, sin vista cruzada sin agrupar confirmada). Ver detalle inline.
 // [PP] mod:175 · autor:Rune · 2026-08-19 05:53 UTC-6
 // TKT-202608-328 (REQ-202608-131, TKT2 · Migración Backlog — Excepción de resolución
 // directa: hallazgo de código, nivel Patch, sin bifurcación de founder): retirado branch
@@ -1540,7 +1544,9 @@ export function buildBacklogItem(item, opts = {}) {
   const _sublineParts = [];
   if (item.role) _sublineParts.push(`<span class="bitem-subline-role" title="Rol responsable">${esc(item.role)}</span>`);
   if (item.area) _sublineParts.push(`<span class="bitem-subline-area" title="${esc(item.area)}">${esc(item.area)}</span>`);
-  if (item.sprint) _sublineParts.push(`<span class="bitem-subline-sprint">${esc(_sprintDisplay(item.sprint))}</span>`);
+  // TKT-202608-XXX (REQ-202608-XXX): .bitem-subline-sprint retirado — redundante con el
+  // header de sprint que ya agrupa todo ítem con item.sprint (Backlog activo e Histórico
+  // comparten el mismo motor renderSprintGroup, sin vista cruzada sin agrupar).
   // TKT-202608-302 (REQ-202608-122): chip de archivos afectados en subline —
   // mismo principio de "dónde vive el problema" que origin_module en el card de INC,
   // adaptado a `archivos` (campo propio de TKT, ausente en REQ/DISC — __BR-Ecosystem §5).

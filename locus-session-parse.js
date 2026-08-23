@@ -1,3 +1,22 @@
+// [PP] mod:208 · autor:Rune · 2026-08-23 UTC-6
+// TKT-202608-439 (REQ-202608-179, ref_id CAEL-08221600-01): 3 side effects de _onApplyBatch()
+// (retro_evaluated_sprint / learning_log_evaluated_through_ts / checkpoint_flow — antes ifs
+// sueltos intercalados en el mismo forEach(metas), insertados en TKTs distintos sin registro
+// común) consolidados en un array declarativo único, _BATCH_META_SIDE_EFFECTS, aplicado vía
+// _applyBatchMetaSideEffects(m, ctx). Sin cambio de comportamiento observable — mismo orden
+// relativo, mismas precondiciones (`when`), mismos side effects (`run`) que antes de este TKT.
+// AC4 del TKT (block count) fuera de este registro por gap de especificación: _updateIngestBlockCount()
+// (mod:99) no es side effect de _onApplyBatch() — vive en _routeParse(), evento distinto y
+// anterior a la confirmación del panel DIFF; devuelto a Cael, ver comentario junto al registro
+// más abajo en este archivo. Status/hora del worker (mod:179/180) también queda fuera — no es
+// per-meta, corre una sola vez por batch gateada por `id`, no por bloque.
+// [PP] mod:207 · autor:Rune · 2026-08-23 UTC-6
+// Fix INC-202608-137 (rama Reactiva, fix directo — sin REQ): el segundo guard de
+// _processIngestBatch() ("Sin ítems para procesar en este batch.") descartaba doc_updates/
+// inline_fix válidos de un batch de 2+ bloques en cuanto había al menos un bloque inválido en
+// ese mismo batch (skipped.length>0) — condición no contemplada por el fix de mod:205/206
+// (INC-202608-134/136), que solo cubría el caso skipped.length===0. Ver comentario completo
+// junto a la condición modificada, más abajo en este archivo.
 // [PP] mod:206 · autor:Rune · 2026-08-22 UTC-6
 // Fix INC-202608-[pendiente-ID] (hallazgo de sesión de soporte, triggered_by patch-intencion
 // de REQ-202608-177): guard temprano de _processIngestBatch() no incluía patchIntencionItems
@@ -1858,6 +1877,67 @@ function _resolveBatchFlowSprintId(idx, batchMergeResult) {
   return null;
 }
 
+// TKT-202608-439 (REQ-202608-179, ref_id CAEL-08221600-01): registro declarativo único de los
+// side effects por-meta que _onApplyBatch() dispara dentro de su forEach(metas) — antes 3 ifs
+// sueltos intercalados en ese forEach (retro/learning-log/checkpoint-flow), cada uno insertado en
+// un TKT distinto sin registro común (mods 185/196/424 de este archivo). Un side effect nuevo se
+// agrega a este array — no como línea suelta adicional al final del forEach.
+//
+// Cada entrada: { name, when(m) → boolean, run(m, ctx) }. `ctx` lleva lo que el forEach ya
+// resuelve una sola vez por invocación de _onApplyBatch (activeProj, batchMergeResult) — ningún
+// entry re-resuelve nada que el caller ya tiene en scope.
+//
+// Nota de especificación — AC4 del TKT (block count) no aplica a este registro: verificado
+// contra el cuerpo real de este archivo, _updateIngestBlockCount() (mod:99) se invoca desde
+// _routeParse() al rutear el paste a batch — nunca desde _onApplyBatch(), que solo corre al
+// confirmar "Aplicar" en el panel DIFF, evento distinto y posterior al ruteo. _Locus-
+// module-contracts §2 (entrada de handlePaste/handleInput, mod:99) ya documenta ese call site —
+// nunca ha sido side effect de _onApplyBatch. El AC del TKT que agrupa block count junto a los
+// otros 3 asume un mod:99 que no existe en _onApplyBatch; no se fuerza block-count dentro de este
+// registro para no introducir una invocación nueva no pedida por ningún AC de happy path —
+// devuelto como gap de especificación en el CHECKPOINT de entrega, no resuelto por inferencia.
+//
+// Del mismo modo, status/hora del worker (mod:179/180, saveWorker+_markRadarDirty+
+// renderGlobalRadarSidebar) no es per-meta — corre una sola vez por batch, gateada por `id` (el
+// worker que abrió el modal), no por cada bloque confirmado. Se deja fuera de este registro por
+// naturaleza distinta (no itera metas) — mismo comportamiento y ubicación previos, sin cambio.
+const _BATCH_META_SIDE_EFFECTS = [
+  {
+    name: 'retro_evaluated_sprint', // mod:185 (TKT-202608-377, REQ-202608-150)
+    when: m => !!m.retroEvaluatedSprint,
+    run:  m => _applyRetroEvaluatedSprint(m.retroEvaluatedSprint)
+  },
+  {
+    name: 'learning_log_evaluated_through_ts', // mod:199/201 (TKT-202608-424, REQ-202608-171)
+    when: m => !!m.learningLogEvaluatedThroughTs,
+    run:  (m, ctx) => _applyLearningLogEvaluated(ctx.activeProj.id, m.learningLogEvaluatedThroughTs)
+  },
+  {
+    name: 'checkpoint_flow', // mod:196/201 (TKT-202608-429, REQ-202608-172)
+    when: m => !!m.resumen,
+    run:  (m, ctx) => saveCheckpointFlow({
+      projectId: ctx.activeProj.id,
+      sprintId:  _resolveBatchFlowSprintId(m.idx, ctx.batchMergeResult),
+      title:     m.titulo || '',
+      role:      m.rol || '',
+      summary:   m.resumen,
+      blockers:  m.bloqueantes || 'n/a',
+      learning:  m.aprendizaje || 'n/a',
+      decision:  m.decision || 'n/a'
+    })
+  }
+];
+
+// TKT-202608-439: aplica el registro de arriba sobre un solo bloque (m) del batch. Extraído de
+// _onApplyBatch() para que un side effect nuevo se declare en _BATCH_META_SIDE_EFFECTS y quede
+// cubierto aquí automáticamente, sin tocar el forEach que lo invoca.
+function _applyBatchMetaSideEffects(m, ctx) {
+  if (!m) return;
+  for (const effect of _BATCH_META_SIDE_EFFECTS) {
+    if (effect.when(m)) effect.run(m, ctx);
+  }
+}
+
 function _extractCkptMeta(ckpt) {
   const _c = ckpt || {};
   return {
@@ -3316,12 +3396,34 @@ export async function _processIngestBatch(id) {
       showToast('success', `${metas.length} bloque${metas.length !== 1 ? 's' : ''} válido${metas.length !== 1 ? 's' : ''} — sin cambios de backlog, solo trazabilidad de archivo`);
       return;
     }
-    if (!(metas.length && !skipped.length)) {
+    // Fix INC-202608-137 (hallazgo de sesión de soporte 2026-08-23, mismo patrón de causa raíz
+    // que INC-202608-104/134/136 — el guard no verificaba contenido antes de tomar la rama de
+    // salida): esta condición exigía skipped.length===0 para dejar pasar doc_updates/inline_fix,
+    // asumiendo (comentario original de TKT-202608-234, línea ~3259) que "metas.length>0 con
+    // skipped.length===0 es la única combinación posible para llegar a esta rama sin bloques
+    // rechazados/inválidos" — falso desde que un batch de 2+ bloques admite mezcla de bloques
+    // válidos e inválidos sin activar los returns tempranos de _singleInvalid (exclusivo de
+    // rawBlocks.length===1) ni _rejectedEntry (tipo 'rejected', no 'invalid'). Un batch con al
+    // menos un bloque inválido (skipped.length>0) y al menos un bloque válido con solo
+    // inline_fix — el caso exacto de INC-202608-137 — caía aquí y descartaba el inline_fix del
+    // bloque válido en silencio, aunque _resolveCheckpointBatch ya había registrado el bloque
+    // inválido en DocLog vía _blogLog('checkpoint-batch-invalido', ...) por separado (línea
+    // ~3953, sin cambio — esa trazabilidad ya existía y no se pierde). Fix: la condición de
+    // bloqueo ya no depende de skipped.length — bloquea únicamente cuando no hay ningún bloque
+    // válido (metas.length===0) o cuando los bloques válidos no traen doc_updates ni inline_fix
+    // (mismo caso ya cubierto arriba, ahí sí retornado con éxito si además skipped.length===0).
+    // Con contenido, el batch cae al mismo fall-through ya probado por INC-202608-104/136 (gate
+    // de proyecto activo → showMergeDiffPanel → _onApplyBatch), sin importar si hubo bloques
+    // inválidos en paralelo dentro del mismo batch. no_incluye: no cambia el mensaje de DocLog
+    // de bloques inválidos, no agrega toast nuevo distinguiendo cuántos bloques fueron omitidos
+    // — mismo criterio que INC-202608-104/136, fuera de scope de este fix puntual.
+    if (!metas.length || (!_docUpdatesInMetas.length && !_inlineFixesInMetas.length)) {
       showToast('warning', 'Sin ítems para procesar en este batch.');
       return;
     }
-    // Llegamos aquí solo si: metas.length && !skipped.length && _docUpdatesInMetas.length>0 —
-    // doc_updates puros, sin ítems. Sigue el flujo normal más abajo (gate de proyecto activo →
+    // Llegamos aquí si: metas.length>0 && (_docUpdatesInMetas.length>0 || _inlineFixesInMetas.
+    // length>0) — con o sin bloques inválidos en paralelo (skipped.length puede ser >0 desde
+    // INC-202608-137). Sigue el flujo normal más abajo (gate de proyecto activo →
     // showMergeDiffPanel) en vez de aplicar y retornar aquí.
   }
 
@@ -3403,45 +3505,12 @@ export async function _processIngestBatch(id) {
       });
       if (Array.isArray(m.inlineFixes) && m.inlineFixes.length) _allInlineFixes.push(...m.inlineFixes);
       if (m.finnRelease) _finnReleaseCount++;
-      // TKT-202608-377 (REQ-202608-150): flujo batch — mismo punto de confirmación de ingesta
-      // que doc_updates/inline_fix/finn_release, por bloque del batch.
-      if (m.retroEvaluatedSprint) _applyRetroEvaluatedSprint(m.retroEvaluatedSprint);
-      // TKT-202608-424 (REQ-202608-171, TKT3): flujo batch — mismo punto de confirmación de
-      // ingesta que retro_evaluated_sprint, por bloque del batch. activeProj ya resuelto arriba
-      // en esta función (guard de proyecto antes de procesar el batch) — sin lookup adicional.
-      if (m.learningLogEvaluatedThroughTs) _applyLearningLogEvaluated(activeProj.id, m.learningLogEvaluatedThroughTs);
-      // TKT1 (REQ CAEL-08192015-01, DISC-202608-195): flujo batch — un insert en
-      // tracker_checkpoint_flow por bloque del batch con contenido real (AC — summary vacío no
-      // genera fila), mismo punto de confirmación de ingesta que retro_evaluated_sprint/
-      // learning_log_evaluated_through_ts arriba. Antes de este fix, saveCheckpointFlow() solo se
-      // invocaba desde _doApplyMergeAndFinish (locus-session-save.js, flujo single) — todo
-      // CHECKPOINT pegado en bloque (patrón estándar de sesiones auto-orquestadas, __BR-Core)
-      // dejaba el Learning Log (__OB-Strategy §5) sin datos, causa raíz de DISC-202608-195.
-      // sprint_id resuelto por bloque vía _resolveBatchFlowSprintId (arriba) — created/advanced/
-      // updated de _batchMergeResult mezclan ítems de todo el batch, filtrados aquí por m.idx.
-      // Fire-and-forget, sin await — mismo criterio de no bloqueo que saveWorker()/_upsertSprint()
-      // en este mismo bloque y que el propio saveCheckpointFlow() ya declara en su contrato.
-      if (m.resumen) {
-        // Fix mismatch camelCase/snake_case (detectado en QA, 2026-08-19): saveCheckpointFlow()
-        // (locus-storage.js) lee flow.projectId/flow.sprintId/flow.title — este call site pasaba
-        // project_id/sprint_id/checkpoint_title (snake_case), dejando cada fila del path batch con
-        // project_id:null (filtrada fuera por getCheckpointFlowsWithoutSprint()) y checkpoint_title
-        // ignorado. Alineado al shape ya verificado del path single (_doApplyMergeAndFinish(),
-        // locus-session-save.js línea ~996). `files`/`created_at` retirados — no forman parte del
-        // shape confirmado contra el path single; sin locus-storage.js adjunto en esta sesión para
-        // verificar si esos dos campos tienen efecto real, se prefiere el shape ya probado antes que
-        // asumir soporte no confirmado.
-        saveCheckpointFlow({
-          projectId: activeProj.id,
-          sprintId:  _resolveBatchFlowSprintId(m.idx, _batchMergeResult),
-          title:     m.titulo || '',
-          role:      m.rol || '',
-          summary:   m.resumen,
-          blockers:  m.bloqueantes || 'n/a',
-          learning:  m.aprendizaje || 'n/a',
-          decision:  m.decision || 'n/a'
-        });
-      }
+      // TKT-202608-439 (REQ-202608-179): retro_evaluated_sprint / learning_log_evaluated_
+      // through_ts / checkpoint_flow — antes 3 ifs sueltos aquí mismo (mods 185/196/424) — ahora
+      // un registro único (_BATCH_META_SIDE_EFFECTS, definido arriba en este archivo). Mismo
+      // orden relativo y mismas precondiciones que antes de este TKT — un side effect nuevo se
+      // agrega a ese registro, no a este forEach.
+      _applyBatchMetaSideEffects(m, { activeProj, batchMergeResult: _batchMergeResult });
     });
     if (_allInlineFixes.length) {
       showCheckpointPanel({ ...(_batchMergeResult || {}), inlineFixes: _allInlineFixes });
