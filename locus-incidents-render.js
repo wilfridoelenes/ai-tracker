@@ -1,3 +1,10 @@
+// [PP] mod:27 · autor:Rune · 2026-08-23 UTC-6
+// Fix INC (hallazgo de Finn en QA del fix anterior, misma sesión): _qiKeydown() — mismo root
+// cause que mod:26 pero en el listener de teclado. Enter/Espacio con foco en el botón nativo
+// qi-copy-item disparaba trigger.click() sobre el header ancestro (data-qi-action=
+// "qi-open-panel") en vez de dejar que el botón generara su propio click — early-return
+// agregado antes del check de qi-open-panel. Un solo archivo tocado.
+
 // [PP] mod:26 · autor:Rune · 2026-08-23 UTC-6
 // Fix INC (hallazgo de Finn, sesión 2026-08-23): _attachQIncDelegation() reordena el bloque
 // qi-copy-item ANTES de qi-open-panel — el botón "Copiar ítem completo" está anidado dentro
@@ -778,6 +785,14 @@ function _attachQIncDelegation(container) {
       _toggleQIncSection(sectionHeader);
       return;
     }
+    // Fix INC (hallazgo Finn, misma sesión — mismo root cause del fix de click de arriba):
+    // qi-copy-item es <button> nativo anidado dentro de .qinc-item-header — sin este
+    // early-return, closest() de la línea de abajo matcheaba el header ancestro
+    // (data-qi-action="qi-open-panel") y trigger.click() se disparaba sobre el header en vez
+    // de dejar que el botón nativo genere su propio evento click (que ya llega correctamente
+    // ordenado al listener de click de arriba). Sin este guard, Enter/Espacio sobre el botón
+    // abría el panel en vez de copiar — mismo síntoma que el bug de mouse, vía teclado.
+    if (e.target.closest('[data-qi-action="qi-copy-item"]')) return;
     const trigger = e.target.closest('[data-qi-action="qi-open-panel"]');
     if (!trigger) return;
     e.preventDefault();
