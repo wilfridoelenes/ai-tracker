@@ -1,3 +1,12 @@
+// [PP] mod:26 · autor:Rune · 2026-08-23 UTC-6
+// Fix INC (hallazgo de Finn, sesión 2026-08-23): _attachQIncDelegation() reordena el bloque
+// qi-copy-item ANTES de qi-open-panel — el botón "Copiar ítem completo" está anidado dentro
+// de .qinc-item-header (data-qi-action="qi-open-panel"); con qi-open-panel evaluado primero,
+// closest() del click sobre qi-copy-item matcheaba el header ancestro y abría el panel en vez
+// de copiar — mismo patrón de conflicto ya resuelto para copy-code (ver comentario en esa
+// rama). Sin cambio de lógica interna de ninguno de los dos bloques, solo orden de evaluación.
+// Un solo archivo tocado — sin lógica de negocio nueva.
+
 // [PP] mod:25 · autor:Rune · 2026-08-14 21:45 UTC-6
 // Fast Track INC (triggered_by: hallazgo de Nova, misma sesión — locus-incidents.css mod:16
 // ya entregado): reordena el markup de .qinc-section-header ("Activos"/"Terminados") al
@@ -695,24 +704,16 @@ function _attachQIncDelegation(container) {
       return;
     }
 
-    // --- qi-open-panel: paridad con .bitem-header — abre el IDP (Item Detail Panel) ---
-    // TKT (paridad IDP Q-INC, 2026-07-18): import dinámico — locus-backlog-panel.js ya importa
-    // renderBacklogList de este archivo; un import estático de openItemPanel aquí crearía un
-    // ciclo ESM. Mismo patrón ya documentado en locus-ui-shell.js (navigateToItem dinámico).
-    // TKT-A (REQ CAEL-0722-01, ref_id CAEL-0722-05): mismo trigger ahora también aplica a
-    // .qinc-item-meta-secondary — data-qi-action idéntico, sin lógica adicional necesaria.
-    const openPanelTrigger = e.target.closest('[data-qi-action="qi-open-panel"]');
-    if (openPanelTrigger) {
-      const card = openPanelTrigger.closest('.qinc-item[data-code]');
-      const code = card ? card.dataset.code : null;
-      if (code) import('./locus-backlog-panel.js').then(m => m.openItemPanel(code));
-      return;
-    }
-
     // --- qi-copy-item: copia el bloque completo del ítem al portapapeles ---
     // TKT-B (REQ CAEL-0722-01, ref_id CAEL-0722-06): mismo patrón de feedback que copy-code
     // (is-copied + timeout), con estado de error explícito si el clipboard falla (AC de
     // error separado del happy path — permiso denegado o contexto no seguro).
+    // Fix INC (hallazgo Finn, sesión 2026-08-23): movido ANTES de qi-open-panel — mismo
+    // motivo ya documentado para copy-code (ver comentario en esa rama, arriba): el botón
+    // vive anidado dentro de .qinc-item-header, que lleva data-qi-action="qi-open-panel".
+    // Con qi-open-panel evaluado primero, closest() del click en qi-copy-item también
+    // matcheaba el header ancestro y el copiado nunca se ejecutaba — el botón abría el panel
+    // en su lugar. Sin cambio de lógica interna, solo de orden de evaluación.
     const copyItemBtn = e.target.closest('[data-qi-action="qi-copy-item"]');
     if (copyItemBtn) {
       e.stopPropagation();
@@ -726,6 +727,20 @@ function _attachQIncDelegation(container) {
         copyItemBtn.classList.add('is-copy-error');
         setTimeout(() => copyItemBtn.classList.remove('is-copy-error'), 1500);
       });
+      return;
+    }
+
+    // --- qi-open-panel: paridad con .bitem-header — abre el IDP (Item Detail Panel) ---
+    // TKT (paridad IDP Q-INC, 2026-07-18): import dinámico — locus-backlog-panel.js ya importa
+    // renderBacklogList de este archivo; un import estático de openItemPanel aquí crearía un
+    // ciclo ESM. Mismo patrón ya documentado en locus-ui-shell.js (navigateToItem dinámico).
+    // TKT-A (REQ CAEL-0722-01, ref_id CAEL-0722-05): mismo trigger ahora también aplica a
+    // .qinc-item-meta-secondary — data-qi-action idéntico, sin lógica adicional necesaria.
+    const openPanelTrigger = e.target.closest('[data-qi-action="qi-open-panel"]');
+    if (openPanelTrigger) {
+      const card = openPanelTrigger.closest('.qinc-item[data-code]');
+      const code = card ? card.dataset.code : null;
+      if (code) import('./locus-backlog-panel.js').then(m => m.openItemPanel(code));
       return;
     }
 
