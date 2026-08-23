@@ -1,4 +1,4 @@
-// [PP] mod:204 · autor:Rune · 2026-08-22 UTC-6
+// [PP] mod:206 · autor:Rune · 2026-08-22 UTC-6
 // Fix INC-202608-[pendiente-ID] (hallazgo de sesión de soporte, triggered_by patch-intencion
 // de REQ-202608-177): guard temprano de _processIngestBatch() no incluía patchIntencionItems
 // en su condición de entrada — un batch de un solo bloque con solo type:'patch-intencion'
@@ -3268,34 +3268,61 @@ export async function _processIngestBatch(id) {
     // items:[] con doc_updates poblado (ej. "DOC-UPDATE aplicado — [doc].md" sin cambios de
     // backlog) tomaba esta rama, mostraba el toast de éxito y retornaba sin invocar
     // processDocUpdate() en ningún punto — el doc_update se perdía en silencio, nunca llegaba a
-    // la cola de DOC-UPDATEs pendientes de Locus. _onApplyBatch (más abajo, dentro del callback
-    // de showMergeDiffPanel) sí procesa m.docUpdates correctamente, pero solo se alcanza cuando
-    // hay tgItems/patchItems — este guard temprano nunca llega ahí. Fix: antes de tomar la rama
-    // de éxito silencioso, se recorren metas buscando docUpdates con contenido; si los hay, se
-    // procesan aquí mismo vía processDocUpdate() (mismo mecanismo que _onApplyBatch, sin
-    // duplicar lógica de merge/patch — no aplica a items del backlog, solo a docs) y el toast
-    // final refleja el conteo real en vez del texto genérico "solo trazabilidad de archivo".
+    // la cola de DOC-UPDATEs pendientes de Locus. Fix original (INC-202608-104): aplicar aquí
+    // mismo antes del toast de éxito silencioso.
+    //
+    // TKT1 (REQ ref_id CAEL-08222100-01, resuelve DISC-202608-207, sesión 2026-08-22): el fix de
+    // INC-202608-104 corrigió la pérdida del doc_update, pero introdujo una asimetría —
+    // doc_updates puros se aplicaban al pegar, sin ningún gate de confirmación, mientras que
+    // cualquier batch con tgItems/patchItems exige click en 'Aplicar' del panel DIFF
+    // (showMergeDiffPanel, más abajo en esta función). _onApplyBatch (definido más arriba en
+    // _processIngestBatch) ya recorre metas y llama processDocUpdate() por cada entrada de
+    // m.docUpdates de forma incondicional, dentro del callback que showMergeDiffPanel invoca
+    // solo al confirmar — ese wiring ya existía y nunca se alcanzaba para este caso porque este
+    // guard retornaba antes. Fix: cuando hay doc_updates en metas, este guard ya no los aplica
+    // ni retorna — cae al mismo camino que un batch con tgItems vacío pero con contenido: gate de
+    // proyecto activo → showMergeDiffPanel(tgItems=[], syntheticSessId, activeProj.id,
+    // _onApplyBatch, {metas}), que ya soporta tgItems=[] desde T-202606-037 AC-1 ("el panel
+    // siempre abre cuando hay CHECKPOINT válido", locus-backlog-merge.js). Sin ítems que
+    // diferenciar visualmente, el panel muestra únicamente la sección de doc_updates — mismo
+    // rendering que ya usa un batch mixto (items + doc_updates), sin cambio de layout.
+    // no_incluye: no toca la rama de batch validado sin doc_updates (línea siguiente, sigue
+    // aplicando y retornando igual que antes) ni la rama de batch sin bloques válidos/con
+    // bloques rechazados (warning genérico, sin cambio).
+    // [PP] mod:205 · autor:Rune · 2026-08-22 UTC-6
+    // Fix INC-202608-[pendiente-ID] (triggered_by TKT-202608-438, hallazgo de sesión de soporte
+    // 2026-08-22, mismo turno que el fix de _docUpdatesInMetas arriba): _docUpdatesInMetas cubre
+    // doc_updates puros, pero inline_fix nunca entró a la condición de salto — _extractCkptMeta/
+    // _resolveCheckpointBatch ya propagan m.inlineFixes por bloque sin exigir items no vacío
+    // (verificado, sin cambio necesario en esas dos funciones), pero este guard solo miraba
+    // _docUpdatesInMetas.length antes de retornar. Un batch con items:[] e inline_fix poblado
+    // caía en el mismo toast de éxito silencioso y nunca llegaba a _onApplyBatch — el bloque
+    // "if (_allInlineFixes.length) showCheckpointPanel(...)" de _onApplyBatch (línea ~3429,
+    // ya implementado desde TKT1/REQ CAEL-0727-01) nunca se alcanzaba para este caso. Mismo
+    // patrón de causa raíz que INC-202608-104: el guard no verificaba contenido antes de tomar
+    // la rama de éxito. Fix: inlineFixes se suma a la condición de entrada, mismo criterio que
+    // _docUpdatesInMetas — con contenido, el batch cae al mismo fall-through (gate de proyecto
+    // activo → showMergeDiffPanel → _onApplyBatch) que ya sabe recolectar y mostrar inlineFixes.
+    // no_incluye: no toca la rama de batch realmente sin ítems de ningún tipo (items/doc_updates/
+    // inline_fix), que sigue tomando el toast de éxito y retornando igual que antes.
+    // [PP] mod:206 · autor:Rune · 2026-08-22 UTC-6
     const _docUpdatesInMetas = [];
+    const _inlineFixesInMetas = [];
     (metas || []).forEach(m => {
       if (m && Array.isArray(m.docUpdates) && m.docUpdates.length) _docUpdatesInMetas.push(...m.docUpdates.map(u => ({ update: u, title: m.titulo || '' })));
+      if (m && Array.isArray(m.inlineFixes) && m.inlineFixes.length) _inlineFixesInMetas.push(...m.inlineFixes);
     });
-    if (metas.length && !skipped.length) {
-      if (_docUpdatesInMetas.length) {
-        let _applied = 0;
-        _docUpdatesInMetas.forEach(({ update, title }) => {
-          const { conflicto, msg } = processDocUpdate(update, title);
-          if (conflicto && msg) showToast('warn', msg);
-          _applied++;
-        });
-        showToast('success', `${_applied} doc_update${_applied !== 1 ? 's' : ''} registrado${_applied !== 1 ? 's' : ''} · sin cambios de backlog`);
-        ta.value = ''; // batch consumido — mismo criterio que la rama con ítems (línea ~2783)
-        return;
-      }
+    if (metas.length && !skipped.length && !_docUpdatesInMetas.length && !_inlineFixesInMetas.length) {
       showToast('success', `${metas.length} bloque${metas.length !== 1 ? 's' : ''} válido${metas.length !== 1 ? 's' : ''} — sin cambios de backlog, solo trazabilidad de archivo`);
       return;
     }
-    showToast('warning', 'Sin ítems para procesar en este batch.');
-    return;
+    if (!(metas.length && !skipped.length)) {
+      showToast('warning', 'Sin ítems para procesar en este batch.');
+      return;
+    }
+    // Llegamos aquí solo si: metas.length && !skipped.length && _docUpdatesInMetas.length>0 —
+    // doc_updates puros, sin ítems. Sigue el flujo normal más abajo (gate de proyecto activo →
+    // showMergeDiffPanel) en vez de aplicar y retornar aquí.
   }
 
   const activeProj = getActiveProject();
@@ -3491,9 +3518,17 @@ export async function _processIngestBatch(id) {
     // cuyo idx no aparece en ningún ítem combinado de tgItems/patchItems.
     const _appliedIdxSet = new Set([...tgItems, ...(patchItems || [])].map(it => it.idx));
     const _blocksWithoutChanges = (metas || []).filter(m => m && !_appliedIdxSet.has(m.idx)).length;
-    const _successMsg = _blocksWithoutChanges
+    // TKT1 (REQ ref_id CAEL-08222100-01, DISC-202608-207): _docUpdatesApplied (calculado arriba,
+    // ver forEach de metas) ya existía pero no se leía en este mensaje — un batch de solo
+    // doc_updates confirmado desde el panel DIFF (nuevo desde este TKT) mostraba "0 aplicados · N
+    // sin cambios de backlog", sin mencionar que N doc_updates sí quedaron registrados en la cola.
+    // Sufijo aditivo — batches sin doc_updates no cambian de mensaje (sufijo vacío).
+    const _docUpdatesSuffix = _docUpdatesApplied
+      ? ` · ${_docUpdatesApplied} doc_update${_docUpdatesApplied !== 1 ? 's' : ''} registrado${_docUpdatesApplied !== 1 ? 's' : ''}`
+      : '';
+    const _successMsg = (_blocksWithoutChanges
       ? `${_totalApplied} aplicado${_totalApplied !== 1 ? 's' : ''} · ${_blocksWithoutChanges} sin cambios de backlog`
-      : `✓ ${_totalApplied} ítem${_totalApplied !== 1 ? 's' : ''} aplicado${_totalApplied !== 1 ? 's' : ''} al backlog`;
+      : `✓ ${_totalApplied} ítem${_totalApplied !== 1 ? 's' : ''} aplicado${_totalApplied !== 1 ? 's' : ''} al backlog`) + _docUpdatesSuffix;
     showToast('success', _successMsg);
     ta.value = ''; // batch consumido — mismo criterio que closeStandaloneCheckpoint() limpiaba su propio textarea
   };
