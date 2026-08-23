@@ -1,4 +1,4 @@
-/* [PP] mod:168 · autor:Nova · 2026-08-19 19:35 UTC-6 */
+/* [PP] mod:169 · autor:Nova · 2026-08-23 19:10 UTC-6 */
 /* TKT-202608-415 (REQ-202608-168): swap DISC↔REQ en .stat-type-chip/.filter-type-btn (tc-DISC/
    tc-REQ base+active+all-active, filter-type-btn.active-DISC/-REQ) — cierra el gap de mod:55
    ya registrado en _Locus-css-ref y en el comentario junto a .stat-type-chip--qdisc-discovery.
@@ -4958,14 +4958,14 @@
 /* R-202605-066: .hsr-velocity retirada — TKT3 (REQ CAEL-0724-01) dejó de emitir ese HTML,
    _sprintVelocityLabel() ahora retorna {label, valor} consumido por .bl-vl-sprint-header-meta-*. */
 
-/* Dark mode — sprint headers: ajuste de stops para fondos de color */
+/* Dark mode — sprint headers: ajuste de stops para fondos de color — token --accent (TKT-[pendiente-ID]) */
 [data-theme="dark"] .sprint-group-active .bl-vl-sprint-header {
-  background: rgb(245 158 11 / 12%);
+  background: rgb(166 226 46 / 12%);
 }
-[data-theme="dark"] .sprint-group-active .bl-vl-sprint-header .sprint-name-label { color: rgb(250 199 117); }
-[data-theme="dark"] .sprint-group-active .bl-vl-sprint-header .version-tag { color: rgb(250 199 117); }
-[data-theme="dark"] .sprint-group-active .bl-vl-sprint-header .bl-vl-sprint-header-meta { color: rgb(250 199 117 / 80%); }
-[data-theme="dark"] .sprint-group-active .bl-vl-sprint-header .bl-vl-progress-label { color: rgb(250 199 117 / 80%); }
+[data-theme="dark"] .sprint-group-active .bl-vl-sprint-header .sprint-name-label { color: var(--accent-text); }
+[data-theme="dark"] .sprint-group-active .bl-vl-sprint-header .version-tag { color: var(--accent-text); }
+[data-theme="dark"] .sprint-group-active .bl-vl-sprint-header .bl-vl-sprint-header-meta { color: color-mix(in srgb, var(--accent-text) 80%, transparent); }
+[data-theme="dark"] .sprint-group-active .bl-vl-sprint-header .bl-vl-progress-label { color: color-mix(in srgb, var(--accent-text) 80%, transparent); }
 
 
 /* ══ T-202605-103 (TKT-C7, Gen2): Sección Done — bl-done-* ══ */
@@ -5572,36 +5572,40 @@
   padding: 0 14px 10px;
 }
 
-/* ── Estado: activo — fondo ámbar 50, border-left ámbar ── */
+/* ── Estado: activo — token --accent (TKT-[pendiente-ID], REQ-[pendiente-ID], ref_id CAEL-08231900-01)
+   Reemplaza --amber: --amber está reservado a warning/pendiente (_Locus-css-ref §Tokens) — un sprint
+   en curso no es una advertencia. --accent es el token que este mismo sistema ya usa para "algo en
+   movimiento/actualizándose" (.mdiff-pill--updated) — semántica más cercana a "sprint activo" que
+   --green (reservado a éxito/done) o --blue (ya usado por .sprint-group-planned). ── */
 .sprint-group-active .bl-vl-sprint-header {
-  background: rgb(245 158 11 / 8%);
-  border-left-color: var(--amber);
+  background: var(--accent-dim);
+  border-left-color: var(--accent);
 }
 
 .sprint-group-active .bl-vl-sprint-header .version-tag {
-  color: rgb(133 79 11);
-  background: rgb(245 158 11 / 12%);
-  border-color: rgb(245 158 11 / 35%);
+  color: var(--accent-text);
+  background: rgb(109 184 33 / 12%);
+  border-color: var(--accent-border);
 }
 
 .sprint-group-active .bl-vl-sprint-header .sprint-name-label {
-  color: rgb(99 56 6);
+  color: var(--accent-text);
 }
 
 .sprint-group-active .bl-vl-sprint-header .bl-vl-sprint-header-meta {
-  color: rgb(133 79 11);
+  color: var(--accent-text);
 }
 
 .sprint-group-active .bl-vl-sprint-header .bl-vl-progress-fill {
-  background: var(--amber);
+  background: var(--accent);
 }
 
 .sprint-group-active .bl-vl-sprint-header .bl-vl-progress-label {
-  color: rgb(133 79 11);
+  color: var(--accent-text);
 }
 
 .sprint-group-active .bl-vl-sprint-header .bl-vl-progress-track {
-  background: rgb(245 158 11 / 20%);
+  background: rgb(109 184 33 / 20%);
 }
 
 /* ── Estado: Q-INC — sin grupo visual en vista lista (vive en sub-tab propio) ── */

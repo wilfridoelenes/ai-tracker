@@ -1,4 +1,28 @@
-// [PP] mod:209 · autor:Rune · 2026-08-23 UTC-6
+// [PP] mod:211 · autor:Rune · 2026-08-23 UTC-6
+// CHG-202608-005 (triggered_by INC-202608-140): _onApplyBatch() no replicaba la mutación de
+// activeProj.tracker.items/tracker.counters (contador legacy v3.0.0) que _doApplyMergeAndFinish()
+// sí aplica (locus-session-save.js líneas 908-926) — un CHECKPOINT pegado en batch con REQ/TKT/
+// DISC/INC/PRB/CHG nuevos nunca actualizaba ese contador, a diferencia del path single. Nuevo
+// side effect `trackerLegacyItems` en _BATCH_META_SIDE_EFFECTS — replica el mismo algoritmo por
+// bloque (idx), tras sessionRegister. sessionId del contador legacy toma ctx.lastSessionId
+// (nuevo, escrito por sessionRegister y reseteado a null por meta en
+// _applyBatchMetaSideEffects — sin el reset, un bloque sin m.resumen heredaría el sessionId del
+// bloque anterior). Persistencia: el gate de saveImmediate() tras el loop de metas (INC-202608-141,
+// mod:210) se amplía con ctx.trackerLegacyTouched — activeProj.tracker vive en el mismo objeto
+// de proyecto que activeProj.sessions, mismo saveImmediate() cubre ambos sin llamada nueva.
+// [PP] mod:210 · autor:Rune · 2026-08-23 UTC-6
+// INC-202608-141: _mutateSessions(ctx.activeProj, 'add', newSessBatch) (side effect
+// sessionRegister, mod:204) mutaba activeProj.sessions en memoria sin ningún save()/
+// saveImmediate() posterior en _onApplyBatch() — a diferencia del path single
+// (_doApplyMergeAndFinish(), locus-session-save.js), que cierra con `await saveImmediate()`.
+// Una sesión creada vía batch quedaba dirty-tracked sin persistir hasta que una acción no
+// relacionada disparara save(). Fix: ctx de side effects hoisteado a una sola instancia
+// compartida entre bloques (antes se recreaba por meta, sin impacto en los otros 3 side
+// effects, que solo leen ctx.activeProj/ctx.batchMergeResult) para poder acumular un contador
+// (ctx.sessionsRegistered); tras el forEach(metas), si el contador es > 0, `await
+// saveImmediate()` una sola vez para todo el batch — no por sesión, mismo criterio de
+// persistencia única que el path single aplica por CHECKPOINT. save/saveImmediate ya estaban
+// importados (línea de import de este archivo) sin ningún call site real hasta este fix.
 // CHG-202608-003 (parent/triggered_by INC-202608-138): _onApplyBatch() nunca invocaba
 // _mutateSessions() — a diferencia del path single (_doApplyMergeAndFinish(),
 // locus-session-save.js), el batch de ingesta no registraba sesión de Worker por bloque
@@ -1984,6 +2008,9 @@ const _BATCH_META_SIDE_EFFECTS = [
         docsVerified:     m.docsVerified      || '',
         tensionsResolved: m.tensionsResolved  || '',
         finnObservations: m.finnObservations  || null,
+        finnRelease:      m.finnRelease       || null, // CHG-202608-004 (INC-202608-139): newSessBatch no declaraba
+        // finnRelease pese a que _extractCkptMeta() ya lo expone — mismo criterio que newSess()
+        // del path single (locus-session-save.js: finnRelease: parsed.finnRelease || null).
         rol:      m.rol || '',
         archivos: _batchParseFilesField(m.archivosRaw || ''),
         sprintId: (getActiveSprints().find(sp => sp.status === 'active') || {}).id || '',
@@ -1995,6 +2022,52 @@ const _BATCH_META_SIDE_EFFECTS = [
         dateShort: _dateShort, date: _dateFull
       };
       _mutateSessions(ctx.activeProj, 'add', newSessBatch);
+      // INC-202608-141: contador compartido en ctx (no per-meta) — permite al caller de
+      // _applyBatchMetaSideEffects (forEach de metas en _onApplyBatch) decidir, una sola vez
+      // tras el loop completo, si hay algo nuevo en activeProj.sessions que persistir.
+      ctx.sessionsRegistered = (ctx.sessionsRegistered || 0) + 1;
+      // CHG-202608-005 (INC-202608-140): expone el id de la sesión recién creada para este
+      // bloque — trackerLegacyItems (siguiente side effect) lo necesita como sessionId del
+      // contador legacy, mismo criterio que sessId en el path single. Reseteado a null por
+      // meta en _applyBatchMetaSideEffects — nunca sobrevive de un bloque al siguiente.
+      ctx.lastSessionId = newSessBatch.id;
+    }
+  },
+  {
+    // CHG-202608-005 (triggered_by INC-202608-140): _onApplyBatch() nunca replicaba la
+    // mutación de activeProj.tracker.items/tracker.counters (v3.0.0, contador legacy) que
+    // _doApplyMergeAndFinish() sí aplica (locus-session-save.js líneas 908-926) — ver tabla
+    // de paridad single↔batch en _Locus-module-contracts §2. Réplica exacta del mismo
+    // algoritmo: por cada tgItem del bloque, actualizar entrada existente por `code` o
+    // empujar una nueva y avanzar tracker.counters[TYPE] si el número del código nuevo supera
+    // el contador guardado — mismo regex, mismos 6 tipos (DISC/TKT/REQ/INC/PRB/CHG). tgItems
+    // ya incluye ítems ITIL (INC/PRB/CHG vía _buildItilItem, mismo array — ver push en
+    // _buildTgItemsFromParsed) con el mismo shape {code, desc, status} que los Planeada, sin
+    // necesidad de rama separada.
+    name: 'trackerLegacyItems',
+    when: () => true, // corre siempre — el filtro real es si el bloque tiene tgItems propios
+    run: (m, ctx) => {
+      const _blockTgItems = (ctx.tgItems || []).filter(it => it && it.idx === m.idx);
+      if (!_blockTgItems.length) return; // nada que replicar para este bloque
+      if (!ctx.activeProj.tracker) {
+        ctx.activeProj.tracker = { items: [], counters: { DISC: 0, TKT: 0, REQ: 0, INC: 0, PRB: 0, CHG: 0 } };
+      }
+      const tracker = ctx.activeProj.tracker;
+      const _sessIdForBlock = ctx.lastSessionId || ''; // '' si el bloque no calificó para sessionRegister (sin m.resumen)
+      _blockTgItems.forEach(item => {
+        const existing = tracker.items.find(x => x.code === item.code);
+        if (existing) {
+          existing.desc = item.desc; existing.status = item.status; existing.sessionId = _sessIdForBlock;
+        } else {
+          const c = tracker.counters;
+          const numMatch = (item.code || '').match(/^(DISC|TKT|REQ|INC|PRB|CHG)-\d{6}-(\d{3})/);
+          if (numMatch) { const num = parseInt(numMatch[2]); const key = numMatch[1]; if (num >= (c[key] || 0)) c[key] = num; }
+          tracker.items.push({id:'tgi-'+Date.now()+'-'+Math.random().toString(36).slice(2,6), code:item.code, desc:item.desc, status:item.status, sessionId:_sessIdForBlock});
+        }
+      });
+      // Mismo criterio que ctx.sessionsRegistered — marca compartida para que el caller
+      // decida, tras el forEach(metas) completo, si hay algo nuevo que persistir.
+      ctx.trackerLegacyTouched = true;
     }
   }
 ];
@@ -2004,6 +2077,11 @@ const _BATCH_META_SIDE_EFFECTS = [
 // cubierto aquí automáticamente, sin tocar el forEach que lo invoca.
 function _applyBatchMetaSideEffects(m, ctx) {
   if (!m) return;
+  // CHG-202608-005: reset por-meta — sin esto, ctx.lastSessionId (escrito por sessionRegister)
+  // sobrevive de un bloque al siguiente cuando el bloque actual no calificó para sessionRegister
+  // (sin m.resumen) pero sí tiene tgItems propios — trackerLegacyItems atribuiría esos ítems a
+  // la sesión de un bloque anterior en vez de sessionId:''.
+  ctx.lastSessionId = null;
   for (const effect of _BATCH_META_SIDE_EFFECTS) {
     if (effect.when(m)) effect.run(m, ctx);
   }
@@ -3612,6 +3690,13 @@ export async function _processIngestBatch(id) {
     let _docUpdatesApplied = 0;
     const _allInlineFixes = [];
     let _finnReleaseCount = 0;
+    // INC-202608-141: hoisteado fuera del forEach — antes se recreaba un objeto literal por
+    // meta (`{ id, activeProj, ... }`), lo que impedía acumular estado entre iteraciones. Los
+    // 4 side effects de _BATCH_META_SIDE_EFFECTS solo leen ctx.activeProj/ctx.batchMergeResult/
+    // ctx.id/ctx.tgItems/ctx.patchItems (ninguno los reasigna) — compartir la misma instancia
+    // entre bloques no cambia su comportamiento, y permite que sessionRegister acumule
+    // ctx.sessionsRegistered para la persistencia única de más abajo.
+    const _sideEffectCtx = { id, activeProj, batchMergeResult: _batchMergeResult, tgItems, patchItems };
     (metas || []).forEach(m => {
       if (!m) return;
       const _blockTitle = m.titulo || '';
@@ -3630,8 +3715,23 @@ export async function _processIngestBatch(id) {
       // CHG-202608-003: id/tgItems/patchItems agregados al ctx — requeridos por el side
       // effect sessionRegister (atribución del Worker + trackerRefs por bloque). Sin cambio
       // para los 3 side effects ya existentes, que no leen esos campos.
-      _applyBatchMetaSideEffects(m, { id, activeProj, batchMergeResult: _batchMergeResult, tgItems, patchItems });
+      _applyBatchMetaSideEffects(m, _sideEffectCtx);
     });
+    // INC-202608-141: persistencia única tras el loop — sessionRegister mutó
+    // activeProj.sessions vía _mutateSessions() para cada meta calificada, pero ningún side
+    // effect de este registro persiste por sí mismo (mismo criterio fire-and-forget que
+    // saveCheckpointFlow()/_applyRetroEvaluatedSprint(), que persisten sus propias tablas, no
+    // el blob de sessions). Sin esta llamada, la sesión quedaba dirty-tracked en memoria hasta
+    // que una acción no relacionada disparara save(). Una sola vez para todo el batch — no por
+    // sesión — mismo criterio de persistencia que el path single aplica por CHECKPOINT
+    // (_doApplyMergeAndFinish(), locus-session-save.js: `await saveImmediate()`).
+    // CHG-202608-005: gate ampliado — activeProj.tracker (trackerLegacyItems) vive dentro del
+    // mismo objeto de proyecto que activeProj.sessions, así que el mismo saveImmediate() ya
+    // lo persiste; solo falta que el gate dispare también cuando hubo mutación de tracker sin
+    // que hubiera sesión registrada en el mismo batch (bloque sin m.resumen pero con tgItems).
+    if (_sideEffectCtx.sessionsRegistered || _sideEffectCtx.trackerLegacyTouched) {
+      await saveImmediate();
+    }
     if (_allInlineFixes.length) {
       showCheckpointPanel({ ...(_batchMergeResult || {}), inlineFixes: _allInlineFixes });
     }
