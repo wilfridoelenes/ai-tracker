@@ -1,3 +1,10 @@
+// [PP] mod:120 · autor:Rune · 2026-08-23 20:10 UTC-6
+// TKT1 (ref_id CAEL-08231620-02, REQ ref_id CAEL-08231620-01): renderSprintGroup() — default de
+// isCollapsed en contexto Histórico ('hist') pasa a colapsado cuando no hay clave
+// 'historico-collapsed-<groupId>' en localStorage (antes: sin clave = expandido). Distingue
+// ausencia (sin preferencia) de '0' explícito (usuario expandió) — la escritura de '0' vive en
+// locus-backlog-historico.js (_initHistoricoToolbar()/_attachHistoricoChildToggleDelegation()),
+// no en este archivo. Sin cambio de firma de renderSprintGroup().
 // [PP] mod:119 · autor:Rune · 2026-08-23 19:40 UTC-6
 // TKT2 (ref_id CAEL-08231900-03, REQ ref_id CAEL-08231900-01): migración de .version-header-arrow
 // a svg.chevron (Patrón A-13) en renderSprintGroup() y _emptySprintHeaderHtml(). La rotación ya no
@@ -494,8 +501,13 @@ export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
   const label      = sprintObj ? (sprintObj.label || sprintId) : sprintId;
   const _prefix    = contextPrefix ? contextPrefix + '-' : '';
   const groupId    = _prefix + 'vl-' + sprintId.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  // TKT1 (REQ CAEL-08231620-01, ref_id CAEL-08231620-02): sin clave guardada (null) el default
+  // pasa a colapsado — antes el default era expandido (=== '1' evaluaba false ante ausencia).
+  // '0' explícito (escrito por _initHistoricoToolbar()/_attachHistoricoChildToggleDelegation()
+  // en locus-backlog-historico.js al expandir) distingue "el usuario expandió este grupo" de
+  // "sin preferencia" — antes ambos casos removían la clave y eran indistinguibles entre sí.
   const isCollapsed = contextPrefix
-    ? (() => { try { return localStorage.getItem('historico-collapsed-' + groupId) === '1'; } catch { return false; } })()
+    ? (() => { try { const v = localStorage.getItem('historico-collapsed-' + groupId); return v === null ? true : v === '1'; } catch { return true; } })()
     : _getCollapsedVersions().has(groupId);
 
   // Progress — sobre sprintItems (ver nota de fidelidad en header del archivo: en el caso

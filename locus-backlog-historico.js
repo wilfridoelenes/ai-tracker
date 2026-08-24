@@ -1,3 +1,13 @@
+// [PP] mod:28 · autor:Rune · 2026-08-23 20:10 UTC-6
+// TKT1 (ref_id CAEL-08231620-02, REQ ref_id CAEL-08231620-01): default de colapsado activo en
+// vista Histórico cuando el grupo no tiene preferencia guardada. _initHistoricoToolbar()
+// sincroniza aria-pressed/label del botón contra el estado real de los grupos en cada render
+// (antes solo se actualizaba tras un click, quedando desalineado del aria-pressed="false"
+// estático del markup). _attachHistoricoChildToggleDelegation() y el handler de
+// #historico-collapse-all-btn escriben '0' explícito al expandir en vez de removeItem() —
+// distingue "usuario expandió" de "sin preferencia" (que ahora default a colapsado, ver
+// renderSprintGroup() en locus-backlog-render.js mod:120). Sin cambio de firma de
+// _initHistoricoToolbar() ni de ningún export del módulo.
 // [PP] mod:27 · autor:Rune · 2026-08-18 22:30 UTC-6
 // Fix (founder, post-liberación REQ CAEL-0720-01): byType simplificado a {REQ,TKT} — INC/DISC/
 // PRB/KE/CHG removidos, universo real de Histórico no puede contenerlos (ver comentario en
@@ -304,10 +314,13 @@ function _attachHistoricoChildToggleDelegation(body) {
       vbody.classList.toggle('collapsed', isNowCollapsed);
       if (arrow) arrow.classList.toggle('collapsed', isNowCollapsed);
       vcBtn.setAttribute('aria-expanded', String(!isNowCollapsed));
+      // TKT1 (REQ CAEL-08231620-01, ref_id CAEL-08231620-02): '0' explícito en vez de
+      // removeItem() al expandir — distingue "el usuario expandió este grupo" de "sin
+      // preferencia guardada", que ahora default a colapsado (ver renderSprintGroup(),
+      // locus-backlog-render.js).
       const _key = 'historico-collapsed-' + groupId;
       try {
-        if (isNowCollapsed) localStorage.setItem(_key, '1');
-        else localStorage.removeItem(_key);
+        localStorage.setItem(_key, isNowCollapsed ? '1' : '0');
       } catch {}
       return;
     }
@@ -344,12 +357,28 @@ function _attachHistoricoChildToggleDelegation(body) {
 // #historico-search-clear) retirado — reemplazado por ⌘K. Markup vivía en locus-backlog-render.js
 // (dentro de _statsBarHtml), no en index.html como declaraba el AC — corregido en implementación,
 // mismo criterio ya documentado abajo para AC3 ("declarado, no silenciado").
+// TKT1 (REQ CAEL-08231620-01, ref_id CAEL-08231620-02): el bloque de sincronización de abajo
+// corre siempre — fuera del guard _historicoWired — porque renderHistoricoPanel() reemplaza
+// #historico-toolbar por completo en cada render (ver locus-backlog-render.js), y el estado real
+// de los grupos (default colapsado vía renderSprintGroup(), o preferencia explícita en
+// localStorage) puede diferir del aria-pressed="false" estático del markup inicial. El guard
+// _historicoWired sigue protegiendo únicamente el addEventListener, no esta sincronización.
 export function _initHistoricoToolbar() {
   const toolbar = document.getElementById('historico-toolbar');
   if (!toolbar) return;
 
   const collapseBtn = document.getElementById('historico-collapse-all-btn');
-  if (collapseBtn && !collapseBtn._historicoWired) {
+  if (!collapseBtn) return;
+
+  const bodies = document.querySelectorAll('#historico-body .bl-vl-sprint-body');
+  if (bodies.length) {
+    const allCollapsed = Array.from(bodies).every(b => b.classList.contains('collapsed'));
+    collapseBtn.setAttribute('aria-pressed', String(allCollapsed));
+    const _label = collapseBtn.querySelector('.bl-collapse-btn-label');
+    if (_label) _label.textContent = allCollapsed ? 'Expandir todo' : 'Colapsar todo';
+  }
+
+  if (!collapseBtn._historicoWired) {
     collapseBtn._historicoWired = true;
     collapseBtn.addEventListener('click', () => {
       const bodies = document.querySelectorAll('#historico-body .bl-vl-sprint-body');
@@ -364,10 +393,11 @@ export function _initHistoricoToolbar() {
         if (trigger && trigger.classList.contains('version-collapse-trigger')) {
           trigger.setAttribute('aria-expanded', String(!anyExpanded));
         }
+        // TKT1: '0' explícito en vez de removeItem() al expandir — mismo criterio que
+        // _attachHistoricoChildToggleDelegation() (arriba en este archivo).
         const key = 'historico-collapsed-' + groupId;
         try {
-          if (anyExpanded) localStorage.setItem(key, '1');
-          else localStorage.removeItem(key);
+          localStorage.setItem(key, anyExpanded ? '1' : '0');
         } catch {}
       });
       collapseBtn.setAttribute('aria-pressed', String(anyExpanded));
