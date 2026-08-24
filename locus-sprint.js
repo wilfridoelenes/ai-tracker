@@ -1,3 +1,14 @@
+// [PP] mod:133 · autor:Rune · 2026-08-23 23:10 UTC-6
+// TKT-202608-454 (REQ-202608-187, TKT2, depends_on: TKT-202608-453 done): renderSprintTab()
+// — rama sin sprint retira el badge de proyecto (antes proj.id en el chip, declarado como
+// "supuesto declarado" sin AC real en mod:117) y aplica .sph-sprint-pill--unset + oculta
+// #sph-burndown. Rama con sprint consolida chip+label en un solo textContent
+// (`${sprint.id} · ${sprint.label}`), aplica --active solo si sprint.status === 'active'
+// (no 'scheduled' — mismo criterio que .sprint-group-active), y destapa el burndown.
+// identityLabelEl/#spt-identity-label retirados — el nodo ya no existe en index.html mod:218.
+// contract_update: sí — ver contract_detail del CHECKPOINT (renderSprintTab pierde su
+// dependencia de #spt-identity-label; sin call sites externos afectados, ambas funciones
+// locales sin consumidores fuera de este archivo).
 // [PP] mod:132 · autor:Rune · 2026-08-17 UTC-6
 // TKT histórico — sin CHECKPOINT confirmado (ref_id CAEL-08172145-03, parent REQ
 // CAEL-08172145-01, origen_disc DISC-202608-184): las 24 referencias restantes con marcador
@@ -2160,11 +2171,17 @@ export function renderSprintTab() {
       // sprint activo. Antes: header.classList.add('is-hidden').
       if (header) {
         header.classList.remove('is-hidden');
-        const proj = getActiveProject();
-        const identityChipEl  = _spEl('spt-identity-chip');
-        const identityLabelEl = _spEl('spt-identity-label');
-        if (identityChipEl)  identityChipEl.textContent  = proj ? proj.id : 'Locus';
-        if (identityLabelEl) identityLabelEl.textContent = 'sin sprint';
+        // TKT-202608-454 (REQ-202608-187, TKT2): retira el badge de proyecto (proj.id) del
+        // chip — mod:117 lo dejó ahí como supuesto declarado sin AC real disponible en esa
+        // sesión; el AC de este TKT pide que "sin sprint" no muestre un dato de proyecto en
+        // su lugar. .sph-sprint-pill--unset (Nova, locus-sprint.css mod:77) reemplaza el
+        // estado neutro del chip — mismo criterio visual que .effort-dots--unset.
+        const identityChipEl = _spEl('spt-identity-chip');
+        if (identityChipEl) {
+          identityChipEl.textContent = 'Sin sprint';
+          identityChipEl.classList.add('sph-sprint-pill--unset');
+          identityChipEl.classList.remove('sph-sprint-pill--active');
+        }
         const nameEl = _spEl('sph-name');
         if (nameEl) nameEl.textContent = '';
         const goalEl = _spEl('sph-goal');
@@ -2173,6 +2190,11 @@ export function renderSprintTab() {
         if (scopeChipEl) scopeChipEl.classList.add('is-hidden');
         const pendingBadge = _spEl('sph-pending-badge');
         if (pendingBadge) pendingBadge.classList.add('is-hidden');
+        // TKT-202608-454 (REQ-202608-187, TKT2): sin sprint no hay effort que graficar —
+        // burndown oculto. Antes quedaba visible mostrando "Effort: 0 / 0 · 0%" heredado
+        // del último render con sprint real.
+        const burndownEl = _spEl('sph-burndown');
+        if (burndownEl) burndownEl.classList.add('is-hidden');
       }
       if (itemsList) itemsList.classList.add('is-hidden');
       if (sptNav)    sptNav.classList.remove('is-hidden');
@@ -2240,6 +2262,10 @@ export function renderSprintTab() {
 
     if (nameEl)    nameEl.textContent    = sprint.label ? `${sprint.id} · ${sprint.label}` : (sprint.name || sprint.id || '');
     if (versionEl) versionEl.textContent = sprint.version_target ? `v${sprint.version_target}` : '';
+    // TKT-202608-454 (REQ-202608-187, TKT2): hay sprint real (activo o programado) —
+    // el burndown vuelve a ser visible, invirtiendo el is-hidden aplicado en la rama sin sprint.
+    const burndownEl = _spEl('sph-burndown');
+    if (burndownEl) burndownEl.classList.remove('is-hidden');
     if (pillEl) {
       // TKT: antes 'Minor' por defecto silencioso — no distinguía "declarado Minor"
       // de "campo ausente". Fallback '—' consistente con el ya usado en L681 para
@@ -2260,13 +2286,18 @@ export function renderSprintTab() {
     // ('PP-S-13' literal), label = sprint.label solo — sin duplicar el id que el chip ya
     // muestra (el compuesto `${sprint.id} · ${sprint.label}` es el de #sph-name, un
     // campo distinto con su propia regla, no el de este identity strip).
-    const identityChipEl  = _spEl('spt-identity-chip');
-    const identityLabelEl = _spEl('spt-identity-label');
+    // TKT-202608-454 (REQ-202608-187, TKT2): chip + label consolidados en un único nodo
+    // .sph-sprint-pill (Nova, locus-sprint.css mod:77) — el par pill-project/spt-identity-label
+    // se retira de index.html en el mismo TKT. Composición idéntica a la que ya usaba
+    // #sph-name (`${id} · ${label}`) para el caso con label; sin label, solo el id.
+    const identityChipEl = _spEl('spt-identity-chip');
     if (identityChipEl) {
-      identityChipEl.textContent = sprint.id || '';
-    }
-    if (identityLabelEl) {
-      identityLabelEl.textContent = sprint.label || sprint.name || '';
+      const _label = sprint.label || sprint.name || '';
+      identityChipEl.textContent = _label ? `${sprint.id} · ${_label}` : (sprint.id || '');
+      identityChipEl.classList.remove('sph-sprint-pill--unset');
+      // --active reusa el mismo criterio de "en movimiento" ya vigente en .sprint-group-active
+      // (_Locus-css-ref, decisión 2026-08-23) — solo sprint.status === 'active', no scheduled.
+      identityChipEl.classList.toggle('sph-sprint-pill--active', sprint.status === 'active');
     }
 
     // T-202606-130: badge 'Pendiente aprobación' — visible solo cuando formallyOpened === false

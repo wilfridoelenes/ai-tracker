@@ -1,4 +1,9 @@
-<!-- [PP] mod:217 · autor:Rune · 2026-08-21 21:15 UTC-6 -->
+<!-- [PP] mod:218 · autor:Rune · 2026-08-23 23:10 UTC-6 -->
+<!-- TKT-202608-454 (REQ-202608-187, TKT2, depends_on: TKT-202608-453): .spt-identity
+     consolida chip+label en un único .sph-sprint-pill (id="spt-identity-chip") — retira
+     el span .pill-project que mostraba proj.id como badge de proyecto en el fallback
+     sin sprint. #sph-burndown gana id + is-hidden por default. Ver locus-sprint.js
+     renderSprintTab() para la lógica que alterna visibilidad/modificadores. -->
 <!-- TKT-202608-432 (REQ-202608-175, TKT1, design_intent: qdisc_sort_antiguedad_borrador):
      control de sort por antigüedad agregado en #qdisc-toolbar — reuso del patrón vivo
      .bl-sort-wrap/.bl-sort-select/.bl-sort-dir-btn de Vista Lista, reducido a una opción
@@ -1244,10 +1249,12 @@
     <div class="sph-inner">
       <!-- spt-identity — TKT-202607-126/127 (REQ-202607-039, Nova): instancia única, compartida
            entre Ítems y Planificar vía .sph-header — evita duplicación de estructura (BR-Execution
-           §5, regla dura 1). .pill-project reusado tal cual (CAEL-15) para el chip del sprint. -->
+           §5, regla dura 1). TKT-202608-454 (REQ-202608-187, TKT2): chip + label consolidados en
+           un único nodo — .sph-sprint-pill (Nova, locus-sprint.css mod:77) reemplaza el par
+           .pill-project + .spt-identity-label. Retira el fallback que mostraba el id de proyecto
+           como badge cuando no hay sprint (ver renderSprintTab(), locus-sprint.js). -->
       <div class="spt-identity" id="spt-identity">
-        <span class="pill-project" id="spt-identity-chip"></span>
-        <span class="spt-identity-label" id="spt-identity-label"></span>
+        <span class="sph-sprint-pill" id="spt-identity-chip"></span>
       </div>
       <!-- TKT1 (REQ CAEL-0804-01): goal + scope del sprint — omitidos vía is-hidden si el
            sprint no los declara (sin fallback CSS, ver locus-sprint.css). -->
@@ -1256,7 +1263,9 @@
       <!-- T-202606-130: badge visible solo cuando sprint.formallyOpened === false -->
       <span class="sph-pending-badge is-hidden" id="sph-pending-badge">Pendiente aprobación</span>
       <!-- B-202606-064: botón 'Aprobar apertura' eliminado — aprobación ocurre via Step 0 del DIFF -->
-      <div class="sph-burndown">
+      <!-- TKT-202608-454 (REQ-202608-187, TKT2): is-hidden por default — sin sprint no hay
+           effort que graficar. renderSprintTab() lo destapa solo en la rama con-sprint. -->
+      <div class="sph-burndown is-hidden" id="sph-burndown">
         <div class="sph-bd-labels">
           <span class="sph-bd-label" id="sph-bd-label">Effort: 0 / 0</span>
           <span class="sph-bd-pct" id="sph-bd-pct">0%</span>
