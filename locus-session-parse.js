@@ -1,4 +1,4 @@
-// [PP] mod:212 · autor:Rune · 2026-08-23 UTC-6
+// [PP] mod:213 · autor:Rune · 2026-08-23 UTC-6
 // TKT ref_id CAEL-08231900-01 (REQ ref_id CAEL-08231900-01, origen DISC-202608-214): reset de
 // #ingest-validation-error/#ingest-validation-warnings al inicio del bloque de validación de
 // parsePaste() — cierra el gap donde un banner de error de un intento previo sobrevivía a un
@@ -1233,6 +1233,10 @@ import { _ctrMergeFromItem } from './locus-contracts.js';
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 import { _checkStorageQuota, _mergeBacklogWithProject, saveSession, _applyCheckpointBatch } from './locus-session-save.js'; // T-202606-032: saveSession para auto-trigger | TKT4: _applyCheckpointBatch — persistencia de batch, invocada solo en el callback de confirmación de showMergeDiffPanel (no en tiempo de evaluación del módulo, mismo patrón ya usado por _mergeBacklogWithProject en esta misma línea)
+// TKT-202608-449 (REQ-202608-183): import namespace — withSaveLock es el único símbolo
+// consumido, mismo patrón ya usado por locus-session-save.js (línea 227) — cierra la
+// ventana de carrera de _onApplyBatch() sobre la mutación de status + saveWorker().
+import * as syncState from './locus-sync-state.js';
 import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, getSupabaseContext, save, saveImmediate, saveWorker, _mutateSessions, _upsertSprint, LOCUS_KEYS, CANONICAL_PROJECTS, _PREFIX_MAP, getInfraVersionData, markLearningLogEvaluated, saveCheckpointFlow } from './locus-storage.js'; // CHG-202608-003: _mutateSessions agregado — antes solo lo importaba locus-session-save.js; el side effect sessionRegister de este archivo lo necesita para persistir sesiones creadas desde el batch, mismo mecanismo que el path single. INC histórico — sin CHECKPOINT confirmado: saveWorker agregado — persistencia de status exhausted/in_session desde _onApplyBatch, tracker_workers es su único canal (mod:169-171 de _Locus-module-contracts §1) · TKT-202608-424: markLearningLogEvaluated agregado — wiring de learning_log_evaluated_through_ts · TKT1 (REQ CAEL-08192015-01, DISC-202608-195): saveCheckpointFlow agregado — antes esta función solo se invocaba desde _doApplyMergeAndFinish (locus-session-save.js, flujo single); todo CHECKPOINT pegado en bloque (_onApplyBatch, este archivo) nunca generaba fila en tracker_checkpoint_flow, dejando el Learning Log (__OB-Strategy §5) vacío para sesiones auto-orquestadas — patrón estándar de pegado, __BR-Core
 // T-202606-029: INFRA_VERSION_ACTIVE (constante) reemplazada por getInfraVersionActive() / setInfraVersionActive() — AC-4 de T-202606-027
 import { showToast, toast } from './locus-toast.js';
@@ -3784,17 +3788,30 @@ export async function _processIngestBatch(id) {
     if (id) {
       const _liveAiBatch = getAI(id);
       if (_liveAiBatch) {
-        const horaResult = interpretHora((horaRaw || '').replace(/\D/g, ''));
-        if (horaResult) {
-          _liveAiBatch.status = 'exhausted';
-          _liveAiBatch.resetTime = horaResult.hhmm;
-          _liveAiBatch.resetEpoch = horaResult.epoch;
-        } else {
-          _liveAiBatch.status = 'in_session';
-        }
-        saveWorker(_liveAiBatch);
-        _markRadarDirty();
-        renderGlobalRadarSidebar();
+        // TKT-202608-449 (REQ-202608-183, cierre DISC-202608-215 / _Locus-module-contracts
+        // mod:212/214): la mutación de _liveAiBatch.status y saveWorker() corrían sin lock
+        // propio — un _applyStateRow() remoto llegando antes de que saveWorker() empezara a
+        // ejecutar podía revertir en silencio la mutación recién hecha en memoria (mismo
+        // riesgo que TKT-202608-321 cerró para el path single, _doApplyMergeAndFinish).
+        // Mismo patrón exacto que ese path: status + saveWorker() + refresco de Radar viven
+        // dentro del mismo syncState.withSaveLock() (locus-session-save.js líneas 892-1153).
+        // withSaveLock es un contador reentrante (finally interno, nunca baja de 0) — no un
+        // mutex de exclusión (ver _Locus-module-contracts §2, entrada withSaveLock/mod:151) —
+        // anidar saveWorker() (que ya toma su propio lock, mod:174) dentro de este wrap
+        // externo no produce deadlock, mismo mecanismo ya en producción en el path single.
+        await syncState.withSaveLock(async () => {
+          const horaResult = interpretHora((horaRaw || '').replace(/\D/g, ''));
+          if (horaResult) {
+            _liveAiBatch.status = 'exhausted';
+            _liveAiBatch.resetTime = horaResult.hhmm;
+            _liveAiBatch.resetEpoch = horaResult.epoch;
+          } else {
+            _liveAiBatch.status = 'in_session';
+          }
+          saveWorker(_liveAiBatch);
+          _markRadarDirty();
+          renderGlobalRadarSidebar();
+        });
       }
     }
     window.dispatchEvent(new CustomEvent('shell:render-tracker'));
