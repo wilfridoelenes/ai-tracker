@@ -1,3 +1,18 @@
+// [PP] mod:79 · autor:Rune · 2026-08-23 UTC-6
+// INC-202608-142: 'shell:update-subtab-buttons' en switchTab() disparaba solo con
+// `tab === 'backlog'` — al navegar a Tab Proyectos por primera vez (switchTab('proyectos')),
+// _updateSubTabButtons() en locus-docs.js nunca corría, así que _updateDocUpdatesUnifiedBadge()
+// (la única función que revela #sstab-btn-docupdates) tampoco corría — el sub-tab DOC-UPDATEs
+// quedaba invisible en el render inicial pese a haber pendientes. Al cambiar de sub-tab dentro
+// de Proyectos, switchSubTab() sí dispara el mismo evento sin ese gate (L323-324 de este
+// archivo) — de ahí que apareciera recién tras la primera interacción. `shell:render-proyectos`
+// (línea 273, único otro dispatch específico de este tab) lo escucha exclusivamente
+// locus-projects.js — no locus-docs.js — confirmado por grep contra los dos archivos reales
+// de la sesión, sin ningún otro listener de 'shell:update-subtab-buttons' en el proyecto.
+// Fix: el gate incluye 'proyectos'. `currentSubTab` ya es un sub válido de Proyectos en este
+// punto (línea 247 lo normaliza a 'dashboard' si no lo era) — sin riesgo de heredar el
+// fallback 'backlog' del operador `||`. origin_module real: este archivo, no locus-docs.js
+// (candidato de MAP declarado en el INC, sin confirmar hasta esta sesión).
 // [PP] mod:78 · autor:Rune · 2026-08-19 17:40 UTC-6
 // TKT · REQ-restauracion-tab-proyectos: comentarios de conteo .tab-btn (L997, L1005)
 // actualizados de (×5) a (×6) — #tab-btn-proyectos restaurado en index.html. Sin cambio de
@@ -248,7 +263,11 @@ export function switchTab(tab) {
 
   // Templates toolbar: update buttons via _updateSubTabButtons
   // (a) event dispatch — locus-docs.js escucha 'shell:update-subtab-buttons'
-  if (tab === 'backlog') {
+  // INC-202608-142: 'proyectos' agregado — el gate anterior (solo 'backlog') dejaba el
+  // render inicial de Tab Proyectos sin pasar por _updateSubTabButtons(), y con él sin
+  // revelar #sstab-btn-docupdates pese a haber DOC-UPDATEs pendientes. Ver comentario de
+  // header (mod:79) para el diagnóstico completo.
+  if (tab === 'backlog' || tab === 'proyectos') {
     window.dispatchEvent(new CustomEvent('shell:update-subtab-buttons', { detail: { sub: currentSubTab || 'backlog' } }));
   }
   // (a) event dispatch — locus-sesiones.js escucha 'shell:stop-sidebar-ticker'
