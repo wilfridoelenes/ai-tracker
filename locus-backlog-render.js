@@ -1,4 +1,10 @@
-// [PP] mod:118 · autor:Rune · 2026-08-23 UTC-6
+// [PP] mod:119 · autor:Rune · 2026-08-23 19:40 UTC-6
+// TKT2 (ref_id CAEL-08231900-03, REQ ref_id CAEL-08231900-01): migración de .version-header-arrow
+// a svg.chevron (Patrón A-13) en renderSprintGroup() y _emptySprintHeaderHtml(). La rotación ya no
+// depende de swap de glifo ni de .collapsed sobre el ícono — la gobierna [aria-expanded] sobre
+// .bl-vl-sprint-header, que ya lo declara desde su creación. Ver contract_update en
+// toggleVersionCollapse()/toggleCollapseAll() (locus-backlog-core.js) — ambas dejan de tocar el
+// ícono directamente.
 // TKT3 CAEL-08231830-01 (REQ-202608-180): call site actualizado a la firma generalizada de
 // _selfHealReqStatuses(candidateItems) → {changed,count} — pasa getItems() explícito, mismo
 // universo que antes. Sin cambio de comportamiento observable en renderBacklogList().
@@ -536,7 +542,7 @@ export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
   let html = `<div class="bl-vl-sprint-group${isActive ? ' sprint-group-active' : ''}${isClosed ? ' sprint-group-closed' : ''}${isPlanned ? ' sprint-group-planned' : ''}" data-sprint-id="${esc(sprintId)}">`;
   html += `<div class="bl-vl-sprint-header version-collapse-trigger" data-action="version-collapse" data-group-id="${groupId}" tabindex="0" role="button" aria-expanded="${isCollapsed ? 'false' : 'true'}">`;
   html += `<div class="bl-vl-sprint-header-row1">`;
-  html += `<span class="version-header-arrow${isCollapsed ? ' collapsed' : ''}" id="varrow-${groupId}" aria-hidden="true">${isCollapsed ? '▸' : '▾'}</span>`;
+  html += `<svg class="ti-svg chevron" id="varrow-${groupId}" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>`;
   html += `<span id="sprint-label-wrap-${esc(sprintId)}"><span class="version-tag">${esc(sprintId)}</span>${(label && label !== sprintId) ? `<span class="sprint-name-label">${esc(label)}</span>` : ''}</span>`;
   html += sprintStatusLabel;
   html += `</div>`; // bl-vl-sprint-header-row1
@@ -653,7 +659,7 @@ function _emptySprintHeaderHtml(sprintId, sprintObj) {
   let html = `<div class="bl-vl-sprint-group${isActive ? ' sprint-group-active' : ''}${isPlanned ? ' sprint-group-planned' : ''}" data-sprint-id="${esc(sprintId)}">`;
   html += `<div class="bl-vl-sprint-header version-collapse-trigger" data-action="version-collapse" data-group-id="${groupId}" tabindex="0" role="button" aria-expanded="${isCollapsed ? 'false' : 'true'}">`;
   html += `<div class="bl-vl-sprint-header-row1">`;
-  html += `<span class="version-header-arrow${isCollapsed ? ' collapsed' : ''}" id="varrow-${groupId}" aria-hidden="true">${isCollapsed ? '▸' : '▾'}</span>`;
+  html += `<svg class="ti-svg chevron" id="varrow-${groupId}" aria-hidden="true"><use href="#ti-chevron-right"></use></svg>`;
   html += `<span id="sprint-label-wrap-${esc(sprintId)}"><span class="version-tag">${esc(sprintId)}</span>${(label && label !== sprintId) ? `<span class="sprint-name-label">${esc(label)}</span>` : ''}</span>`;
   html += sprintStatusLabel;
   html += `</div>`;

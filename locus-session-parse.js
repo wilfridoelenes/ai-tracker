@@ -1,4 +1,8 @@
-// [PP] mod:211 · autor:Rune · 2026-08-23 UTC-6
+// [PP] mod:212 · autor:Rune · 2026-08-23 UTC-6
+// TKT ref_id CAEL-08231900-01 (REQ ref_id CAEL-08231900-01, origen DISC-202608-214): reset de
+// #ingest-validation-error/#ingest-validation-warnings al inicio del bloque de validación de
+// parsePaste() — cierra el gap donde un banner de error de un intento previo sobrevivía a un
+// reintento exitoso en la misma sesión de textarea. Ver comentario inline en el punto exacto.
 // CHG-202608-005 (triggered_by INC-202608-140): _onApplyBatch() no replicaba la mutación de
 // activeProj.tracker.items/tracker.counters (contador legacy v3.0.0) que _doApplyMergeAndFinish()
 // sí aplica (locus-session-save.js líneas 908-926) — un CHECKPOINT pegado en batch con REQ/TKT/
@@ -2673,7 +2677,16 @@ export function parsePaste(id) {
 
   // CAEL-25: 'prev' (prev-${id}) retirado — no existe en el DOM desde CAEL-22.
   // Target real de los checks bloqueantes: #ingest-validation-error, vía _showIngestValidationError.
+  // TKT ref_id CAEL-08231900-01 (REQ ref_id CAEL-08231900-01, origen DISC-202608-214): antes de
+  // este fix, un banner de #ingest-validation-error mostrado en un intento previo sobrevivía a un
+  // reintento posterior en la misma sesión de textarea, incluso cuando ese reintento resolvía en
+  // éxito o en un warning no bloqueante — ningún camino de éxito llamaba a
+  // _resetIngestValidationPanel(), que antes solo corría en la rama de texto vacío (ver arriba).
+  // Este reset al entrar al bloque cubre todos los checks bloqueantes/warnings subsecuentes de la
+  // misma invocación de parsePaste() (incluidos los que retornan fuera de este bloque, más abajo
+  // en la función) porque comparten la misma pasada de ejecución.
   if (text.trim()) {
+    _resetIngestValidationPanel();
     // T-202606-005: gate de validación — presencia de field 'title' + JSON válido
     // ---FIN-CHECKPOINT--- no requerido · path legacy eliminado
     const _isJsonFmt = !!(ckpt && ckpt._isJsonFormat);

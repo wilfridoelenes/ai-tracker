@@ -1,4 +1,4 @@
-// [PP] mod:173 · autor:Rune · 2026-08-19 UTC-6
+// [PP] mod:175 · autor:Rune · 2026-08-23 15:10 UTC-6
 // TKT-202608-424 (REQ-202608-171, TKT3): markLearningLogEvaluated(projectId, throughTs) agregada
 // — UPDATE puntual sobre tracker_checkpoint_flow, transiciona learning_log_evaluated false→true
 // para filas sin sprint (candidatos a Learning Log) con created_at <= throughTs. Requiere columna
@@ -1835,7 +1835,13 @@ function _toItemColumns(it) {
     // depends_on: array JS → text[] Postgres · campo canónico en JS es dependsOn (camelCase)
     // INC triggered_by TKT-202607-063: leía it.depends_on — siempre undefined, persistía [] sin importar el dato real.
     depends_on:           Array.isArray(it.dependsOn) ? it.dependsOn : [],
-    triggered_by:         it.triggered_by     || null,
+    // TKT ref_id CAEL-08231930-01 (REQ ref_id CAEL-08231930-01, origen DISC-202608-216):
+    // fallback a camelCase — mismo patrón ya corregido en _toIncidentRow() (línea ~1955,
+    // TKT-202608-448/REQ-202608-182, DISC-202608-211). it.triggeredBy es el único nombre
+    // que trae un REQ/TKT/DISC recién parseado (locus-session-parse.js) — sin fallback,
+    // triggered_by se perdía silenciosamente al persistir. snake_case gana si ambos están
+    // presentes, mismo criterio de precedencia que la función gemela.
+    triggered_by:         it.triggered_by     || it.triggeredBy || null,
     // TKT4 (REQ CAEL-0721-01): columna es texto plano (_pp-strategy §5, sin anotación
     // jsonb/array) — el array canónico en memoria (locus-backlog-item.js:2126) se serializa
     // a JSON string antes de upsert. Array vacío → null (mismo criterio que el resto de
@@ -1946,7 +1952,13 @@ function _toIncidentRow(inc, { projId, userId, updatedAtMs }) {
     type:                  inc.type               || null,
     title:                 inc.title              || null,
     schema_version:        inc.schema_version != null ? Number(inc.schema_version) : 2,
-    triggered_by:          inc.triggered_by       || null,
+    // TKT1 (REQ ref_id CAEL-08232134-01, origen_disc DISC-202608-211): fallback a camelCase
+    // — mismo motivo que comportamiento_actual/origin_module más abajo. inc.triggeredBy es
+    // el único nombre que trae un ítem ITIL recién parseado (_buildItilItem(),
+    // locus-session-parse.js línea 1521); sin fallback, triggered_by quedaba null pese a
+    // estar declarado en el CHECKPOINT de origen. snake_case tiene precedencia si ambos
+    // llegan presentes — mismo criterio que next_role/verificado_por/status_changed_at.
+    triggered_by:          inc.triggered_by       || inc.triggeredBy || null,
     // TKT-202607-INC-NAMING: fallback a camelCase — mismo motivo que el gate de exclusión
     // arriba en esta función. inc.originModule/inc.comportamientoActual son los nombres
     // reales que trae un INC recién parseado (locus-session-parse.js); sin fallback, un

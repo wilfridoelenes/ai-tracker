@@ -1,3 +1,9 @@
+// [PP] mod:147 · autor:Rune · 2026-08-23 UTC-6
+// TKT2b (ref_id CAEL-08231945-01, parent CAEL-08231900-01): toggleCollapseAll() — dejaba de
+// rotar el chevron de sprint al colapsar/expandir todos, porque seguía consultando
+// .version-header-arrow (clase retirada por TKT2/CAEL-08231900-03). Ver detalle inline junto a
+// la función. Cierra el AC "ningún selector de .version-header-arrow queda huérfano" del REQ
+// CAEL-08231900-01, pendiente tras la entrega original de TKT2.
 // [PP] mod:146 · autor:Rune · 2026-08-23 UTC-6
 // TKT3 CAEL-08231830-01 (REQ-202608-180): _selfHealReqStatuses() ahora recibe candidateItems
 // explícito y retorna {changed, count} en vez de boolean — permite consumo por scope (Q-Backlog/
@@ -871,16 +877,20 @@ function _cvSave() {
 const collapsedVersions = _cvLoad();
 
 // T-202606-104: Modo R eliminado — Colapsar opera solo sobre headers de sección
+// TKT2b (ref_id CAEL-08231945-01, parent CAEL-08231900-01 — cierre del AC "ningún selector de
+// .version-header-arrow queda huérfano"): el fix de mod:129 dejó .version-header-arrow como
+// selector de arrows de sprint, clase retirada del HTML en TKT2 (CAEL-08231900-03,
+// renderSprintGroup()/_emptySprintHeaderHtml() ahora emiten svg.chevron con [aria-expanded] en
+// el header, no en el ícono). querySelectorAll('.version-header-arrow') volvía a NodeList vacío
+// para sprints — mismo patrón de selector fantasma que el propio comentario de mod:129 ya
+// documentaba, reintroducido por ese mismo cambio. Fix: los headers de sprint
+// (.bl-vl-sprint-header[data-group-id]) se togglean vía aria-expanded, igual que
+// toggleVersionCollapse() — un solo mecanismo para ambas funciones. .section-group-arrow
+// (icebox/pendientes) no tocado — sigue con classList/textContent, fuera de scope de TKT2.
 export function toggleCollapseAll() {
-  // Fix (founder, análisis de construcción — botón Colapsar de Backlog no hacía nada):
-  // .version-group-body/.version-collapse-arrow eran los nombres previos a la unificación de
-  // renderSprintGroup() (REQ Histórico unificado con Vista Lista de Backlog) — el motor de
-  // render pasó a .bl-vl-sprint-body/.version-header-arrow pero esta función quedó apuntando
-  // a las clases viejas, querySelectorAll devolvía NodeList vacío para los grupos de sprint sin
-  // lanzar error. .section-group-body/.section-group-arrow (icebox/pendientes) siguen vigentes,
-  // sin cambio.
   const bodies = document.querySelectorAll('.bl-vl-sprint-body, .section-group-body');
-  const arrows = document.querySelectorAll('.version-header-arrow, .section-group-arrow');
+  const sprintHeaders = document.querySelectorAll('.bl-vl-sprint-header[data-group-id]');
+  const sectionArrows = document.querySelectorAll('.section-group-arrow');
   const btn = document.getElementById('bl-collapse-all-btn');
   const label = btn ? btn.querySelector('.bl-collapse-btn-label') : null;
   const icon = btn ? btn.querySelector('.bl-collapse-btn-icon') : null;
@@ -895,14 +905,8 @@ export function toggleCollapseAll() {
       if (id) collapsedVersions.add(id);
     });
     _cvSave();
-    arrows.forEach(a => {
-      if (a.classList.contains('section-group-arrow')) {
-        a.classList.add('collapsed');
-      } else {
-        a.classList.add('collapsed');
-        a.textContent = '▸';
-      }
-    });
+    sprintHeaders.forEach(h => h.setAttribute('aria-expanded', 'false'));
+    sectionArrows.forEach(a => a.classList.add('collapsed'));
     if (btn) btn.classList.add('is-collapsed');
     if (label) label.textContent = 'Expandir';
     if (icon) icon.textContent = '⊞';
@@ -914,14 +918,8 @@ export function toggleCollapseAll() {
       if (id) collapsedVersions.delete(id);
     });
     _cvSave();
-    arrows.forEach(a => {
-      if (a.classList.contains('section-group-arrow')) {
-        a.classList.remove('collapsed');
-      } else {
-        a.classList.remove('collapsed');
-        a.textContent = '▾';
-      }
-    });
+    sprintHeaders.forEach(h => h.setAttribute('aria-expanded', 'true'));
+    sectionArrows.forEach(a => a.classList.remove('collapsed'));
     if (btn) btn.classList.remove('is-collapsed');
     if (label) label.textContent = 'Colapsar';
     if (icon) icon.textContent = '⊟';
@@ -1736,14 +1734,18 @@ export function updateStatusFilterUI() {
 }
 
 // T-051: colapso por versión
+// TKT2 (ref_id CAEL-08231900-03): ya no toca #varrow-* — el ícono es svg.chevron (Patrón A-13),
+// su rotación la gobierna [aria-expanded] sobre .bl-vl-sprint-header, no un swap de textContent
+// sobre el propio ícono. Header seleccionado por [data-group-id], atributo ya presente en el
+// markup desde su creación (renderSprintGroup(), locus-backlog-render.js).
 export function toggleVersionCollapse(v) {
   if (collapsedVersions.has(v)) collapsedVersions.delete(v);
   else collapsedVersions.add(v);
   _cvSave();
   const body = document.getElementById('vbody-' + v);
-  const arrow = document.getElementById('varrow-' + v);
+  const header = document.querySelector(`.bl-vl-sprint-header[data-group-id="${v}"]`);
   if (body) body.classList.toggle('collapsed', collapsedVersions.has(v));
-  if (arrow) arrow.textContent = collapsedVersions.has(v) ? '▸' : '▾';
+  if (header) header.setAttribute('aria-expanded', collapsedVersions.has(v) ? 'false' : 'true');
 }
 
 // T-202604-118: generar siguiente código disponible por tipo
