@@ -1,4 +1,4 @@
-/* [PP] mod:170 · autor:Nova · 2026-08-23 20:05 UTC-6 */
+/* [PP] mod:171 · autor:Nova · 2026-08-24 UTC-6 */
 /* TKT-202608-415 (REQ-202608-168): swap DISC↔REQ en .stat-type-chip/.filter-type-btn (tc-DISC/
    tc-REQ base+active+all-active, filter-type-btn.active-DISC/-REQ) — cierra el gap de mod:55
    ya registrado en _Locus-css-ref y en el comentario junto a .stat-type-chip--qdisc-discovery.
@@ -5629,7 +5629,10 @@
 }
 
 .sprint-group-active .bl-vl-sprint-header .bl-vl-progress-track {
-  background: rgb(109 184 33 / 20%);
+  /* TKT-[pendiente-ID] (parent REQ, ref_id CAEL-08241845-01): --accent-dim como token más cercano —
+     no se pudo confirmar coincidencia exacta de opacidad contra locus-base.css (no adjunto en esta
+     sesión); mismo token ya consumido por los elementos hermanos de este bloque (línea 5588/5592). */
+  background: var(--accent-dim);
 }
 
 /* ── Estado: Q-INC — sin grupo visual en vista lista (vive en sub-tab propio) ── */
