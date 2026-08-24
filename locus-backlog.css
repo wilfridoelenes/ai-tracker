@@ -1,4 +1,4 @@
-/* [PP] mod:169 · autor:Nova · 2026-08-23 19:10 UTC-6 */
+/* [PP] mod:170 · autor:Nova · 2026-08-23 20:05 UTC-6 */
 /* TKT-202608-415 (REQ-202608-168): swap DISC↔REQ en .stat-type-chip/.filter-type-btn (tc-DISC/
    tc-REQ base+active+all-active, filter-type-btn.active-DISC/-REQ) — cierra el gap de mod:55
    ya registrado en _Locus-css-ref y en el comentario junto a .stat-type-chip--qdisc-discovery.
@@ -1329,10 +1329,15 @@
   color: var(--amber-text);
 }
 
-/* T-sprints: sprint activo y acciones */
+/* T-sprints: sprint activo y acciones.
+   TKT-[pendiente-ID] (REQ-[pendiente-ID]): recolor ámbar→accent, mismo motivo que mod:221
+   (.sprint-group-active) — --amber es warning/pendiente, un sprint activo no es una advertencia.
+   Consumidor real: sprintStatusLabel en renderSprintGroup() (locus-backlog-render.js) — el
+   selector legado .sprint-group-active > div:first-child .* (arriba, .version-header) no tiene
+   consumidor JS vivo desde T-202606-064; fuera de scope de este fix, señalado aparte. */
 .sprint-badge-active {
   font-size: var(--text-2xs); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
-  color: var(--amber-text); background: rgb(245 158 11 / 12%); border: 1px solid rgb(245 158 11 / 35%);
+  color: var(--accent-text); background: var(--accent-dim); border: 1px solid var(--accent-border);
   border-radius: var(--radius-sm); padding: 1px 6px;
 }
 
@@ -5506,6 +5511,25 @@
   padding: 10px 14px 4px;
 }
 
+/* TKT-[pendiente-ID] (REQ-[pendiente-ID], design_intent: sprint_header_row1_before_after):
+   wrapper de ID+título del sprint — antes span sin display propio, .version-tag y
+   .sprint-name-label quedaban pegados sin gap. Selector de atributo (no clase nueva) porque
+   el span ya trae id="sprint-label-wrap-{sprintId}" en ambos consumidores JS
+   (renderSprintGroup, _emptySprintHeaderHtml) — evita tocar el JS para este ajuste. */
+[id^="sprint-label-wrap-"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Pill de estado (activo/planificado/cerrado) — alineado a la derecha del resto de row1,
+   mismo criterio que las demás pills de status del sistema. */
+.bl-vl-sprint-header-row1 .sprint-badge-active,
+.bl-vl-sprint-header-row1 .sprint-badge-planned,
+.bl-vl-sprint-header-row1 .sprint-badge-closed {
+  margin-left: auto;
+}
+
 /* Fila 2: contexto — velocity o fecha de cierre.
    TKT1 (REQ CAEL-0724-01, AC4 — segunda vuelta tras TKT3/CAEL-0724-03 refactor a {label,valor}):
    color se conserva aquí (heredado por los spans hijos) — así los overrides de estado
@@ -5584,7 +5608,7 @@
 
 .sprint-group-active .bl-vl-sprint-header .version-tag {
   color: var(--accent-text);
-  background: rgb(109 184 33 / 12%);
+  background: var(--accent-dim);
   border-color: var(--accent-border);
 }
 
