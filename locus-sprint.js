@@ -1,3 +1,13 @@
+// [PP] mod:134 · autor:Rune · 2026-08-23 23:45 UTC-6
+// TKT-202608-454 (REQ-202608-187, TKT2) — cierra AC-3, pendiente tras mod:133 (ver
+// DISC-202608-217: el TKT se había ejecutado antes de que depends_on TKT-202608-453
+// llegara a done). _renderSprintItems() ahora oculta #sph-burndown cuando totalEffort === 0
+// — antes la rama con-sprint de renderSprintTab() (mod:133, L2267-2268) mostraba la barra
+// incondicionalmente para cualquier sprint activo, sin considerar effort total. El toggle
+// vive en _renderSprintItems() porque es la única función que conoce totalEffort en el
+// momento del render — renderSprintTab() ya había decidido visibilidad antes de invocarla.
+// contract_update: n/a — _renderSprintItems() sin cambio de firma ni de call sites, solo
+// side effect adicional sobre un nodo del DOM ya gestionado por esta misma función.
 // [PP] mod:133 · autor:Rune · 2026-08-23 23:10 UTC-6
 // TKT-202608-454 (REQ-202608-187, TKT2, depends_on: TKT-202608-453 done): renderSprintTab()
 // — rama sin sprint retira el badge de proyecto (antes proj.id en el chip, declarado como
@@ -1746,6 +1756,17 @@ function _renderSprintItems(sprint) {
     .reduce((acc, i) => acc + parseInt(i.effort), 0);
 
   const pct = totalEffort > 0 ? Math.round(doneEffort / totalEffort * 100) : 0;
+
+  // TKT-202608-454 (REQ-202608-187, TKT2) AC-3: sprint activo sin effort declarado (totalEffort
+  // === 0) — la barra no aporta información y se oculta, mismo criterio que la rama sin sprint
+  // de renderSprintTab(). Único punto del render que conoce totalEffort en este momento:
+  // renderSprintTab() ya había hecho burndownEl.classList.remove('is-hidden') antes de llamar
+  // a esta función (rama con-sprint, L2267-2268), sin acceso al valor real de effort — este
+  // toggle tiene la última palabra. _renderSprintItems() solo se invoca con sprint activo
+  // (ambos call sites gateados por `if (sprint)`), así que no hay riesgo de pisar la rama
+  // sin sprint, que ya oculta #sph-burndown por su cuenta.
+  const burndownEl = _spEl('sph-burndown');
+  if (burndownEl) burndownEl.classList.toggle('is-hidden', totalEffort === 0);
 
   const bdFill  = _spEl('sph-bd-fill');
   const bdPct   = _spEl('sph-bd-pct');
