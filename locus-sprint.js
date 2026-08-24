@@ -1,4 +1,4 @@
-// [PP] mod:134 · autor:Rune · 2026-08-23 23:45 UTC-6
+// [PP] mod:135 · autor:Rune · 2026-08-24 14:40 UTC-6
 // TKT-202608-454 (REQ-202608-187, TKT2) — cierra AC-3, pendiente tras mod:133 (ver
 // DISC-202608-217: el TKT se había ejecutado antes de que depends_on TKT-202608-453
 // llegara a done). _renderSprintItems() ahora oculta #sph-burndown cuando totalEffort === 0
@@ -2307,18 +2307,19 @@ export function renderSprintTab() {
     // ('PP-S-13' literal), label = sprint.label solo — sin duplicar el id que el chip ya
     // muestra (el compuesto `${sprint.id} · ${sprint.label}` es el de #sph-name, un
     // campo distinto con su propia regla, no el de este identity strip).
-    // TKT-202608-454 (REQ-202608-187, TKT2): chip + label consolidados en un único nodo
-    // .sph-sprint-pill (Nova, locus-sprint.css mod:77) — el par pill-project/spt-identity-label
-    // se retira de index.html en el mismo TKT. Composición idéntica a la que ya usaba
-    // #sph-name (`${id} · ${label}`) para el caso con label; sin label, solo el id.
+    // TKT-202608-456 (REQ-202608-188, TKT2): el chip ya no repite `${id} · ${label}` —
+    // ese string ya vive en #sph-name (mismo dato, dos veces en el header, señalado por
+    // Cael en REQ-202608-188). El chip pasa a comunicar únicamente el estado del sprint:
+    // 'Activo' o 'Programado'. Reemplaza la composición id·label introducida en
+    // TKT-202608-454 (que a su vez reemplazó chip=proj.id de mod:117/119, ver notas arriba).
     const identityChipEl = _spEl('spt-identity-chip');
     if (identityChipEl) {
-      const _label = sprint.label || sprint.name || '';
-      identityChipEl.textContent = _label ? `${sprint.id} · ${_label}` : (sprint.id || '');
+      const _isActive = sprint.status === 'active';
+      identityChipEl.textContent = _isActive ? 'Activo' : 'Programado';
       identityChipEl.classList.remove('sph-sprint-pill--unset');
       // --active reusa el mismo criterio de "en movimiento" ya vigente en .sprint-group-active
       // (_Locus-css-ref, decisión 2026-08-23) — solo sprint.status === 'active', no scheduled.
-      identityChipEl.classList.toggle('sph-sprint-pill--active', sprint.status === 'active');
+      identityChipEl.classList.toggle('sph-sprint-pill--active', _isActive);
     }
 
     // T-202606-130: badge 'Pendiente aprobación' — visible solo cuando formallyOpened === false

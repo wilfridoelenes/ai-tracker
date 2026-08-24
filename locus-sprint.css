@@ -1,4 +1,4 @@
-/* [PP] mod:78 · autor:Nova · 2026-08-24 04:35 UTC-6 */
+/* [PP] mod:79 · autor:Nova · 2026-08-24 14:35 UTC-6 */
 /* Retiro de .spt-identity-chip/.spt-identity-label (selectores muertos desde origen,
    ver bloque junto a .spt-identity más abajo) — Hallazgo fuera de scope resuelto en
    sesión, founder confirmó. Sin cambio de comportamiento — ambas reglas nunca
@@ -88,7 +88,11 @@
   z-index: var(--z-sticky);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  padding: 16px var(--subtab-gutter); /* antes: 16px 24px — TKT-202608-453 */
+  /* TKT-202608-455: revertido a --gutter-shell (24px) — TKT-202608-453
+     lo bajó a --subtab-gutter (12px) sin AC que lo pidiera, desalineando el contenido
+     de .sph-inner respecto a .spt-tab (.spt-nav sigue en padding: 0 24px, sin cambio).
+     Hallazgo de auditoría UX, no regresión de .spt-nav. */
+  padding: 16px var(--gutter-shell);
   flex-shrink: 0;
   /* T-202606-100: layout para acomodar botón chevron a la derecha */
   display: flex;
