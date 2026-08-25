@@ -1,4 +1,4 @@
-/* [PP] mod:171 · autor:Nova · 2026-08-24 UTC-6 */
+/* [PP] mod:172 · autor:Nova · 2026-08-24 UTC-6 */
 /* TKT-202608-415 (REQ-202608-168): swap DISC↔REQ en .stat-type-chip/.filter-type-btn (tc-DISC/
    tc-REQ base+active+all-active, filter-type-btn.active-DISC/-REQ) — cierra el gap de mod:55
    ya registrado en _Locus-css-ref y en el comentario junto a .stat-type-chip--qdisc-discovery.
@@ -5629,10 +5629,11 @@
 }
 
 .sprint-group-active .bl-vl-sprint-header .bl-vl-progress-track {
-  /* TKT-[pendiente-ID] (parent REQ, ref_id CAEL-08241845-01): --accent-dim como token más cercano —
-     no se pudo confirmar coincidencia exacta de opacidad contra locus-base.css (no adjunto en esta
-     sesión); mismo token ya consumido por los elementos hermanos de este bloque (línea 5588/5592). */
-  background: var(--accent-dim);
+  /* TKT-[pendiente-ID] (parent REQ, ref_id CAEL-08241845-01): --accent-border, no --accent-dim —
+     corregido tras verificar locus-base.css real. --accent-border (22%/25%) es numéricamente el
+     más cercano al 20% original; --accent-dim (7-8%) además se funde con el fondo del header
+     (que ya usa --accent-dim), perdiendo la track su función de riel visible. */
+  background: var(--accent-border);
 }
 
 /* ── Estado: Q-INC — sin grupo visual en vista lista (vive en sub-tab propio) ── */

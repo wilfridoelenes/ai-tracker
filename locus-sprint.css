@@ -1,3 +1,32 @@
+/* [PP] mod:80 · autor:Nova · 2026-08-24 15:10 UTC-6 */
+/* TKT-202608-458 (REQ-202608-190, TKT1): .sph-header pasa a estado único — sin chevron
+   ni rama colapsada (Patrón A-13 retirado de este archivo: .sph-collapse-btn +
+   .sph-header.is-collapsed + .sph-collapsed-summary/-goal/-version/-pct eliminados sin
+   selector huérfano). .sph-inner cambia de columna a fila única (chip selector + goal
+   truncado + scope chip + pending badge + burndown mini). .sph-name retirado — el
+   compuesto id·label que mostraba queda absorbido por el chip (.sph-sprint-pill), que
+   pasa de trigger mudo (texto 'Activo'/'Programado') a selector real de sprint: nuevo
+   wrapper .sph-select-wrap (ancla de posicionamiento, sustituye position:relative
+   agregado a .spt-identity) + listbox .sph-select-list (extiende .sps-dropdown — mismo
+   shell surface/border/radius/z-index del menú "···" ya vigente en este archivo, offset
+   de ancla propio porque el trigger es de ancho variable, no un botón fijo de 28px) +
+   opciones .sph-select-option (extiende .sps-dropdown-item — mismo mecanismo hover/
+   focus-visible, agrega estado aria-selected). Hover/focus del chip: AC cita
+   ".sps-activo-menu-trigger", clase inexistente en el archivo real (verificado por grep
+   antes de implementar) — aplicado el mecanismo de foco/hover ya vigente en el trigger
+   de selector de sprint más cercano en el sistema, .bl-sprint-trigger (border-color:hint
+   en hover, outline:accent en focus-visible), mismo tratamiento que .sps-btn-menu/
+   .sph-collapse-btn/.sps-card-detail-toggle ya usan para focus-visible — ver Hallazgo
+   en CHECKPOINT de cierre. Burndown mini: .sph-bd-track/.sph-bd-fill/.sph-bd-pct pasan
+   de stack de 3 filas (labels+track+warn) a fila compacta única — #sph-bd-label y
+   #sph-bd-warn se retiran del shell (sin AC que los pida en la fila única; ambos call
+   sites en _renderSprintItems()/locus-sprint.js ya son null-safe — if(bdLabel)/
+   if(bdWarn) — confirmado por lectura directa antes de retirar, sin cambio de JS
+   requerido). Asunción declarada (Nova, Regla 1 — falta de info, opción razonable
+   declarada): .sph-scope-chip se conserva en la fila (AC 'Estado vacío' de este mismo
+   TKT lo referencia como elemento a ocultar con is-hidden, aunque el AC 'Happy path' no
+   lo enumera entre los 4 elementos de la fila — se interpreta como enumeración no
+   exhaustiva, no como retiro implícito). */
 /* [PP] mod:79 · autor:Nova · 2026-08-24 14:35 UTC-6 */
 /* Retiro de .spt-identity-chip/.spt-identity-label (selectores muertos desde origen,
    ver bloque junto a .spt-identity más abajo) — Hallazgo fuera de scope resuelto en
@@ -94,66 +123,27 @@
      Hallazgo de auditoría UX, no regresión de .spt-nav. */
   padding: 16px var(--gutter-shell);
   flex-shrink: 0;
-  /* T-202606-100: layout para acomodar botón chevron a la derecha */
+  /* TKT-202608-458 (REQ-202608-190): estado único — sin chevron ni rama colapsada.
+     .sph-inner es ahora el único hijo directo relevante del header; align-items:center
+     porque todos los elementos de la fila (chip/goal/badge/burndown) comparten la
+     misma altura de línea, sin necesidad de alinear contra un chevron de 24px. */
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: center;
 }
 
-/* T-202606-100: sph-inner ocupa el espacio restante */
+/* TKT-202608-458: sph-inner pasa de columna (chip arriba, goal/scope/burndown apilados)
+   a fila única — chip selector + goal truncado + scope chip + pending badge + burndown
+   mini, todo en una línea. gap:12px (vs 6px en columna) porque ahora separa elementos
+   horizontalmente distintos, no líneas de texto relacionadas. */
 .sph-inner {
   flex: 1;
   min-width: 0;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-/* T-202606-100: estado colapsado — sph-inner ya oculto via is-hidden en JS;
-   is-collapsed en sph-header reduce padding para evitar salto de espacio */
-.sph-header.is-collapsed {
-  padding-bottom: 8px;
   align-items: center;
+  gap: 12px;
 }
 
-/* T-202606-100: botón chevron de colapso */
-.sph-collapse-btn {
-  flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  color: var(--text3);
-  cursor: pointer;
-  padding: 0;
-  border-radius: var(--radius-sm);
-  transition: color var(--trans-fast), background var(--trans-fast);
-  margin-top: 2px; /* alineación óptica con primera línea de sph-name */
-}
-
-.sph-collapse-btn:hover {
-  color: var(--text);
-  background: var(--surface3);
-}
-
-.sph-collapse-btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* Sin sprint activo: sph-header tiene is-hidden — el botón no es accesible ni visible */
-
-.sph-name {
-  font-size: var(--text-xl);
-  font-weight: 700;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+/* Sin sprint activo: sph-header tiene is-hidden — nada de esta fila es accesible ni visible */
 
 .sph-meta {
   display: flex;
@@ -194,11 +184,17 @@
 }
 
 /* TKT-202608-453 (REQ-202608-187): pill de identidad del sprint — reemplaza el
-   label sin estilizar de esta tira. Base = estado con sprint real, neutro. */
+   label sin estilizar de esta tira. Base = estado con sprint real, neutro.
+   TKT-202608-458 (REQ-202608-190): deja de ser texto pasivo ('Activo'/'Programado')
+   y pasa a ser el trigger real del selector de sprint — ahora vive como <button>
+   (ver index.html), consume max-width propio (antes 100% del contenedor, que en
+   fila única dejaría sin espacio a goal/scope/burndown) y gana hover/focus-visible
+   de trigger interactivo. */
 .sph-sprint-pill {
   display: inline-flex;
   align-items: center;
-  max-width: 100%;
+  max-width: 220px;
+  flex-shrink: 0;
   font-size: var(--text-xs);
   font-weight: 500;
   padding: 2px 8px;
@@ -209,6 +205,25 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color var(--trans-fast), background var(--trans-fast);
+}
+
+/* Tratamiento hover/focus del trigger — el AC de TKT-202608-458 cita
+   ".sps-activo-menu-trigger" (clase inexistente en este archivo, verificado por
+   grep antes de implementar). Aplicado el mecanismo real ya vigente en el trigger
+   de selector de sprint más cercano del sistema, .bl-sprint-trigger (hover:
+   border-color:hint) + el outline de foco ya universal en el archivo
+   (.sps-btn-menu/.sph-collapse-btn/.sps-card-detail-toggle: outline 2px accent,
+   offset 2px) — mismo sistema de foco, no una clase nueva. */
+.sph-sprint-pill:hover {
+  border-color: var(--hint, var(--border2, var(--border)));
+}
+
+.sph-sprint-pill:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* 'sin sprint' — mismo patrón que .effort-dots--unset: ausencia de valor,
@@ -219,6 +234,10 @@
   color: var(--text3);
 }
 
+.sph-sprint-pill--unset:hover {
+  border-color: var(--text2);
+}
+
 /* sprint activo — mismo token que .sprint-group-active/.mdiff-pill--updated
    ("en movimiento"), nunca --amber (_Locus-css-ref, decisión 2026-08-23). */
 .sph-sprint-pill--active {
@@ -227,40 +246,73 @@
   color: var(--accent-text);
 }
 
+/* ══ TKT-202608-458 (REQ-202608-190): selector de sprint — chip como trigger de
+   listbox. .sph-select-wrap ancla el popover (position:relative agregado acá en
+   vez de en .spt-identity — mismo contenedor visual, alcance más acotado al par
+   trigger+listbox). .sph-select-list extiende .sps-dropdown (mismo shell
+   surface/border/radius/z-index del menú "···" ya vigente en este archivo,
+   incluido el mecanismo de visibilidad [hidden]/:not([hidden]) — no se redeclara)
+   con offset de ancla propio, porque el trigger acá es de ancho variable (chip de
+   sprint), no un botón fijo de 28px como en .sps-dropdown base. .sph-select-option
+   extiende .sps-dropdown-item (mismo hover/focus-visible) — agrega solo el estado
+   aria-selected, propio de role="option". Sin overlay de fondo (a diferencia de
+   .bl-sprint-overlay/.bl-sprint-list del selector de Backlog): máximo 2 opciones
+   (sprint activo + programado), un backdrop de pantalla completa es peso
+   innecesario para ese volumen — Regla de conversación 3 de Nova. ══ */
+
+.sph-select-wrap {
+  position: relative;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.sph-select-list {
+  left: 0;
+  right: auto;
+  top: calc(100% + 4px);
+  min-width: 200px;
+  max-width: 320px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 25%);
+}
+
+.sph-select-option[aria-selected="true"] {
+  background: var(--accent-dim);
+  color: var(--accent-text);
+}
+
 /* ══ END T-202605-057 ══ */
 
-/* ══ T-202605-058: Tab Sprint — burndown barra ══ */
+/* ══ T-202605-058: Tab Sprint — burndown mini (TKT-202608-458, REQ-202608-190) ══ */
+/* Antes: stack de 3 filas (labels effort/pct + track 10px + warn) en columna,
+   pieza propia de .sph-inner. Ahora: elemento más de la fila única del header —
+   track compacto + pct, sin label de effort ni warn de ítems sin effort (sin AC
+   que los pida en la fila; ambos nodos (#sph-bd-label/#sph-bd-warn) se retiran
+   del shell — ver index.html y nota de mod:80 arriba). Mismos ids que antes
+   (#sph-burndown/#sph-bd-track/#sph-bd-fill/#sph-bd-pct) — _renderSprintItems()
+   (locus-sprint.js) sigue consumiéndolos sin cambio de JS. */
 
 .sph-burndown {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 4px;
-}
-
-.sph-bd-labels {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-}
-
-.sph-bd-label {
-  font-size: var(--text-xs);
-  color: var(--text2);
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .sph-bd-pct {
   font-size: var(--text-xs);
   font-weight: 600;
   color: var(--text);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
 .sph-bd-track {
-  width: 100%;
-  height: 10px;
+  width: 56px;
+  height: 3px;
   background: var(--border2, var(--border));
   border-radius: var(--radius-pill);
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .sph-bd-fill {
@@ -278,11 +330,6 @@
 /* T-202605-062: fill verde cuando sprint listo para cerrar */
 .sph-bd-fill.is-ready {
   background: var(--c-low-text);
-}
-
-.sph-bd-warn {
-  font-size: var(--text-xs);
-  color: var(--text2);
 }
 
 /* ══ END T-202605-058 ══ */
@@ -3666,23 +3713,33 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
    (.sph-sprint-pill) ya vive arriba en este mismo archivo, mod:77. */
 
 /* ── AC2 — spt-identity: contenedor del chip de sprint, instancia única
-   compartida Ítems/Planificar (shell en index.html). ── */
+   compartida Ítems/Planificar (shell en index.html).
+   TKT-202608-458 (REQ-202608-190): padding-bottom:12px retirado — existía para
+   separar el chip de la fila de goal/scope/burndown cuando esas vivían apiladas
+   debajo (.sph-inner en columna). En fila única (.sph-inner en row) ese padding
+   dejaba un hueco vertical asimétrico sin motivo — el gap:12px de .sph-inner ya
+   separa los elementos horizontalmente. ── */
 .spt-identity {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 0 12px;
   min-width: 0;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   TKT1 (REQ CAEL-0804-01 — corregido tras gap de Rune, founder: "Extender"):
-   .sph-goal / .sph-scope-chip / .sph-actions / .sph-collapsed-summary.
-   Extienden .sph-header/.sph-inner ya existentes — NO reemplazan
-   .sph-name ni .spt-identity, NO introducen wrapper ni chevron nuevo.
-   El colapso sigue siendo .sph-header.is-collapsed / #sph-collapse-btn
-   (mecanismo ya vigente, T-202606-100) — solo se le agrega un resumen
-   visible en vez de ocultar el bloque completo.
+   TKT-202608-458 (REQ-202608-190, TKT1) — reemplaza el bloque original de
+   TKT1/REQ CAEL-0804-01: .sph-header pasa a estado único, sin chevron ni rama
+   colapsada — el mecanismo completo de colapso (.sph-header.is-collapsed,
+   #sph-collapse-btn, .sph-collapsed-summary/-goal/-version/-pct) se retira sin
+   selector huérfano, cierra el AC de coherencia de REQ-202608-190 ("Ningún
+   rastro del Patrón A-13... permanece en index.html/locus-sprint.css") del lado
+   CSS/HTML — el retiro de las 5 funciones JS y la persistencia en localStorage
+   es TKT-202608-459 (Rune). .sph-goal y .sph-scope-chip se conservan como
+   elementos de la fila única, truncados con ellipsis + title nativo (goal) /
+   max-width fijo (scope, antes 100% del contenedor en columna). .sph-actions
+   se deja sin tocar — dead CSS previo a este TKT, no relacionado al Patrón
+   A-13 ni al botón Cerrar sprint que este TKT excluye explícitamente
+   (no_incluye) — ver Hallazgo en CHECKPOINT de cierre.
    ══════════════════════════════════════════════════════════════════════ */
 
 .sph-goal {
@@ -3690,14 +3747,19 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   font-size: var(--text-xs);
   color: var(--text2);
   line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
 }
 
 /* Sin sprint.goal declarado — el nodo se omite en JS, sin CSS de fallback */
 
 .sph-scope-chip {
   display: inline-block;
-  align-self: flex-start;
-  max-width: 100%;
+  flex-shrink: 0;
+  max-width: 160px;
   font-size: var(--text-xs);
   color: var(--text3);
   background: var(--surface3);
@@ -3718,50 +3780,6 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 
 /* Reusa .sps-btn/.sps-btn--close (locus-sprint.css, sub-tab Sprints) —
    sin clase nueva de botón, mismos tokens ya validados WCAG AA. */
-
-/* Resumen colapsado — visible solo cuando .sph-header.is-collapsed.
-   .sph-inner ya se oculta via is-hidden en JS bajo ese estado (ver
-   .sph-header.is-collapsed arriba) — este bloque es HERMANO de
-   .sph-inner, no hijo, para no depender de que JS deje de ocultarlo. */
-.sph-collapsed-summary {
-  display: none;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  flex: 1;
-  overflow: hidden;
-}
-
-.sph-header.is-collapsed .sph-collapsed-summary {
-  display: flex;
-}
-
-.sph-collapsed-goal {
-  font-size: var(--text-xs);
-  color: var(--text2);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-  flex-shrink: 1;
-}
-
-.sph-collapsed-version {
-  flex-shrink: 0;
-  font-family: var(--mono);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  color: var(--text2);
-}
-
-.sph-collapsed-pct {
-  flex-shrink: 0;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
-}
-/* ══ END TKT1 (REQ CAEL-0804-01) ═════════════════════════════════════ */
 
 /* ── AC3 — spt-content-empty: ícono+título+hint, mismo patrón visual que
    .msc-diff-empty/.msc-diff-empty-icon/-title/-hint (locus-backlog-item.css) y

@@ -1,3 +1,13 @@
+<!-- [PP] mod:219 · autor:Nova · 2026-08-24 15:10 UTC-6 -->
+<!-- TKT-202608-458 (REQ-202608-190, TKT1): .sph-header pasa a estado único — .sph-collapse-btn
+     (Patrón A-13), #sph-name y .sph-collapsed-summary/-goal/-version/-pct retirados sin
+     remanente huérfano. .spt-identity-chip pasa de <span> texto pasivo a <button> trigger de
+     listbox — .sph-select-wrap/.sph-select-list (shell estático, id="sph-select-list",
+     role="listbox", hidden por default — contenido inyectado por renderSprintTab(),
+     wiring de apertura/navegación es TKT-202608-459/Rune, depends_on este TKT). Burndown
+     pasa a fila compacta — #sph-bd-labels/#sph-bd-label/#sph-bd-warn retirados (sin AC que
+     los pida en la fila única; call sites ya null-safe en locus-sprint.js, sin cambio de JS
+     requerido para este TKT). Ver locus-sprint.css mod:80 para el detalle completo de estilos. -->
 <!-- [PP] mod:218 · autor:Rune · 2026-08-23 23:10 UTC-6 -->
 <!-- TKT-202608-454 (REQ-202608-187, TKT2, depends_on: TKT-202608-453): .spt-identity
      consolida chip+label en un único .sph-sprint-pill (id="spt-identity-chip") — retira
@@ -1233,28 +1243,28 @@
   <!-- END R-202605-043: Subtab nav -->
   <!-- Header sprint activo — visible solo cuando hay sprint activo -->
   <div class="sph-header is-hidden" id="sprint-panel-header">
-    <!-- T-202606-100: botón colapso + sph-name fuera de sph-inner — siempre visibles -->
-    <!-- TKT-202608-332 (REQ-202608-131, TKT6): svg.chevron reemplaza el glifo ▾ estático
-         de .sph-collapse-btn::before (Patrón A-13) — mismo sprite y markup que las 13
-         familias ya migradas, sin cambio de aria-expanded (ya correcto en este botón). -->
-    <button class="sph-collapse-btn" id="sph-collapse-btn" type="button" aria-expanded="true" aria-label="Colapsar header"><svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg></button>
-    <div class="sph-name" id="sph-name"></div>
-    <!-- TKT1 (REQ CAEL-0804-01): resumen colapsado — hermano de .sph-inner, no hijo,
-         para permanecer visible cuando .sph-inner recibe is-hidden en _sphApplyCollapsed(). -->
-    <div class="sph-collapsed-summary" id="sph-collapsed-summary">
-      <span class="sph-collapsed-goal" id="sph-collapsed-goal"></span>
-      <span class="sph-collapsed-version" id="sph-collapsed-version"></span>
-      <span class="sph-collapsed-pct" id="sph-collapsed-pct"></span>
-    </div>
+    <!-- TKT-202608-458 (REQ-202608-190, TKT1, Nova): estado único — .sph-collapse-btn
+         (Patrón A-13), #sph-name y .sph-collapsed-summary/-goal/-version/-pct retirados
+         sin remanente (mismos ids ya null-safe en locus-sprint.js — if(nameEl)/etc.,
+         quedan sin efecto hasta que TKT-202608-459/Rune retire las funciones _sph*
+         de colapso, sin riesgo de excepción en runtime). .sph-inner pasa a ser el
+         único hijo directo relevante del header. -->
     <div class="sph-inner">
       <!-- spt-identity — TKT-202607-126/127 (REQ-202607-039, Nova): instancia única, compartida
            entre Ítems y Planificar vía .sph-header — evita duplicación de estructura (BR-Execution
-           §5, regla dura 1). TKT-202608-454 (REQ-202608-187, TKT2): chip + label consolidados en
-           un único nodo — .sph-sprint-pill (Nova, locus-sprint.css mod:77) reemplaza el par
-           .pill-project + .spt-identity-label. Retira el fallback que mostraba el id de proyecto
-           como badge cuando no hay sprint (ver renderSprintTab(), locus-sprint.js). -->
+           §5, regla dura 1). TKT-202608-458 (REQ-202608-190, TKT1, Nova): el chip deja de ser
+           texto pasivo y pasa a <button> trigger de selector de sprint — .sph-select-wrap ancla
+           el listbox .sph-select-list (extiende .sps-dropdown, mismo mecanismo [hidden]/
+           :not([hidden]) ya vigente en el resto de este archivo — ver locus-sprint.css mod:80).
+           Shell estático persistente, no regenerado por innerHTML — mismo criterio que el resto
+           de #sph-* en este bloque; contenido (opciones de sprint) inyectado por
+           renderSprintTab()/locus-sprint.js, wiring de apertura/navegación es TKT-202608-459
+           (Rune, depends_on este TKT). -->
       <div class="spt-identity" id="spt-identity">
-        <span class="sph-sprint-pill" id="spt-identity-chip"></span>
+        <div class="sph-select-wrap">
+          <button class="sph-sprint-pill" id="spt-identity-chip" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="sph-select-list"></button>
+          <div class="sps-dropdown sph-select-list" id="sph-select-list" role="listbox" aria-label="Seleccionar sprint" hidden></div>
+        </div>
       </div>
       <!-- TKT1 (REQ CAEL-0804-01): goal + scope del sprint — omitidos vía is-hidden si el
            sprint no los declara (sin fallback CSS, ver locus-sprint.css). -->
@@ -1264,16 +1274,16 @@
       <span class="sph-pending-badge is-hidden" id="sph-pending-badge">Pendiente aprobación</span>
       <!-- B-202606-064: botón 'Aprobar apertura' eliminado — aprobación ocurre via Step 0 del DIFF -->
       <!-- TKT-202608-454 (REQ-202608-187, TKT2): is-hidden por default — sin sprint no hay
-           effort que graficar. renderSprintTab() lo destapa solo en la rama con-sprint. -->
+           effort que graficar. renderSprintTab() lo destapa solo en la rama con-sprint.
+           TKT-202608-458 (REQ-202608-190, TKT1, Nova): fila compacta — #sph-bd-label/
+           #sph-bd-warn retirados del shell (sin AC que los pida en la fila única, ver
+           locus-sprint.css mod:80; ambos call sites en locus-sprint.js ya son
+           null-safe — if(bdLabel)/if(bdWarn), sin riesgo de excepción). -->
       <div class="sph-burndown is-hidden" id="sph-burndown">
-        <div class="sph-bd-labels">
-          <span class="sph-bd-label" id="sph-bd-label">Effort: 0 / 0</span>
-          <span class="sph-bd-pct" id="sph-bd-pct">0%</span>
-        </div>
+        <span class="sph-bd-pct" id="sph-bd-pct">0%</span>
         <div class="sph-bd-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="sph-bd-track">
           <div class="sph-bd-fill" id="sph-bd-fill"></div>
         </div>
-        <div class="sph-bd-warn is-hidden" id="sph-bd-warn"></div>
       </div>
       <!-- T-202606-042: botón Cerrar sprint eliminado de .sph-header — acción vive en .sps-actions (sub-tab Sprints) -->
     </div>
