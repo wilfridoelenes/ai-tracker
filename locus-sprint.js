@@ -440,17 +440,6 @@ function _sprintItemHtml(item) {
 
 const _SPT_PANELS   = ['items', 'planificar', 'sprints']; // T-202606-029: tercer sub-tab tras cancelación de Plan (TKT-202607-042)
 
-// TKT1 (REQ CAEL-0804-01) — fix bug mayor (Finn, auditoría TKT1): #sph-collapsed-pct
-// tiene dos call sites que recomputan el burndown (#sph-bd-pct) — renderSprintTab()
-// y _sptSwitch() al volver al sub-tab Ítems. Extraído a función compartida para que
-// ambos sincronicen el resumen colapsado, no solo el primero.
-function _sphSyncCollapsedPct() {
-  const collapsedPctEl = _spEl('sph-collapsed-pct');
-  if (!collapsedPctEl) return;
-  const bdPctEl = _spEl('sph-bd-pct');
-  collapsedPctEl.textContent = bdPctEl ? bdPctEl.textContent : '0%';
-}
-
 function _sptSwitch(subtab, triggerBtn, skipItemsRender = false) {
   _sptActiveSubtab = subtab; // B-202606-065/066: persiste entre renders y recargas de página
   localStorage.setItem(_SPT_SUBTAB_KEY, subtab);
@@ -474,7 +463,6 @@ function _sptSwitch(subtab, triggerBtn, skipItemsRender = false) {
       const itemsList = document.getElementById('sprint-items-list');
       if (itemsList) itemsList.classList.remove('is-hidden');
       _renderSprintItems(sprint);
-      _sphSyncCollapsedPct(); // TKT1 (REQ CAEL-0804-01) — fix bug mayor, ver Finn
       _renderSprintWorkers(sprint);
       _renderSprintScopeAdded(sprint);
     }
@@ -1744,11 +1732,13 @@ function _renderSprintItems(sprint) {
 
   // Burndown — TKT-202607-134 (REQ-202607-039, INC-202607-045): effort-based, antes
   // item-count-based (done.length/total). Fórmula portada de renderSprintBurndown()
-  // (locus-backlog-sprints.js, retirada en el mismo TKT) — el shell estático de Nova en
-  // index.html ya asume effort-based (#sph-bd-label nace 'Effort: 0 / 0'). Solo ítems con
-  // effort declarado contribuyen al cálculo; el resto se señala en #sph-bd-warn sin bloquearlo.
-  const withEffort    = spItems.filter(i => i.effort && parseInt(i.effort) > 0);
-  const withoutEffort = spItems.filter(i => !i.effort || parseInt(i.effort) === 0);
+  // (locus-backlog-sprints.js, retirada en el mismo TKT). Solo ítems con effort declarado
+  // contribuyen al cálculo.
+  // TKT-202608-459 (REQ-202608-190, TKT2): #sph-bd-label/#sph-bd-warn retirados del shell
+  // por Nova en TKT-202608-458 (fila compacta única, locus-sprint.css mod:80, sin AC que
+  // pida la advertencia de "ítems sin effort" por separado en el nuevo layout) — bloque de
+  // advertencia y `withoutEffort` (su único consumidor) retirados sin remanente.
+  const withEffort = spItems.filter(i => i.effort && parseInt(i.effort) > 0);
 
   const totalEffort = withEffort.reduce((acc, i) => acc + parseInt(i.effort), 0);
   const doneEffort  = withEffort
@@ -1770,9 +1760,7 @@ function _renderSprintItems(sprint) {
 
   const bdFill  = _spEl('sph-bd-fill');
   const bdPct   = _spEl('sph-bd-pct');
-  const bdLabel = _spEl('sph-bd-label');
   const bdTrack = _spEl('sph-bd-track');
-  const bdWarn  = _spEl('sph-bd-warn');
 
   if (bdFill) {
     bdFill.style.setProperty('--sph-bd-width', `${pct}%`);
@@ -1780,21 +1768,9 @@ function _renderSprintItems(sprint) {
     bdFill.classList.toggle('is-ready',    pct === 100);
   }
   if (bdPct)   bdPct.textContent   = `${pct}%`;
-  if (bdLabel) bdLabel.textContent = `Effort: ${doneEffort} / ${totalEffort}`;
   if (bdTrack) {
     bdTrack.setAttribute('aria-valuenow', pct);
     bdTrack.setAttribute('aria-valuetext', `${pct}% completado`);
-  }
-
-  // Ítems sin effort — señal visible, no bloquean el cálculo (ya excluidos de totalEffort/doneEffort arriba)
-  if (bdWarn) {
-    if (withoutEffort.length > 0) {
-      bdWarn.textContent = `${withoutEffort.length} ítem${withoutEffort.length > 1 ? 's' : ''} sin effort — no incluido${withoutEffort.length > 1 ? 's' : ''} en el cálculo`;
-      bdWarn.classList.remove('is-hidden');
-    } else {
-      bdWarn.classList.add('is-hidden');
-      bdWarn.textContent = '';
-    }
   }
 
   // T-202606-042: bloque btnClose eliminado — #btn-close-sprint removido del HTML. Acción vive en .sps-actions (sub-tab Sprints)
@@ -2203,8 +2179,6 @@ export function renderSprintTab() {
           identityChipEl.classList.add('sph-sprint-pill--unset');
           identityChipEl.classList.remove('sph-sprint-pill--active');
         }
-        const nameEl = _spEl('sph-name');
-        if (nameEl) nameEl.textContent = '';
         const goalEl = _spEl('sph-goal');
         if (goalEl) goalEl.classList.add('is-hidden');
         const scopeChipEl = _spEl('sph-scope-chip');
@@ -2276,26 +2250,17 @@ export function renderSprintTab() {
   // Header — T-202606-042: remove is-hidden base antes de _sptSwitch para que el toggle por subtab tenga la última palabra
   if (header) {
     header.classList.remove('is-hidden');
-    const nameEl    = _spEl('sph-name');
-    const versionEl = _spEl('sph-version');
-    const pillEl    = _spEl('sph-release-pill');
-    const daysEl    = _spEl('sph-days');
-
-    if (nameEl)    nameEl.textContent    = sprint.label ? `${sprint.id} · ${sprint.label}` : (sprint.name || sprint.id || '');
-    if (versionEl) versionEl.textContent = sprint.version_target ? `v${sprint.version_target}` : '';
     // TKT-202608-454 (REQ-202608-187, TKT2): hay sprint real (activo o programado) —
     // el burndown vuelve a ser visible, invirtiendo el is-hidden aplicado en la rama sin sprint.
     const burndownEl = _spEl('sph-burndown');
     if (burndownEl) burndownEl.classList.remove('is-hidden');
-    if (pillEl) {
-      // TKT: antes 'Minor' por defecto silencioso — no distinguía "declarado Minor"
-      // de "campo ausente". Fallback '—' consistente con el ya usado en L681 para
-      // el mismo campo (release_type/releaseType) en otro render.
-      const rt = sprint.release_type || sprint.releaseType || '—';
-      pillEl.textContent = rt;
-      pillEl.className   = `sph-release-pill ${_sprintReleaseClass(rt)}`;
-    }
-    if (daysEl) daysEl.textContent = _sprintDaysLabel(sprint);
+    // TKT-202608-459 (REQ-202608-190, TKT2): #sph-name/#sph-version/#sph-release-pill/
+    // #sph-days retirados sin remanente — Nova (TKT-202608-458) los eliminó del shell del
+    // header (fila única, sin equivalente para versión/release/días abiertos). El compuesto
+    // `${id} · ${label}` que #sph-name mostraba ya no tiene destino visual — el chip
+    // (.spt-identity-chip) comunica únicamente estado (Activo/Programado), ver
+    // _sphNavigateToSprint más abajo. _sprintDaysLabel()/_sprintReleaseClass() quedaban sin
+    // otro consumidor tras este retiro — eliminadas junto con este bloque, no en sesión aparte.
 
     // TKT-202607-126 (REQ-202607-039): spt-identity — instancia única en .sph-inner, poblada
     // aquí porque este bloque ya es el punto donde header.classList.remove('is-hidden') corre.
@@ -2346,18 +2311,11 @@ export function renderSprintTab() {
       scopeChipEl.classList.toggle('is-hidden', !hasScope);
     }
 
-    // TKT1 (REQ CAEL-0804-01): resumen colapsado — hermano de .sph-inner (ver index.html),
-    // poblado siempre (visibilidad la resuelve el CSS .sph-header.is-collapsed).
-    const collapsedGoalEl    = _spEl('sph-collapsed-goal');
-    const collapsedVersionEl = _spEl('sph-collapsed-version');
-    if (collapsedGoalEl)    collapsedGoalEl.textContent    = sprint.goal || '';
-    if (collapsedVersionEl) collapsedVersionEl.textContent = sprint.version_target ? `v${sprint.version_target}` : '';
-    // #sph-collapsed-pct se puebla después de _renderSprintItems(sprint) más abajo —
-    // el burndown (#sph-bd-pct) todavía no está computado en este punto del render.
+    // TKT-202608-459 (REQ-202608-190, TKT2): pobladas las opciones del selector de sprint
+    // con el sprint actualmente en vista — el shell .sph-select-list (Nova, index.html
+    // mod:219) ya existe, aquí se llena con los sprints activo/programado del proyecto.
+    _sphBuildSelectOptions(sprint.id);
   }
-
-  // T-202606-100: aplicar estado de colapso persistido al header
-  _sphApplyCollapsed();
 
   // T-202606-042: _sptSwitch después de header.classList.remove — el toggle de subtab tiene la última palabra sobre visibilidad del header
   _sptSwitch(_sptActiveSubtab, _spEl('spt-tab-' + _sptActiveSubtab), true); // B-202606-065: usa estado persistido — no lee DOM. true = skip items render (renderSprintTab lo hace directamente)
@@ -2365,12 +2323,6 @@ export function renderSprintTab() {
   // Ítems
   if (itemsList) itemsList.classList.remove('is-hidden');
   _renderSprintItems(sprint);
-
-  // TKT1 (REQ CAEL-0804-01): #sph-collapsed-pct — resincronizado recién aquí, después de
-  // _renderSprintItems(sprint), que es quien computa #sph-bd-pct (ver L1637). Función
-  // compartida con _sptSwitch() (fix bug mayor, auditoría Finn) — ambos call sites que
-  // recomputan el burndown deben resincronizar el resumen colapsado.
-  _sphSyncCollapsedPct();
 
   // Workers
   _renderSprintWorkers(sprint);
@@ -2382,34 +2334,150 @@ export function renderSprintTab() {
   _updateSprintTabBadges();
 }
 
-// ── T-202606-100: Header sprint colapsable ────────────────────────────────
+// ── TKT-202608-459 (REQ-202608-190, TKT2): selector rápido de sprint ─────────
+// Reemplaza el header colapsable (Patrón A-13, retirado — chevron, .sph-collapsed-summary
+// y persistencia en localStorage). El chip .sph-sprint-pill (id spt-identity-chip, ahora
+// <button>) abre .sph-select-list — shell estático entregado por Nova (index.html mod:219,
+// extiende .sps-dropdown: mismo mecanismo [hidden]/:not([hidden]) ya vigente en este
+// módulo, ver _spsWireDropdownToggle). Wiring dedicado (no reutiliza _spsWireDropdownToggle
+// directo) porque ese helper ancla el cierre-por-click-afuera a .sps-menu-wrap — el wrap
+// del selector de header es .sph-select-wrap, clase distinta; duplicar el mecanismo aquí
+// evita tocar markup/CSS ya entregado por Nova fuera del scope de este TKT.
 
-const _SPH_COLLAPSED_KEY = 'locus-sprint-header-collapsed';
+// TKT-202608-459 AC — Retiro: _sphIsCollapsed/_sphSetCollapsed/_sphApplyCollapsed/
+// _sphToggle/_sphSyncCollapsedPct y toda referencia a .sph-collapsed-summary/localStorage
+// de colapso quedan eliminadas de este archivo — sin remanente (verificado por grep, ver
+// CHECKPOINT de cierre).
 
-function _sphIsCollapsed() {
-  try { return localStorage.getItem(_SPH_COLLAPSED_KEY) === 'true'; } catch (e) { return false; }
+function _sphBuildSelectOptions(currentSprintId) {
+  const listEl = _spEl('sph-select-list');
+  if (!listEl) return;
+  const activeProjId = _getActiveProjectFilter();
+  const candidates = getActiveSprints().filter(function(s) {
+    return s.projectId === activeProjId && (s.status === 'active' || s.status === 'scheduled');
+  });
+  if (!candidates.length) { listEl.innerHTML = ''; return; }
+  listEl.innerHTML = candidates.map(function(s) {
+    const label    = s.status === 'active' ? 'activo' : 'programado';
+    const selected = s.id === currentSprintId;
+    return '<button class="sps-dropdown-item" role="option" type="button" ' +
+      'aria-selected="' + String(selected) + '" data-sprint-id="' + _escHtml(s.id) + '">' +
+      _escHtml(s.id) + ' (' + label + ')</button>';
+  }).join('');
 }
 
-function _sphSetCollapsed(collapsed) {
-  try { localStorage.setItem(_SPH_COLLAPSED_KEY, String(collapsed)); } catch (e) {}
+function _sphCloseOnOutside(ev) {
+  const wrap = document.querySelector('.sph-select-wrap');
+  if (wrap && !wrap.contains(ev.target)) _sphCloseSelectList();
 }
 
-function _sphApplyCollapsed() {
-  const header = document.getElementById('sprint-panel-header');
-  const inner  = header && header.querySelector('.sph-inner');
-  const btn    = document.getElementById('sph-collapse-btn');
-  if (!header || !inner || !btn) return;
-  const collapsed = _sphIsCollapsed();
-  header.classList.toggle('is-collapsed', collapsed);
-  inner.classList.toggle('is-hidden', collapsed);
-  btn.setAttribute('aria-expanded', String(!collapsed));
-  btn.setAttribute('aria-label', collapsed ? 'Expandir header' : 'Colapsar header');
+function _sphSelectListKeydown(ev) {
+  const listEl = _spEl('sph-select-list');
+  if (!listEl || listEl.hidden) return;
+  if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp' && ev.key !== 'Escape') return;
+  const items = Array.prototype.slice.call(listEl.querySelectorAll('.sps-dropdown-item'));
+  if (ev.key === 'Escape') {
+    ev.preventDefault();
+    _sphCloseSelectList();
+    const chipEl = _spEl('spt-identity-chip');
+    if (chipEl) chipEl.focus();
+    return;
+  }
+  if (!items.length) return;
+  const idx = items.indexOf(document.activeElement);
+  ev.preventDefault();
+  const nextIdx = ev.key === 'ArrowDown' ? (idx + 1 + items.length) % items.length
+                                          : (idx - 1 + items.length) % items.length;
+  items[nextIdx].focus();
 }
 
-function _sphToggle() {
-  const collapsed = !_sphIsCollapsed();
-  _sphSetCollapsed(collapsed);
-  _sphApplyCollapsed();
+function _sphOpenSelectList() {
+  const listEl = _spEl('sph-select-list');
+  const chipEl = _spEl('spt-identity-chip');
+  if (!listEl || !chipEl) return;
+  listEl.hidden = false;
+  chipEl.setAttribute('aria-expanded', 'true');
+  const selected = listEl.querySelector('[aria-selected="true"]');
+  const first    = listEl.querySelector('.sps-dropdown-item');
+  const toFocus  = selected || first;
+  if (toFocus) toFocus.focus();
+  setTimeout(function() {
+    document.addEventListener('click', _sphCloseOnOutside, true);
+    document.addEventListener('keydown', _sphSelectListKeydown, true);
+  }, 0);
+}
+
+function _sphCloseSelectList() {
+  const listEl = _spEl('sph-select-list');
+  const chipEl = _spEl('spt-identity-chip');
+  if (!listEl || listEl.hidden) return;
+  listEl.hidden = true;
+  if (chipEl) chipEl.setAttribute('aria-expanded', 'false');
+  document.removeEventListener('click', _sphCloseOnOutside, true);
+  document.removeEventListener('keydown', _sphSelectListKeydown, true);
+}
+
+// AC edge case (TKT-202608-459): sin ningún sprint del proyecto activo — el trigger no
+// abre la lista, cae directo a la sub-tab Sprints. Sin regresión: _renderSprintTab ya
+// fuerza esa sub-tab cuando no hay ningún sprint (rama sin-sprint más arriba); este guard
+// cubre el caso de que el chip reciba foco/click de todas formas.
+function _sphToggleSelectList() {
+  const listEl = _spEl('sph-select-list');
+  if (!listEl) return;
+  const activeProjId = _getActiveProjectFilter();
+  const hasAnySprint = getActiveSprints().some(function(s) { return s.projectId === activeProjId; });
+  if (!hasAnySprint) {
+    _sptSwitch('sprints', _spEl('spt-tab-sprints'));
+    return;
+  }
+  if (listEl.hidden) _sphOpenSelectList(); else _sphCloseSelectList();
+}
+
+// Navegación sin recargar (AC happy path): re-popula header + ítems + workers + scope
+// added para el sprint elegido en la lista, sin pasar por renderSprintTab() completo —
+// duplicación deliberada del subset de campos ya poblados ahí (chip/goal/scope/pending),
+// no una extracción a helper compartido, para no mezclar refactor con la implementación
+// de este TKT (BR-Execution §2 — Señal de refactor).
+function _sphNavigateToSprint(targetSprint) {
+  if (!targetSprint) return;
+  const identityChipEl = _spEl('spt-identity-chip');
+  if (identityChipEl) {
+    const _isActive = targetSprint.status === 'active';
+    identityChipEl.textContent = _isActive ? 'Activo' : 'Programado';
+    identityChipEl.classList.remove('sph-sprint-pill--unset');
+    identityChipEl.classList.toggle('sph-sprint-pill--active', _isActive);
+  }
+  const goalEl = _spEl('sph-goal');
+  if (goalEl) {
+    const hasGoal = !!(targetSprint.goal && String(targetSprint.goal).trim());
+    goalEl.textContent = hasGoal ? targetSprint.goal : '';
+    goalEl.classList.toggle('is-hidden', !hasGoal);
+  }
+  const scopeChipEl = _spEl('sph-scope-chip');
+  if (scopeChipEl) {
+    const hasScope = !!(targetSprint.scope && String(targetSprint.scope).trim());
+    scopeChipEl.textContent = hasScope ? targetSprint.scope : '';
+    scopeChipEl.classList.toggle('is-hidden', !hasScope);
+  }
+  const pendingBadge = _spEl('sph-pending-badge');
+  if (pendingBadge) pendingBadge.classList.toggle('is-hidden', targetSprint.formallyOpened === false);
+  const itemsList = _spEl('sprint-items-list');
+  if (itemsList) itemsList.classList.remove('is-hidden');
+  _renderSprintItems(targetSprint);
+  _renderSprintWorkers(targetSprint);
+  _renderSprintScopeAdded(targetSprint);
+  _sphBuildSelectOptions(targetSprint.id);
+}
+
+function _sphHandleSelectClick(ev) {
+  const opt = ev.target.closest('[data-sprint-id]');
+  if (!opt) return;
+  const sprintId = opt.dataset.sprintId;
+  _sphCloseSelectList();
+  const chipEl = _spEl('spt-identity-chip');
+  if (chipEl) chipEl.focus();
+  const target = getActiveSprints().find(function(s) { return s.id === sprintId; });
+  if (target) _sphNavigateToSprint(target);
 }
 
 // ── T-202606-038: Sprint HOTFIX persistente ───────────────────────────────
