@@ -1,4 +1,23 @@
-// [PP] mod:109 · autor:Rune · 2026-08-27 UTC-6
+// [PP] mod:111 · autor:Rune · 2026-08-27 UTC-6
+// TKT ref_id CAEL-08271530-02 (REQ ref_id CAEL-08271530-01, parent shell _retrocedoRow/
+// _discardRow): agregado helper _rowCardShell(modifierClasses, dataAttr, typeCls,
+// topExtraHtml, desc) — extrae el wrapper (card+accent+body+top+desc) que _retrocedoRow y
+// _discardRow repetían byte a byte salvo 3 valores (clases modificadoras, data-attr,
+// contenido variable del top). Ambas funciones ahora arman su topExtraHtml propio y delegan
+// el shell — mismo HTML de salida, sin cambio de firma pública de ninguna de las dos. No
+// toca _card (tiene toggle nativo, TKT-202608-465) ni _buildPatchCard (mecanismo
+// .mdiff-zone-* propio) — quedan fuera hasta que la DISC de unificación de toggle defina el
+// mecanismo único a adoptar. Sin cambio de comportamiento observable ni de CSS.
+// contract_update: no — _rowCardShell es interno al closure de showMergeDiffPanel, sin
+// export ni consumidor cross-module.
+// [PP] mod:110 · autor:Rune · 2026-08-27 UTC-6
+// TKT ref_id CAEL-08271500-02 (REQ ref_id CAEL-08271500-01 — DISC de Rune, sin código real
+// aún): _OP_ICON_MAP/_opIcon movidos del closure de showMergeDiffPanel a nivel de módulo y
+// exportados (ver declaración cerca de _mdiffOnClose). _pill() sin cambio de firma, resuelve
+// contra las mismas referencias. Sin cambio de comportamiento — mismo mapa cerrado de 4
+// tipos, mismo fallback '' para cls no mapeado. contract_update: no — export nuevo sin
+// consumidor cross-module todavía (preparación, no integración). Destino ideal
+// (locus-ckpt-render.js) no adjunto en sesión — ver Propuesta de mejora original de Rune.
 // TKT-202608-465 (REQ-202608-191 · Mecanismo de expand/collapse (chevron) para cards del
 // panel DIFF — HTML+JS): _card() genérica (creados/avances/actualizados/creados-y-cerrados/
 // ignorados — Step 0 quickRowsHtml) gana trigger .mdiff-card-toggle (button, aria-expanded,
@@ -526,6 +545,31 @@ let _mdiffPanelAC = null;
 // efecto sobre el caller que cerrar con Cancelar/Escape.
 let _mdiffOnClose = null;
 
+// TKT ref_id CAEL-08271500-02 (REQ ref_id CAEL-08271500-01): _OP_ICON_MAP/_opIcon movidos a
+// nivel de módulo y exportados — antes vivían dentro del closure de showMergeDiffPanel
+// (TKT-202608-461), sin dependencia de ningún estado local de ese closure (funciones puras).
+// Motivo: permitir que otros consumidores (IDP, Q-DISC) reutilicen el mismo mapeo cls→ícono
+// sin duplicarlo — hoy ningún otro módulo los importa todavía, esta extracción es
+// preparación, no integración. Destino ideal (locus-ckpt-render.js, ya dueño del catálogo de
+// render de CHECKPOINT) no estaba adjunto en la sesión que originó este TKT — se exportan
+// desde este archivo en su lugar, sin bloquear el cambio por un archivo ausente. Sin cambio
+// de comportamiento: mismo mapa cerrado de 4 tipos, mismo fallback '' para cls no mapeado.
+export const _OP_ICON_MAP = {
+  created:   'ti-square-rounded-plus',
+  advanced:  'ti-arrow-big-right-lines',
+  updated:   'ti-pencil',
+  retroceso: 'ti-arrow-back-up',
+};
+// Ícono hermano del pill de texto — nunca anidado dentro del <span> (ver
+// _Locus-css-ref §Patrones .mdiff-op-icon, TKT-202608-460: el selector CSS asume el
+// ícono como elemento previo, no como hijo). cls no mapeado → string vacío, sin
+// <svg> roto y sin alterar el chip de texto.
+export const _opIcon = (cls) => {
+  const iconName = _OP_ICON_MAP[cls];
+  if (!iconName) return '';
+  return `<svg class="ti-svg mdiff-op-icon mdiff-op-icon--${cls}" aria-hidden="true"><use href="#${iconName}"></use></svg>`;
+};
+
 // T-202606-006: true mientras el DIFF está abierto — consultable por otros módulos vía getter.
 // Se pone true al abrir el panel (TKT-202607-145: ahora shell.classList.add('open') sobre
 // #modal-split-shell, antes overlay.classList.add('open') sobre #merge-diff-overlay) y false
@@ -853,25 +897,8 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     return `<span class="mdiff-docrel-badge" title="Confirmar doc_relevance_confirmada al cerrar el TKT">doc_relevance sin confirmar — ${esc(missing.join(', '))}</span>`;
   };
 
-  // TKT-202608-461 (REQ-202608-191, TKT2): mapa cerrado de los 4 tipos de operación que
-  // chipTonesFromDiff clasifica → símbolo del sprite. cls fuera de este mapa (discarded/
-  // warn/ignored) no tiene entrada — _opIcon lo trata como no mapeado, sin excepción.
-  const _OP_ICON_MAP = {
-    created:   'ti-square-rounded-plus',
-    advanced:  'ti-arrow-big-right-lines',
-    updated:   'ti-pencil',
-    retroceso: 'ti-arrow-back-up',
-  };
-  // Ícono hermano del pill de texto — nunca anidado dentro del <span> (ver
-  // _Locus-css-ref §Patrones .mdiff-op-icon, TKT-202608-460: el selector CSS asume el
-  // ícono como elemento previo, no como hijo). cls no mapeado → string vacío, sin
-  // <svg> roto y sin alterar el chip de texto.
-  const _opIcon = (cls) => {
-    const iconName = _OP_ICON_MAP[cls];
-    if (!iconName) return '';
-    return `<svg class="ti-svg mdiff-op-icon mdiff-op-icon--${cls}" aria-hidden="true"><use href="#${iconName}"></use></svg>`;
-  };
-
+  // TKT ref_id CAEL-08271500-02: _OP_ICON_MAP/_opIcon movidos a nivel de módulo (ver arriba,
+  // antes de este closure) — _pill sigue resolviendo contra ellos sin cambio de firma.
   const _pill = (cls, label) =>
     `${_opIcon(cls)}<span class="mdiff-pill mdiff-pill--${cls}">${label}</span>`;
 
@@ -1087,23 +1114,34 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     </div>`;
   };
 
+  // ── Shell compartido de fila sin toggle (retroceso / descarte) ──
+  // TKT ref_id CAEL-08271530-02 (REQ ref_id CAEL-08271530-01): extraído de _retrocedoRow y
+  // _discardRow — ambas producían el mismo wrapper (card+accent+body+top+desc) con solo 3
+  // valores distintos (clases modificadoras, data-attr, contenido variable del top). No
+  // incluye _card (toggle nativo) ni _buildPatchCard (mecanismo .mdiff-zone-* propio) — ver
+  // no_incluye del TKT: ambos dependen de que se resuelva primero el mecanismo único de
+  // toggle (DISC pendiente de grooming) antes de sumarse a este shell.
+  const _rowCardShell = (modifierClasses, dataAttr, typeCls, topExtraHtml, desc) => `
+    <div class="mdiff-card ${modifierClasses} ${typeCls}" ${dataAttr}>
+      <div class="mdiff-card-accent"></div>
+      <div class="mdiff-card-body">
+        <div class="mdiff-card-top">
+          ${topExtraHtml}
+        </div>
+        <div class="mdiff-desc">${esc(desc || '')}</div>
+      </div>
+    </div>`;
+
   // ── Fila de retroceso ──
   // REQ-MERGE-GEN2 TKT1: migrado a i.type || _itemKindFn para tipo Gen2
   const _retrocedoRow = (i, idx) => {
     const itemType  = i.type || _itemKindFn({ code: i.code });
     const typeCls  = _typeClass[itemType] || 'mdiff-type--unknown';
-    return `
-    <div class="mdiff-card mdiff-card--warn mdiff-card--retroceso ${typeCls}" data-retroceso-idx="${idx}">
-      <div class="mdiff-card-accent"></div>
-      <div class="mdiff-card-body">
-        <div class="mdiff-card-top">
+    const topExtraHtml = `
           <span class="mdiff-code mdiff-card-title">${esc(i.code)}</span>
           ${_pill('retroceso', `${esc(i.from)} → ${esc(i.to)}`)}
-          ${_sprintSelect(i.code, i.sprint, itemType)}
-        </div>
-        <div class="mdiff-desc">${esc(i.desc || '')}</div>
-      </div>
-    </div>`;
+          ${_sprintSelect(i.code, i.sprint, itemType)}`;
+    return _rowCardShell('mdiff-card--warn mdiff-card--retroceso', `data-retroceso-idx="${idx}"`, typeCls, topExtraHtml, i.desc);
   };
 
   // ── Fila de descarte ──
@@ -1120,19 +1158,12 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     const reasonHtml = hasReason
       ? `<span class="mdiff-discard-reason-pill">${esc(_resolvedReason)}${i.ref ? ' · ' + esc(i.ref) : ''}</span>`
       : '';
-    return `
-    <div class="mdiff-card mdiff-card--red mdiff-card--discard ${typeCls}" data-discard-idx="${idx}">
-      <div class="mdiff-card-accent"></div>
-      <div class="mdiff-card-body">
-        <div class="mdiff-card-top">
+    const topExtraHtml = `
           <span class="mdiff-code mdiff-card-title">${esc(i.code)}</span>
           ${_pill('discarded', 'descartado')}
           ${reasonHtml}
-          ${_sprintSelect(i.code, i.sprint, itemType)}
-        </div>
-        <div class="mdiff-desc">${esc(i.desc || '')}</div>
-      </div>
-    </div>`;
+          ${_sprintSelect(i.code, i.sprint, itemType)}`;
+    return _rowCardShell('mdiff-card--red mdiff-card--discard', `data-discard-idx="${idx}"`, typeCls, topExtraHtml, i.desc);
   };
 
   // ── Tarjeta de preview para ítems type:patch ──
