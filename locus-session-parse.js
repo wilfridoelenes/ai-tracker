@@ -1,3 +1,12 @@
+// [PP] mod:214 · autor:Rune · 2026-08-26 UTC-6
+// INC — contador #ingest-char-counter no se actualizaba al pegar una sesión completa (sí letra
+// por letra). Causa raíz: la actualización vivía únicamente inline en parsePaste(), que el path
+// batch de _routeParse() (gate >=1 bloque, TKT-202608-276) nunca invoca — un CHECKPOINT completo
+// pegado detecta >=1 bloque de inmediato y rutea a batch, dejando el contador congelado. Fix:
+// lógica extraída a _updateIngestCharCounter() (nueva, exportada — mismo patrón que
+// _updateIngestBlockCount), invocada desde parsePaste() y desde el path batch de _routeParse().
+// Sin cambio de comportamiento visual ni de firma pública existente. Ver detalle junto a la
+// función nueva y en el call site dentro de _routeParse().
 // [PP] mod:213 · autor:Rune · 2026-08-23 UTC-6
 // TKT ref_id CAEL-08231900-01 (REQ ref_id CAEL-08231900-01, origen DISC-202608-214): reset de
 // #ingest-validation-error/#ingest-validation-warnings al inicio del bloque de validación de
@@ -2585,12 +2594,7 @@ export function parsePaste(id) {
   }
   const _discrepancy = rawTotal > 0 && rawTotal !== parsedTotal ? { raw: rawTotal, parsed: parsedTotal } : null;
 
-  const cc = document.getElementById('ingest-char-counter');
-  if (cc) {
-    const len = text.length;
-    cc.textContent = len > 0 ? `${len} caracteres` : '';
-    cc.className = len > 2000 ? 'char-counter warn' : 'char-counter';
-  }
+  _updateIngestCharCounter();
 
   // T-088: feedback visual paste-wrap según validez del checkpoint
   const wrap = ta ? ta.closest('.paste-wrap') : null;
@@ -2984,6 +2988,28 @@ const _pasteRetry = {};
 // con el texto del último cómputo (ej. batch previo de otro Worker), visible con la textarea
 // ya vacía. Sin cambio de firma ni de comportamiento interno — mismo cálculo en vivo desde
 // ta.value, solo visibilidad ampliada.
+// INC — contador de caracteres (#ingest-char-counter) no se actualizaba al pegar una sesión
+// completa — solo durante el tecleo letra por letra. Causa raíz: la actualización vivía
+// exclusivamente inline dentro de parsePaste() (mod:213 previo). Con el gate de _routeParse()
+// ampliado a >=1 bloque (TKT-202608-276, AC1), un CHECKPOINT completo pegado de una vez detecta
+// >=1 bloque de inmediato y rutea al path batch (_processIngestBatch), que parsePaste() nunca
+// invoca — el contador quedaba congelado. Al escribir letra por letra, el JSON permanece
+// incompleto (0 bloques) durante casi todo el tecleo, cayendo al path que sí llama a
+// parsePaste() en cada keystroke — de ahí la asimetría reportada. Fix: lógica extraída a función
+// propia, invocada desde ambos paths (batch — dentro de _routeParse, más abajo en este archivo —
+// y single — vía parsePaste()) — mismo criterio ya aplicado a _updateIngestBlockCount()/
+// _renderIngestBlockPreview(), ya compartidas entre single y batch. Sin cambio de firma pública,
+// sin cambio del texto ni del umbral mostrado (2000 caracteres) — mismo comportamiento visual,
+// ahora alcanzable desde ambos paths.
+export function _updateIngestCharCounter() {
+  const cc = document.getElementById('ingest-char-counter');
+  if (!cc) return;
+  const ta = document.getElementById('ingest-ta') /* CAEL-22 */;
+  const len = ta ? ta.value.length : 0;
+  cc.textContent = len > 0 ? `${len} caracteres` : '';
+  cc.className = len > 2000 ? 'char-counter warn' : 'char-counter';
+}
+
 export function _updateIngestBlockCount() {
   const el = document.getElementById('ingest-block-count');
   if (!el) return;
@@ -3395,6 +3421,7 @@ function _routeParse(id, ta) {
     // DIFF nunca marcara ningún worker como exhausted en este flujo — ver _onApplyBatch más abajo.
     _processIngestBatch(id);
     _updateIngestBlockCount(); // TKT-202607-041 AC1
+    _updateIngestCharCounter(); // INC — contador de caracteres ausente en path batch, ver comentario junto a la función
     _renderIngestBlockPreview(); // TKT-202608-235
     return true;
   }
