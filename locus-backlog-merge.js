@@ -1,4 +1,21 @@
-// [PP] mod:108 · autor:Rune · 2026-08-27 UTC-6
+// [PP] mod:109 · autor:Rune · 2026-08-27 UTC-6
+// TKT-202608-465 (REQ-202608-191 · Mecanismo de expand/collapse (chevron) para cards del
+// panel DIFF — HTML+JS): _card() genérica (creados/avances/actualizados/creados-y-cerrados/
+// ignorados — Step 0 quickRowsHtml) gana trigger .mdiff-card-toggle (button, aria-expanded,
+// svg.chevron ti-svg aria-hidden — mismo Patrón A-13 ya vigente en .mdiff-zone-chevron/
+// .mdiff-section-chevron) y contenedor .mdiff-card-detail que envuelve _parentHtml/desc/
+// extraHtml con atributo nativo `hidden` por default — antes siempre visibles. Nuevo helper
+// _mdiffToggleCard (variable de módulo, mismo ciclo de vida asignado/limpiado que el resto
+// de _mdiff*, reseteada en los dos puntos de teardown existentes) alterna aria-expanded +
+// `hidden` vía closest('.mdiff-card')/.querySelector('.mdiff-card-detail') — independiente
+// por card, sin estado compartido. Nueva rama 'mdiff-toggle-card' en el dispatcher de
+// data-action ya existente (delegación única sobre #merge-diff-overlay). No toca
+// _retrocedoRow/_discardRow/_buildPatchCard (estas dos últimas ya tienen su propio mecanismo
+// — _mdiffToggleZone/.mdiff-zone-card, sin cambio) — fuera de scope del TKT. No agrega ni
+// modifica ningún archivo .css: la rotación del chevron la gobierna
+// [aria-expanded="true"] .chevron, ya vigente en locus-base.css. contract_update: no — sin
+// cambio de firma de _card()/showMergeDiffPanel/teardownMergeDiffPanel, todo el cambio vive
+// dentro de closures ya privados al módulo.
 // TKT-202608-461 (REQ-202608-191, TKT2 · Ícono de operación por tipo — integración en
 // card): agregado _OP_ICON_MAP + _opIcon(cls) — mapea los 4 tipos de operación que
 // chipTonesFromDiff clasifica (created/advanced/updated/retroceso) a un símbolo del
@@ -478,6 +495,12 @@ let _mdiffToggleSection = null;
 // _buildPatchCard() — mismo ciclo de vida que _mdiffToggleSection (asignada al abrir,
 // null al cerrar).
 let _mdiffToggleZone = null;
+// TKT-202608-465 (REQ-202608-191 · Mecanismo de expand/collapse (chevron) para cards del
+// panel DIFF): toggle del drawer de detalle en _card() genérica (creados/avances/actualizados/
+// etc, Step 0) — mismo ciclo de vida asignado/limpiado que el resto de _mdiff*. Distinto de
+// _mdiffToggleZone (exclusivo de _buildPatchCard/.mdiff-zone-card): usa el atributo nativo
+// `hidden` en el contenedor de detalle en vez de classList `is-hidden` (AC2 del TKT).
+let _mdiffToggleCard = null;
 let _mdiffJumpTo = null;
 let _mdiffUpdateConfirmBtn = null;
 // TKT-202607-206 (REQ-202607-079, AC4): historial de ref_id→title resuelto a través de batches
@@ -541,6 +564,7 @@ export function teardownMergeDiffPanel() {
   _mdiffUpdateConfirmBtn = null;
   _mdiffToggleSection = null;
   _mdiffToggleZone = null;
+  _mdiffToggleCard = null;
   _mdiffJumpTo = null;
   _mdiffUnresolvedFilter = null;
   _mdiffUnresolvedSelect = null;
@@ -1033,6 +1057,13 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // código repite 'INC'). Retirado en las 4 cards que lo mostraban (_card, _retrocedoRow,
   // _discardRow, _buildPatchCard) — el color por tipo (typeCls) se conserva en el borde
   // de acento de la card, sin pérdida de la señal visual de tipo.
+  // TKT-202608-465 (REQ-202608-191, TKT · Mecanismo de expand/collapse (chevron) para cards
+  // del panel DIFF): trigger .mdiff-card-toggle + contenedor .mdiff-card-detail con atributo
+  // nativo `hidden` por default — mismo patrón canónico de chevron ya vigente (.mdiff-zone-chevron/
+  // .mdiff-section-chevron, Patrón A-13: ti-svg chevron + aria-hidden). La rotación visual del
+  // chevron la gobierna [aria-expanded="true"] .chevron (locus-base.css, ya vigente) — sin CSS
+  // nuevo de este TKT. parentHtml/desc/extraHtml pasan a vivir dentro del contenedor de detalle
+  // — antes siempre visibles, ahora colapsados por default hasta el primer toggle.
   const _card = (code, desc, accentClass, pillsHtml, extraHtml = '', parentOverride = undefined, sprintOverride = undefined, itemType = undefined) => {
     const typeCls   = _typeClass[itemType] || 'mdiff-type--unknown';
     return `
@@ -1044,10 +1075,14 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
           ${pillsHtml}
           ${_docRelBadgeHtml(code)}
           ${_sprintSelect(code, sprintOverride, itemType)}
+          <button class="mdiff-card-toggle" type="button" data-action="mdiff-toggle-card"
+                  aria-expanded="false" aria-label="Ver detalle de ${esc(code)}"><svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg></button>
         </div>
-        ${_parentHtml(code, parentOverride)}
-        <div class="mdiff-desc">${esc(desc || '')}</div>
-        ${extraHtml}
+        <div class="mdiff-card-detail" hidden>
+          ${_parentHtml(code, parentOverride)}
+          <div class="mdiff-desc">${esc(desc || '')}</div>
+          ${extraHtml}
+        </div>
       </div>
     </div>`;
   };
@@ -2108,6 +2143,19 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     detail.classList.toggle('is-hidden', wasExpanded);
   };
 
+  // Helper: toggle drawer de detalle en _card() genérica (TKT-202608-465, AC1-AC3) — mismo
+  // patrón de delegación por closest() que _mdiffToggleZone (independencia entre cards, sin
+  // estado compartido), pero sobre `.mdiff-card`/`.mdiff-card-detail` y usando el atributo
+  // nativo `hidden` en vez de classList `is-hidden` (AC2). Enter/Space nativos del <button>.
+  _mdiffToggleCard = function(btn) {
+    const card = btn.closest('.mdiff-card');
+    const detail = card ? card.querySelector('.mdiff-card-detail') : null;
+    if (!detail) return;
+    const wasExpanded = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', String(!wasExpanded));
+    detail.hidden = wasExpanded;
+  };
+
   // Helper: jump a sección
   _mdiffJumpTo = function(secId) {
     const el = document.getElementById('mdiff-sec-' + secId);
@@ -2651,6 +2699,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     _mdiffUpdateConfirmBtn = null;
     _mdiffToggleSection = null;
     _mdiffToggleZone = null;
+    _mdiffToggleCard = null;
     _mdiffJumpTo = null;
       _mdiffUnresolvedFilter = null;
     _mdiffUnresolvedSelect = null;
@@ -2707,6 +2756,8 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       if (_mdiffToggleSection) _mdiffToggleSection(btn);
     } else if (action === 'mdiff-toggle-zone') {
       if (_mdiffToggleZone) _mdiffToggleZone(btn);
+    } else if (action === 'mdiff-toggle-card') {
+      if (_mdiffToggleCard) _mdiffToggleCard(btn);
     } else if (action === 'mdiff-jump-to') {
       if (_mdiffJumpTo) _mdiffJumpTo(btn.dataset.secId);
     } else if (action === 'mdiff-unresolved-select') {
