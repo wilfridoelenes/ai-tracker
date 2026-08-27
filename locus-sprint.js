@@ -1,3 +1,31 @@
+// [PP] mod:136 · autor:Rune · 2026-08-24 16:05 UTC-6
+// TKT-202608-459 (REQ-202608-190, TKT2, depends_on: TKT-202608-458 en-revision): tres
+// correcciones sobre el entregable de mod anterior de este mismo TKT — ninguna requirió
+// CHECKPOINT propio porque el TKT nunca había pasado por en-revision (Backlog declara
+// "pendiente" pese al código ya escrito — discrepancia señalada por Nova en auditoría,
+// ver CHECKPOINT de cierre).
+// (1) Wiring real del selector — _sphToggleSelectList/_sphHandleSelectClick existían desde
+//     su creación sin ningún addEventListener que las invocara: el chip (#spt-identity-chip)
+//     no abría el listbox al hacer click, y una opción clickeada no seleccionaba nada. Cero
+//     comportamiento visible pese al código completo. Wiring agregado en el bloque
+//     B-202605-019 (DOMContentLoaded), reemplazando el listener legacy muerto de (3).
+// (2) _sphSelectListKeydown — ArrowDown/ArrowUp usaban módulo (`% items.length`), lo que
+//     envolvía de la última opción a la primera y viceversa. AC "Teclado — navegación y
+//     cierre" (patch de Cael tras gap de Finn) exige explícitamente "sin wrap más allá de
+//     la primera/última" — corregido a Math.min/Math.max con clamp.
+// (3) Bloque B-202605-019 retenía `document.getElementById('sph-collapse-btn').
+//     addEventListener('click', _sphToggle)` — _sphToggle fue retirada de este archivo
+//     (ver comentario "TKT-202608-459 AC — Retiro" más abajo) y #sph-collapse-btn fue
+//     retirado de index.html (TKT-202608-458, Patrón A-13) — el guard `if(sphCollapseBtn)`
+//     nunca era true así que no fallaba en runtime, pero seguía siendo una invocación viva
+//     de una función retirada. Violaba el AC-4 de este mismo TKT ("verificado por grep que
+//     ninguna otra función del módulo invoca las funciones retiradas") pese a que el
+//     comentario de retiro ya declaraba esa verificación como hecha — no lo estaba. Bloque
+//     retirado sin remanente.
+// contract_update: no — las cuatro funciones tocadas (_sphSelectListKeydown,
+// _sphToggleSelectList, _sphHandleSelectClick, el listener legacy retirado) son internas a
+// este módulo, sin exportación ni call site externo — confirmado por grep contra los demás
+// módulos JS del proyecto.
 // [PP] mod:135 · autor:Rune · 2026-08-24 14:40 UTC-6
 // TKT-202608-454 (REQ-202608-187, TKT2) — cierra AC-3, pendiente tras mod:133 (ver
 // DISC-202608-217: el TKT se había ejecutado antes de que depends_on TKT-202608-453
@@ -2386,9 +2414,11 @@ function _sphSelectListKeydown(ev) {
   if (!items.length) return;
   const idx = items.indexOf(document.activeElement);
   ev.preventDefault();
-  const nextIdx = ev.key === 'ArrowDown' ? (idx + 1 + items.length) % items.length
-                                          : (idx - 1 + items.length) % items.length;
-  items[nextIdx].focus();
+  // mod:136 (TKT-202608-459): clamp, no módulo — AC "Teclado — navegación y cierre"
+  // exige sin wrap más allá de la primera/última opción.
+  const nextIdx = ev.key === 'ArrowDown' ? Math.min(idx + 1, items.length - 1)
+                                          : Math.max(idx - 1, 0);
+  items[Math.max(nextIdx, 0)].focus();
 }
 
 function _sphOpenSelectList() {
@@ -2832,9 +2862,15 @@ document.addEventListener('DOMContentLoaded', function() {
 // ── B-202605-019: Listeners — sprint management panel (_spm*) ───────────────
 document.addEventListener('DOMContentLoaded', function () {
 
-  // T-202606-100: sph-collapse-btn → _sphToggle()
-  const sphCollapseBtn = document.getElementById('sph-collapse-btn');
-  if (sphCollapseBtn) sphCollapseBtn.addEventListener('click', _sphToggle);
+  // mod:136 (TKT-202608-459): listener legacy sph-collapse-btn → _sphToggle() (Patrón
+  // A-13) retirado sin remanente — reemplazado por el wiring real del selector de sprint,
+  // sin call site propio desde la creación de estas funciones (ver comentario de mod:136
+  // al inicio del archivo).
+  const sphChipEl = document.getElementById('spt-identity-chip');
+  if (sphChipEl) sphChipEl.addEventListener('click', _sphToggleSelectList);
+
+  const sphSelectListEl = document.getElementById('sph-select-list');
+  if (sphSelectListEl) sphSelectListEl.addEventListener('click', _sphHandleSelectClick);
 
 });
 // ── END B-202605-019 ─────────────────────────────────────────────────────────

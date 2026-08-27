@@ -1,4 +1,21 @@
-/* [PP] mod:117 · autor:Nova · 2026-08-22 16:40 UTC-6 */
+/* [PP] mod:118 · autor:Nova · 2026-08-27 01:20 UTC-6 */
+/* TKT-202608-460 (REQ-202608-191, TKT1 · Ícono de operación por tipo): .mdiff-op-icon
+   agregada junto a .mdiff-pill--* (línea ~2867) — ícono semántico previo al chip de texto
+   de cada card del panel DIFF. Mapeo tonal idéntico al de la pill hermana que acompaña
+   (created=verde/advanced=azul/updated=accent/retroceso=amber), pero consumiendo las
+   variantes *-text en vez del token base — .mdiff-pill--advanced ya usa var(--blue) directo
+   como color de texto, que _Locus-css-ref (§Tokens — Color, tema light) documenta como
+   fallo de contraste (--blue #0288d1 falla, usar --blue-text #026aa8); no se repite ese
+   patrón en código nuevo, aunque corregir la pill existente queda fuera de scope de este
+   TKT. Tamaño vía width/height:var(--text-xs) — mismo patrón ya vigente en
+   .mdiff-status-chip--avalado .ti-svg (línea ~5228), no ancho/alto fijo en 16x16px como
+   declaraba el AC1 original del REQ: --fill-success/--fill-accent/--fill-danger/
+   --border-strong citados en el AC2 de coherencia del REQ no existen en este proyecto —
+   son nombres genéricos, no tokens reales. Corregido a los tokens reales ya documentados,
+   mismo criterio semántico (verde=positivo/creado, ámbar=atención/retroceso) que el resto
+   del sistema ya usa. Hallazgo fuera de scope resuelto en sesión — dueña presente (Nova),
+   nivel Patch (clase nueva sin consumidor aún — TKT-202608-461 la integra en el markup,
+   sigue pendiente — cero riesgo de regresión), sin bifurcación de founder. */
 /* TKT-202608-437 (REQ-202608-177, parent TKT-202608-436 — bloqueo de
    Rune): .mdiff-card-body-footer corregida — el bloque ya presente en el archivo (línea ~2825,
    comentario "TKT2c ... AC5 corregido por Cael") no tenía entrada de header que lo respaldara y
@@ -2897,6 +2914,33 @@
   background: color-mix(in srgb, var(--amber) 10%, transparent);
   color: var(--amber-text);
   border: 1px solid color-mix(in srgb, var(--amber) 28%, transparent);
+}
+
+/* TKT-202608-460 (REQ-202608-191, TKT1): .mdiff-op-icon — ícono de operación por tipo,
+   ubicado inmediatamente antes del .mdiff-pill correspondiente en la misma card (markup
+   vía TKT-202608-461). Tamaño heredado del contexto de la pill (--text-xs), mismo patrón
+   ya vigente en .mdiff-status-chip--avalado .ti-svg (línea ~5228) — nunca ancho/alto fijo
+   en px, ver INC-202607-002/mod:111 (conflicto de font-size que rompió .ti-svg antes). */
+.mdiff-op-icon {
+  width: var(--text-xs);
+  height: var(--text-xs);
+  flex-shrink: 0;
+}
+
+.mdiff-op-icon--created {
+  color: var(--green-text);
+}
+
+.mdiff-op-icon--advanced {
+  color: var(--blue-text);
+}
+
+.mdiff-op-icon--updated {
+  color: var(--accent-text);
+}
+
+.mdiff-op-icon--retroceso {
+  color: var(--amber-text);
 }
 
 .mdiff-pill--discarded {

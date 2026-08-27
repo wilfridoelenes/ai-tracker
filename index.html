@@ -1,3 +1,14 @@
+<!-- [PP] mod:220 · autor:Rune · 2026-08-27 UTC-6 -->
+<!-- TKT-202608-461 (REQ-202608-191, TKT2 · Ícono de operación por tipo — integración en
+     card): gap de sprite declarado en el TKT — 3 símbolos nuevos agregados al sprite
+     (#ti-square-rounded-plus, #ti-arrow-big-right-lines, #ti-arrow-back-up), consumidos
+     por _opIcon() en locus-backlog-merge.js mod:108. #ti-pencil ya existía, reusado sin
+     cambio. Los 3 símbolos nuevos se dibujaron en el mismo criterio simplificado ya usado
+     por otros símbolos custom de este sprite (ckpt/clean/notif/report/etc.) — geometría no
+     verificada contra el path oficial exacto de Tabler, declarado explícitamente para que
+     Nova/Finn confirmen o ajusten el trazo en QA visual. Mismo patrón que la incorporación
+     de ti-file-code en REQ-202608-125. Sin cambio de orden de carga ni de otros símbolos
+     existentes. -->
 <!-- [PP] mod:219 · autor:Nova · 2026-08-24 15:10 UTC-6 -->
 <!-- TKT-202608-458 (REQ-202608-190, TKT1): .sph-header pasa a estado único — .sph-collapse-btn
      (Patrón A-13), #sph-name y .sph-collapsed-summary/-goal/-version/-pct retirados sin
@@ -431,6 +442,14 @@
      No editar a mano — regenerar desde tabler-nodes-outline.json si
      el subset cambia. -->
 <svg style="display:none" aria-hidden="true">
+  <symbol id="ti-arrow-back-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 13l-4 -4l4 -4" />
+    <path d="M5 9h7a4 4 0 1 1 0 8h-1" />
+  </symbol>
+  <symbol id="ti-arrow-big-right-lines" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 9.5h6v-2.5l6 5l-6 5v-2.5h-6z" />
+    <path d="M19 7v10" />
+  </symbol>
   <symbol id="ti-backup" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M12 3.333v11.333M8 10.667l4 4 4 -4" />
     <path d="M4.667 16.667v2.667c0 0.8 0.533 1.333 1.333 1.333h12c0.8 0 1.333 -0.533 1.333 -1.333v-2.667" />
@@ -555,6 +574,11 @@
   <symbol id="ti-shortcuts" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <rect x="3.333" y="6.667" width="17.333" height="10.667" rx="1.867" />
     <path d="M6.667 10.933h0.013M10.667 10.933h0.013M14.667 10.933h0.013M17.333 10.933h0.013M7.333 14.4h9.333" />
+  </symbol>
+  <symbol id="ti-square-rounded-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 3h6c3.314 0 6 2.686 6 6v6c0 3.314 -2.686 6 -6 6h-6c-3.314 0 -6 -2.686 -6 -6v-6c0 -3.314 2.686 -6 6 -6z" />
+    <path d="M9 12h6" />
+    <path d="M12 9v6" />
   </symbol>
   <symbol id="ti-sync-infra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M18.667 7.333a7.333 7.333 0 0 0 -12.933 -3.067M5.333 16.667a7.333 7.333 0 0 0 12.933 3.067" />

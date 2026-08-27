@@ -1,3 +1,24 @@
+// [PP] mod:108 · autor:Rune · 2026-08-27 UTC-6
+// TKT-202608-461 (REQ-202608-191, TKT2 · Ícono de operación por tipo — integración en
+// card): agregado _OP_ICON_MAP + _opIcon(cls) — mapea los 4 tipos de operación que
+// chipTonesFromDiff clasifica (created/advanced/updated/retroceso) a un símbolo del
+// sprite de index.html (ti-square-rounded-plus/ti-arrow-big-right-lines/ti-pencil/
+// ti-arrow-back-up). _pill() ahora antepone _opIcon(cls) como elemento HERMANO del
+// <span> — nunca anidado dentro, mismo contrato que _Locus-css-ref §Patrones declaró
+// para .mdiff-op-icon (TKT-202608-460, ya done). Un cls fuera del mapa (discarded/warn/
+// ignored) no dispara fallback — _opIcon retorna '' y el pill se renderiza idéntico a
+// antes de este TKT. Cambio centralizado en _pill(): todo call site que ya pasaba por
+// esta función (_card, _retrocedoRow, _updatedRowHtml) recibe el ícono sin tocar cada
+// call site por separado — sin cambio de firma de _pill, sin tocar chipTonesFromDiff ni
+// el shape de retorno de mergeBacklogFromTG. Gap de sprite: de los 4 símbolos, solo
+// ti-pencil ya existía en index.html (reusado, sin símbolo nuevo) — ti-square-rounded-
+// plus, ti-arrow-big-right-lines y ti-arrow-back-up se agregaron en el mismo CHECKPOINT
+// (ver header de index.html). Geometría de los 3 símbolos nuevos dibujada en el mismo
+// criterio simplificado ya usado por otros símbolos custom del sprite (ckpt/clean/notif/
+// report/etc.) — no verificada contra el path oficial exacto de Tabler, declarado
+// explícitamente para que Nova/Finn lo confirmen o ajusten en QA visual si el trazo no
+// coincide con el resto del set. contract_update: no — símbolos internos del closure de
+// showMergeDiffPanel, sin firma exportada.
 // [PP] mod:107 · autor:Rune · 2026-08-22 UTC-6
 // Corrección de header — mod:106 (línea siguiente) describía TKT2b (footer retirado)
 // pero el cuerpo del archivo ya contenía el trabajo de TKT2c (footer de metadata
@@ -808,8 +829,27 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     return `<span class="mdiff-docrel-badge" title="Confirmar doc_relevance_confirmada al cerrar el TKT">doc_relevance sin confirmar — ${esc(missing.join(', '))}</span>`;
   };
 
+  // TKT-202608-461 (REQ-202608-191, TKT2): mapa cerrado de los 4 tipos de operación que
+  // chipTonesFromDiff clasifica → símbolo del sprite. cls fuera de este mapa (discarded/
+  // warn/ignored) no tiene entrada — _opIcon lo trata como no mapeado, sin excepción.
+  const _OP_ICON_MAP = {
+    created:   'ti-square-rounded-plus',
+    advanced:  'ti-arrow-big-right-lines',
+    updated:   'ti-pencil',
+    retroceso: 'ti-arrow-back-up',
+  };
+  // Ícono hermano del pill de texto — nunca anidado dentro del <span> (ver
+  // _Locus-css-ref §Patrones .mdiff-op-icon, TKT-202608-460: el selector CSS asume el
+  // ícono como elemento previo, no como hijo). cls no mapeado → string vacío, sin
+  // <svg> roto y sin alterar el chip de texto.
+  const _opIcon = (cls) => {
+    const iconName = _OP_ICON_MAP[cls];
+    if (!iconName) return '';
+    return `<svg class="ti-svg mdiff-op-icon mdiff-op-icon--${cls}" aria-hidden="true"><use href="#${iconName}"></use></svg>`;
+  };
+
   const _pill = (cls, label) =>
-    `<span class="mdiff-pill mdiff-pill--${cls}">${label}</span>`;
+    `${_opIcon(cls)}<span class="mdiff-pill mdiff-pill--${cls}">${label}</span>`;
 
   // T-202606-019: chips individuales por campo en sección 'Campos actualizados'
   // Consume changes[] — array de { field, from, to } del objeto diff.
