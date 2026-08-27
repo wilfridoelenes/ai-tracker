@@ -1,3 +1,12 @@
+// [PP] mod:112 · autor:Rune · 2026-08-27 UTC-6
+// TKT ref_id CAEL-08271600-01 (origen_disc DISC-202608-225): _OP_ICON_MAP/_opIcon retirados
+// de este archivo — vivían exportados aquí a nivel de módulo desde mod:110 como solución
+// interina (el destino ideal, locus-ckpt-render.js, no estaba adjunto en esa sesión).
+// Ahora importados desde locus-ckpt-render.js (mod:3), dueño del catálogo de render de
+// CHECKPOINT. _pill() sin cambio de firma ni de comportamiento — resuelve contra la misma
+// referencia, ahora importada en vez de declarada localmente. contract_update: sí — deja de
+// exportar _OP_ICON_MAP/_opIcon desde este módulo; sin consumidores cross-module previos
+// de este export (preparación nunca integrada, ver mod:110), sin call site que romper.
 // [PP] mod:111 · autor:Rune · 2026-08-27 UTC-6
 // TKT ref_id CAEL-08271530-02 (REQ ref_id CAEL-08271530-01, parent shell _retrocedoRow/
 // _discardRow): agregado helper _rowCardShell(modifierClasses, dataAttr, typeCls,
@@ -503,6 +512,8 @@ import { render } from './locus-sesiones.js';
 
 import { interpretHora, _horaUpdate } from './locus-session-hora.js';
 
+import { _OP_ICON_MAP, _opIcon } from './locus-ckpt-render.js'; // TKT ref_id CAEL-08271600-01: movidos desde este archivo — ver header
+
 
 
 // R-202605-033: Extraído de locus-backlog-item.js
@@ -545,30 +556,8 @@ let _mdiffPanelAC = null;
 // efecto sobre el caller que cerrar con Cancelar/Escape.
 let _mdiffOnClose = null;
 
-// TKT ref_id CAEL-08271500-02 (REQ ref_id CAEL-08271500-01): _OP_ICON_MAP/_opIcon movidos a
-// nivel de módulo y exportados — antes vivían dentro del closure de showMergeDiffPanel
-// (TKT-202608-461), sin dependencia de ningún estado local de ese closure (funciones puras).
-// Motivo: permitir que otros consumidores (IDP, Q-DISC) reutilicen el mismo mapeo cls→ícono
-// sin duplicarlo — hoy ningún otro módulo los importa todavía, esta extracción es
-// preparación, no integración. Destino ideal (locus-ckpt-render.js, ya dueño del catálogo de
-// render de CHECKPOINT) no estaba adjunto en la sesión que originó este TKT — se exportan
-// desde este archivo en su lugar, sin bloquear el cambio por un archivo ausente. Sin cambio
-// de comportamiento: mismo mapa cerrado de 4 tipos, mismo fallback '' para cls no mapeado.
-export const _OP_ICON_MAP = {
-  created:   'ti-square-rounded-plus',
-  advanced:  'ti-arrow-big-right-lines',
-  updated:   'ti-pencil',
-  retroceso: 'ti-arrow-back-up',
-};
-// Ícono hermano del pill de texto — nunca anidado dentro del <span> (ver
-// _Locus-css-ref §Patrones .mdiff-op-icon, TKT-202608-460: el selector CSS asume el
-// ícono como elemento previo, no como hijo). cls no mapeado → string vacío, sin
-// <svg> roto y sin alterar el chip de texto.
-export const _opIcon = (cls) => {
-  const iconName = _OP_ICON_MAP[cls];
-  if (!iconName) return '';
-  return `<svg class="ti-svg mdiff-op-icon mdiff-op-icon--${cls}" aria-hidden="true"><use href="#${iconName}"></use></svg>`;
-};
+// _OP_ICON_MAP/_opIcon — movidos a locus-ckpt-render.js (ver import arriba y header de
+// este archivo, mod:112). Ya no se declaran localmente.
 
 // T-202606-006: true mientras el DIFF está abierto — consultable por otros módulos vía getter.
 // Se pone true al abrir el panel (TKT-202607-145: ahora shell.classList.add('open') sobre
@@ -897,8 +886,8 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     return `<span class="mdiff-docrel-badge" title="Confirmar doc_relevance_confirmada al cerrar el TKT">doc_relevance sin confirmar — ${esc(missing.join(', '))}</span>`;
   };
 
-  // TKT ref_id CAEL-08271500-02: _OP_ICON_MAP/_opIcon movidos a nivel de módulo (ver arriba,
-  // antes de este closure) — _pill sigue resolviendo contra ellos sin cambio de firma.
+  // TKT ref_id CAEL-08271600-01: _OP_ICON_MAP/_opIcon ahora importados de locus-ckpt-render.js
+  // (ver import al inicio del archivo) — _pill sigue resolviendo contra ellos sin cambio de firma.
   const _pill = (cls, label) =>
     `${_opIcon(cls)}<span class="mdiff-pill mdiff-pill--${cls}">${label}</span>`;
 

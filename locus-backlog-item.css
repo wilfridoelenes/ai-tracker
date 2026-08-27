@@ -1,4 +1,4 @@
-/* [PP] mod:118 · autor:Nova · 2026-08-27 01:20 UTC-6 */
+/* [PP] mod:119 · autor:Nova · 2026-08-27 02:30 UTC-6 */
 /* TKT-202608-460 (REQ-202608-191, TKT1 · Ícono de operación por tipo): .mdiff-op-icon
    agregada junto a .mdiff-pill--* (línea ~2867) — ícono semántico previo al chip de texto
    de cada card del panel DIFF. Mapeo tonal idéntico al de la pill hermana que acompaña
@@ -2779,9 +2779,53 @@
   border-bottom: none;
 }
 
-.mdiff-card:hover {
+.mdiff-card:hover,
+.mdiff-card:focus-within {
   background: var(--surface2);
 }
+
+/* ══ TKT-202608-462 (REQ-202608-191, TKT3 · Microinteracción de expand): chevron a 120ms
+   (--trans-fast, override del --trans-medium genérico de .chevron — Patrón A-13 — porque
+   este disparador responde a hover/focus, uso designado de --trans-fast) + fade/slide del
+   drawer sobre el atributo nativo `hidden` (TKT-202608-465), sin clase de estado paralela.
+   `transition` (no `animation`) sobre opacity/transform + `allow-discrete`/`@starting-style`
+   para participar en la transición del display:none↔block gobernado por [hidden] — corta y
+   reinicia limpiamente en toggle rápido, sin salto visual (AC4). El borde de 3px por tipo
+   (.mdiff-card-accent, ya declarado abajo) y la elevación de superficie (hover/focus-within
+   arriba) ya están activos de forma permanente/simultánea — sin CSS adicional para esas dos
+   señales. contract_update: no — solo CSS, sin cambio de firma. ══ */
+.mdiff-card-toggle .chevron {
+  transition: transform var(--trans-fast);
+}
+
+.mdiff-card-detail {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.14s var(--ease-out), transform 0.14s var(--ease-out),
+    display 0.14s allow-discrete, overlay 0.14s allow-discrete;
+}
+
+.mdiff-card-detail[hidden] {
+  display: none;
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+@starting-style {
+  .mdiff-card-detail:not([hidden]) {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mdiff-card-toggle .chevron,
+  .mdiff-card-detail {
+    transition: none;
+  }
+}
+/* ── END TKT-202608-462 ── */
 
 .mdiff-card-accent {
   width: 3px;

@@ -1,4 +1,4 @@
-// [PP] mod:96 · autor:Rune · 2026-08-19 UTC-6
+// [PP] mod:97 · autor:Rune · 2026-08-27 14:45 UTC-6
 // TKT1 (CAEL-08182200-02, DISC-202608-192): entrada de header mod:92 (línea abajo) no cumplía
 // el formato de timestamp de __BR-Execution §9 (YYYY-MM-DD HH:MM UTC-6) — la hora nunca quedó
 // registrada en esa entrega. Sin dato real que reponer, se anota explícitamente en vez de
@@ -966,8 +966,13 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // Esta llamada SÍ usa parsed.patchItems (items crudos, type:'patch' intacto) — mismo patrón ya
   // correcto en el path standalone (locus-session-parse.js:1999, _doApply). El bug original que
   // motivó la eliminación (rol nunca propagado, siempre '') se corrige aquí pasando parsed.rol.
+  // TKT-202608-470: patchIntencionItems propagado — antes solo el flujo batch (_applyCheckpointBatch)
+  // pasaba este canal a applyPatchesFromTG(); el flujo single lo dejaba en parsed.patchIntencionItems
+  // sin consumir, así que un type:'patch-intencion' que llegaba por paste single nunca se aplicaba.
+  // applyPatchesFromTG() ya acepta opts.patchIntencionItems desde mod:150 de locus-backlog-item.js
+  // (REQ-202607-061) — sin cambio de firma, solo se cierra la propagación que faltaba acá.
   if (parsed.patchItems && parsed.patchItems.length) {
-    applyPatchesFromTG(parsed.patchItems, sessId, { ckptHeaderRole: parsed.rol || '', slugMap: mergeResult.slugMap, refIdTitleMap: mergeResult.refIdTitleMap }); // TKT1 (REQ CAEL-03): refIdTitleMap agregado
+    applyPatchesFromTG(parsed.patchItems, sessId, { ckptHeaderRole: parsed.rol || '', slugMap: mergeResult.slugMap, refIdTitleMap: mergeResult.refIdTitleMap, patchIntencionItems: parsed.patchIntencionItems || [] }); // TKT1 (REQ CAEL-03): refIdTitleMap agregado
   }
 
   // TKT-202608-420 (REQ-202608-169, depends_on TKT-202608-416): Captura de Flujo — tras

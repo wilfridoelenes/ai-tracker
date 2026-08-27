@@ -1,3 +1,13 @@
+// [PP] mod:3 · autor:Rune · 2026-08-27 UTC-6
+// TKT ref_id CAEL-08271600-01 (origen_disc DISC-202608-225): _OP_ICON_MAP/_opIcon movidos
+// aquí desde locus-backlog-merge.js (donde vivían exportados a nivel de módulo desde
+// TKT ref_id CAEL-08271500-02/mod:110, con este mismo destino ya documentado como "ideal"
+// en ese momento — el archivo simplemente no estaba adjunto en esa sesión). Este es el
+// módulo dueño del catálogo de render de CHECKPOINT — destino correcto para un mapeo
+// reutilizable cls→ícono que hoy solo consume el panel DIFF pero que IDP/Q-DISC podrían
+// reutilizar sin duplicar. Sin cambio de comportamiento: mismo mapa cerrado de 4 tipos,
+// mismo fallback '' para cls no mapeado. contract_update: sí — nuevo export cross-module,
+// consumido por locus-backlog-merge.js (ver su propio header, mismo mod que este commit).
 // [PP] mod:2 · autor:Rune · 2026-08-13 UTC-6
 // TKT-202608-340 (REQ-202608-132): _HINT_CLASS.status-strip corregido de idp-title (placeholder
 // incorrecto declarado en TKT-202608-339) a .mdiff-status-chip — clase real confirmada contra
@@ -66,6 +76,25 @@ const _CKPT_FIELD_HINTS = {
     type: 'header', code: 'header', founder_confirmado: 'header',
     intencion: 'expandable-section', kill_criteria: 'expandable-section', ac: 'expandable-section'
   }
+};
+
+// Mapeo cls→ícono de operación (created/advanced/updated/retroceso) — movido desde
+// locus-backlog-merge.js (mod:110→112, ver header de ambos archivos). Función pura, sin
+// dependencia de estado del panel DIFF ni de ningún otro closure.
+export const _OP_ICON_MAP = {
+  created:   'ti-square-rounded-plus',
+  advanced:  'ti-arrow-big-right-lines',
+  updated:   'ti-pencil',
+  retroceso: 'ti-arrow-back-up',
+};
+// Ícono hermano del pill de texto — nunca anidado dentro del <span> (ver
+// _Locus-css-ref §Patrones .mdiff-op-icon, TKT-202608-460: el selector CSS asume el
+// ícono como elemento previo, no como hijo). cls no mapeado → string vacío, sin
+// <svg> roto y sin alterar el chip de texto.
+export const _opIcon = (cls) => {
+  const iconName = _OP_ICON_MAP[cls];
+  if (!iconName) return '';
+  return `<svg class="ti-svg mdiff-op-icon mdiff-op-icon--${cls}" aria-hidden="true"><use href="#${iconName}"></use></svg>`;
 };
 
 // hint → clase base (fuente: _Locus-ckpt-render-ref.md §Grupos visuales,

@@ -1,4 +1,8 @@
-// [PP] mod:120 · autor:Rune · 2026-08-23 20:10 UTC-6
+// [PP] mod:121 · autor:Rune · 2026-08-27 09:15 UTC-6
+// TKT-202608-472 (REQ-202608-196, TKT2): renderSprintGroup() — cómputo de conteo de TKT
+// hijos activos no-done (excluye 'descartado') para el badge de alerta de buildBacklogItem()
+// cuando el REQ está done. Pasado vía opts.doneInconsistencyCount — ver locus-backlog-item.js
+// (mod:178).
 // TKT1 (ref_id CAEL-08231620-02, REQ ref_id CAEL-08231620-01): renderSprintGroup() — default de
 // isCollapsed en contexto Histórico ('hist') pasa a colapsado cuando no hay clave
 // 'historico-collapsed-<groupId>' en localStorage (antes: sin clave = expandido). Distingue
@@ -604,6 +608,15 @@ export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
       }
 
       const _children = _childMap.get(item.code) || [];
+      // TKT-202608-472 (REQ-202608-196, TKT2): conteo de TKT hijos activos no-done, para el
+      // badge de alerta de buildBacklogItem() cuando el REQ padre está done. 'descartado' no
+      // cuenta (edge del AC). _childMap incluye hijos en cualquier status salvo 'historico'
+      // filtrado — no aplica filtro adicional aquí más que done/descartado, ver AC de TKT.
+      // Solo relevante cuando el REQ está done; en cualquier otro status el badge no se
+      // muestra de todas formas (gate redundante también dentro de buildBacklogItem()).
+      const _doneInconsistencyCount = (item.status === 'done')
+        ? _children.filter(c => c.status !== 'done' && c.status !== 'descartado').length
+        : 0;
 
       if (_children.length > 0) {
         const _collapseKey = 'locus-r-collapsed-' + item.code;
@@ -614,7 +627,7 @@ export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
         // su bloque interno .req-children-block (mini-rows) cuando este bloque ya va a
         // renderizar los hijos completos como .bl-child-row unas líneas más abajo. Sin este
         // flag, cada TKT hijo se dibujaba dos veces.
-        html += buildBacklogItem(item, { suppressChildren: true });
+        html += buildBacklogItem(item, { suppressChildren: true, doneInconsistencyCount: _doneInconsistencyCount });
         html += `<button class="bl-r-toggle${_isRCollapsed ? ' collapsed' : ''}" data-action="vl-toggle-r" data-r-code="${esc(item.code)}" aria-label="Colapsar/expandir hijos" title="Colapsar/expandir hijos" type="button" aria-expanded="${_isRCollapsed ? 'false' : 'true'}"><svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg></button>`;
         html += `<div class="bl-vl-req-body${_isRCollapsed ? ' collapsed' : ''}" id="bl-vl-req-body-${esc(item.code)}">`;
         _children.forEach(child => {

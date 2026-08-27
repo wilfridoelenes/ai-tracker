@@ -1,37 +1,4 @@
-// [PP] mod:216 · autor:Rune · 2026-08-27 UTC-6
-// Corrección de header — mod:215 (bloque siguiente) declaraba el TKT-202608-467 como completo,
-// pero el cuerpo real del archivo dejaba el refactor a medias: el bloque `else if
-// (ckpt._isJsonFormat)` seguía escribiendo/leyendo `window[`_itemsJsonError_${id}`]`/
-// `window[`_patchItems_${id}`]`/`window[`_patchIntencionItems_${id}`]`, y una redeclaración
-// `let _itemError = null;` sombreaba la variable de nivel función — las asignaciones de esa
-// rama nunca llegaban a la `_itemError` que el resto de parsePaste() lee. Efecto: el caso
-// `ckpt._jsonParseError` seguía bloqueando correctamente (usa la variable correcta), pero el
-// caso de `_itemError` construido por `_buildTgItemsFromParsed` quedaba atrapado en la variable
-// sombreada — regresión activa, no cubierta por ningún AC verificado hasta ahora. Detectado en
-// verificación de Rune contra el archivo real antes de declarar en-revision (`__BR-Core
-// §VERIFICACIÓN DE CIERRE DE EDICIÓN`, extensión de apertura). Completado en esta entrega: los
-// tres canales window[] reemplazados por las variables locales ya declaradas
-// (_itemError/_patchItems/_patchIntencionItems), redeclaración eliminada, y los dos puntos de
-// lectura tardía (_pendingPatches/_pendingPatchIntencionItems, ~L2540) y el delete de limpieza
-// de la rama de texto vacío (~L2680) migrados al mismo criterio. Mismo resultado en ai._parsed
-// y mismo mensaje bloqueante del panel de validación para los mismos inputs — AC verificados
-// contra el archivo real, no solo contra el diff. contract_update: no — sin cambio de firma de
-// parsePaste() ni de ninguna función exportada.
-// TKT-202608-467 (REQ-202608-193, TKT1): los tres canales window['_itemsJsonError_'+id]/
-// window['_patchItems_'+id]/window['_patchIntencionItems_'+id] de parsePaste() reemplazados por
-// variables locales (_itemError/_patchItems/_patchIntencionItems, function-scoped) — se escribían
-// y leían dentro de la misma ejecución de parsePaste(), sin necesidad de indirection vía window ni
-// de los delete de limpieza asociados. Sin cambio de comportamiento observable: mismo resultado en
-// ai._parsed (tgItems/patchItems/patchIntencionItems) y mismo mensaje bloqueante del panel de
-// validación para los mismos inputs. La declaración local `let _itemError = null;` que antes vivía
-// anidada dentro de la rama `else if (ckpt._isJsonFormat)` se retira — reutiliza la variable de
-// nivel función, misma semántica (null al entrar a la rama, valor final consumido más abajo en la
-// misma invocación). El delete de limpieza en la rama de texto vacío (antes L2661) se retira sin
-// reemplazo — sin efecto observable, el estado ahora vive solo dentro de la ejecución que lo
-// generó y no sobrevive al return. No toca los 7 canales *WarnSeen_${id} (estado legítimo entre
-// invocaciones separadas de parsePaste() para el mismo worker) ni _processedCheckpointHashes (Set
-// global) — ambos fuera de scope del TKT, ver no_incluye.
-// [PP] mod:214 · autor:Rune · 2026-08-26 UTC-6
+// [PP] mod:215 · autor:Rune · 2026-08-27 UTC-6
 // INC — contador #ingest-char-counter no se actualizaba al pegar una sesión completa (sí letra
 // por letra). Causa raíz: la actualización vivía únicamente inline en parsePaste(), que el path
 // batch de _routeParse() (gate >=1 bloque, TKT-202608-276) nunca invoca — un CHECKPOINT completo
@@ -2358,7 +2325,8 @@ function _resolveSprintFields(it) {
 }
 
 // B-202606-022: resolver [tmp:slug] en campo parent/parentId de un patch contra tgItems del mismo CHECKPOINT.
-// Llama antes de acumular el patch en _patchItems_${id}.
+// Llama antes de acumular el patch en la variable local _patchItems de parsePaste() (TKT-202608-467 —
+// antes vivía en window[`_patchItems_${id}`], ver REQ-202608-193).
 // CAEL-25: helpers de #ingest-validation-panel — reemplazan el target prev-${id},
 // inexistente en el DOM desde la migración a #ingest-ta global (CAEL-22).
 function _showIngestValidationError(msgHtml) {
@@ -2430,10 +2398,11 @@ export function parsePaste(id) {
   const isCheckpoint = /^\s*```(?:json)?\s*\{/.test(text) || _looksLikeBareCheckpointJson(text);
 
   let title = '', summary = '', files = '', nextStep = '', bloqueantesRaw = '', tgItems = [], ckpt = null;
-  // TKT-202608-467 (REQ-202608-193): reemplaza window['_itemsJsonError_'+id]/
-  // window['_patchItems_'+id]/window['_patchIntencionItems_'+id] — los tres se escriben y leen
-  // exclusivamente dentro de esta misma ejecución de parsePaste(id), sin necesidad de window.
-  let _itemError = null, _patchItems = [], _patchIntencionItems = [];
+  // TKT-202608-467 (REQ-202608-193): los 3 canales de handoff intra-función viven como variables
+  // locales de esta ejecución de parsePaste() — antes escritos/leídos vía window[`_itemsJsonError_${id}`]/
+  // window[`_patchItems_${id}`]/window[`_patchIntencionItems_${id}`], con delete manual en cada punto
+  // de salida. Sin necesidad de limpieza — el estado desaparece solo al terminar la ejecución.
+  let _itemsJsonError = null, _patchItems = [], _patchIntencionItems = [];
   if (isCheckpoint) {
     ckpt = parseCheckpoint(text);
     // B histórico — sin CHECKPOINT confirmado AC-3: guard explícito — parseCheckpoint puede retornar null
@@ -2462,19 +2431,11 @@ export function parsePaste(id) {
     // ai._parsed.draft (línea ~984, sin cambio en este TKT) sigue siendo la fuente que el panel lee.
     // R-202605-133: si parseCheckpoint detectó error en el bloque ```json, marcar error bloqueante
     if (ckpt._jsonParseError) {
-      _itemError = ckpt._jsonParseError;
+      _itemsJsonError = ckpt._jsonParseError;
     }
     // R-202605-133: si el CHECKPOINT es JSON puro, los ítems ya están en ckpt._rawItems — no buscar ---getItems()---
     else if (ckpt._isJsonFormat) {
-      _itemError = null; // TKT-202608-467: antes delete window['_itemsJsonError_'+id] — reset de la variable local compartida al entrar a esta rama
       const _rawItems = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
-      // TKT-202608-467: la línea siguiente re-declaraba `_itemError` con `let`, sombreando la
-      // variable de nivel función (ver arriba) — las asignaciones dentro de este bloque nunca
-      // llegaban a la `_itemError` que el resto de la función lee (línea ~2741). Sin este fix, el
-      // caso `ckpt._jsonParseError` (que sí asigna a la variable correcta, línea ~2447) seguía
-      // funcionando, pero el caso de `_itemError` construido por `_buildTgItemsFromParsed` quedaba
-      // atrapado en la variable sombreada — regresión activa en el estado intermedio del archivo,
-      // corregida en el mismo movimiento que completa este TKT.
       // TKT2 (REQ-202608-107): loop inline retirado — reemplazado por _buildTgItemsFromParsed(),
       // la misma función que ya consume el path batch. Preserva sin duplicar: gate de type/status,
       // ITIL, en-revision sin sprint, REQ+bloqueado (creación nueva), REQ sin AC (TKT3 de este
@@ -2482,6 +2443,7 @@ export function parsePaste(id) {
       // type:'patch' sobre REQ existente NO se replica aquí — ya enforced incondicionalmente en
       // applyPatchesFromTG() (locus-backlog-item.js), capa de persistencia común a ambos paths;
       // ver CHECKPOINT de entrega para el detalle de equivalencia verificada.
+      let _itemError = null;
       const _draftGateTypes = ['REQ', 'TKT'];
       const _hasDraftGatedItem = _rawItems.some(_di => _di && _di.type !== 'patch' && _di.type !== 'patch-intencion' && _draftGateTypes.includes(_di.type));
       if (_hasDraftGatedItem && ckpt.draftRaw === undefined) {
@@ -2504,6 +2466,7 @@ export function parsePaste(id) {
         });
       }
       if (_itemError) {
+        _itemsJsonError = _itemError;
         tgItems = [];
         _patchItems = [];
         _patchIntencionItems = [];
@@ -2557,8 +2520,6 @@ export function parsePaste(id) {
     ? (ckpt._inlineFixes || [])
     : (isCheckpoint ? _parseInlineFixes(text) : []);
 
-  // TKT-202608-467: antes window[`_patchItems_${id}`] + delete — _patchItems ya es la
-  // variable local (declarada arriba, poblada en la rama _isJsonFormat si corresponde).
   const _pendingPatches = _patchItems;
   // TKT2 (REQ-202607-061 · depends_on: TKT-202607-176 done): mismo patrón que _pendingPatches
   // arriba — leer y limpiar el canal propio de patch-intencion acumulado por TKT-176, exponerlo
@@ -2568,7 +2529,6 @@ export function parsePaste(id) {
   // a applyPatchesFromTG con opts.patchIntencionItems para el path single queda sin wiring final.
   // El dato ya queda disponible aquí para cuando ese archivo se adjunte — no se infiere ni se
   // escribe contenido de locus-session-save.js. Ver CHECKPOINT de esta sesión.
-  // TKT-202608-467: mismo criterio que _pendingPatches — variable local en vez de window.
   const _pendingPatchIntencionItems = _patchIntencionItems;
   // TKT1 (REQ CAEL-0718-01 · no_incluye): docUpdates/finnObservations/finnRelease/draft/draftRaw/
   //   rol se leían antes vía ternarios inline repetidos aquí — ahora vienen de _extractCkptMeta,
@@ -2700,10 +2660,9 @@ export function parsePaste(id) {
     if (dot) dot.className = 'draft-dot';
     if (wrap) wrap.classList.remove('paste-wrap--valid');
     // B-202604-195: reset completo al vaciar el textarea
-    // Limpiar errores JSON, flags de warning no bloqueante y toast activo
-    // TKT-202608-467: antes también delete window[`_itemsJsonError_${id}`] — el estado
-    // ahora es variable local de parsePaste(), no sobrevive entre invocaciones; sin delete
-    // que reemplazar.
+    // Limpiar flags de warning no bloqueante y toast activo — el error JSON ya no requiere delete
+    // aquí (TKT-202608-467): _itemsJsonError es variable local, desaparece sola al terminar esta
+    // ejecución de parsePaste(), sin sobrevivir entre invocaciones como sí hacían los *WarnSeen_.
     delete window[`_noItemsWarnSeen_${id}`];
     delete window[`_rolFieldWarnSeen_${id}`];
     delete window[`_doneNoAcWarnSeen_${id}`];
@@ -2764,7 +2723,7 @@ export function parsePaste(id) {
 
     // R-202604-038 / R-202605-133: validar resultado del parser JSON de ---getItems()--- o ```json
     // AC-2: JSON inválido → error bloqueante antes de procesar cualquier otra cosa
-    const _itemsJsonErr = _itemError; // TKT-202608-467: antes window[`_itemsJsonError_${id}`]
+    const _itemsJsonErr = _itemsJsonError;
     if (_itemsJsonErr) {
       _showIngestValidationError(`&#9940; Bloque de ítems inválido — ${esc(_itemsJsonErr)}.<br><span class="paste-hint">Corrige el JSON antes de procesar. El bloque debe ser un array de objetos con al menos <code>type</code>, <code>code</code> y <code>status</code>.</span>`);
       return;

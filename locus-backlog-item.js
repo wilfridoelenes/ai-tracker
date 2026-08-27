@@ -1,4 +1,29 @@
-// [PP] mod:176 · autor:Rune · 2026-08-23 00:00 UTC-6
+// [PP] mod:179 · autor:Rune · 2026-08-27 10:40 UTC-6
+// TKT-202608-471 (REQ-202608-196, fix post-QA de Finn — AC-5 no cubierto en la entrega mod:178):
+// el gate 'req-done-tkt-hijo-pendiente' solo dispara si find() encuentra un hijo TKT "pendiente"
+// (no done, no descartado) — si el REQ no tiene hijos declarados, o si todos sus hijos están en
+// 'descartado', find() devuelve undefined y el patch/reemisión con status:'done' pasaba sin
+// bloqueo (satisfacción vacía de "todos los hijos done"). Nuevo gate 'req-done-sin-hijos-done'
+// exige al menos un hijo TKT en done — agregado en las dos rutas: applyPatchesFromTG (~L3812,
+// contra _projectedStatus) y mergeBacklogFromTG (~L2917, contra getItems() persistido, mismo
+// criterio sin pre-escaneo de batch que el resto de esa función). verified_by no exime este
+// gate. Sin cambio de firma en ninguna de las dos funciones. contract_update: sí.
+// TKT-202608-472 (REQ-202608-196, TKT2): badge de alerta .mdiff-docrel-badge (existente,
+// TKT-202608-326) — REQ done con TKT hijos activos no-done. Ver buildBacklogItem() para el
+// detalle — opts.doneInconsistencyCount, calculado por locus-backlog-render.js (mod:121).
+// TKT-202608-471 (REQ-202608-196, AC ampliado 2da iteración de Fase 5): gate 'REQ done exige
+// hijos done + verified_by Finn' extendido a las dos rutas de escritura de status:'done' sobre
+// un REQ con código real — no solo applyPatchesFromTG (type:patch), también mergeBacklogFromTG
+// (reemisión completa del ítem). (1) applyPatchesFromTG gana un segundo gate junto al ya
+// existente 'req-done-tkt-hijo-pendiente' (mod:156): valida patch.verified_by === 'QA · Finn'
+// (leído del propio patch, no de existing ya mutado — mismo motivo de orden que
+// discard_reason/resolutionType) — antes cualquier string pasaba (ver nota no_incluye de
+// mod:98). Reason nuevo en ignoredPatches: 'req-done-sin-verified-by'. (2) mergeBacklogFromTG
+// ganó ambos gates desde cero en la rama de avance (newRank > oldRank) — antes no existía
+// ningún guard ahí, el gap que originó este TKT. Sin pre-escaneo de batch (_projectedStatus) —
+// evalúa contra getItems() ya persistido, el AC de origen no exige equivalente de batch para
+// esta ruta. Ambos gates no tocan la firma de ninguna de las dos funciones — mismo shape de
+// retorno. contract_update: sí.
 // TKT-202608-XXX (REQ-202608-XXX): .bitem-subline-sprint retirado de la subline — redundante
 // con el header de sprint que agrupa todo ítem con item.sprint (Backlog activo + Histórico,
 // mismo motor renderSprintGroup, sin vista cruzada sin agrupar confirmada). Ver detalle inline.
@@ -1500,6 +1525,17 @@ export function buildBacklogItem(item, opts = {}) {
   const _statusChipHtml = (!isDone && !isDiscarded && !isIdea)
     ? `<button class="bitem-status-chip bitem-status-chip--${esc(item.status || 'pendiente')}" data-action="open-status-popover" data-code="${esc(item.code)}" title="Cambiar status" type="button">${statusLabel(item.status || 'pendiente')}</button>`
     : '';
+  // TKT-202608-472 (REQ-202608-196, TKT2): badge de alerta — REQ done con al menos un TKT
+  // hijo activo no-done. Ocupa el mismo slot de header-right reservado para _statusChipHtml
+  // (vacío cuando isDone) — cumple "junto al chip de status" del AC ocupando el lugar donde
+  // el chip viviría si el ítem no estuviera done. doneInconsistencyCount lo calcula el caller
+  // (locus-backlog-render.js, único punto con acceso a _childMap) — buildBacklogItem() no
+  // tiene visibilidad de hermanos/hijos propia. Reusa .mdiff-docrel-badge (locus-backlog-item.css,
+  // TKT-202608-326) sin CSS nuevo — confirmado por Nova, sin entregable visual para este TKT.
+  const _doneInconsistencyCount = opts.doneInconsistencyCount || 0;
+  const _doneInconsistencyBadge = (isDone && _doneInconsistencyCount > 0)
+    ? `<span class="mdiff-docrel-badge" title="REQ marcado done con TKT hijos activos sin done">Inconsistencia: ${_doneInconsistencyCount} TKT sin done</span>`
+    : '';
   // Cerradas: DISC promovida muestra badge en lugar de quick actions o ícono descartado
   // TKT-C2: 'promoted' (Gen2). Edge case: datos legacy 'promovida' también matchean.
   const _isPPromovida = isIdea && (item.status === 'promoted' || item.status === 'promovida');
@@ -1516,7 +1552,7 @@ export function buildBacklogItem(item, opts = {}) {
       ? `<span class="bitem-done-check">✓</span>`
       : isIdea
         ? `<div class="bitem-header-right">${prioBadgeHtml}${_ideaQuickActions}</div>`
-        : `<div class="bitem-header-right">${scopeAddedBadge}${noAcBadge}${acReplacedBadge}${blockingBadge}${blockedBadge}${blockedByBadge}${depBlockedBadge}${orphanedBadge}${itilIncompleteBadge}${noSessionBadge}${childBadge}${prioBadgeHtml}${effortDotsHtml}${_statusChipHtml}</div>`;
+        : `<div class="bitem-header-right">${scopeAddedBadge}${noAcBadge}${acReplacedBadge}${blockingBadge}${blockedBadge}${blockedByBadge}${depBlockedBadge}${orphanedBadge}${itilIncompleteBadge}${noSessionBadge}${childBadge}${prioBadgeHtml}${effortDotsHtml}${_statusChipHtml}${_doneInconsistencyBadge}</div>`;
 
   // R-202605-098: subline discard reason diferenciado para P
   // P descartado por promoción → chip con ref; P descartado manual → razón libre
@@ -2859,6 +2895,63 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
           discarded.push({ code: item.code, desc: existing.title, from: oldStatus, reason: item.discard_reason || existing.discard_reason || '', ref: item.discardRef || existing.discardRef || '', idx: item.idx });
           // No tocar existing todavía — se aplica en _confirmDiscard()
         } else if (newRank > oldRank) {
+          // TKT-202608-471 (REQ-202608-196, AC ampliado 2da iteración): gate — un REQ con código
+          // real reemitido completo (no vía type:patch) con status:'done' exige el mismo criterio
+          // de rechazo que el gate 'req-done-tkt-hijo-pendiente' de applyPatchesFromTG (~L3711):
+          // todos los TKT hijos activos (status≠descartado) deben estar en done/descartado, y el
+          // ítem debe traer verified_by:'QA · Finn' — leído primero de item.verified_by (el propio
+          // tgItem entrante) y, si ausente, de existing.verified_by ya persistido, mismo patrón de
+          // "leer del propio patch antes que de existing ya mutado" que discard_reason/resolutionType
+          // usan en applyPatchesFromTG por el mismo motivo de orden de procesamiento. Sin pre-escaneo
+          // de batch (_projectedStatus) — a diferencia del gate de patch, mergeBacklogFromTG no tiene
+          // esa infraestructura y el AC de origen no la exige; evalúa contra el status ya persistido
+          // de los hijos en getItems(). Ítem nuevo sin código real no entra aquí — este bloque solo
+          // corre para ítems con code ya existente en ITEMS (rama de merge sobre `existing`).
+          if (newStatus === 'done' && itemKind(existing) === 'REQ') {
+            const _pendingChildMerge = getItems().find(it =>
+              itemKind(it) === 'TKT' &&
+              it.parentId === existing.code &&
+              !['done', 'descartado'].includes(it.status)
+            );
+            if (_pendingChildMerge) {
+              _blogLog(
+                'req-done-tkt-hijo-pendiente',
+                item.code,
+                `Reemisión con status:done rechazada en REQ ${item.code}: TKT hijo ${_pendingChildMerge.code} está en ${_pendingChildMerge.status}, no en done ni descartado.`,
+                'backlog'
+              );
+              ignored.push({ code: item.code, reason: 'req-done-tkt-hijo-pendiente', desc: existing.title, idx: item.idx });
+              return;
+            }
+            // TKT-202608-471 (AC-5 · fix post-QA de Finn): mismo gap que applyPatchesFromTG —
+            // el find() de arriba no dispara si el REQ no tiene hijos declarados o si todos sus
+            // hijos TKT están en 'descartado' (find() sobre conjunto vacío de "pendientes" es
+            // undefined). Exige al menos un hijo TKT en done antes de aceptar la reemisión.
+            const _hasDoneChildMerge = getItems().some(it =>
+              itemKind(it) === 'TKT' && it.parentId === existing.code && it.status === 'done'
+            );
+            if (!_hasDoneChildMerge) {
+              _blogLog(
+                'req-done-sin-hijos-done',
+                item.code,
+                `Reemisión con status:done rechazada en REQ ${item.code}: sin ningún TKT hijo en done.`,
+                'backlog'
+              );
+              ignored.push({ code: item.code, reason: 'req-done-sin-hijos-done', desc: existing.title, idx: item.idx });
+              return;
+            }
+            const _mergeVerifiedBy = item.verified_by !== undefined ? item.verified_by : existing.verified_by;
+            if (_mergeVerifiedBy !== 'QA · Finn') {
+              _blogLog(
+                'req-done-sin-verified-by',
+                item.code,
+                `Reemisión con status:done rechazada en REQ ${item.code}: verified_by ausente o distinto de "QA · Finn" (recibido: "${_mergeVerifiedBy || '(vacío)'}").`,
+                'backlog'
+              );
+              ignored.push({ code: item.code, reason: 'req-done-sin-verified-by', desc: existing.title, idx: item.idx });
+              return;
+            }
+          }
           // Avance: aplicar directo (no en dryRun)
           changes.push({ field: 'status', from: oldStatus, to: newStatus }); // T-202604-414
           if (!_dryRun) {
@@ -3729,6 +3822,55 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
                   'backlog'
                 );
                 ignoredPatches.push({ code, reason: 'req-done-tkt-hijo-pendiente' });
+                return;
+              }
+            }
+            // TKT-202608-471 (REQ-202608-196, AC-5 · fix post-QA de Finn): gate duro adicional —
+            // el gate de arriba (req-done-tkt-hijo-pendiente) solo dispara si existe un hijo
+            // "pendiente" (no done, no descartado). Si el REQ no tiene hijos declarados, o si
+            // todos sus hijos TKT están en 'descartado', ese find() no encuentra nada y el patch
+            // pasaba sin bloqueo — satisfacción vacía de "todos los hijos done" cuando el
+            // conjunto de hijos done es en realidad vacío. Este gate exige al menos un hijo TKT
+            // en done (contra _projectedStatus, mismo criterio de pre-escaneo de batch que el
+            // gate anterior) antes de aceptar la transición — verified_by no exime esta condición.
+            if (itemKind(existing) === 'REQ') {
+              const _allChildrenOfReq = getItems().filter(it =>
+                itemKind(it) === 'TKT' && it.parentId === existing.code
+              );
+              const _hasDoneChild = _allChildrenOfReq.some(it =>
+                (_projectedStatus.has(it.code) ? _projectedStatus.get(it.code) : it.status) === 'done'
+              );
+              if (!_hasDoneChild) {
+                _blogLog(
+                  'req-done-sin-hijos-done',
+                  code,
+                  `Transición done en REQ ${code} rechazada: sin ningún TKT hijo en done — ${_allChildrenOfReq.length === 0 ? 'REQ sin hijos declarados' : 'todos los hijos están en descartado'}.`,
+                  'backlog'
+                );
+                ignoredPatches.push({ code, reason: 'req-done-sin-hijos-done' });
+                return;
+              }
+            }
+            // TKT-202608-471 (REQ-202608-196, AC ampliado): gate duro adicional — un REQ no puede
+            // marcarse done sin verified_by:'QA · Finn' en el propio patch. El gate de rol de arriba
+            // (rol-no-autorizado-done) valida QUIÉN emitió el CHECKPOINT (_resolvePatchRole, metadata
+            // de sesión) — este gate valida un campo distinto: que el patch declare explícitamente
+            // verified_by:'QA · Finn' como dato persistido en el ítem, mismo criterio que exige
+            // __BR-Ecosystem §8 ("Obligatorio al patchear draft:false"). Se lee de patch.verified_by
+            // primero — nunca de existing.verified_by ya mutado por el bloque genérico de abajo,
+            // mismo motivo de orden de Object.keys(patch) ya documentado para discard_reason/
+            // resolutionType (L3519-3522) — si el mismo patch trae verified_by y status juntos, no
+            // depende de qué campo se enumeró primero.
+            if (itemKind(existing) === 'REQ') {
+              const _patchVerifiedBy = patch.verified_by !== undefined ? patch.verified_by : existing.verified_by;
+              if (_patchVerifiedBy !== 'QA · Finn') {
+                _blogLog(
+                  'req-done-sin-verified-by',
+                  code,
+                  `Transición done en REQ ${code} rechazada: verified_by ausente o distinto de "QA · Finn" (recibido: "${_patchVerifiedBy || '(vacío)'}").`,
+                  'backlog'
+                );
+                ignoredPatches.push({ code, reason: 'req-done-sin-verified-by' });
                 return;
               }
             }
