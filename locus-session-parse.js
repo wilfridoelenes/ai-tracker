@@ -1,3 +1,24 @@
+// [PP] mod:220 · autor:Rune · 2026-08-27 UTC-6
+// TKT-202608-477 (REQ-202608-198, TKT4 de "Partir parsePaste()/_processIngestBatch() en
+// unidades de responsabilidad única"): _BATCH_META_SIDE_EFFECTS/_applyBatchMetaSideEffects
+// extraídos a locus-ingest-side-effects.js (módulo nuevo) — solo el mecanismo de registro/
+// aplicación, ninguno de los 5 side effects individuales (retro_evaluated_sprint/
+// learning_log_evaluated_through_ts/checkpoint_flow/sessionRegister/trackerLegacyItems) fue
+// reescrito, mismo orden relativo, mismas precondiciones (`when`), mismos `run`. _onApplyBatch
+// permanece en este archivo, sin moverse — sigue siendo closure interna de
+// _processIngestBatch, invoca _applyBatchMetaSideEffects(m, ctx) vía import cross-módulo con
+// el mismo ctx explícito de siempre ({id, activeProj, batchMergeResult, tgItems, patchItems} —
+// ver construcción de _sideEffectCtx más abajo en este archivo). _applyRetroEvaluatedSprint()/
+// _applyLearningLogEvaluated()/_resolveBatchFlowSprintId()/_batchParseFilesField() permanecen
+// aquí (no son el mecanismo, son side effects individuales — fuera del "no_incluye" del TKT) y
+// pasan a exportarse para que locus-ingest-side-effects.js los consuma cross-módulo. Ciclo ESM
+// de 2 nodos con locus-ingest-side-effects.js — seguro, ningún símbolo se evalúa en top-level
+// de ninguno de los dos módulos (mismo patrón ya vigente con locus-ingest-builder.js/
+// locus-ingest-meta.js/locus-ingest-preview.js). El gate "No incluye block count"
+// (_updateIngestBlockCount() nunca fue side effect de _onApplyBatch, vive en _routeParse()) y
+// el gate de status/hora del worker (mod:179/180, fuera del forEach, gateado por id) permanecen
+// exactamente donde están documentados en _Locus-module-contracts mod:203 — este TKT no los
+// reclasifica ni los mueve. Contenido movido byte a byte, sin reescritura de lógica.
 // [PP] mod:219 · autor:Rune · 2026-08-27 UTC-6
 // TKT-202608-476 (REQ-202608-198, TKT3 de "Partir parsePaste()/_processIngestBatch() en
 // unidades de responsabilidad única"): construcción de tgItems/patchItems extraída a
@@ -1291,14 +1312,17 @@ import { interpretHora } from './locus-session-hora.js'; // INC histórico — s
 // (sus únicos call sites vivían dentro del código movido). Ciclo ESM de 2 nodos con
 // locus-ingest-preview.js — seguro, ver header de ese módulo.
 import { _showIngestValidationError, _showIngestValidationWarning, _resetIngestValidationPanel, _updateIngestBlockCount, _renderIngestBlockPreview } from './locus-ingest-preview.js';
+// Ciclo ESM de 2 nodos con locus-ingest-builder.js — ver header de este archivo.
+import { _buildTgItemsFromParsed } from './locus-ingest-builder.js';
 // TKT-202608-475 (REQ-202608-198, TKT2): construcción de meta de CHECKPOINT extraída a módulo
 // propio — _extractCkptMeta/_ckptArchivosToNames ya no viven aquí. Sin ciclo ESM: locus-ingest-meta.js
 // no importa nada de locus-session-parse.js.
 import { _extractCkptMeta } from './locus-ingest-meta.js';
-// TKT-202608-476 (REQ-202608-198, TKT3): construcción de tgItems/patchItems extraída a módulo
-// propio — _normalizeNoIncluye/_buildPlaneadaTgItem/_buildTgItemsFromParsed ya no viven aquí.
-// Ciclo ESM de 2 nodos con locus-ingest-builder.js — ver header de este archivo.
-import { _buildTgItemsFromParsed } from './locus-ingest-builder.js';
+// TKT-202608-477 (REQ-202608-198, TKT4): _BATCH_META_SIDE_EFFECTS/_applyBatchMetaSideEffects
+// extraídos a módulo propio — ver header de este archivo (mod:220) y de
+// locus-ingest-side-effects.js. Ciclo ESM de 2 nodos — seguro, mismo patrón que los tres
+// imports anteriores.
+import { _applyBatchMetaSideEffects } from './locus-ingest-side-effects.js';
 
 // T-202606-012: _INFRA_VERSION_ACTIVE eliminada — importada como INFRA_VERSION_ACTIVE desde locus-storage.js
 // T-202606-029: INFRA_VERSION_ACTIVE (constante) migrada a getInfraVersionActive() / setInfraVersionActive() — AC-4 de T-202606-027 cerrado
@@ -1915,7 +1939,7 @@ export function parseCheckpoint(text) {
 // TKT-202608-377 (REQ-202608-150 · AC1-3): aplica el campo retro_evaluated_sprint al confirmar
 // ingesta — invocado desde ambos flujos (single y batch), mismo patrón que processDocUpdate()
 // para doc_updates. AC3: sprint_id sin resolver → _blogLog + ignorar, sin lanzar ni bloquear.
-function _applyRetroEvaluatedSprint(sprintId) {
+export function _applyRetroEvaluatedSprint(sprintId) {
   if (!sprintId) return;
   const sp = _getSprintById(sprintId);
   if (!sp) {
@@ -1936,7 +1960,7 @@ function _applyRetroEvaluatedSprint(sprintId) {
 // inexistente" de esa función: throughTs es un timestamp, no una referencia a un ítem real —
 // markLearningLogEvaluated() (locus-storage.js) ya tolera projectId/throughTs inválidos como
 // no-op silencioso, sin propagar error (AC2), así que no hay nada que este helper deba capturar.
-function _applyLearningLogEvaluated(projectId, throughTs) {
+export function _applyLearningLogEvaluated(projectId, throughTs) {
   if (!projectId || typeof throughTs !== 'number') return;
   markLearningLogEvaluated(projectId, throughTs); // AC2: no-op propio ante fallo de Supabase — sin toast/error extra aquí
 }
@@ -1953,7 +1977,7 @@ function _applyLearningLogEvaluated(projectId, throughTs) {
 // created/createdAndClosed sí traen `sprint` directo en su shape, pero se resuelve igual vía
 // getAnyItem() para no duplicar la lógica de "primer code con .sprint truthy gana" en dos formas
 // distintas dentro de la misma función — mismo resultado, un solo camino.
-function _resolveBatchFlowSprintId(idx, batchMergeResult) {
+export function _resolveBatchFlowSprintId(idx, batchMergeResult) {
   const _br = batchMergeResult || {};
   const _codes = [
     ...(_br.created || []),
@@ -1970,181 +1994,14 @@ function _resolveBatchFlowSprintId(idx, batchMergeResult) {
   return null;
 }
 
-// TKT-202608-439 (REQ-202608-179, ref_id CAEL-08221600-01): registro declarativo único de los
-// side effects por-meta que _onApplyBatch() dispara dentro de su forEach(metas) — antes 3 ifs
-// sueltos intercalados en ese forEach (retro/learning-log/checkpoint-flow), cada uno insertado en
-// un TKT distinto sin registro común (mods 185/196/424 de este archivo). Un side effect nuevo se
-// agrega a este array — no como línea suelta adicional al final del forEach.
-//
-// Cada entrada: { name, when(m) → boolean, run(m, ctx) }. `ctx` lleva lo que el forEach ya
-// resuelve una sola vez por invocación de _onApplyBatch (activeProj, batchMergeResult) — ningún
-// entry re-resuelve nada que el caller ya tiene en scope.
-//
-// Nota de especificación — AC4 del TKT (block count) no aplica a este registro: verificado
-// contra el cuerpo real de este archivo, _updateIngestBlockCount() (mod:99) se invoca desde
-// _routeParse() al rutear el paste a batch — nunca desde _onApplyBatch(), que solo corre al
-// confirmar "Aplicar" en el panel DIFF, evento distinto y posterior al ruteo. _Locus-
-// module-contracts §2 (entrada de handlePaste/handleInput, mod:99) ya documenta ese call site —
-// nunca ha sido side effect de _onApplyBatch. El AC del TKT que agrupa block count junto a los
-// otros 3 asume un mod:99 que no existe en _onApplyBatch; no se fuerza block-count dentro de este
-// registro para no introducir una invocación nueva no pedida por ningún AC de happy path —
-// devuelto como gap de especificación en el CHECKPOINT de entrega, no resuelto por inferencia.
-//
-// Del mismo modo, status/hora del worker (mod:179/180, saveWorker+_markRadarDirty+
-// renderGlobalRadarSidebar) no es per-meta — corre una sola vez por batch, gateada por `id` (el
-// worker que abrió el modal), no por cada bloque confirmado. Se deja fuera de este registro por
-// naturaleza distinta (no itera metas) — mismo comportamiento y ubicación previos, sin cambio.
-const _BATCH_META_SIDE_EFFECTS = [
-  {
-    name: 'retro_evaluated_sprint', // mod:185 (TKT-202608-377, REQ-202608-150)
-    when: m => !!m.retroEvaluatedSprint,
-    run:  m => _applyRetroEvaluatedSprint(m.retroEvaluatedSprint)
-  },
-  {
-    name: 'learning_log_evaluated_through_ts', // mod:199/201 (TKT-202608-424, REQ-202608-171)
-    when: m => !!m.learningLogEvaluatedThroughTs,
-    run:  (m, ctx) => _applyLearningLogEvaluated(ctx.activeProj.id, m.learningLogEvaluatedThroughTs)
-  },
-  {
-    name: 'checkpoint_flow', // mod:196/201 (TKT-202608-429, REQ-202608-172)
-    when: m => !!m.resumen,
-    run:  (m, ctx) => saveCheckpointFlow({
-      projectId: ctx.activeProj.id,
-      sprintId:  _resolveBatchFlowSprintId(m.idx, ctx.batchMergeResult),
-      title:     m.titulo || '',
-      role:      m.rol || '',
-      summary:   m.resumen,
-      blockers:  m.bloqueantes || 'n/a',
-      learning:  m.aprendizaje || 'n/a',
-      decision:  m.decision || 'n/a'
-    })
-  },
-  {
-    // CHG-202608-003 (parent/triggered_by INC-202608-138): antes de este side effect,
-    // _onApplyBatch() nunca invocaba _mutateSessions() — todo CHECKPOINT pegado en batch
-    // (único path desde TKT-202608-276, AC1) quedaba sin sesión de Worker registrada, a
-    // diferencia del path single (_doApplyMergeAndFinish(), locus-session-save.js).
-    // AC3 (simplificado por Cael, patch sobre el CHG): atribución exclusiva a ctx.id — no
-    // existe mecanismo de resolución de Worker por `role` de bloque en este archivo (getAI()
-    // solo resuelve por id). AC4 original (fallback ante rol sin Worker) queda sin efecto —
-    // no hay resolución por rol que pueda fallar.
-    name: 'sessionRegister',
-    when: m => !!m.resumen, // AC6 — mismo gate que checkpoint_flow
-    run: (m, ctx) => {
-      if (!ctx.id) return; // AC3 — sin Worker que abrió el modal, no hay a quién atribuir
-      const _liveAi = getAI(ctx.id);
-      if (!_liveAi) return; // mismo guard que el bloque de status/hora (líneas ~3551)
-      const _now = new Date();
-      const _dateShort = _now.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
-      const _dateFull  = _now.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) +
-                          ' ' + _now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-      // R-202605-049: mismo criterio de sessionGroupId que _doSaveSession() (locus-session-save.js
-      // L699-704) — hereda del último grupo abierto del mismo Worker, o genera uno nuevo.
-      const _allSessForGroup = (ctx.activeProj.sessions || []).filter(s => s.aiId === ctx.id && !s.resetAt);
-      const _lastSessForGroup = _allSessForGroup.length ? _allSessForGroup[_allSessForGroup.length - 1] : null;
-      const _sessionGroupId = (_lastSessForGroup && _lastSessForGroup.sessionGroupId)
-        ? _lastSessForGroup.sessionGroupId
-        : 'sg-' + Date.now();
-      // trackerRefs por bloque — mismo criterio idx-based ya usado por _resolveBatchFlowSprintId
-      // y _roleByIdx en este archivo, aplicado aquí a tgItems/patchItems del batch completo.
-      const _trackerRefs = [...(ctx.tgItems || []), ...(ctx.patchItems || [])]
-        .filter(it => it.idx === m.idx)
-        .map(it => it.code)
-        .filter(Boolean);
-      const newSessBatch = {
-        id: Date.now().toString() + '-' + Math.random().toString(36).slice(2, 7),
-        aiId: ctx.id,
-        title: m.titulo || '', summary: m.resumen || '', files: m.archivosRaw || '',
-        pending: m.pending || '', tags: [],
-        nextStep: m.nextStep || '',
-        trackerRefs: _trackerRefs,
-        ckptProyecto: m.ckptProyecto || '',
-        decision:    m.decision    || '',
-        contexto:    m.contexto    || '',
-        bloqueantes: m.bloqueantes || '',
-        aprendizaje: m.aprendizaje || '',
-        duration:         m.duration         || '',
-        docsVerified:     m.docsVerified      || '',
-        tensionsResolved: m.tensionsResolved  || '',
-        finnObservations: m.finnObservations  || null,
-        finnRelease:      m.finnRelease       || null, // CHG-202608-004 (INC-202608-139): newSessBatch no declaraba
-        // finnRelease pese a que _extractCkptMeta() ya lo expone — mismo criterio que newSess()
-        // del path single (locus-session-save.js: finnRelease: parsed.finnRelease || null).
-        rol:      m.rol || '',
-        archivos: _batchParseFilesField(m.archivosRaw || ''),
-        sprintId: (getActiveSprints().find(sp => sp.status === 'active') || {}).id || '',
-        hasDocUpdates: Array.isArray(m.docUpdates) && m.docUpdates.length > 0,
-        resetAt: '',
-        sessionGroupId: _sessionGroupId,
-        // AC5 — sin timer interactivo dentro de un paste múltiple, durationMs siempre 0.
-        durationMs: 0,
-        dateShort: _dateShort, date: _dateFull
-      };
-      _mutateSessions(ctx.activeProj, 'add', newSessBatch);
-      // INC-202608-141: contador compartido en ctx (no per-meta) — permite al caller de
-      // _applyBatchMetaSideEffects (forEach de metas en _onApplyBatch) decidir, una sola vez
-      // tras el loop completo, si hay algo nuevo en activeProj.sessions que persistir.
-      ctx.sessionsRegistered = (ctx.sessionsRegistered || 0) + 1;
-      // CHG-202608-005 (INC-202608-140): expone el id de la sesión recién creada para este
-      // bloque — trackerLegacyItems (siguiente side effect) lo necesita como sessionId del
-      // contador legacy, mismo criterio que sessId en el path single. Reseteado a null por
-      // meta en _applyBatchMetaSideEffects — nunca sobrevive de un bloque al siguiente.
-      ctx.lastSessionId = newSessBatch.id;
-    }
-  },
-  {
-    // CHG-202608-005 (triggered_by INC-202608-140): _onApplyBatch() nunca replicaba la
-    // mutación de activeProj.tracker.items/tracker.counters (v3.0.0, contador legacy) que
-    // _doApplyMergeAndFinish() sí aplica (locus-session-save.js líneas 908-926) — ver tabla
-    // de paridad single↔batch en _Locus-module-contracts §2. Réplica exacta del mismo
-    // algoritmo: por cada tgItem del bloque, actualizar entrada existente por `code` o
-    // empujar una nueva y avanzar tracker.counters[TYPE] si el número del código nuevo supera
-    // el contador guardado — mismo regex, mismos 6 tipos (DISC/TKT/REQ/INC/PRB/CHG). tgItems
-    // ya incluye ítems ITIL (INC/PRB/CHG vía _buildItilItem, mismo array — ver push en
-    // _buildTgItemsFromParsed) con el mismo shape {code, desc, status} que los Planeada, sin
-    // necesidad de rama separada.
-    name: 'trackerLegacyItems',
-    when: () => true, // corre siempre — el filtro real es si el bloque tiene tgItems propios
-    run: (m, ctx) => {
-      const _blockTgItems = (ctx.tgItems || []).filter(it => it && it.idx === m.idx);
-      if (!_blockTgItems.length) return; // nada que replicar para este bloque
-      if (!ctx.activeProj.tracker) {
-        ctx.activeProj.tracker = { items: [], counters: { DISC: 0, TKT: 0, REQ: 0, INC: 0, PRB: 0, CHG: 0 } };
-      }
-      const tracker = ctx.activeProj.tracker;
-      const _sessIdForBlock = ctx.lastSessionId || ''; // '' si el bloque no calificó para sessionRegister (sin m.resumen)
-      _blockTgItems.forEach(item => {
-        const existing = tracker.items.find(x => x.code === item.code);
-        if (existing) {
-          existing.desc = item.desc; existing.status = item.status; existing.sessionId = _sessIdForBlock;
-        } else {
-          const c = tracker.counters;
-          const numMatch = (item.code || '').match(/^(DISC|TKT|REQ|INC|PRB|CHG)-\d{6}-(\d{3})/);
-          if (numMatch) { const num = parseInt(numMatch[2]); const key = numMatch[1]; if (num >= (c[key] || 0)) c[key] = num; }
-          tracker.items.push({id:'tgi-'+Date.now()+'-'+Math.random().toString(36).slice(2,6), code:item.code, desc:item.desc, status:item.status, sessionId:_sessIdForBlock});
-        }
-      });
-      // Mismo criterio que ctx.sessionsRegistered — marca compartida para que el caller
-      // decida, tras el forEach(metas) completo, si hay algo nuevo que persistir.
-      ctx.trackerLegacyTouched = true;
-    }
-  }
-];
-
-// TKT-202608-439: aplica el registro de arriba sobre un solo bloque (m) del batch. Extraído de
-// _onApplyBatch() para que un side effect nuevo se declare en _BATCH_META_SIDE_EFFECTS y quede
-// cubierto aquí automáticamente, sin tocar el forEach que lo invoca.
-function _applyBatchMetaSideEffects(m, ctx) {
-  if (!m) return;
-  // CHG-202608-005: reset por-meta — sin esto, ctx.lastSessionId (escrito por sessionRegister)
-  // sobrevive de un bloque al siguiente cuando el bloque actual no calificó para sessionRegister
-  // (sin m.resumen) pero sí tiene tgItems propios — trackerLegacyItems atribuiría esos ítems a
-  // la sesión de un bloque anterior en vez de sessionId:''.
-  ctx.lastSessionId = null;
-  for (const effect of _BATCH_META_SIDE_EFFECTS) {
-    if (effect.when(m)) effect.run(m, ctx);
-  }
-}
+// TKT-202608-477 (REQ-202608-198, TKT4): _BATCH_META_SIDE_EFFECTS/_applyBatchMetaSideEffects
+// movidos a locus-ingest-side-effects.js (módulo nuevo, importado más arriba en este archivo,
+// bloque de imports) — solo el mecanismo de registro/aplicación, ninguno de los 5 side effects
+// individuales fue reescrito. _applyRetroEvaluatedSprint()/_applyLearningLogEvaluated()/
+// _resolveBatchFlowSprintId()/_batchParseFilesField() permanecen en este archivo (side effects
+// individuales, fuera del "no_incluye" del TKT) y se exportan para que ese módulo los consuma
+// cross-módulo. Ver header de este archivo (mod:220) y de locus-ingest-side-effects.js para el
+// detalle completo del movimiento.
 
 // CHG-202608-003 (parent INC-202608-138, AC1): réplica deliberada de _parseFilesField()
 // (locus-session-save.js L663-680) — misma lógica exacta (mismos separadores, mismos regex,
@@ -2154,7 +2011,7 @@ function _applyBatchMetaSideEffects(m, ctx) {
 // declara alcance de un solo archivo. Necesaria para que sessionRegister reproduzca el campo
 // `archivos` de newSess() con el mismo shape ({nombre,mod,autor}[]), no solo `archivosNombres`
 // (nombres sueltos, consumidor distinto — chip de resumen del panel DIFF).
-function _batchParseFilesField(raw) {
+export function _batchParseFilesField(raw) {
   if (!raw || typeof raw !== 'string') return [];
   const result = [];
   const segments = raw.split(/\s*\|\s*/);
@@ -3340,9 +3197,10 @@ export async function _processIngestBatch(id) {
       if (m.finnRelease) _finnReleaseCount++;
       // TKT-202608-439 (REQ-202608-179): retro_evaluated_sprint / learning_log_evaluated_
       // through_ts / checkpoint_flow — antes 3 ifs sueltos aquí mismo (mods 185/196/424) — ahora
-      // un registro único (_BATCH_META_SIDE_EFFECTS, definido arriba en este archivo). Mismo
-      // orden relativo y mismas precondiciones que antes de este TKT — un side effect nuevo se
-      // agrega a ese registro, no a este forEach.
+      // un registro único (_BATCH_META_SIDE_EFFECTS, definido en locus-ingest-side-effects.js
+      // desde TKT-202608-477 — antes en este archivo). Mismo orden relativo y mismas
+      // precondiciones que antes de este TKT — un side effect nuevo se agrega a ese registro,
+      // no a este forEach.
       // CHG-202608-003: id/tgItems/patchItems agregados al ctx — requeridos por el side
       // effect sessionRegister (atribución del Worker + trackerRefs por bloque). Sin cambio
       // para los 3 side effects ya existentes, que no leen esos campos.
@@ -3579,7 +3437,6 @@ export function _tryIngestSprintProposalFromParsed(proposalObj) {
 // inicio de este archivo y el header de identidad (mod:219) para el detalle completo del
 // movimiento. Los 2 call sites de _buildTgItemsFromParsed() en este archivo (flujo single
 // ~L2356, flujo batch dentro de _parseBatchBlock ~L3817) no cambian.
-
 
 // [PP] TKT3: valida y construye preview de UN bloque del batch — usado solo cuando
 //   _splitCheckpointBlocks detecta 2+ bloques. AC2: bloque inválido no aborta el resto.
