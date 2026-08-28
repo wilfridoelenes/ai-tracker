@@ -1,3 +1,17 @@
+// [PP] mod:116 · autor:Rune · 2026-08-28 UTC-6
+// TKT ref_id CAEL-08280100-01 (REQ-202608-199 · TKT1 — parent shell _mdiffToggleZone/
+// _mdiffToggleCard): agregado helper de módulo _mdiffToggleDrawer(btn, cardSel, detailSel,
+// useHiddenAttr) — único mecanismo de expand/collapse; _mdiffToggleZone y _mdiffToggleCard
+// (asignadas dentro de showMergeDiffPanel, sin cambio de ciclo de vida ni de dónde se
+// asignan/limpian) ahora delegan en él en vez de repetir la lógica de closest()+
+// querySelector()+toggle de aria-expanded. Mismo comportamiento observable byte a byte:
+// zona sigue usando classList('is-hidden') sobre .mdiff-zone-card/.mdiff-zone-detail, card
+// sigue usando el atributo nativo `hidden` sobre .mdiff-card/.mdiff-card-detail — sin cambio
+// de selector, de atributo aria-expanded, ni de idempotencia ante doble-click. No toca _card
+// ni _buildPatchCard (TKT2, TKT-202608-479, depends_on este TKT) — su markup y el dispatcher
+// de data-action (mdiff-toggle-zone/mdiff-toggle-card) permanecen exactamente igual.
+// contract_update: no — _mdiffToggleDrawer es interna al módulo, sin export ni consumidor
+// cross-module; _mdiffToggleZone/_mdiffToggleCard conservan su firma y punto de asignación.
 // [PP] mod:115 · autor:Rune · 2026-08-28 UTC-6
 // TKT ref_id CAEL-08271600-01 (origen_disc DISC-202608-225): _OP_ICON_MAP/_opIcon retirados
 // de este archivo — vivían exportados aquí a nivel de módulo desde mod:110 como solución
@@ -531,6 +545,25 @@ let _mdiffToggleZone = null;
 // _mdiffToggleZone (exclusivo de _buildPatchCard/.mdiff-zone-card): usa el atributo nativo
 // `hidden` en el contenedor de detalle en vez de classList `is-hidden` (AC2 del TKT).
 let _mdiffToggleCard = null;
+
+// TKT ref_id CAEL-08280100-01 (REQ-202608-199, TKT1 · helper genérico de toggle): único
+// mecanismo de expand/collapse consumido por _mdiffToggleZone y _mdiffToggleCard — ambas
+// implementaciones ya compartían el mismo patrón de delegación por closest()/querySelector(),
+// solo diferían en el selector de card/detail y en el mecanismo de ocultamiento (classList
+// 'is-hidden' para zona vs. atributo nativo `hidden` para card, AC2 de TKT-202608-465). Sin
+// estado propio — función pura, no requiere reset en teardownMergeDiffPanel(). No toca
+// _card ni _buildPatchCard (TKT2, depends_on este TKT) — su markup y el dispatcher de
+// data-action (mdiff-toggle-zone/mdiff-toggle-card) permanecen exactamente igual.
+function _mdiffToggleDrawer(btn, cardSel, detailSel, useHiddenAttr) {
+  const card = btn.closest(cardSel);
+  const detail = card ? card.querySelector(detailSel) : null;
+  if (!detail) return;
+  const wasExpanded = btn.getAttribute('aria-expanded') === 'true';
+  btn.setAttribute('aria-expanded', String(!wasExpanded));
+  if (useHiddenAttr) detail.hidden = wasExpanded;
+  else detail.classList.toggle('is-hidden', wasExpanded);
+}
+
 let _mdiffJumpTo = null;
 let _mdiffUpdateConfirmBtn = null;
 // TKT-202607-206 (REQ-202607-079, AC4): historial de ref_id→title resuelto a través de batches
@@ -2238,26 +2271,20 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // (.mdiff-zone-chevron), la card en sí no es clickeable (mdiff-zone-card: cursor:default).
   // Delegación única a nivel de #merge-diff-overlay (ver listener de click más abajo) —
   // cubre N cards sin re-registro. Enter/Space nativos del <button> — sin handler aparte.
+  // TKT ref_id CAEL-08280100-01 (REQ-202608-199, TKT1): delega en _mdiffToggleDrawer —
+  // mismo par selector/mecanismo que antes de la unificación (classList 'is-hidden').
   _mdiffToggleZone = function(btn) {
-    const card = btn.closest('.mdiff-zone-card');
-    const detail = card ? card.querySelector('.mdiff-zone-detail') : null;
-    if (!detail) return;
-    const wasExpanded = btn.getAttribute('aria-expanded') === 'true';
-    btn.setAttribute('aria-expanded', String(!wasExpanded));
-    detail.classList.toggle('is-hidden', wasExpanded);
+    _mdiffToggleDrawer(btn, '.mdiff-zone-card', '.mdiff-zone-detail', false);
   };
 
   // Helper: toggle drawer de detalle en _card() genérica (TKT-202608-465, AC1-AC3) — mismo
   // patrón de delegación por closest() que _mdiffToggleZone (independencia entre cards, sin
   // estado compartido), pero sobre `.mdiff-card`/`.mdiff-card-detail` y usando el atributo
   // nativo `hidden` en vez de classList `is-hidden` (AC2). Enter/Space nativos del <button>.
+  // TKT ref_id CAEL-08280100-01 (REQ-202608-199, TKT1): delega en _mdiffToggleDrawer —
+  // mismo par selector/mecanismo que antes de la unificación (atributo nativo hidden).
   _mdiffToggleCard = function(btn) {
-    const card = btn.closest('.mdiff-card');
-    const detail = card ? card.querySelector('.mdiff-card-detail') : null;
-    if (!detail) return;
-    const wasExpanded = btn.getAttribute('aria-expanded') === 'true';
-    btn.setAttribute('aria-expanded', String(!wasExpanded));
-    detail.hidden = wasExpanded;
+    _mdiffToggleDrawer(btn, '.mdiff-card', '.mdiff-card-detail', true);
   };
 
   // Helper: jump a sección
