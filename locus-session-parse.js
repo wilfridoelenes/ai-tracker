@@ -1,3 +1,34 @@
+// [PP] mod:219 · autor:Rune · 2026-08-27 UTC-6
+// TKT-202608-476 (REQ-202608-198, TKT3 de "Partir parsePaste()/_processIngestBatch() en
+// unidades de responsabilidad única"): construcción de tgItems/patchItems extraída a
+// locus-ingest-builder.js (módulo nuevo) — _normalizeNoIncluye()/_buildPlaneadaTgItem()/
+// _buildTgItemsFromParsed() ya no viven aquí, movidas byte a byte, sin reescritura. Este
+// archivo sigue invocando _buildTgItemsFromParsed() en los mismos 2 call sites (flujo single
+// ~L2356, flujo batch dentro de _parseBatchBlock ~L3817) vía import cross-módulo — mismo
+// nombre, misma firma. _buildItilItem/_canonicalStatus/_ITIL_TYPES/_VALID_STATUSES_GATE/
+// _resolveSprintFields permanecen en este archivo — no estaban co-localizados con
+// _buildTgItemsFromParsed antes de este movimiento (fuera del "no_incluye" del TKT) — y
+// pasan a exportarse para que locus-ingest-builder.js los consuma cross-módulo. Ciclo ESM de
+// 2 nodos con locus-ingest-builder.js: este archivo importa _buildTgItemsFromParsed desde
+// allá, locus-ingest-builder.js importa _normalizeSprint/_ITIL_TYPES/_buildItilItem/
+// _canonicalStatus/_VALID_STATUSES_GATE/_resolveSprintFields desde aquí — seguro, ningún
+// símbolo se evalúa en top-level de ninguno de los dos módulos, mismo patrón ya vigente entre
+// locus-session-hora.js/locus-session-save.js/locus-session-parse.js. `_reqsNoAc`/gate
+// `req-sin-AC` y el gate de duplicados de `[tmp:slug]` en `_resolveCheckpointBatch` no se
+// tocan — permanecen exactamente donde estaban.
+// [PP] mod:218 · autor:Rune · 2026-08-27 UTC-6
+// TKT-202608-474 (REQ-202608-198, TKT1 de "Partir parsePaste()/_processIngestBatch() en
+// unidades de responsabilidad única"): render de preview de ingesta + helpers de validación
+// extraídos a locus-ingest-preview.js (módulo nuevo) — _showIngestValidationError/
+// _showIngestValidationWarning/_resetIngestValidationPanel (CAEL-25/26), _updateIngestBlockCount(),
+// _ingestPreviewMeta()/_renderIngestBlockPreview() (con sus privados _TRACE_TITLE_RE/
+// _isTraceOnlyBlock). Contenido movido tal cual, sin reescritura — sin cambio de comportamiento
+// observable (AC happy path/error/edge del TKT). _routeParse()/_splitCheckpointBlocks()/
+// _onApplyBatch() y la lógica de side effects permanecen en este archivo, sin cambio. Las 5
+// funciones movidas que este archivo sigue invocando (parsePaste(), _routeParse(),
+// _processIngestBatch()) vuelven a importarse desde el módulo nuevo — mismos nombres, mismas
+// firmas. Imports de navigateToItem/renderCkptField retirados de este archivo — sus únicos call
+// sites vivían dentro del código movido.
 // [PP] mod:215 · autor:Rune · 2026-08-27 UTC-6
 // INC — contador #ingest-char-counter no se actualizaba al pegar una sesión completa (sí letra
 // por letra). Causa raíz: la actualización vivía únicamente inline en parsePaste(), que el path
@@ -1254,9 +1285,20 @@ import { _markRadarDirty, renderGlobalRadarSidebar } from './locus-radar.js'; //
 
 
 import { esc, getCurrentTab } from './locus-ui-shell.js'; // Fix INC-202608-094: getCurrentTab agregado — guard de refresco del tab Sprint en _onApplyBatch
-import { navigateToItem } from './locus-item-navigator.js'; // TKT2 (ref_id CAEL-08111800-03, REQ CAEL-08111800-01): link de origen del badge de trazabilidad — sin ciclo ESM, locus-item-navigator.js no importa este archivo (verificado por grep antes de agregar)
-import { renderCkptField } from './locus-ckpt-render.js'; // TKT-202608-340 (REQ-202608-132, depends_on TKT-202608-339): motor de render core — sin ciclo ESM, locus-ckpt-render.js es hoja pura sin imports propios (verificado por grep antes de agregar)
 import { interpretHora } from './locus-session-hora.js'; // INC histórico — sin CHECKPOINT confirmado: import restaurado — el header de este archivo ya declaraba locus-session-hora.js como dependencia ("Dependencias: ... · locus-session-hora.js") pero nunca se importaba nada de él; sin este import, _onApplyBatch no podía interpretar la hora de reset leída del panel DIFF. Ciclo ESM de 3 nodos (session-parse→session-hora→session-save→session-parse) — seguro porque interpretHora solo se invoca dentro de un callback en tiempo de ejecución, nunca en top-level de módulo, mismo patrón ya vigente entre locus-session-save.js y locus-session-hora.js
+// TKT-202608-474 (REQ-202608-198): render de preview de ingesta + helpers de validación extraídos
+// a módulo propio — navigateToItem/renderCkptField ya no se invocan directamente en este archivo
+// (sus únicos call sites vivían dentro del código movido). Ciclo ESM de 2 nodos con
+// locus-ingest-preview.js — seguro, ver header de ese módulo.
+import { _showIngestValidationError, _showIngestValidationWarning, _resetIngestValidationPanel, _updateIngestBlockCount, _renderIngestBlockPreview } from './locus-ingest-preview.js';
+// TKT-202608-475 (REQ-202608-198, TKT2): construcción de meta de CHECKPOINT extraída a módulo
+// propio — _extractCkptMeta/_ckptArchivosToNames ya no viven aquí. Sin ciclo ESM: locus-ingest-meta.js
+// no importa nada de locus-session-parse.js.
+import { _extractCkptMeta } from './locus-ingest-meta.js';
+// TKT-202608-476 (REQ-202608-198, TKT3): construcción de tgItems/patchItems extraída a módulo
+// propio — _normalizeNoIncluye/_buildPlaneadaTgItem/_buildTgItemsFromParsed ya no viven aquí.
+// Ciclo ESM de 2 nodos con locus-ingest-builder.js — ver header de este archivo.
+import { _buildTgItemsFromParsed } from './locus-ingest-builder.js';
 
 // T-202606-012: _INFRA_VERSION_ACTIVE eliminada — importada como INFRA_VERSION_ACTIVE desde locus-storage.js
 // T-202606-029: INFRA_VERSION_ACTIVE (constante) migrada a getInfraVersionActive() / setInfraVersionActive() — AC-4 de T-202606-027 cerrado
@@ -1339,12 +1381,12 @@ const _KNOWN_STATUS_INPUTS = new Set([
 // _validStatuses estaba duplicada literalmente en parsePaste (~L813) y en la variante
 // standalone _buildTgItemsFromParsed (~L1722) — mismo array, mismo riesgo de que una edición
 // futura toque un gate y no el otro. Consolidada aquí, fuente única para ambos paths de ingesta.
-const _VALID_STATUSES_GATE = ['done', 'pendiente', 'descartado', 'en-revision'];
+export const _VALID_STATUSES_GATE = ['done', 'pendiente', 'descartado', 'en-revision']; // TKT-202608-476: export agregado — consumido cross-módulo por locus-ingest-builder.js
 
 // TKT1 (REQ histórico — sin CHECKPOINT confirmado): _GEN2_TYPES movida a locus-backlog-core.js — fuente única,
 // importada abajo junto al resto de imports de ese módulo. Sin cambio de valor ni de uso.
 // Tipos cuyo ciclo de vida vive en incident_status (ITIL) — nunca en status (Scrum).
-const _ITIL_TYPES = new Set(['INC', 'PRB', 'CHG']);
+export const _ITIL_TYPES = new Set(['INC', 'PRB', 'CHG']); // TKT-202608-476: export agregado — consumido cross-módulo por locus-ingest-builder.js
 // Valores válidos de incident_status — BR-Core §6.
 // TKT-PARSER-2a (REQ histórico — sin CHECKPOINT confirmado): exportadas — locus-backlog-item.js las consume para
 // validar transiciones ITIL en mergeBacklogFromTG sin duplicar la tabla.
@@ -1419,7 +1461,7 @@ function _resolveItilQueue(it, projectName, ckptTitulo) {
   );
   return { queue: _autoQueue };
 }
-function _canonicalStatus(raw, type) {
+export function _canonicalStatus(raw, type) { // TKT-202608-476: export agregado — consumido cross-módulo por locus-ingest-builder.js
   if (!raw) return null;
   const s = raw.trim().toLowerCase();
   if (!_KNOWN_STATUS_INPUTS.has(s)) return null; // valor desconocido — rechazo estricto
@@ -1441,7 +1483,7 @@ function _canonicalStatus(raw, type) {
 // siguen exclusivamente por incident_status — pero ahora se espeja a item.status (mismo
 // valor, mismo campo que lee mergeBacklogFromTG) porque chk_status_by_type valida status
 // para las 7 filas de tracker_items sin excepción — no hay columna paralela.
-function _buildItilItem(it, ckptHeaderRole, projectName, ckptTitulo) {
+export function _buildItilItem(it, ckptHeaderRole, projectName, ckptTitulo) { // TKT-202608-476: export agregado — consumido cross-módulo por locus-ingest-builder.js
   const _isChg = it.type === 'CHG';
 
   let _incStatus = null;
@@ -2104,78 +2146,6 @@ function _applyBatchMetaSideEffects(m, ctx) {
   }
 }
 
-function _extractCkptMeta(ckpt) {
-  const _c = ckpt || {};
-  return {
-    resumen:          _c.resumen     || '',
-    aprendizaje:      _c.aprendizaje || '',
-    bloqueantes:      _c.bloqueantes || '',
-    decision:         _c.decision    || '',
-    proximoPaso:      _c.proximoPaso || '',
-    // TKT-202607-172 (REQ-202607-058 · AC2/AC3): campos nuevos — 13avo/14avo del objeto (antes
-    //   11, contract_detail declara 13). Consumidos por locus-backlog-merge.js con precedencia
-    //   nextStep > nextRole > proximoPaso para la línea "Siguiente" (AC4-6, ese archivo).
-    nextStep:         _c.nextStepRaw || '',
-    nextRole:         _c.nextRoleRaw || '',
-    docUpdates:       _c._isJsonFormat ? (_c._rawDocUpdates || [])        : [],
-    finnObservations: _c._isJsonFormat ? (_c._rawFinnObservations || null) : null,
-    finnRelease:      _c._isJsonFormat ? (_c._rawFinnRelease || null)      : null,
-    retroEvaluatedSprint: _c._isJsonFormat ? (_c._rawRetroEvaluatedSprint || null) : null, // TKT-202608-377
-    learningLogEvaluatedThroughTs: _c._isJsonFormat ? (_c._rawLearningLogEvaluatedThroughTs || null) : null, // TKT-202608-424
-    inlineFixes:      _c._isJsonFormat ? (_c._inlineFixes || [])          : [], // TKT1 (REQ CAEL-0727-01 · ref_id CAEL-0727-02)
-    // TKT-202607-185 (REQ-202607-069 · origen DISC-202607-060): campo `archivosNombres` agregado —
-    //   deriva de ckpt.archivos (string de nivel-sesión, campo Archivos: del CHECKPOINT, formato
-    //   "nombre · mod:N · autor:X | nombre2 · mod:N · autor:Y") — NO del campo `archivos`
-    //   por-ítem de TKT/REQ individual (array, BR-Ecosystem §8), que vive en items[] y no en el
-    //   ckpt de nivel raíz. Sin precedente de parseo de este string en el archivo antes de este
-    //   TKT — ckpt.archivos se guardaba crudo (ver L2100) y nunca se descomponía en partes.
-    //   Nombre `archivosNombres` (no `archivos`) — decisión de Cael tras detectar que el flujo
-    //   batch (_resolveCheckpointBatch, spread directo de esta función) y el flujo single
-    //   (ai._parsed, ya con un `archivos` crudo preexistente de T-202606-070) quedaban con dos
-    //   nombres distintos para el mismo dato. Se unifica aquí, en la fuente compartida, en vez de
-    //   en cada call site — evita que un tercer flujo futuro reintroduzca la inconsistencia.
-    archivosNombres:  _ckptArchivosToNames(_c.archivos),
-    draft:            _c.draft === true,
-    draftRaw:         _c.draftRaw,
-    rol:              _c.rol    || '',
-    titulo:           _c.titulo || '',
-    // CHG-202608-003 (parent INC-202608-138, AC2): 6 campos que _doSaveSession() lee de
-    // `parsed` (locus-session-save.js L717-724) y que este objeto nunca exponía — contexto,
-    // duration, docsVerified, tensionsResolved, ckptProyecto vienen de campos reales del ckpt
-    // JSON (_c.context→contexto, _c.duration, _c.docsVerified, _c.tensionsResolved,
-    // _c.proyecto→ckptProyecto — mismo mapeo ya usado en ai._parsed, línea ~2325/2337-2339).
-    // `pending` es la excepción: no existe ningún campo `pending`/`ckpt.pending` en todo este
-    // archivo — ai._parsed.pending tampoco se popula en el flujo single (grep confirmado, sin
-    // AC de este CHG que lo cubra) — se agrega en '' para igualar el mismo estado inerte del
-    // path single, sin fingir una fuente que no existe. Gap pre-existente, fuera de scope.
-    contexto:         _c.contexto || '',
-    duration:         _c.duration || '',
-    docsVerified:     _c.docsVerified || '',
-    tensionsResolved: _c.tensionsResolved || '',
-    ckptProyecto:     _c.proyecto || '',
-    pending:          '',
-    // AC1: newSess.files = parsed.files, y parsed.files === ckpt.archivos (string crudo, ver
-    // línea ~2205: `files = ckpt.archivos`) — distinto de archivosNombres (ya parseado a solo
-    // nombres, arriba). Se expone crudo aquí para que sessionRegister pueda reproducir tanto
-    // `files` (string) como `archivos` (array estructurado, vía _batchParseFilesField) igual
-    // que newSess().
-    archivosRaw:      _c.archivos || ''
-  };
-}
-
-// TKT-202607-185 (REQ-202607-069): parsea el string ckpt.archivos ("x.js · mod:3 · autor:Rune |
-//   y.css · mod:2 · autor:Nova") a un array de solo nombres de archivo, para el chip
-//   .diff-chip--files de #mdiff-summary-chips. Separador de segmentos '|', separador de
-//   metadata dentro de cada segmento '·' — se conserva solo lo previo al primer '·'.
-//   Función pura, sin estado compartido — mismo criterio que _extractCkptMeta (AC1).
-function _ckptArchivosToNames(rawArchivos) {
-  if (!rawArchivos || typeof rawArchivos !== 'string') return [];
-  return rawArchivos
-    .split('|')
-    .map(seg => seg.split('·')[0].trim())
-    .filter(name => name.length > 0);
-}
-
 // CHG-202608-003 (parent INC-202608-138, AC1): réplica deliberada de _parseFilesField()
 // (locus-session-save.js L663-680) — misma lógica exacta (mismos separadores, mismos regex,
 // mismo criterio de omitir segmentos sin mod:/autor:), no una reinterpretación. No se importa
@@ -2300,7 +2270,7 @@ export function _normalizeSprint(item, pendingItems) {
 // TKT-PARSE4: 'icebox' como formato (c) eliminado — BR-Execution §2 sin retrocompatibilidad.
 // Devuelve { sprintAlias, sprint_id, sprint_name } donde sprintAlias es el valor para item.sprint
 // (compatibilidad con _normalizeSprint que sigue operando sobre item.sprint).
-function _resolveSprintFields(it) {
+export function _resolveSprintFields(it) { // TKT-202608-476: export agregado — consumido cross-módulo por locus-ingest-builder.js
   // Formato (a): campos separados presentes — tienen precedencia
   if (it.sprint_id !== undefined) {
     const _id   = String(it.sprint_id  || '').trim();
@@ -2327,52 +2297,6 @@ function _resolveSprintFields(it) {
 // B-202606-022: resolver [tmp:slug] en campo parent/parentId de un patch contra tgItems del mismo CHECKPOINT.
 // Llama antes de acumular el patch en la variable local _patchItems de parsePaste() (TKT-202608-467 —
 // antes vivía en window[`_patchItems_${id}`], ver REQ-202608-193).
-// CAEL-25: helpers de #ingest-validation-panel — reemplazan el target prev-${id},
-// inexistente en el DOM desde la migración a #ingest-ta global (CAEL-22).
-function _showIngestValidationError(msgHtml) {
-  const panel = document.getElementById('ingest-validation-panel');
-  const errEl = document.getElementById('ingest-validation-error');
-  const errMsgEl = document.getElementById('ingest-validation-error-msg');
-  const warnEl = document.getElementById('ingest-validation-warnings');
-  if (!panel || !errEl || !errMsgEl) return;
-  panel.classList.remove('is-hidden');
-  errEl.classList.remove('is-hidden');
-  errMsgEl.innerHTML = msgHtml;
-  if (warnEl) warnEl.classList.add('is-hidden');
-}
-
-// CAEL-26: helper de warnings dinámicos — mismo shell que _showIngestValidationError,
-// target #ingest-validation-warnings. Botón compartido entre los 4 tipos de warning:
-// se clona antes de adjuntar el listener para no acumular listeners entre warnings
-// consecutivos de la misma sesión de textarea (AC de contrato interno).
-function _showIngestValidationWarning(msgHtml, onForce) {
-  const panel = document.getElementById('ingest-validation-panel');
-  const warnEl = document.getElementById('ingest-validation-warnings');
-  const warnMsgEl = document.getElementById('ingest-validation-warning-msg');
-  const forceBtn = document.getElementById('ingest-validation-force-btn');
-  const errEl = document.getElementById('ingest-validation-error');
-  if (!panel || !warnEl || !warnMsgEl || !forceBtn) return;
-  panel.classList.remove('is-hidden');
-  warnEl.classList.remove('is-hidden');
-  warnMsgEl.innerHTML = msgHtml;
-  if (errEl) errEl.classList.add('is-hidden');
-  const _freshBtn = forceBtn.cloneNode(true);
-  forceBtn.parentNode.replaceChild(_freshBtn, forceBtn);
-  _freshBtn.addEventListener('click', onForce, { once: true });
-}
-
-function _resetIngestValidationPanel() {
-  const panel = document.getElementById('ingest-validation-panel');
-  const errEl = document.getElementById('ingest-validation-error');
-  const errMsgEl = document.getElementById('ingest-validation-error-msg');
-  const warnEl = document.getElementById('ingest-validation-warnings');
-  const warnMsgEl = document.getElementById('ingest-validation-warning-msg'); // CAEL-26
-  if (panel) panel.classList.add('is-hidden');
-  if (errEl) errEl.classList.add('is-hidden');
-  if (errMsgEl) errMsgEl.innerHTML = '';
-  if (warnEl) warnEl.classList.add('is-hidden');
-  if (warnMsgEl) warnMsgEl.innerHTML = ''; // CAEL-26
-}
 
 // TKT-202608-291 (REQ-202608-119, origen: TKT-202608-277): _showIngestValidationResult(),
 // _renderIngestBlockers() y _renderIngestResultItems() (CAEL-29/30/31) retiradas — sin call
@@ -2566,7 +2490,7 @@ export function parsePaste(id) {
     rol:      _ckptMetaShared.rol,
     archivos: ckpt ? (ckpt.archivos || '') : '', // string crudo — consumidor no confirmado, se conserva sin cambio
     // TKT-202607-185 (REQ-202607-069): archivosNombres — array ya parseado (_ckptMetaShared.archivosNombres,
-    //   ver _ckptArchivosToNames arriba), mismo nombre que expone _extractCkptMeta directamente
+    //   ver _ckptArchivosToNames en locus-ingest-meta.js — TKT-202608-475), mismo nombre que expone _extractCkptMeta directamente
     //   al flujo batch vía spread (_resolveCheckpointBatch) — sin alias local, naming unificado
     //   por decisión de Cael. Campo nuevo, no reemplaza `archivos` (crudo, T-202606-070) — evita
     //   romper el consumidor existente de esa key mientras no se confirme si tiene otro uso (no
@@ -3014,367 +2938,6 @@ export function _updateIngestCharCounter() {
   cc.className = len > 2000 ? 'char-counter warn' : 'char-counter';
 }
 
-export function _updateIngestBlockCount() {
-  const el = document.getElementById('ingest-block-count');
-  if (!el) return;
-  const ta = document.getElementById('ingest-ta') /* CAEL-22 */;
-  const n = ta ? _splitCheckpointBlocks(ta.value).length : 0;
-  el.textContent = n === 1 ? '1 bloque detectado' : `${n} bloques detectados`;
-}
-
-// TKT-202608-235 (REQ-202608-089, sprint PP-S-26): extrae `title` (truncable en el render) y un
-//   resumen de `files` ("archivo · mod:N", solo el primer segmento) de un bloque de texto crudo
-//   ya separado por _splitCheckpointBlocks — sin invocar parseCheckpoint/_parseBatchBlock. Esta
-//   función es deliberadamente más liviana que la validación real (sin gate de draft, sin
-//   _jsonParseError, sin _extractCkptMeta) porque corre en cada keystroke/paste vía
-//   _renderIngestBlockPreview() (AC "happy path") — el único propósito es un title truncado y un
-//   subtítulo de archivo para el preview visual, no persistencia ni aval de founder.
-//   Bloque que no parsea como JSON (fence sin cerrar, prosa suelta capturada por
-//   _extractBareJsonBlocks, etc.) devuelve null — no es "bloque válido" a efectos de este AC y no
-//   genera fila de preview (AC "estado vacío" se cumple por composición: 0 bloques válidos → []).
-//   Función pura, sin efectos laterales — mismo criterio de pureza que _extractCkptMeta/
-//   _ckptArchivosToNames. contract_update: no — función nueva, sin consumidores externos.
-// TKT2 (ref_id CAEL-08111800-03, parent REQ ref_id CAEL-08111800-01, AC "Extracción de datos"):
-//   patrón del title de un CHECKPOINT de trazabilidad pura ya aplicado fuera de la cola de
-//   doc_updates (Excepción de dueño co-presente, __BR-Core OWNERSHIP DE DOCUMENTOS). Em dash
-//   "—" y "§" literales — mismo carácter que el resto de este archivo usa en comentarios de
-//   la misma naturaleza. Función pura, sin efectos laterales.
-const _TRACE_TITLE_RE = /^DOC-UPDATE aplicado — (.+?) §(.+?) \(([^)]+)\)$/;
-
-// TKT2 (AC "happy path"): trigger de clasificación — items:[] (array vacío, no ausente) +
-//   sin array doc_updates (per schema nunca se emite vacío, BR-Ecosystem §8 — "se omite si no
-//   hay cambios para ningún doc"; el chequeo de ausencia cubre igual el caso defensivo de un
-//   array vacío mal emitido) + docs_verified presente y distinto de 'n/a'. Función pura.
-function _isTraceOnlyBlock(parsed) {
-  if (!Array.isArray(parsed.items) || parsed.items.length !== 0) return false;
-  if (parsed.doc_updates !== undefined) return false;
-  if (typeof parsed.docs_verified !== 'string') return false;
-  const _dv = parsed.docs_verified.trim();
-  return !!_dv && _dv.toLowerCase() !== 'n/a';
-}
-
-function _ingestPreviewMeta(blockText) {
-  let parsed;
-  try {
-    // Fence-strip: bloques fenced de _splitCheckpointBlocks conservan ``` / ```json — JSON.parse
-    // no tolera el fence. Mismo strip que ya aplica el path de parseCheckpoint sobre bloques
-    // fenced antes de intentar el parse.
-    const _stripped = blockText.replace(/^```(?:json)?\s*/, '').replace(/```\s*$/, '');
-    parsed = JSON.parse(_stripped);
-  } catch (e) {
-    return null;
-  }
-  if (!parsed || typeof parsed !== 'object' || typeof parsed.title !== 'string' || !parsed.title.trim()) {
-    return null; // sin title no hay nada verificable como CHECKPOINT — mismo gate de BR-Ecosystem §8
-  }
-  const _title = parsed.title.trim();
-  // `files` es el campo de nivel-sesión del CHECKPOINT (BR-Ecosystem §8 — "nombre · mod:N ·
-  // autor:Rol | ..."), no el `archivos` por-ítem de TKT/REQ individual dentro de items[]. Mismo
-  // campo fuente que _ckptArchivosToNames ya consume (ahí vía ckpt.archivos post-parseCheckpoint,
-  // acá directo del JSON crudo porque este helper no pasa por parseCheckpoint).
-  let meta = '';
-  if (typeof parsed.files === 'string' && parsed.files.trim()) {
-    const _parts = parsed.files.split('|')[0].split('·').map(s => s.trim());
-    if (_parts[0]) meta = _parts[1] ? `${_parts[0]} · ${_parts[1]}` : _parts[0];
-  }
-
-  // TKT2 (AC "estado de error"): un bloque trace-only cuyo title no matchea el patrón cae al
-  // preview genérico — no lanza excepción, no altera el conteo de bloques detectados (ese
-  // conteo viene de _splitCheckpointBlocks vía _updateIngestBlockCount, no de esta función).
-  if (_isTraceOnlyBlock(parsed)) {
-    const _m = _TRACE_TITLE_RE.exec(_title);
-    if (_m) {
-      const _code = _m[3].trim();
-      // AC "Link de origen": el link solo se renderiza si el código resuelve contra un ítem
-      // real — mismas dos fuentes que navigateToItem() consulta (locus-item-navigator.js),
-      // consultadas acá en modo lectura (sin navegar) para decidir si el link existe.
-      const _originExists = getItems().some(i => i.code === _code) || getIncidents().some(i => i.code === _code);
-      const _tr = typeof parsed.tensions_resolved === 'string' ? parsed.tensions_resolved.trim() : '';
-      return {
-        title: _title,
-        meta,
-        category: 'trazabilidad',
-        trace: {
-          doc: _m[1].trim(),
-          section: `§${_m[2].trim()}`,
-          code: _code,
-          originExists: _originExists,
-          docsVerified: parsed.docs_verified.trim(),
-          tensionsResolved: (_tr && _tr.toLowerCase() !== 'n/a') ? _tr : ''
-        }
-      };
-    }
-    // trace-only por schema pero title no matchea el patrón esperado — fallback a genérico.
-  }
-
-  // TKT-202608-333 (REQ-202608-132, AC2/AC3): clasificación crea/modifica. items[] con al
-  //   menos un type:'patch'|'patch-intencion' → 'modifica' — precede a 'crea' si el bloque
-  //   mezcla creación de ítems nuevos con un patch sobre código real ya existente en el mismo
-  //   items[] (permitido por schema, __BR-Ecosystem §8 — "type: patch... se puede mezclar con
-  //   ítems normales en el mismo bloque"). Supuesto declarado por Rune: los dos AC del TKT
-  //   describen escenarios puros (solo-crea / solo-patch), sin cubrir el caso mixto — se
-  //   resuelve dando precedencia a 'modifica' porque tocar un código real ya existente es la
-  //   señal de mayor consecuencia para quien revisa el preview antes de pegar. items[] sin
-  //   type reconocible, o ausente/vacío sin ser trace-only, cae a 'generic' sin cambio.
-  if (Array.isArray(parsed.items) && parsed.items.length) {
-    const _patchItems = parsed.items.filter(it => it && (it.type === 'patch' || it.type === 'patch-intencion'));
-    if (_patchItems.length) {
-      const _codes = [...new Set(_patchItems.map(it => {
-        if (it.code && typeof it.code === 'object') return it.code.ref_id || '?';
-        return typeof it.code === 'string' && it.code ? it.code : '?';
-      }))];
-      const _fieldSet = new Set();
-      _patchItems.forEach(it => {
-        Object.keys(it).forEach(k => { if (k !== 'type' && k !== 'code') _fieldSet.add(k); });
-      });
-      // TKT-202608-340 (AC2 · AC4): campo real por-ítem renderizado vía renderCkptField, itemType
-      //   resuelto por el `type` del ítem target — para type:'patch'/'patch-intencion' el itemType
-      //   real (REQ/TKT/...) no está disponible en el bloque (patch solo trae `code`), así que el
-      //   catálogo consulta directamente bajo la clave 'patch'/'patch-intencion', que cubre los
-      //   campos comunes de la instrucción misma (type/code/founder_confirmado). Campos target
-      //   heredados (ver _Locus-ckpt-render-ref.md, fila `patch | cualquier campo patcheable...`)
-      //   no se resuelven aquí — requieren conocer el itemType real del código parcheado, fuera
-      //   de scope de este TKT (no_incluye: cambios al motor de render mismo). renderCkptField
-      //   retorna null silenciosamente ante campo no mapeado (AC4) — .filter(Boolean) descarta
-      //   sin lanzar excepción, el resto de campos se renderiza igual.
-      const _renderedFields = _patchItems.flatMap(it => {
-        const _itemType = it.type === 'patch-intencion' ? 'patch-intencion' : 'patch';
-        return Object.keys(it)
-          .filter(k => k !== 'type' && k !== 'code')
-          .map(k => renderCkptField(_itemType, k, it[k]))
-          .filter(Boolean);
-      });
-      // TKT-202608-353 (REQ-202608-139): resolver el tipo real de cada código parcheado contra
-      //   el backlog vivo — un type:'patch' no trae el tipo del ítem target (solo code + campos),
-      //   mismo gap ya documentado arriba para renderCkptField. Mismo mecanismo que _originExists
-      //   (rama 'trazabilidad', arriba) — getItems()/getIncidents() por code, sin inferencia por
-      //   prefijo. Ampliado por decisión del founder (esta sesión) a todo tipo, no solo ITIL —
-      //   discrepancia con el AC original de Cael (acotado a INC/PRB/CHG), declarada en el
-      //   CHECKPOINT de este TKT. Un code:{ref_id,title} (patch sobre ítem de la misma tanda aún
-      //   sin código real) no resuelve — badge omitido para ese código, sin excepción (mismo
-      //   criterio de silencio que _originExists ante código no encontrado).
-      const _resolvedTypes = [...new Set(_patchItems.map(it => {
-        const _code = typeof it.code === 'string' ? it.code : null;
-        if (!_code) return null;
-        const _real = getItems().find(i => i.code === _code) || getIncidents().find(i => i.code === _code);
-        return _real ? _real.type : null;
-      }).filter(Boolean))];
-      // Transición ITIL: solo cuando el patch declara incident_status o status Y el tipo
-      //   resuelto es INC/PRB/CHG. avance = destino closed/done. escalacion = destino
-      //   escalated_to_prb/escalated_to_chg. Otros destinos (ej. detected, in_progress,
-      //   root_cause_confirmed, resolved) no son ni avance ni escalación en el sentido visual
-      //   de este AC — sin chip de transición para esos casos, mismo criterio de "no inventar
-      //   una lectura que el AC no pidió".
-      let _transition = null;
-      if (_resolvedTypes.some(t => t === 'INC' || t === 'PRB' || t === 'CHG')) {
-        const _dest = _patchItems.map(it => it.incident_status || it.status).find(Boolean);
-        if (_dest === 'closed' || _dest === 'done') _transition = { kind: 'avance', dest: _dest };
-        else if (_dest === 'escalated_to_prb' || _dest === 'escalated_to_chg') _transition = { kind: 'escalacion', dest: _dest };
-      }
-      const _isHighPriority = _patchItems.some(it => it.sla_priority === 'high');
-      return { title: _title, meta, category: 'modifica', patch: { codes: _codes, fields: [..._fieldSet] }, rendered: _renderedFields, types: _resolvedTypes, transition: _transition, highPriority: _isHighPriority };
-    }
-    const _typesSeen = [];
-    parsed.items.forEach(it => {
-      if (it && typeof it.type === 'string' && !_typesSeen.includes(it.type)) _typesSeen.push(it.type);
-    });
-    if (_typesSeen.length) {
-      // TKT-202608-340 (AC1 · AC4): mismo criterio — cada ítem de creación resuelve sus campos
-      //   reales contra el catálogo de su propio itemType. Campos ausentes del catálogo (AC4)
-      //   retornan null y se descartan sin romper el render del resto.
-      const _renderedFields = parsed.items.flatMap(it => {
-        if (!it || typeof it.type !== 'string') return [];
-        return Object.keys(it)
-          .filter(k => k !== 'type' && k !== 'code')
-          .map(k => renderCkptField(it.type, k, it[k]))
-          .filter(Boolean);
-      });
-      // TKT5 (REQ-202608-132, AC1): cantidad de ítems del bloque — mismo criterio de membresía que
-      //   _typesSeen (it && typeof it.type === 'string'), no parsed.items.length crudo, para no
-      //   contar entradas malformadas sin type que tampoco aportan a typesSummary/rendered.
-      const _itemCount = parsed.items.filter(it => it && typeof it.type === 'string').length;
-      // TKT-202608-353 (REQ-202608-139): 'types'/'highPriority' con el mismo shape que la rama
-      //   'modifica' (arriba) — aquí el tipo ya viene explícito en cada ítem (a diferencia de
-      //   'modifica', que debe resolverlo contra el backlog), así que se deriva directo de
-      //   _typesSeen sin lookup adicional.
-      const _isHighPriorityCrea = parsed.items.some(it => it && it.sla_priority === 'high');
-      return { title: _title, meta, category: 'crea', typesSummary: _typesSeen.join(' + '), count: _itemCount, rendered: _renderedFields, types: _typesSeen, highPriority: _isHighPriorityCrea };
-    }
-  }
-
-  // AC5 — items[] vacío (`[]`, ya cubierto por el guard `.length` de arriba) o ausente cae acá
-  // sin invocar renderCkptField — categoría 'generic', sin campo `rendered`, mismo comportamiento
-  // previo a este TKT. _renderIngestBlockPreview() no requiere `rendered` en esta rama.
-  return { title: _title, meta, category: 'generic' };
-}
-
-// TKT-202608-235 (REQ-202608-089, sprint PP-S-26 · design_intent: ingest_block_preview_mockup,
-//   aprobado por founder): renderiza .ingest-block-preview* — entregable visual de Nova
-//   (locus-modals-base.css mod:25). Contenido 100% dinámico, sin shell estático (BR-Execution §5
-//   — el contenedor entero se genera/destruye, no se togglea con classList.add/remove is-hidden,
-//   por decisión explícita de Nova declarada en su entregable). Monta sobre
-//   #ingest-block-preview-anchor — punto de anclaje estático que debe existir en el modal de
-//   ingesta junto a #ingest-block-count (index.html no está adjunto en esta sesión — ver bloqueo
-//   declarado en el CHECKPOINT de este TKT). Deriva los bloques de la misma fuente que
-//   _updateIngestBlockCount() (_splitCheckpointBlocks(ta.value)) — no duplica la detección.
-export function _renderIngestBlockPreview() {
-  const _anchor = document.getElementById('ingest-block-preview-anchor');
-  if (!_anchor) return; // anclaje no presente en este modal/vista — no-op, mismo criterio que _updateIngestBlockCount
-  const ta = document.getElementById('ingest-ta') /* CAEL-22 */;
-  const _blocks = ta ? _splitCheckpointBlocks(ta.value) : [];
-  // TKT-202608-336 (REQ-202608-132, AC1): idx preservado desde la posición original en _blocks —
-  //   no el índice post-.filter(Boolean). Mismo criterio que _resolveCheckpointBatch (Paso 1, más
-  //   abajo en este archivo — b.idx es la posición real en el array de bloques sin filtrar, no la
-  //   posición tras descartar los inválidos; divergían en cuanto el batch mezclaba bloques válidos
-  //   e inválidos — Bug 1, ya corregido del lado de locus-backlog-merge.js/_buildAttributedCardsBlock,
-  //   que filtra por meta.idx explícito en vez del índice de iteración de .map()). _splitCheckpointBlocks(ta.value)
-  //   es la misma fuente compartida entre este preview y _resolveCheckpointBatch (vía _processIngestBatch) —
-  //   mismo idx en ambos lados sin recálculo propio.
-  const _metas = _blocks
-    .map((blockText, idx) => {
-      const m = _ingestPreviewMeta(blockText);
-      return m ? { ...m, idx } : null;
-    })
-    .filter(Boolean);
-
-  if (!_metas.length) {
-    // AC "estado vacío" — 0 bloques válidos → ninguna fila, ningún contenedor fantasma.
-    _anchor.innerHTML = '';
-    return;
-  }
-
-  _anchor.innerHTML = `
-    <div class="ingest-block-preview">
-      <div class="ingest-block-preview-label">preview de bloques detectados</div>
-      <div class="ingest-block-preview-list">
-        ${_metas.map(m => {
-          const _short = m.title.length > 60 ? m.title.slice(0, 60) + '…' : m.title;
-          // TKT2 (ref_id CAEL-08111800-03, parent REQ ref_id CAEL-08111800-01): rama de
-          //   render del bloque de trazabilidad — entregable de Nova (locus-modals-base.css
-          //   mod:30, .ingest-block-preview-icon--trace / .ingest-block-preview-tag /
-          //   .ingest-block-preview-origin). El resto de bloques (category 'generic') sigue
-          //   el markup original sin cambio.
-          if (m.category === 'trazabilidad') {
-            const _t = m.trace;
-            return `
-              <div class="ingest-block-preview-item" data-block-idx="${esc(m.idx)}" tabindex="0">
-                <svg class="ti-svg ingest-block-preview-icon ingest-block-preview-icon--trace"><use href="#ti-git-commit"></use></svg>
-                <div class="ingest-block-preview-text">
-                  <div class="ingest-block-preview-title-row">
-                    <div class="ingest-block-preview-title" title="${esc(m.title)}">${esc(_short)}</div>
-                    <span class="ingest-block-preview-tag" aria-label="bloque de trazabilidad — sin cambios de backlog">Trazabilidad</span>
-                  </div>
-                  <div class="ingest-block-preview-meta">${esc(_t.doc)} ${esc(_t.section)}</div>
-                  <div class="ingest-block-preview-meta">docs_verified: ${esc(_t.docsVerified)}</div>
-                  ${_t.tensionsResolved ? `<div class="ingest-block-preview-meta">tensions_resolved: ${esc(_t.tensionsResolved)}</div>` : ''}
-                  ${_t.originExists ? `<a href="#" class="ingest-block-preview-origin" data-code="${esc(_t.code)}">${esc(_t.code)}</a>` : ''}
-                </div>
-              </div>`;
-          }
-          // TKT-202608-333 (REQ-202608-132, AC2/AC3): badge 'Crea'/'Modifica' — clase base +
-          //   modificador ya entregado por Nova (locus-modals-base.css mod:32,
-          //   .ingest-block-preview-tag--crea/--modifica). Mismo slot que el badge de
-          //   trazabilidad (title-row), mismo patrón visual, categoría mutuamente excluyente.
-          if (m.category === 'crea' || m.category === 'modifica') {
-            const _isCrea = m.category === 'crea';
-            // TKT-202608-340 (AC1/AC2): campos reales renderizados por renderCkptField (motor de
-            //   render, TKT-202608-339) — cada entrada de m.rendered ya trae {html, hint} listo,
-            //   se concatena tal cual. AC4: m.rendered nunca contiene entradas null (.filter(Boolean)
-            //   ya aplicado en _ingestPreviewMeta) — sin guard adicional necesario acá. AC5: bloques
-            //   sin items[] (category 'generic') no llegan a esta rama, sin campo `rendered` que leer.
-            const _renderedHtml = (m.rendered && m.rendered.length)
-              ? `<div class="ingest-block-preview-fields">${m.rendered.map(r => r.html).join('')}</div>`
-              : '';
-            // TKT-202608-353 (REQ-202608-139, design_intent: ingest_preview_itil_badge_transition):
-            //   badge de tipo — uno por cada type distinto en m.types (normalmente 1; un bloque
-            //   'crea' con ítems de tipos mezclados muestra un badge por tipo, sin límite —
-            //   el mockup aprobado no cubrió el caso multi-tipo explícitamente, se extiende el
-            //   mismo patrón visual en vez de forzar un único badge que ocultaría información).
-            //   Chip --high solo si algún ítem del bloque declara sla_priority:'high' (AC del
-            //   mockup: "su ausencia... ya comunica no urgente"). Fila de transición solo cuando
-            //   m.transition existe (exclusivo de bloques 'modifica' con INC/PRB/CHG resuelto,
-            //   ver _ingestPreviewMeta) — kind 'avance'/'escalacion' mapea 1:1 a las clases
-            //   entregadas por Nova. Flecha con aria-hidden (AC de accesibilidad del entregable
-            //   de Nova) — el texto plano de la transición ya es legible sin ella.
-            const _typeBadges = (m.types || []).map(t => `<span class="ingest-block-preview-type">${esc(t)}</span>`).join('');
-            const _highChip = m.highPriority ? `<span class="ingest-block-preview-tag ingest-block-preview-tag--high">High</span>` : '';
-            const _transitionHtml = m.transition
-              ? `<div class="ingest-block-preview-transition ingest-block-preview-transition--${m.transition.kind}"><span class="ingest-block-preview-transition-arrow" aria-hidden="true">→</span><span>${esc(m.transition.dest)}</span></div>`
-              : '';
-            return `
-              <div class="ingest-block-preview-item" data-block-idx="${esc(m.idx)}" tabindex="0">
-                <svg class="ti-svg ingest-block-preview-icon"><use href="#ti-file-text"></use></svg>
-                <div class="ingest-block-preview-text">
-                  <div class="ingest-block-preview-title-row">
-                    ${_typeBadges}
-                    <div class="ingest-block-preview-title" title="${esc(m.title)}">${esc(_short)}</div>
-                    <span class="ingest-block-preview-tag ingest-block-preview-tag--${_isCrea ? 'crea' : 'modifica'}">${_isCrea ? 'Crea' : 'Modifica'}</span>
-                    ${_highChip}
-                  </div>
-                  ${_transitionHtml}
-                  ${_isCrea
-                    ? `<div class="ingest-block-preview-meta">${esc(m.typesSummary)} · ${m.count === 1 ? '1 ítem' : `${esc(m.count)} ítems`}</div>`
-                    : `<div class="ingest-block-preview-meta">${esc(m.patch.codes.join(' + '))}</div>${m.patch.fields.length ? `<div class="ingest-block-preview-meta">${esc(m.patch.fields.join(', '))}</div>` : ''}`}
-                  ${m.meta ? `<div class="ingest-block-preview-meta">${esc(m.meta)}</div>` : ''}
-                  ${_renderedHtml}
-                </div>
-              </div>`;
-          }
-          return `
-            <div class="ingest-block-preview-item" data-block-idx="${esc(m.idx)}" tabindex="0">
-              <svg class="ti-svg ingest-block-preview-icon"><use href="#ti-file-text"></use></svg>
-              <div class="ingest-block-preview-text">
-                <div class="ingest-block-preview-title" title="${esc(m.title)}">${esc(_short)}</div>
-                ${m.meta ? `<div class="ingest-block-preview-meta">${esc(m.meta)}</div>` : ''}
-              </div>
-            </div>`;
-        }).join('')}
-      </div>
-    </div>`;
-
-  // TKT2 (AC "Link de origen"): binding post-render sobre los nodos recién creados — no hay
-  //   acumulación de listeners entre renders porque _anchor.innerHTML se reasigna completo en
-  //   cada llamada (los nodos anteriores, con sus listeners, se descartan junto con el HTML
-  //   anterior). Mismo criterio de pureza que el resto de esta función: sin listener delegado
-  //   persistente sobre _anchor, que sí acumularía si se registrara aquí en cada llamada.
-  _anchor.querySelectorAll('.ingest-block-preview-origin').forEach(_el => {
-    _el.addEventListener('click', (e) => {
-      e.preventDefault();
-      navigateToItem(_el.dataset.code);
-    });
-  });
-
-  // TKT-202608-336 (REQ-202608-132, AC1/AC2/AC4): click o Enter/Space en un ítem del preview
-  //   navega — scrollIntoView + foco — hasta la .mdiff-narrative-section con el mismo
-  //   data-block-idx en el panel DIFF (columna 2/3 del mismo shell #modal-split-shell,
-  //   #merge-diff-overlay — ver index.html; ambas columnas viven en el mismo documento, sin
-  //   iframe, querySelector directo alcanza ambos lados). La sección solo existe tras procesar
-  //   el batch (_buildAttributedCardsBlock(), locus-backlog-merge.js, gate _ckptMetas.length>=2)
-  //   — sin match (batch no procesado aún, o modo single sin agrupación por bloque) → no-op
-  //   silencioso, sin excepción (AC2). Guard: click dentro de .ingest-block-preview-origin no
-  //   dispara este handler — ese nodo ya tiene su propio listener de navegación (arriba) y no
-  //   debe competir con el scroll de bloque. Mismo criterio de pureza de listeners que el resto
-  //   de esta función — sin acumulación entre renders, _anchor.innerHTML se reasigna completo.
-  _anchor.querySelectorAll('.ingest-block-preview-item[data-block-idx]').forEach(_item => {
-    const _scrollToSection = () => {
-      const _section = document.querySelector(`.mdiff-narrative-section[data-block-idx="${_item.dataset.blockIdx}"]`);
-      if (!_section) return; // sin sección correspondiente todavía — no-op silencioso (AC2)
-      _section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      _section.focus({ preventScroll: true });
-    };
-    _item.addEventListener('click', (e) => {
-      if (e.target.closest('.ingest-block-preview-origin')) return; // navegación propia, sin competir
-      _scrollToSection();
-    });
-    _item.addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter' && e.key !== ' ') return;
-      if (e.target.closest('.ingest-block-preview-origin')) return;
-      e.preventDefault(); // evita scroll de página por Space
-      _scrollToSection();
-    });
-  });
-}
-
 // TKT (REQ CAEL-0720-22 · ref_id CAEL-0720-23): _routeParse(id, ta) — punto único de decisión
 //   single vs batch, compartido por handlePaste y handleInput. Si _splitCheckpointBlocks(ta.value)
 //   detecta 2+ bloques ``` completos, delega a _processIngestBatch() — mismo camino que ya
@@ -3635,10 +3198,19 @@ export async function _processIngestBatch(id) {
       if (m && Array.isArray(m.docUpdates) && m.docUpdates.length) _docUpdatesInMetas.push(...m.docUpdates.map(u => ({ update: u, title: m.titulo || '' })));
       if (m && Array.isArray(m.inlineFixes) && m.inlineFixes.length) _inlineFixesInMetas.push(...m.inlineFixes);
     });
-    if (metas.length && !skipped.length && !_docUpdatesInMetas.length && !_inlineFixesInMetas.length) {
-      showToast('success', `${metas.length} bloque${metas.length !== 1 ? 's' : ''} válido${metas.length !== 1 ? 's' : ''} — sin cambios de backlog, solo trazabilidad de archivo`);
-      return;
-    }
+    // Fix REQ-202608-XXX (TKT1, ref_id CAEL-08271900-02): el guard exigía metas.length &&
+    // !skipped.length && !_docUpdatesInMetas.length && !_inlineFixesInMetas.length para tomar
+    // el toast de éxito silencioso "sin cambios de backlog" y retornar antes de
+    // showMergeDiffPanel — mismo patrón de causa raíz que INC-202608-104/134/136/137: el guard
+    // decidía "nada que confirmar" sin dejar que el founder lo confirme él mismo. Estándar
+    // declarado por el founder: confirmación sin excepción — todo CHECKPOINT válido pasa por el
+    // panel DIFF, incluso cuando no hay items/doc_updates/inline_fix que aplicar. Fix: el guard
+    // completo (condición + toast + return) se retira — el batch cae al mismo fall-through de
+    // siempre (gate de proyecto activo → showMergeDiffPanel(tgItems=[], ..., {metas})), que ya
+    // soporta tgItems=[] desde T-202606-037 AC-1. locus-backlog-merge.js (TKT2 del mismo REQ)
+    // agrega el estado "sin cambios de backlog" + botones Confirmar/Descartar dentro del panel —
+    // este guard ya no decide el resultado, solo dejaba de bloquear el paso; ahora no existe.
+    // [PP] mod:217 · autor:Rune · 2026-08-27 UTC-6
     // Fix INC-202608-137 (hallazgo de sesión de soporte 2026-08-23, mismo patrón de causa raíz
     // que INC-202608-104/134/136 — el guard no verificaba contenido antes de tomar la rama de
     // salida): esta condición exigía skipped.length===0 para dejar pasar doc_updates/inline_fix,
@@ -3660,14 +3232,25 @@ export async function _processIngestBatch(id) {
     // inválidos en paralelo dentro del mismo batch. no_incluye: no cambia el mensaje de DocLog
     // de bloques inválidos, no agrega toast nuevo distinguiendo cuántos bloques fueron omitidos
     // — mismo criterio que INC-202608-104/136, fuera de scope de este fix puntual.
-    if (!metas.length || (!_docUpdatesInMetas.length && !_inlineFixesInMetas.length)) {
+    // Fix REQ-202608-XXX (TKT1, ref_id CAEL-08271900-02, AC3): este guard también tomaba el
+    // warning genérico 'Sin ítems para procesar' para el caso mixto (skipped.length>0 + bloque
+    // válido sin contenido) — mismo caso que el guard de arriba (línea ~3238) ya no bloquea desde
+    // este fix, solo alcanzable aquí porque !skipped.length de ese guard lo excluía. La condición
+    // se reduce a solo !metas.length (AC5, sin bloques válidos en absoluto — sigue bloqueando,
+    // sin cambio). _docUpdatesInMetas/_inlineFixesInMetas ya no participan de este bloqueo: con
+    // metas.length>0, el batch cae al fall-through hacia showMergeDiffPanel sin importar si trae
+    // contenido o no — el panel decide qué mostrar (sección de ítems/doc_updates si hay
+    // contenido, estado "sin cambios de backlog" si no, TKT2 del mismo REQ).
+    // [PP] mod:217 · autor:Rune · 2026-08-27 UTC-6
+    if (!metas.length) {
       showToast('warning', 'Sin ítems para procesar en este batch.');
       return;
     }
-    // Llegamos aquí si: metas.length>0 && (_docUpdatesInMetas.length>0 || _inlineFixesInMetas.
-    // length>0) — con o sin bloques inválidos en paralelo (skipped.length puede ser >0 desde
-    // INC-202608-137). Sigue el flujo normal más abajo (gate de proyecto activo →
-    // showMergeDiffPanel) en vez de aplicar y retornar aquí.
+    // Llegamos aquí siempre que metas.length>0 — con o sin contenido (doc_updates/inline_fix) y
+    // con o sin bloques inválidos en paralelo (skipped.length puede ser >0 desde INC-202608-137).
+    // Desde REQ-202608-XXX (TKT1), el toast de éxito silencioso para el caso sin contenido ya no
+    // existe — todo caso con al menos un bloque válido sigue el flujo normal más abajo (gate de
+    // proyecto activo → showMergeDiffPanel), que decide qué mostrar dentro del panel.
   }
 
   const activeProj = getActiveProject();
@@ -3991,227 +3574,12 @@ export function _tryIngestSprintProposalFromParsed(proposalObj) {
   return _sprintIdShort;
 }
 
-// [PP] TKT3 (REQ histórico — sin CHECKPOINT confirmado · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
-//   cross-CHECKPOINT): extraída de parsePasteStandalone sin cambio de comportamiento —
-//   procesa ckpt._rawItems de UN bloque CHECKPOINT ya parseado en tgItems/patchItems.
-//   Reutilizada por el flujo single (batch de tamaño 1, AC3 — sin regresión) y por el
-//   flujo batch (2+ bloques, AC1/AC2/AC4) para construir el preview de cada bloque con
-//   buildTGPreview. Sin efectos laterales propios más allá de _blogLog/showToast — mismos
-//   que ya existían inline. No persiste, no wiring a _applyCheckpointBatch (eso es TKT4).
-// TKT-202608-278 (REQ-202608-113, origen_disc DISC-202608-115): _buildTgItemsFromParsed
-// coaccionaba no_incluye a [] en silencio cuando el valor entrante no era ya un array JS —
-// __BR-Ecosystem §8 muestra no_incluye como valor escalar de ejemplo en el schema, sin
-// declarar que debe ser array, y module-contracts mod:104 ya fijaba array como forma canónica
-// de storage. Normaliza: array pasa igual · string con comas se divide y se trimea · string
-// sin comas se envuelve en array de 1 · cualquier otro tipo con contenido se coacciona a []
-// pero deja rastro en DocLog · vacío/ausente/null/undefined/"" se coacciona a [] sin ruido.
-function _normalizeNoIncluye(raw, itemCode) {
-  if (Array.isArray(raw)) return raw;
-  if (typeof raw === 'string') {
-    const _trimmed = raw.trim();
-    if (_trimmed === '') return [];
-    return _trimmed.split(',').map(s => s.trim()).filter(s => s !== '');
-  }
-  if (raw !== null && raw !== undefined && raw !== '') {
-    _blogLog(
-      'no_incluye-formato-invalido',
-      itemCode || '[pendiente-ID]',
-      `no_incluye con formato inválido (no string, no array) — coaccionado a []. Valor crudo: ${JSON.stringify(raw)}`,
-      'backlog'
-    );
-  }
-  return [];
-}
+// TKT-202608-476 (REQ-202608-198, TKT3): _normalizeNoIncluye()/_buildPlaneadaTgItem()/
+// _buildTgItemsFromParsed() movidas a locus-ingest-builder.js — ver import cross-módulo al
+// inicio de este archivo y el header de identidad (mod:219) para el detalle completo del
+// movimiento. Los 2 call sites de _buildTgItemsFromParsed() en este archivo (flujo single
+// ~L2356, flujo batch dentro de _parseBatchBlock ~L3817) no cambian.
 
-// TKT-A1 (REQ histórico — sin CHECKPOINT confirmado · origen_disc DISC-202608-148): builder común a las 2 ramas
-// Planeada de _buildTgItemsFromParsed — rol-no-autorizado-bloqueado y general. Antes de este
-// TKT, ambas ramas duplicaban ~30 campos casi idénticos; la rama rol-no-autorizado-bloqueado
-// no propagaba `priority` — se perdía silenciosamente (caía a 'medium' vía buildScrumItem) en
-// todo REQ bloqueado con rol no autorizado, bug confirmado contra código real y contra
-// _Locus-ckpt-render-ref.md (REQ.priority: obligatorio "siempre"). `status` y `role` quedan
-// como parámetros — son el único par de campos donde las 2 ramas divergen intencionalmente
-// (bloqueado fuerza 'pendiente' + rol resuelto; general usa el status/rol declarados). Sin
-// cambio de comportamiento para el resto de campos — mismo default/fallback que cada rama ya
-// tenía antes de este TKT. _buildItilItem() no se toca — familia de validación distinta
-// (incident_status vs status), sin precedente de builder unificado en este módulo.
-function _buildPlaneadaTgItem(it, ckpt, opts) {
-  const _sprintF = _resolveSprintFields(it);
-  return {
-    type:            it.type,
-    code:            it.code,
-    refId:           it.ref_id || null,
-    title:           it.title  || it.desc || '',
-    desc:            it.title  || it.desc || '',
-    priority:        it.priority || 'medium',
-    status:          opts.status,
-    _noStatus:       false,
-    effort:          it.effort != null ? (parseInt(it.effort) || null) : null,
-    area:            it.area   || '',
-    sprint:          _sprintF.sprintAlias,
-    sprint_id:       _sprintF.sprint_id,
-    sprint_name:     _sprintF.sprint_name,
-    ac:              Array.isArray(it.ac) ? it.ac : [],
-    role:            opts.role,
-    discardReason:   it.discard_reason || it.reason || '',
-    discardRef:      it.ref    || '',
-    blockedBy:       Array.isArray(it.blockedBy) ? it.blockedBy : [],
-    promovida_a:     it.promovida_a || null,
-    parentId:        it.parent      || null,
-    dependsOn:       Array.isArray(it.depends_on) ? it.depends_on : [],
-    triggeredBy:     it.triggered_by  || null,
-    origenDisc:      it.origen_disc   || null,
-    intencion:       it.intencion     || null,
-    no_incluye:      _normalizeNoIncluye(it.no_incluye, it.code),
-    contract_detail: it.contract_detail || null,
-    archivos:        Array.isArray(it.archivos) ? it.archivos : [],
-    kill_criteria:   it.kill_criteria || null,
-    nextRole:        it.next_role     || null,
-    designIntent:    it.design_intent || null,
-    blockedAt:       it.blocked_at    || null,
-    contract_update: it.contract_update || null,
-    draft:           ckpt.draft === true,
-    schema_version:  it.schema_version != null ? Number(it.schema_version) : 0
-  };
-}
-
-function _buildTgItemsFromParsed(ckpt, parsedJSON) {
-  const _validTypes    = _GEN2_TYPES;
-  const _validStatuses = _VALID_STATUSES_GATE;
-  const tgItems = [];
-  const patchItems = [];
-  const patchIntencionItems = []; // TKT1 (REQ-202607-061): canal propio, separado de patchItems
-  let itemError = null;
-  // TKT3 (REQ-202608-107): gate de REQ sin AC — portado desde el loop inline de parsePaste
-  // (_rsNoAc, retirado en TKT2 de este mismo REQ). BR-Ecosystem §5 + BR-Core §8 regla dura:
-  // "R sin AC rechazado por Locus". Acumula todos los REQ sin AC del batch antes de emitir el
-  // error consolidado — no interrumpe el loop en el primero, mismo criterio que _rsNoAc tenía.
-  const _reqsNoAc = [];
-
-  for (let i = 0; i < parsedJSON.length; i++) {
-    const it = parsedJSON[i];
-    if (it.type === 'patch') {
-      if (!it.code || _isPlaceholderCode(it.code)) {
-        _blogLog('patch-ignorado', it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (it.code || '(vacío)'), 'backlog');
-        showToast('warn', `Patch descartado: código placeholder no patcheable — ${it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
-      } else {
-        patchItems.push(it);
-      }
-      continue;
-    }
-    // TKT1 (REQ-202607-061): patch-intencion — mismo criterio que el path single (parseCheckpoint,
-    // ver comentario ahí). Canal propio (patchIntencionItems), separado de patchItems.
-    if (it.type === 'patch-intencion') {
-      if (!it.code || _isPlaceholderCode(it.code)) {
-        _blogLog('patch-ignorado', it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (it.code || '(vacío)'), 'backlog');
-        showToast('warn', `Patch descartado: código placeholder no patcheable — ${it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
-      } else if (!it.founder_confirmado || typeof it.founder_confirmado !== 'string' || it.founder_confirmado.trim() === '') {
-        _blogLog('patch-intencion-sin-confirmacion', it.code, 'patch-intencion sin founder_confirmado — no aplicado. Declarar confirmación explícita del founder.', 'backlog');
-        showToast('warn', `patch-intencion descartado: falta founder_confirmado — ${it.code}.`);
-      } else {
-        patchIntencionItems.push(it);
-      }
-      continue;
-    }
-    if (!it.type || !it.code) {
-      itemError = `Ítem [${i}]: faltan campos obligatorios (type, code).`;
-      break;
-    }
-    if (!_validTypes.includes(it.type)) {
-      itemError = `Ítem [${i}]: type inválido "${it.type}". Válidos: REQ · TKT · DISC · INC · PRB · CHG`;
-      break;
-    }
-    if (_ITIL_TYPES.has(it.type)) {
-      const _itilResult3 = _buildItilItem(it, ckpt.rol || '', (ckpt.proyecto || '').trim(), ckpt.titulo);
-      if (_itilResult3.error) {
-        itemError = _itilResult3.error;
-        break;
-      }
-      tgItems.push(_itilResult3.item);
-      continue;
-    }
-    if (!it.status) {
-      itemError = `Ítem [${i}]: faltan campos obligatorios (type, code, status).`;
-      break;
-    }
-    if (it.status && (it.status.trim().toLowerCase() === 'historico' || it.status.trim().toLowerCase() === 'histórico')) {
-      _blogLog(
-        'status-historico-emitido',
-        it.code || '[pendiente-ID]',
-        `Status "historico" no es emitible — asignado exclusivamente por Locus al cerrar sprint`,
-        'backlog'
-      );
-      continue;
-    }
-    const _normSt3 = _canonicalStatus(it.status, it.type);
-    if (!_normSt3 || (!_validStatuses.includes(_normSt3) && _normSt3 !== 'promoted' && _normSt3 !== 'bloqueado' && _normSt3 !== 'discovery')) {
-      itemError = `Ítem [${i}]: status inválido "${it.status}". Válidos: done · pendiente · descartado · en-revision${itemKind(it) === 'DISC' ? ' · discovery · promoted' : ''}`;
-      break;
-    }
-    const _sprintRaw3 = it.sprint ? it.sprint.trim().toLowerCase() : '';
-    const _sinSprint3 = _sprintRaw3 === '' || _sprintRaw3.endsWith('-q-backlog');
-    if (_normSt3 === 'en-revision' && _sinSprint3) {
-      itemError = `CHECKPOINT bloqueado: ${it.code || '[pendiente-ID]'} tiene status en-revision sin sprint asignado. Asignar sprint antes de continuar.`;
-      break;
-    }
-    if (itemKind(it) === 'REQ' && _normSt3 === 'bloqueado') {
-      const _resolvedRole = (it.role && it.role.trim()) ? it.role.trim() : (ckpt.rol || '');
-      const _authorizedRole = 'QA · Finn';
-      if (_resolvedRole !== _authorizedRole) {
-        _blogLog(
-          'rol-no-autorizado-bloqueado',
-          it.code || '[pendiente-ID]',
-          `Transición bloqueado en R ${it.code || '[pendiente-ID]'} rechazada: solo Finn puede mover un R a bloqueado. Rol resuelto: "${_resolvedRole}". Origen: ${ckpt.titulo || ''}`,
-          'backlog'
-        );
-        // TKT-A1 (DISC-202608-148): builder común — ver _buildPlaneadaTgItem(). Cierra el bug
-        // de `priority` ausente en esta rama (confirmado contra código real antes de este TKT).
-        tgItems.push(_buildPlaneadaTgItem(it, ckpt, { status: 'pendiente', role: _resolvedRole }));
-        _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
-        continue;
-      }
-    }
-    // TKT3 (REQ-202608-107): REQ sin AC — mismo punto relativo que ocupaba en el loop inline
-    // de parsePaste (después del bloque de REQ+bloqueado, antes de la construcción general del
-    // ítem). Un REQ bloqueado con rol no autorizado ya salió por `continue` en el bloque de
-    // arriba y nunca llega aquí — mismo orden que parsePaste tenía para ese caso combinado.
-    if (itemKind(it) === 'REQ' && (!Array.isArray(it.ac) || it.ac.length === 0)) {
-      _reqsNoAc.push(`R ${it.code || '[pendiente-ID]'} "${it.title || it.desc || ''}"`);
-      continue;
-    }
-    // TKT-A1 (DISC-202608-148): builder común — ver _buildPlaneadaTgItem().
-    tgItems.push(_buildPlaneadaTgItem(it, ckpt, { status: _normSt3, role: it.role || (ckpt.rol || '') }));
-    if (itemKind(it) === 'DISC' && _normSt3 === 'promoted' && !it.promovida_a) {
-      _blogLog('promoted-sin-ref', it.code || '[pendiente-ID]', 'DISC ' + (it.code || '[pendiente-ID]') + ' con status promoted sin campo promovida_a — trazabilidad incompleta', 'backlog');
-    }
-    // TKT1 (REQ-202608-107): alerta DocLog si T tiene contract_update: 'sí' y doc_updates
-    // ausente o vacío — mismo check que ya existía solo en parsePaste (~L2224-2240, path
-    // single). Consolida el gate para que el path batch dispare la misma alerta. AC-1..AC-5
-    // idénticos al comentario original.
-    if (itemKind(it) === 'TKT' && (it.contract_update || '').toLowerCase() === 'sí') {
-      const _hasDocUpdates3 = Array.isArray(ckpt._rawDocUpdates) && ckpt._rawDocUpdates.length > 0;
-      if (!_hasDocUpdates3) {
-        _blogLog(
-          'contract-update-sin-doc-update',
-          it.code || '[pendiente-ID]',
-          `contract_update declarado sí — DOC-UPDATE de module-contracts ausente en CHECKPOINT ${ckpt.titulo || ''}`,
-          'backlog'
-        );
-      }
-    }
-    _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
-  }
-
-  // TKT3 (REQ-202608-107): consolidar REQ sin AC — mismo criterio que el bloque equivalente
-  // de parsePaste (T-202606-030 fix AC-2+AC-3). Solo se emite si ningún otro itemError ya
-  // interrumpió el loop antes — un break-type error tiene precedencia.
-  if (!itemError && _reqsNoAc.length > 0) {
-    const _ckptOrigen3 = ckpt.titulo || '';
-    itemError = `CHECKPOINT bloqueado: ${_reqsNoAc.join(' · ')} no tiene${_reqsNoAc.length !== 1 ? 'n' : ''} AC de coherencia de conjunto. Origen: ${_ckptOrigen3}. Adjuntar CHECKPOINT corregido antes de continuar.`;
-    tgItems.length = 0;
-  }
-
-  return { tgItems, patchItems, patchIntencionItems, itemError };
-}
 
 // [PP] TKT3: valida y construye preview de UN bloque del batch — usado solo cuando
 //   _splitCheckpointBlocks detecta 2+ bloques. AC2: bloque inválido no aborta el resto.

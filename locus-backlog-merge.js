@@ -1,4 +1,4 @@
-// [PP] mod:112 · autor:Rune · 2026-08-27 UTC-6
+// [PP] mod:115 · autor:Rune · 2026-08-28 UTC-6
 // TKT ref_id CAEL-08271600-01 (origen_disc DISC-202608-225): _OP_ICON_MAP/_opIcon retirados
 // de este archivo — vivían exportados aquí a nivel de módulo desde mod:110 como solución
 // interina (el destino ideal, locus-ckpt-render.js, no estaba adjunto en esa sesión).
@@ -633,6 +633,52 @@ function _renderChipTones(tones) {
   ).join('');
 }
 
+// TKT-202608-464 (REQ-202608-191, TKT5): tabla de presentación, no de agregación — mapea las
+// tonalidades en español de chipTonesFromDiff (construidas para .diff-chip--*) a los sufijos en
+// inglés que Nova ya declaró en locus-backlog-item.css (.mdiff-composition-seg--*/
+// .mdiff-composition-legend-dot--*, TKT-202608-463). 'descarte' queda fuera a propósito —
+// Cael (gap resuelto tras devolución de Rune): la barra/leyenda de composición cubre solo
+// creado/avance/actualizado/retroceso; el banner de atención es la señal dedicada para
+// descartes sin confirmar, independiente de la barra.
+const _MDIFF_COMP_TONE_CSS = { creado: 'created', avance: 'advanced', actualizado: 'updated', retroceso: 'retroceso' };
+
+// Barra + leyenda de composición — consume chipTonesFromDiff (única fuente de conteo, AC de
+// coherencia del REQ) filtrando 'descarte', sin recalcular counts en paralelo.
+function _buildCompositionBar(headerChipTones) {
+  const tones = headerChipTones.filter(t => _MDIFF_COMP_TONE_CSS[t.tone]);
+  if (!tones.length) return '';
+  const total = tones.reduce((s, t) => s + t.count, 0);
+  if (!total) return '';
+  const segs = tones.map(t => {
+    const cls = _MDIFF_COMP_TONE_CSS[t.tone];
+    const pct = (t.count / total) * 100;
+    return `<span class="mdiff-composition-seg mdiff-composition-seg--${cls}" style="--mdiff-comp-w:${pct}%"></span>`;
+  }).join('');
+  const legend = tones.map(t => {
+    const cls = _MDIFF_COMP_TONE_CSS[t.tone];
+    return `<span class="mdiff-composition-legend-item" data-action="mdiff-composition-jump" data-comp-tone="${cls}">
+      <span class="mdiff-composition-legend-dot mdiff-composition-legend-dot--${cls}"></span>${esc(t.label)} (${t.count})
+    </span>`;
+  }).join('');
+  return `<div class="mdiff-composition-bar">${segs}</div><div class="mdiff-composition-legend">${legend}</div>`;
+}
+
+// Banner de atención — reusa exactamente el mismo shape de "pendiente de confirmación" que ya
+// gatea el botón Aplicar (diff.retroceso completo + diff.discarded sin .reason, ver
+// _mdiffUpdateConfirmBtn) — no introduce un segundo criterio de qué cuenta como "sin confirmar".
+function _mdiffAttentionCount(diff) {
+  return (diff.retroceso?.length || 0) + (diff.discarded || []).filter(i => !i.reason).length;
+}
+function _buildAttentionBanner(count) {
+  if (!count) return '';
+  const label = `${count} ítem${count === 1 ? '' : 's'} requiere${count === 1 ? '' : 'n'} confirmación antes de aplicar`;
+  return `<div class="mdiff-attention-banner" id="mdiff-attention-banner" aria-live="polite">
+    <svg class="ti-svg" aria-hidden="true"><use href="#ti-alert-triangle"></use></svg>
+    <span class="mdiff-attention-banner-text">${esc(label)}</span>
+    <button class="mdiff-attention-banner-btn" type="button" data-action="mdiff-attention-jump">Ir al ítem</button>
+  </div>`;
+}
+
 // T-202606-037: ckptMeta — campos narrativos del CHECKPOINT para sección superior del panel.
 // Objeto con campos: { resumen, aprendizaje, bloqueantes, decision, proximoPaso } — todos string, todos opcionales.
 // Si es null/undefined, todos los campos se tratan como cadena vacía (AC-5).
@@ -1080,10 +1126,18 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // chevron la gobierna [aria-expanded="true"] .chevron (locus-base.css, ya vigente) — sin CSS
   // nuevo de este TKT. parentHtml/desc/extraHtml pasan a vivir dentro del contenedor de detalle
   // — antes siempre visibles, ahora colapsados por default hasta el primer toggle.
-  const _card = (code, desc, accentClass, pillsHtml, extraHtml = '', parentOverride = undefined, sprintOverride = undefined, itemType = undefined) => {
+  // TKT-202608-464 (AC-2, fix Rune tras devolución de Finn — QA bloqueado): `compTone` es
+  // opcional y ancla la card al tono de la leyenda de composición (created/advanced/updated,
+  // ver _MDIFF_COMP_TONE_CSS) — solo los call sites cuyo tono participa de esa leyenda lo
+  // declaran; el resto (warn/muted/patch) queda sin atributo, sin cambio de comportamiento.
+  // tabindex="-1" habilita foco programático sin sumar la card al tab order natural — mismo
+  // patrón nativo que .mdiff-right-retro-cb/.mdiff-right-discard-select ya usan para el
+  // banner de atención (outline nativo del navegador, sin clase CSS nueva — CSS Purity).
+  const _card = (code, desc, accentClass, pillsHtml, extraHtml = '', parentOverride = undefined, sprintOverride = undefined, itemType = undefined, compTone = undefined) => {
     const typeCls   = _typeClass[itemType] || 'mdiff-type--unknown';
+    const compAttrs = compTone ? ` data-comp-tone="${esc(compTone)}" tabindex="-1"` : '';
     return `
-    <div class="mdiff-card mdiff-card--${accentClass} ${typeCls}">
+    <div class="mdiff-card mdiff-card--${accentClass} ${typeCls}"${compAttrs}>
       <div class="mdiff-card-accent"></div>
       <div class="mdiff-card-body">
         <div class="mdiff-card-top">
@@ -1271,7 +1325,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     return _card(i.code, i.desc, 'accent',
       pillHtml,
       _fieldChips(i.changes) + _depsHtml(i.dependsOn),
-      i.parent, i.sprint, i.type || _itemKindFn({ code: i.code })
+      i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }), 'updated'
     );
   };
 
@@ -1309,12 +1363,12 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // TKT2-diff-visual: created/advanced/updated se resumen como chips arriba —
   // sin header de sección propio, ya que son estados rutinarios sin acción pendiente.
   if (diff.created.length) {
-    const rows = _sortByType(diff.created).map(i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'), _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))).join('');
+    const rows = _sortByType(diff.created).map(i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'), _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }), 'created')).join('');
     summaryChipsHtml += `<span class="mdiff-info-chip mdiff-info-chip--success">Creados <span class="mdiff-sec-count">${diff.created.length}</span></span>`;
     quickRowsHtml += `<div class="mdiff-section-body">${rows}</div>`;
   }
   if (diff.advanced.length) {
-    const rows = _sortByType(diff.advanced).map(i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), _depsHtml(i.dependsOn), undefined, i.sprint, i.type || _itemKindFn({ code: i.code }))).join('');
+    const rows = _sortByType(diff.advanced).map(i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), _depsHtml(i.dependsOn), undefined, i.sprint, i.type || _itemKindFn({ code: i.code }), 'advanced')).join('');
     summaryChipsHtml += `<span class="mdiff-info-chip mdiff-info-chip--neutral">Avances <span class="mdiff-sec-count">${diff.advanced.length}</span></span>`;
     quickRowsHtml += `<div class="mdiff-section-body">${rows}</div>`;
   }
@@ -1345,7 +1399,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       i.code, i.desc, 'green',
       _pill('created', '＋ creado') + _pill('advanced', 'pendiente → done'),
       `<div class="mdiff-change-hint">Creado y cerrado en esta sesión</div>` + _depsHtml(i.dependsOn),
-      i.parent, i.sprint, i.type || _itemKindFn({ code: i.code })
+      i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }), 'created'
     )).join('');
     sectionsAutoHtml += _section('created-and-closed', 'green', `Creados y cerrados <span class="mdiff-sec-count">${diff.createdAndClosed.length}</span>`, rows);
   }
@@ -1425,13 +1479,13 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       .filter(i => i && i.idx === metaIdx)
       .map(builder);
     return [
-      ..._pick(diff.created, i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'), _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))),
-      ..._pick(diff.advanced, i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), _depsHtml(i.dependsOn), undefined, i.sprint, i.type || _itemKindFn({ code: i.code }))),
+      ..._pick(diff.created, i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'), _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }), 'created')),
+      ..._pick(diff.advanced, i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), _depsHtml(i.dependsOn), undefined, i.sprint, i.type || _itemKindFn({ code: i.code }), 'advanced')),
       // INC-202608-084: _updatedRowHtml es fuente única con el render principal — este path
       // es el de re-render por bloque (batch de CHECKPOINTs), no puede divergir en qué pill
       // muestra.
       ..._pick(diff.updated, _updatedRowHtml),
-      ..._pick(diff.createdAndClosed, i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado') + _pill('advanced', 'pendiente → done'), `<div class="mdiff-change-hint">Creado y cerrado en esta sesión</div>` + _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))),
+      ..._pick(diff.createdAndClosed, i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado') + _pill('advanced', 'pendiente → done'), `<div class="mdiff-change-hint">Creado y cerrado en esta sesión</div>` + _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }), 'created')),
       ..._pick(diff.retroceso, (i) => _retrocedoRow(i, i.idx)),
       ..._pick(diff.discarded, (i) => _discardRow(i, i.idx)),
       // Bug 2 (Finn, Momento 1): diff.ignored también lleva idx (locus-backlog-item.js
@@ -2025,6 +2079,10 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     const _headerChipTones = chipTonesFromDiff(diff);
     const _headerChipsHtml = _headerChipTones.length
       ? `<div class="mdiff-header-chips">${_renderChipTones(_headerChipTones)}</div>` : '';
+    // TKT-202608-464 (REQ-202608-191): barra de composición + banner de atención, mismo
+    // _headerChipTones ya calculado arriba — sin segunda llamada a chipTonesFromDiff.
+    const _compositionHtml = _buildCompositionBar(_headerChipTones);
+    const _attentionHtml   = _buildAttentionBanner(_mdiffAttentionCount(diff));
     // TKT3 (REQ CAEL-0718-01 · AC3): con 2+ entradas en ckptMeta.metas, el step-label pasa de
     // "Guardar sesión" a "Revisión de batch · N CHECKPOINTs". Con 1 entrada o sin metas —
     // comportamiento idéntico al actual (AC2/AC3 edge case).
@@ -2049,7 +2107,9 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
           ${_identityStatusHtml}
         </div>
         <div class="mdiff-header-total">${totalLabel}</div>
-      </div>`;
+      </div>
+      ${_compositionHtml}
+      ${_attentionHtml}`;
   }
 
   // Body: 6 zonas cognitivas — TKT-202607-205 (REQ-202607-079)
@@ -2114,7 +2174,31 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
          </div>`
       : '';
 
-    body.innerHTML = _resultadoNarrativaHtml + _cambiosBacklogHtml + _impactoHtml;
+    // Fix REQ-202608-XXX (TKT2, ref_id CAEL-08271900-03, depends_on TKT1/CAEL-08271900-02):
+    // desde TKT1 (locus-session-parse.js), _processIngestBatch() ya no intercepta con un toast
+    // de éxito silencioso el caso de batch válido sin items/doc_updates/inline_fix — cae al
+    // fall-through normal hacia showMergeDiffPanel, que ya abría para tgItems=[] desde
+    // T-202606-037 AC-1 (línea ~640). Pero sin finn_release ni narrativa poblada, las tres zonas
+    // (_resultadoNarrativaHtml, _cambiosBacklogHtml, _impactoHtml) podían quedar vacías — el
+    // panel abría con body vacío, sin comunicar al founder qué está confirmando. Fix: cuando las
+    // tres zonas están vacías, se renderiza el estado "sin cambios de backlog" en su lugar —
+    // mismo texto que usaba el toast retirado en TKT1, mismo criterio de conteo (metas.length,
+    // o 1 para el flujo single sin _ckptMetas). Los botones Cancelar/Guardar sesión del footer
+    // (líneas ~2518-2519) no cambian — ya operan genéricamente sin gate de "hay ítems": Cancelar
+    // cierra sin invocar onApply, Guardar sesión invoca onApply(_horaRaw) incondicionalmente
+    // (línea ~2744) — el mecanismo de confirmación ya existía, solo faltaba el mensaje visual.
+    // [PP] mod:113 · autor:Rune · 2026-08-27 UTC-6
+    const _sinCambiosBacklogHtml = (!_resultadoNarrativaHtml && !_cambiosBacklogHtml && !_impactoHtml)
+      ? (() => {
+          const _n = (_ckptMetas && _ckptMetas.length) ? _ckptMetas.length : 1;
+          const _txt = `${_n} bloque${_n !== 1 ? 's' : ''} válido${_n !== 1 ? 's' : ''} — sin cambios de backlog, solo trazabilidad de archivo`;
+          return `<div class="mdiff-zone mdiff-zone--sin-cambios" data-mdiff-zone="sin-cambios">
+                    <div class="mdiff-change-hint">${esc(_txt)}</div>
+                  </div>`;
+        })()
+      : '';
+
+    body.innerHTML = _resultadoNarrativaHtml + _cambiosBacklogHtml + _impactoHtml + _sinCambiosBacklogHtml;
     _renderTriggeredBySuggestion();
     _renderDraftPendingBanner();
   }
@@ -2366,6 +2450,19 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     const blocked = retroPendingItems.length > 0 || discardPendingItems.length > 0;
     applyBtn.disabled = blocked;
     applyBtn.classList.toggle('mdiff-apply-blocked', blocked);
+
+    // TKT-202608-464: banner de atención sincronizado con el mismo conteo que ya gatea
+    // applyBtn — no un segundo criterio de "sin confirmar".
+    const _existingBanner = document.getElementById('mdiff-attention-banner');
+    const _newBannerHtml = _buildAttentionBanner(retroPendingItems.length + discardPendingItems.length);
+    if (_existingBanner && !_newBannerHtml) {
+      _existingBanner.remove();
+    } else if (_existingBanner && _newBannerHtml) {
+      _existingBanner.outerHTML = _newBannerHtml;
+    } else if (!_existingBanner && _newBannerHtml) {
+      const _compBar = overlay.querySelector('.mdiff-composition-legend') || overlay.querySelector('.mdiff-header-inner');
+      if (_compBar) _compBar.insertAdjacentHTML('afterend', _newBannerHtml);
+    }
 
     // Construir contenido de columna derecha
     if (pendingList) {
@@ -2784,6 +2881,40 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       if (_mdiffUnresolvedSelect) _mdiffUnresolvedSelect(btn);
     } else if (action === 'mdiff-unresolved-remove') {
       if (_mdiffUnresolvedRemove) _mdiffUnresolvedRemove(btn);
+    } else if (action === 'mdiff-attention-jump') {
+      // Banner de atención — exclusivo de retroceso/discard sin confirmar (_mdiffAttentionCount).
+      // #mdiff-pending-list es el target correcto: ahí viven las filas de confirmación reales.
+      const target = document.getElementById('mdiff-pending-list');
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const firstUnconfirmed = target.querySelector('.mdiff-right-retro-row:not(.is-confirmed) .mdiff-right-retro-cb, .mdiff-right-discard-select');
+        if (firstUnconfirmed) firstUnconfirmed.focus();
+      }
+    } else if (action === 'mdiff-composition-jump') {
+      // TKT-202608-464 (AC-2, fix tras devolución de Finn — QA bloqueado): el destino ya no es
+      // fijo a #mdiff-pending-list para los cuatro tonos de la leyenda — ese contenedor solo
+      // tiene filas de confirmación de retroceso/discard, nunca cards created/advanced/updated
+      // (bug reproducido: click en "created (N)" sin retroceso/discard pendiente saltaba a un
+      // bloque sin relación y sin foco aplicado). Ahora se bifurca por btn.dataset.compTone.
+      const tone = btn.dataset.compTone;
+      if (tone === 'retroceso') {
+        // Retroceso sí vive en #mdiff-pending-list — mismo target que el banner de atención.
+        const target = document.getElementById('mdiff-pending-list');
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          const firstUnconfirmed = target.querySelector('.mdiff-right-retro-row:not(.is-confirmed) .mdiff-right-retro-cb');
+          if (firstUnconfirmed) firstUnconfirmed.focus();
+        }
+      } else if (tone) {
+        // created/advanced/updated — ancla a la primera .mdiff-card con ese data-comp-tone en
+        // el listado principal (ver _card()/quickRowsHtml/_itemsForBlockIdx). tabindex="-1"
+        // nativo permite el foco programático sin agregar la card al tab order.
+        const firstCard = overlay.querySelector(`.mdiff-card[data-comp-tone="${tone}"]`);
+        if (firstCard) {
+          firstCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          firstCard.focus();
+        }
+      }
     }
   });
 

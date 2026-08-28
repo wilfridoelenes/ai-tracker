@@ -1,4 +1,7 @@
-// [PP] mod:71 · autor:Rune · 2026-08-20 14:35 UTC-6
+// [PP] mod:72 · autor:Rune · 2026-08-27 09:20 UTC-6
+// TKT-202608-474 (REQ-202608-198, AC4): import de _renderIngestBlockPreview/_updateIngestBlockCount
+// actualizado a locus-ingest-preview.js (nuevo módulo) — mismos nombres, mismas firmas, sin cambio
+// de comportamiento en _openIngestModal(). Ver bloque de imports más abajo.
 // TKT1 (ref_id CAEL-08201430-02, REQ ref_id CAEL-08201430-01): retirado el wiring de
 // #ingest-process-batch-btn ("Procesar batch") — ver bloque de detalle más abajo, en el punto
 // donde vivía el listener (dentro de _openIngestModal). Sin cambio de firma pública, sin
@@ -135,7 +138,11 @@ import { downloadReport } from './locus-reports.js';
 
 import { openQuickCapture, dismissInterrupted } from './locus-sesiones-capture.js'; // T-202606-089 AC-3 · dismissInterrupted: TKT-202608-413
 
-import { STATUS_LABELS, handlePaste, handleInput, _processIngestBatch, _renderIngestBlockPreview, _updateIngestBlockCount } from './locus-session-parse.js';
+import { STATUS_LABELS, handlePaste, handleInput, _processIngestBatch } from './locus-session-parse.js';
+// TKT-202608-474 (REQ-202608-198): _renderIngestBlockPreview/_updateIngestBlockCount migraron a
+// locus-ingest-preview.js — mismos nombres, mismas firmas, sin cambio de comportamiento en
+// _openIngestModal() (llamadas sin modificar, ver más abajo en este archivo).
+import { _renderIngestBlockPreview, _updateIngestBlockCount } from './locus-ingest-preview.js';
 // T-202606-058: registry extraído a locus-sesiones-registry.js (módulo sin dependencias).
 // locus-sprint-project importa _registerSesSPCallback desde registry — no desde aquí.
 import { _sesSPCallbacks } from './locus-sesiones-registry.js';
