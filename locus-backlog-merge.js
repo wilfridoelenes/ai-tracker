@@ -1,5 +1,8 @@
-// [PP] mod:116 · autor:Rune · 2026-08-28 UTC-6
-// TKT ref_id CAEL-08280100-01 (REQ-202608-199 · TKT1 — parent shell _mdiffToggleZone/
+// [PP] mod:117 · autor:Rune · 2026-08-28 UTC-6
+// DISC-202608-234: comentario stale de _rowCardShell (L1194-1199 original) corregido —
+// referenciaba "DISC pendiente de grooming" ya promovida a REQ-202608-199 (done). Sin
+// cambio de comportamiento — corrección de comentario únicamente.
+// TKT-202608-478 (REQ-202608-199 · TKT1 — parent shell _mdiffToggleZone/
 // _mdiffToggleCard): agregado helper de módulo _mdiffToggleDrawer(btn, cardSel, detailSel,
 // useHiddenAttr) — único mecanismo de expand/collapse; _mdiffToggleZone y _mdiffToggleCard
 // (asignadas dentro de showMergeDiffPanel, sin cambio de ciclo de vida ni de dónde se
@@ -546,7 +549,7 @@ let _mdiffToggleZone = null;
 // `hidden` en el contenedor de detalle en vez de classList `is-hidden` (AC2 del TKT).
 let _mdiffToggleCard = null;
 
-// TKT ref_id CAEL-08280100-01 (REQ-202608-199, TKT1 · helper genérico de toggle): único
+// TKT-202608-478 (REQ-202608-199, TKT1 · helper genérico de toggle): único
 // mecanismo de expand/collapse consumido por _mdiffToggleZone y _mdiffToggleCard — ambas
 // implementaciones ya compartían el mismo patrón de delegación por closest()/querySelector(),
 // solo diferían en el selector de card/detail y en el mecanismo de ocultamiento (classList
@@ -1195,8 +1198,11 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // _discardRow — ambas producían el mismo wrapper (card+accent+body+top+desc) con solo 3
   // valores distintos (clases modificadoras, data-attr, contenido variable del top). No
   // incluye _card (toggle nativo) ni _buildPatchCard (mecanismo .mdiff-zone-* propio) — ver
-  // no_incluye del TKT: ambos dependen de que se resuelva primero el mecanismo único de
-  // toggle (DISC pendiente de grooming) antes de sumarse a este shell.
+  // no_incluye del TKT: ambos dependían de que se resolviera primero el mecanismo único de
+  // toggle. Esa DISC fue promovida a REQ-202608-199 (TKT-202608-478/479, done, mod:116) —
+  // _card/_buildPatchCard ya consumen el toggle unificado (_mdiffToggleDrawer), pero siguen
+  // fuera de este shell: unificar su markup con _rowCardShell sigue siendo trabajo separado,
+  // sin ítem de backlog abierto para ello a la fecha de este comentario (DISC-202608-234).
   const _rowCardShell = (modifierClasses, dataAttr, typeCls, topExtraHtml, desc) => `
     <div class="mdiff-card ${modifierClasses} ${typeCls}" ${dataAttr}>
       <div class="mdiff-card-accent"></div>
@@ -2271,7 +2277,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // (.mdiff-zone-chevron), la card en sí no es clickeable (mdiff-zone-card: cursor:default).
   // Delegación única a nivel de #merge-diff-overlay (ver listener de click más abajo) —
   // cubre N cards sin re-registro. Enter/Space nativos del <button> — sin handler aparte.
-  // TKT ref_id CAEL-08280100-01 (REQ-202608-199, TKT1): delega en _mdiffToggleDrawer —
+  // TKT-202608-478 (REQ-202608-199, TKT1): delega en _mdiffToggleDrawer —
   // mismo par selector/mecanismo que antes de la unificación (classList 'is-hidden').
   _mdiffToggleZone = function(btn) {
     _mdiffToggleDrawer(btn, '.mdiff-zone-card', '.mdiff-zone-detail', false);
@@ -2281,7 +2287,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // patrón de delegación por closest() que _mdiffToggleZone (independencia entre cards, sin
   // estado compartido), pero sobre `.mdiff-card`/`.mdiff-card-detail` y usando el atributo
   // nativo `hidden` en vez de classList `is-hidden` (AC2). Enter/Space nativos del <button>.
-  // TKT ref_id CAEL-08280100-01 (REQ-202608-199, TKT1): delega en _mdiffToggleDrawer —
+  // TKT-202608-478 (REQ-202608-199, TKT1): delega en _mdiffToggleDrawer —
   // mismo par selector/mecanismo que antes de la unificación (atributo nativo hidden).
   _mdiffToggleCard = function(btn) {
     _mdiffToggleDrawer(btn, '.mdiff-card', '.mdiff-card-detail', true);

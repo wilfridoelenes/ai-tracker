@@ -1,4 +1,4 @@
-// [PP] mod:1 · autor:Rune · 2026-08-27 09:20 UTC-6
+// [PP] mod:2 · autor:Rune · 2026-08-28 20:55 UTC-6
 // TKT-202608-474 (REQ-202608-198, parent: Partir parsePaste()/_processIngestBatch() en
 // unidades de responsabilidad única — grupo 1/4, render): módulo nuevo — extrae el render de
 // preview de ingesta y sus helpers de validación desde locus-session-parse.js (módulo
@@ -174,30 +174,23 @@ function _ingestPreviewMeta(blockText) {
   if (Array.isArray(parsed.items) && parsed.items.length) {
     const _patchItems = parsed.items.filter(it => it && (it.type === 'patch' || it.type === 'patch-intencion'));
     if (_patchItems.length) {
-      const _codes = [...new Set(_patchItems.map(it => {
-        if (it.code && typeof it.code === 'object') return it.code.ref_id || '?';
-        return typeof it.code === 'string' && it.code ? it.code : '?';
-      }))];
-      const _fieldSet = new Set();
-      _patchItems.forEach(it => {
-        Object.keys(it).forEach(k => { if (k !== 'type' && k !== 'code') _fieldSet.add(k); });
-      });
-      // TKT-202608-340 (AC2 · AC4): campo real por-ítem renderizado vía renderCkptField, itemType
-      //   resuelto por el `type` del ítem target — para type:'patch'/'patch-intencion' el itemType
-      //   real (REQ/TKT/...) no está disponible en el bloque (patch solo trae `code`), así que el
-      //   catálogo consulta directamente bajo la clave 'patch'/'patch-intencion', que cubre los
-      //   campos comunes de la instrucción misma (type/code/founder_confirmado). Campos target
-      //   heredados (ver _Locus-ckpt-render-ref.md, fila `patch | cualquier campo patcheable...`)
-      //   no se resuelven aquí — requieren conocer el itemType real del código parcheado, fuera
-      //   de scope de este TKT (no_incluye: cambios al motor de render mismo). renderCkptField
-      //   retorna null silenciosamente ante campo no mapeado (AC4) — .filter(Boolean) descarta
-      //   sin lanzar excepción, el resto de campos se renderiza igual.
-      const _renderedFields = _patchItems.flatMap(it => {
+      // TKT-202608-484 (REQ-202608-203, origen DISC-202608-233): un grupo por código real —
+      //   antes codes/fields/rendered se aplanaban en tres colecciones globales sin decir qué
+      //   campo pertenece a qué código; con 2+ type:'patch' sobre códigos distintos en el mismo
+      //   bloque, eso mezclaba campos de ítems distintos bajo una sola etiqueta compartida. Cada
+      //   _patchItems[i] resuelve su propio code (mismo criterio ya vigente: it.code.ref_id si
+      //   {ref_id,title}, it.code string si presente, '?' si ninguno) y sus propios campos
+      //   (mismo filtro type/code excluidos), renderizados vía renderCkptField con el mismo
+      //   itemType 'patch'/'patch-intencion' — sin cambio de mecanismo de render, solo de
+      //   agrupación. Un único código produce exactamente 1 grupo con el mismo contenido y
+      //   mismo orden que el shape plano anterior (AC "Regresión — código único").
+      const _groups = _patchItems.map(it => {
+        const _code = (it.code && typeof it.code === 'object') ? (it.code.ref_id || '?')
+          : (typeof it.code === 'string' && it.code ? it.code : '?');
         const _itemType = it.type === 'patch-intencion' ? 'patch-intencion' : 'patch';
-        return Object.keys(it)
-          .filter(k => k !== 'type' && k !== 'code')
-          .map(k => renderCkptField(_itemType, k, it[k]))
-          .filter(Boolean);
+        const _fields = Object.keys(it).filter(k => k !== 'type' && k !== 'code');
+        const _rendered = _fields.map(k => renderCkptField(_itemType, k, it[k])).filter(Boolean);
+        return { code: _code, fields: _fields, rendered: _rendered };
       });
       // TKT-202608-353 (REQ-202608-139): resolver el tipo real de cada código parcheado contra
       //   el backlog vivo — un type:'patch' no trae el tipo del ítem target (solo code + campos),
@@ -227,7 +220,7 @@ function _ingestPreviewMeta(blockText) {
         else if (_dest === 'escalated_to_prb' || _dest === 'escalated_to_chg') _transition = { kind: 'escalacion', dest: _dest };
       }
       const _isHighPriority = _patchItems.some(it => it.sla_priority === 'high');
-      return { title: _title, meta, category: 'modifica', patch: { codes: _codes, fields: [..._fieldSet] }, rendered: _renderedFields, types: _resolvedTypes, transition: _transition, highPriority: _isHighPriority };
+      return { title: _title, meta, category: 'modifica', patch: { groups: _groups }, types: _resolvedTypes, transition: _transition, highPriority: _isHighPriority };
     }
     const _typesSeen = [];
     parsed.items.forEach(it => {
@@ -337,9 +330,21 @@ export function _renderIngestBlockPreview() {
             //   se concatena tal cual. AC4: m.rendered nunca contiene entradas null (.filter(Boolean)
             //   ya aplicado en _ingestPreviewMeta) — sin guard adicional necesario acá. AC5: bloques
             //   sin items[] (category 'generic') no llegan a esta rama, sin campo `rendered` que leer.
+            //   Solo aplica a 'crea' — 'modifica' usa m.patch.groups (TKT-202608-484), cada grupo
+            //   con su propio rendered, sin bloque global compartido entre códigos.
             const _renderedHtml = (m.rendered && m.rendered.length)
               ? `<div class="ingest-block-preview-fields">${m.rendered.map(r => r.html).join('')}</div>`
               : '';
+            // TKT-202608-484 (REQ-202608-203): un .ingest-block-preview-meta por grupo (código +
+            //   sus propios campos), seguido de su propio bloque de campos renderizados — en vez
+            //   de una línea global de codes.join(' + ') + una línea global de fields.join(', ')
+            //   + un único bloque de rendered al final que mezclaba campos de códigos distintos.
+            //   Reutiliza .ingest-block-preview-meta sin clase nueva (verificado contra
+            //   _Locus-css-ref antes de Fase 2 — sin convención de agrupación por código existente).
+            const _patchGroupsHtml = _isCrea ? '' : (m.patch.groups || []).map(g => `
+                    <div class="ingest-block-preview-meta">${esc(g.code)}</div>
+                    ${g.fields.length ? `<div class="ingest-block-preview-meta">${esc(g.fields.join(', '))}</div>` : ''}
+                    ${g.rendered.length ? `<div class="ingest-block-preview-fields">${g.rendered.map(r => r.html).join('')}</div>` : ''}`).join('');
             // TKT-202608-353 (REQ-202608-139, design_intent: ingest_preview_itil_badge_transition):
             //   badge de tipo — uno por cada type distinto en m.types (normalmente 1; un bloque
             //   'crea' con ítems de tipos mezclados muestra un badge por tipo, sin límite —
@@ -369,9 +374,9 @@ export function _renderIngestBlockPreview() {
                   ${_transitionHtml}
                   ${_isCrea
                     ? `<div class="ingest-block-preview-meta">${esc(m.typesSummary)} · ${m.count === 1 ? '1 ítem' : `${esc(m.count)} ítems`}</div>`
-                    : `<div class="ingest-block-preview-meta">${esc(m.patch.codes.join(' + '))}</div>${m.patch.fields.length ? `<div class="ingest-block-preview-meta">${esc(m.patch.fields.join(', '))}</div>` : ''}`}
+                    : _patchGroupsHtml}
                   ${m.meta ? `<div class="ingest-block-preview-meta">${esc(m.meta)}</div>` : ''}
-                  ${_renderedHtml}
+                  ${_isCrea ? _renderedHtml : ''}
                 </div>
               </div>`;
           }

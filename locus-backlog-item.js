@@ -1,4 +1,19 @@
-// [PP] mod:179 · autor:Rune · 2026-08-27 10:40 UTC-6
+// [PP] mod:180 · autor:Rune · 2026-08-27 11:20 UTC-6
+// TKT-202608-480/481 (REQ-202608-200): dos gaps distintos de persistencia de campos declarados
+// por Cael en TKTs nuevos del mismo bloque de CHECKPOINT — devueltos por DISC-202608-227.
+// (1) depends_on con {ref_id,title}: _REF_OBJ_LISTS.forEach (mergeBacklogFromTG) operaba sobre
+// item['dependsOn'] — pero en ese momento el ítem entrante todavía trae `depends_on` en
+// snake_case (la renombración depends_on→dependsOn corre más abajo, línea ~2722). Mismo bug de
+// orden que INC-202607-004 ya corrigió para parent→parentId, pero no se generalizó a los otros
+// tres campos de referencia (parentId/triggeredBy/origenDisc comparten el mismo riesgo si el
+// tgItem entrante aún no fue renombrado en ese punto). Fix: _REF_OBJ_FIELDS/_REF_OBJ_LISTS ahora
+// resuelven contra el nombre snake_case original cuando el camelCase todavía no existe, vía un
+// mapa de alias explícito — robusto sin importar el orden real de normalización previa.
+// (2) archivos: _buildCommonItemFields() nunca copiaba item.archivos al objeto persistido — a
+// diferencia de no_incluye/intencion/kill_criteria/etc. (los 8 campos que TKT1 REQ CAEL-0721-01
+// ya cerró), archivos quedaba fuera de ese barrido y todo TKT nuevo con `archivos` declarado en
+// el CHECKPOINT lo perdía silenciosamente al persistir. No es el mismo bug que (1) — no hay
+// resolución de ref_id involucrada, es un campo ausente del constructor.
 // TKT-202608-471 (REQ-202608-196, fix post-QA de Finn — AC-5 no cubierto en la entrega mod:178):
 // el gate 'req-done-tkt-hijo-pendiente' solo dispara si find() encuentra un hijo TKT "pendiente"
 // (no done, no descartado) — si el REQ no tiene hijos declarados, o si todos sus hijos están en
@@ -2407,7 +2422,13 @@ export async function _assignPendingIds(tgItems, seedSlugMap, unresolvedRefs) {
       if (!Array.isArray(arr) || !arr.length) return;
       let listChanged = false;
       const resolved = arr.map(val => {
-        if (!val) return val;
+        // TKT-202608-480 (REQ-202608-200, AC error): un null que llega hasta acá ya fue logueado
+        // en DocLog en el paso previo (ref-id-sin-declarante, _normalizeRefIdValue) — antes se
+        // devolvía tal cual sin marcar listChanged, así que si ningún otro elemento de la lista
+        // disparaba una transformación real, patch[field] nunca se asignaba y el null crudo
+        // sobrevivía en el array persistido. Ahora se marca listChanged siempre que haya un
+        // falsy — el filter de más abajo lo descarta en el mismo movimiento.
+        if (!val) { listChanged = true; return null; }
         if (_isPlaceholderCode(val)) {
           // Placeholder: intentar resolver via slugMap
           const mapped = slugMap.get(val);
@@ -2502,6 +2523,18 @@ export function _buildCommonItemFields(item, ctx) {
     // no_incluye ya se trata como array en el resto del codebase (ver _toItemColumns) —
     // coalesce a [] en vez de null para no romper esa expectativa de tipo.
     no_incluye: Array.isArray(item.no_incluye) ? item.no_incluye : [],
+    // TKT-202608-481 (REQ-202608-200, origen DISC-202608-228): `archivos` nunca estaba en este
+    // constructor — quedaba fuera del barrido de TKT1 REQ CAEL-0721-01 (no_incluye/intencion/
+    // contract_detail/kill_criteria/nextRole/designIntent/blockedAt/contract_update). Todo TKT
+    // nuevo con `archivos` declarado en Fase 2 (__BR-Ecosystem §8) lo perdía en el objeto
+    // persistido — quedaba NULL/undefined en tracker_items pese a lo que Cael hubiera declarado.
+    // AC error del TKT: un `archivos` declarado como string simple (en vez de array) se
+    // normaliza a array de un elemento — coacción a [] perdería el dato en silencio, distinto de
+    // no_incluye (que sí coacciona a [] porque ahí un string suelto no es un dato recuperable de
+    // la misma forma). String vacío tras trim → [] (nada que persistir).
+    archivos: Array.isArray(item.archivos)
+      ? item.archivos
+      : (typeof item.archivos === 'string' && item.archivos.trim() ? [item.archivos.trim()] : []),
     intencion: item.intencion || null,
     contract_detail: item.contract_detail || null,
     kill_criteria: item.kill_criteria || null,
@@ -2633,6 +2666,15 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
 
   const _REF_OBJ_FIELDS  = ['parentId', 'triggeredBy', 'origenDisc', 'promovida_a'];
   const _REF_OBJ_LISTS   = ['dependsOn'];
+  // TKT-202608-480 (REQ-202608-200, origen DISC-202608-227) — no_incluye del TKT excluye
+  // explícitamente tocar la resolución de parent/triggered_by/origen_disc: el alias se agrega
+  // únicamente para dependsOn, no para _REF_OBJ_FIELDS. Este bloque corre ANTES de la
+  // renombración depends_on→dependsOn (más abajo, ~L2717) — un tgItem recién llegado del
+  // CHECKPOINT todavía trae el nombre snake_case del schema en este punto, así que
+  // Array.isArray(item['dependsOn']) es false y un depends_on:[{ref_id,title}] pasaba de largo
+  // sin normalizar. El alias resuelve contra el nombre snake_case cuando el camelCase todavía no
+  // existe — robusto sin importar el orden real de renombrado upstream.
+  const _REF_OBJ_LIST_ALIASES = { dependsOn: 'depends_on' };
 
   // Paso B: normalizar cada campo de referencia — un objeto {ref_id, title} se convierte en
   // '[tmp:REF_ID]' solo si el title coincide exactamente con el declarante; si no coincide,
@@ -2687,8 +2729,12 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
       if (item[field] !== undefined) item[field] = _normalizeRefIdValue(item[field], item, field, unresolvedRefs);
     });
     _REF_OBJ_LISTS.forEach(field => {
+      const _snakeField = _REF_OBJ_LIST_ALIASES[field];
       if (Array.isArray(item[field])) {
         item[field] = item[field].map(v => _normalizeRefIdValue(v, item, field, unresolvedRefs));
+      } else if (_snakeField && Array.isArray(item[_snakeField])) {
+        item[field] = item[_snakeField].map(v => _normalizeRefIdValue(v, item, field, unresolvedRefs));
+        delete item[_snakeField];
       }
     });
     return item;
