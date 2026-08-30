@@ -1,3 +1,15 @@
+// [PP] mod:73 · autor:Rune · 2026-08-30 UTC-6
+// TKT-202608-492 (REQ-202608-207, TKT4): 'interrupted' retirado de la cadena exclusiva de
+// estado en los tres call sites que la usaban — _populateWorkerHeader() (AC1),
+// buildHoyCard() (AC2), _populateIngestModalHeader() (AC3, "tercer call site equivalente").
+// isWip = !!ai.wip se evalúa aparte y solo agrega el badge .rsb-wip-badge (reutilizado, sin
+// diseño nuevo — restricción de Nova, TKT-202608-489) como elemento adicional junto al badge
+// de estado real — nunca lo reemplaza ni prioriza sobre él. dismissBtn (#worker-header-dismiss-btn,
+// _populateWorkerHeader) migra su condición de visibilidad de isInterrupted a isWip — mismo
+// botón. AC4: case 'dismiss-interrupted' (delegador de clicks) no requirió cambio — verificado
+// contra locus-sesiones-capture.js real: dismissInterrupted(id) conserva su nombre exportado
+// tras TKT-202608-491, migrada internamente a `ai.wip = false` — sin rename de Nova declarado,
+// el data-action 'dismiss-interrupted' se mantiene sin tocar.
 // [PP] mod:72 · autor:Rune · 2026-08-27 09:20 UTC-6
 // TKT-202608-474 (REQ-202608-198, AC4): import de _renderIngestBlockPreview/_updateIngestBlockCount
 // actualizado a locus-ingest-preview.js (nuevo módulo) — mismos nombres, mismas firmas, sin cambio
@@ -775,10 +787,13 @@ const TG_TYPE_NAMES = {DISC:'Discovery', TKT:'Ticket', REQ:'Requerimiento', INC:
 
 // T-202604-047: tiempo promedio entre sesiones consecutivas
 function buildHoyCard(ai, idx = 0, opts = {}) {
-  const isInterrupted = !!ai.interrupted;
+  // TKT-202608-492 (REQ-202608-207, TKT4): 'interrupted' retirado de cardClass/statusBadge —
+  // wip ya no fuerza rama exclusiva. isWip se evalúa aparte y solo agrega el badge WIP,
+  // sin tocar cardClass ni prioridad sobre el estado real (restricción de Nova, TKT1).
+  const isWip = !!ai.wip;
   const isInSession   = !!opts.inSession;
   const statusClass = ai.status === 'exhausted' ? 'exhausted' : 'available';
-  const cardClass = 'hoy-mini-card ' + statusClass + (isInterrupted ? ' interrupted-state' : '') + (isInSession ? ' in-session-state' : '');
+  const cardClass = 'hoy-mini-card ' + statusClass + (isInSession ? ' in-session-state' : '');
 
   const aiSessions = getAISessions(ai.id);
   const checkpointTotal = aiSessions.length;
@@ -825,12 +840,13 @@ function buildHoyCard(ai, idx = 0, opts = {}) {
         <span class="hoy-mini-ckpt-since">${availSince ? `desde ${availSince}` : 'disponible'}</span>
       </button>`;
 
-  // T-316: badge diferenciado — ámbar para interrupted, púrpura para in-session
-  const statusBadge = isInterrupted
-    ? `<div class="hoy-mini-actions"><span class="hoy-mini-badge hoy-mini-badge--interrupted">⚡ Interrumpida</span></div>`
-    : isInSession
-      ? `<div class="hoy-mini-actions"><span class="hoy-mini-badge hoy-mini-badge--insession">● En sesión</span></div>`
-      : '';
+  // T-316: badge de estado — púrpura para in-session. TKT-202608-492: badge WIP (.rsb-wip-badge,
+  // reutilizado sin diseño nuevo, restricción de Nova TKT1) se agrega independiente, nunca
+  // reemplaza el badge de estado — ambos pueden coexistir en el mismo wrapper.
+  const _hoyBadges = [];
+  if (isInSession) _hoyBadges.push(`<span class="hoy-mini-badge hoy-mini-badge--insession">● En sesión</span>`);
+  if (isWip) _hoyBadges.push(`<span class="rsb-wip-badge">WIP</span>`);
+  const statusBadge = _hoyBadges.length ? `<div class="hoy-mini-actions">${_hoyBadges.join('')}</div>` : '';
 
   // T-316: pill de proyecto de la última sesión global (sin filtro de proyecto activo)
   const _lastSessGlobal = getAllSessions().filter(s => s.aiId === ai.id).slice(-1)[0] || null;
@@ -950,15 +966,19 @@ function _populateWorkerHeader(ai) {
   if (!header) return;
   header.classList.remove('is-hidden');
 
-  const isInterrupted = !!ai.interrupted;
-  const isInSession = !isInterrupted && _isInSession(ai);
+  // TKT-202608-492 (REQ-202608-207, TKT4): isWip evaluado aparte de state — 'interrupted'
+  // retirado de la cadena exclusiva. isWip ya no gatea isInSession (ese guard era defensivo
+  // sobre 'interrupted' como bucket propio, que ya no existe).
+  const isWip = !!ai.wip;
+  const isInSession = _isInSession(ai);
   const isAvail = ai.status === 'available';
   const aiInitial = esc(ai.name).charAt(0).toUpperCase();
 
-  // CAEL-03 (REQ CAEL-01): estado único del worker — misma prioridad ya usada arriba
-  // (isInterrupted > isInSession > isAvail > exhausted) — fuente de verdad para
-  // avatar, acento del header y badge, evitando que se desincronicen entre sí.
-  const state = isInterrupted ? 'interrupted' : isInSession ? 'insession' : isAvail ? 'available' : 'exhausted';
+  // CAEL-03 (REQ CAEL-01): estado único del worker — prioridad insession > available >
+  // exhausted — fuente de verdad para avatar, acento del header y badge, evitando que se
+  // desincronicen entre sí. TKT-202608-492: rama 'interrupted' retirada — wip ya no fuerza
+  // bucket propio, se refleja aparte vía isWip (badge, sin tocar state).
+  const state = isInSession ? 'insession' : isAvail ? 'available' : 'exhausted';
 
   const avatarEl = document.getElementById('worker-header-avatar');
   if (avatarEl) {
@@ -979,9 +999,13 @@ function _populateWorkerHeader(ai) {
   const badgeEl = document.getElementById('worker-header-badge');
   if (badgeEl) {
     badgeEl.className = 'sc-badge sc-badge--' + (state === 'exhausted' ? 'exhausted' : state === 'available' ? 'avail' : state);
-    badgeEl.innerHTML = isInSession
+    const _stateLabel = isInSession
       ? `<span class="sc-badge-dot"></span>${STATUS_LABELS.insession}`
       : STATUS_LABELS[state];
+    // TKT-202608-492: badge WIP (.rsb-wip-badge, reutilizado, restricción de Nova TKT1) se
+    // agrega como elemento adicional, condicionado a isWip — nunca reemplaza ni prioriza
+    // sobre el badge de state real.
+    badgeEl.innerHTML = _stateLabel + (isWip ? `<span class="rsb-wip-badge">WIP</span>` : '');
   }
 
   // Ícono de reset (legado) — se conserva sin cambio para interrupted/insession, fuera de
@@ -1037,14 +1061,17 @@ function _populateWorkerHeader(ai) {
     }
   }
 
-  // TKT-202608-413 (REQ-202608-166): botón dismiss directo de sesión interrumpida — visible
-  // solo cuando isInterrupted, mismo criterio de toggle que quickBtn/cdInline arriba. Markup
+  // TKT-202608-413 (REQ-202608-166): botón dismiss directo de sesión WIP — visible solo
+  // cuando isWip, mismo criterio de toggle que quickBtn/cdInline arriba. TKT-202608-492:
+  // condición migrada de isInterrupted a isWip — mismo botón, mismo data-action
+  // ('dismiss-interrupted', sin rename de Nova declarado), mismo dismissInterrupted(aiId)
+  // como handler (ya migrado internamente a ai.wip = false en TKT-202608-491). Markup
   // estático ya vive en index.html (#worker-header-dismiss-btn, mod:211) — este bloque solo
   // alterna is-hidden y puebla dataset.aiId, sin generar HTML.
   const dismissBtn = document.getElementById('worker-header-dismiss-btn');
   if (dismissBtn) {
     dismissBtn.dataset.aiId = ai.id;
-    dismissBtn.classList.toggle('is-hidden', !isInterrupted);
+    dismissBtn.classList.toggle('is-hidden', !isWip);
   }
 
   // Botón de ingesta de CHECKPOINT (CAEL-33) — bloque dedicado, localizado por id fijo
@@ -1179,12 +1206,14 @@ function _populateIngestModalHeader(ai) {
       </div>`;
   }
 
-  const isInterrupted = !!ai.interrupted;
-  const isInSession = !isInterrupted && _isInSession(ai);
+  // TKT-202608-492 (REQ-202608-207, TKT4): mismo tratamiento que _populateWorkerHeader() (L953)
+  // — 'interrupted' retirado de state, isWip evaluado aparte para el badge.
+  const isWip = !!ai.wip;
+  const isInSession = _isInSession(ai);
   const isAvail = ai.status === 'available';
   const isExhausted = ai.status === 'exhausted';
   const aiInitial = esc(ai.name).charAt(0).toUpperCase();
-  const state = isInterrupted ? 'interrupted' : isInSession ? 'insession' : isAvail ? 'available' : 'exhausted';
+  const state = isInSession ? 'insession' : isAvail ? 'available' : 'exhausted';
 
   // TKT-202608-230 (REQ-202608-087, AC1-AC4): tinte de disponibilidad del header conjunto —
   // solo 3 estados reconocidos (is-avail/is-insession/is-exhausted, nombres exactos declarados
@@ -1207,9 +1236,12 @@ function _populateIngestModalHeader(ai) {
   const badgeEl = document.getElementById('ingest-split-badge');
   if (badgeEl) {
     badgeEl.className = 'sc-badge sc-badge--' + (state === 'exhausted' ? 'exhausted' : state === 'available' ? 'avail' : state);
-    badgeEl.innerHTML = isInSession
+    const _stateLabel = isInSession
       ? `<span class="sc-badge-dot"></span>${STATUS_LABELS.insession}`
       : STATUS_LABELS[state];
+    // TKT-202608-492: badge WIP agregado independiente, mismo criterio que
+    // _populateWorkerHeader() (L953) — .rsb-wip-badge reutilizado, nunca reemplaza state.
+    badgeEl.innerHTML = _stateLabel + (isWip ? `<span class="rsb-wip-badge">WIP</span>` : '');
   }
 }
 
