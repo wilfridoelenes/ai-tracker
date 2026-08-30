@@ -1,3 +1,10 @@
+// [PP] mod:28 · autor:Rune · 2026-08-30 UTC-6
+// TKT-202608-493 (REQ-202608-207, TKT5): 'Interrumpida'/'⚡ interrumpida' → 'WIP'/'⚡ WIP' en el
+// Log de Sesiones — pill de filtro (key 'interrupted'→'wip'), labels de _sessTypeLabel/
+// _sessTypePill, y la comparación de _logFilterType en el filtro (línea ~1074) migrada a la
+// key nueva. s.interrupted (campo del objeto sesión) y el tipo interno 'interrupted' de
+// _sessType() no se renombran — solo texto visible, per no_incluye (renombrar el campo
+// requiere DDL de TKT6). Clase CSS log-pill--interrupted sin tocar — sin entregable de Nova.
 // [PP] mod:27 · autor:Rune · 2026-08-18 22:30 UTC-6
 // TKT-202608-379 (REQ-202608-153): retirado import huérfano `parsePaste` desde
 // locus-session-parse.js — grep exhaustivo sobre el archivo completo (1317 líneas) confirma
@@ -897,7 +904,7 @@ function _loadLogFilters() {
 
 // Estado del log card
 let _logFilterAI      = '';     // aiId activo o ''
-let _logFilterType    = 'all';  // 'all' | 'session' | 'quick' | 'interrupted'
+let _logFilterType    = 'all';  // 'all' | 'session' | 'quick' | 'wip'
 let _logFilterProj    = '';     // projId activo o ''
 let _logFilterStarred = false;  // solo starred
 let _logSearch        = '';
@@ -935,7 +942,10 @@ function _sessType(s) {
 function _sessTypeLabel(s) {
   const t = _sessType(s);
   if (t === 'quick') return 'quick';
-  if (t === 'interrupted') return 'interrumpida';
+  // TKT-202608-493 (REQ-202608-207, TKT5): rótulo cambia a 'WIP' — s.interrupted (campo del
+  // objeto sesión) y el tipo interno 'interrupted' de _sessType() no se renombran en este TKT,
+  // solo el texto visible (no_incluye — renombrar el campo requiere el DDL de TKT6).
+  if (t === 'interrupted') return 'WIP';
   if (s.starred) return 'destacada';
   return 'sesión';
 }
@@ -943,7 +953,9 @@ function _sessTypeLabel(s) {
 function _sessTypePill(s) {
   const t = _sessType(s);
   if (t === 'quick') return '<span class="log-pill log-pill--quick">⚡ quick</span>';
-  if (t === 'interrupted') return '<span class="log-pill log-pill--interrupted">⚡ interrumpida</span>';
+  // TKT-202608-493: texto cambia a '⚡ WIP' — clase log-pill--interrupted sin tocar (sin
+  // entregable de Nova que declare rename de clase, __BR-Execution §6).
+  if (t === 'interrupted') return '<span class="log-pill log-pill--interrupted">⚡ WIP</span>';
   if (s.starred) return '<span class="log-pill log-pill--starred">⭐ destacada</span>';
   return '<span class="log-pill log-pill--normal">sesión</span>';
 }
@@ -965,7 +977,9 @@ function _buildLogHeader(total, filtered) {
     { key: 'all',         label: 'Todas' },
     { key: 'session',     label: 'Sesión' },
     { key: 'quick',       label: 'Quick' },
-    { key: 'interrupted', label: 'Interrumpida' },
+    // TKT-202608-493 (REQ-202608-207, TKT5): key/label renombrados de 'interrupted'/'Interrumpida'
+    // a 'wip'/'WIP' — filtro sigue evaluando s.interrupted (línea ~1067), campo sin renombrar.
+    { key: 'wip',         label: 'WIP' },
   ].map(({ key, label }) =>
     `<button class="log-type-pill${_logFilterType === key ? ' log-type-pill--active' : ''}" data-log-filter-type="${key}">${label}</button>`
   ).join('');
@@ -1064,7 +1078,9 @@ export function _rebuildLogBody() {
     if (_logFilterType !== 'all') {
       if (_logFilterType === 'session' && _sessType(sess) !== 'session') return false;
       if (_logFilterType === 'quick' && !sess.quickCapture) return false;
-      if (_logFilterType === 'interrupted' && !sess.interrupted) return false;
+      // TKT-202608-493: comparación migrada a la key nueva 'wip' — sess.interrupted (campo del
+      // objeto sesión) sin renombrar, mismo criterio que _sessTypeLabel/_sessTypePill arriba.
+      if (_logFilterType === 'wip' && !sess.interrupted) return false;
     }
     if (q && !sess.title.toLowerCase().includes(q) && !(sess.summary || '').toLowerCase().includes(q) &&
         !(sess.decision || '').toLowerCase().includes(q) && !(sess.contexto || '').toLowerCase().includes(q) &&

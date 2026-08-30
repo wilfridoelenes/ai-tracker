@@ -1,3 +1,14 @@
+/* [PP] mod:21 · autor:Nova · 2026-08-30 15:20 UTC-6 */
+/* TKT2 (mismo ítem, entrega 2): corregido comentario en la sección de status
+   badges (línea ~668) que seguía afirmando ".rsb-status-interrupted sigue en
+   uso" — desactualizado tras el retiro de esta misma entrega. */
+/* TKT2 (ref_id CAEL-08301500-02, REQ-202608-207, origen_disc DISC-202608-237): retiradas
+   .rsb-card.interrupted-state · .rsb-interrupted-badge · .rsb-status-interrupted — sin
+   call site tras TKT1 (locus-radar.js), que eliminó la rama isInterrupted de
+   _buildSessionCard(). La nota histórica de mod:9 (swap semántico insession↔interrupted,
+   decisión founder) se conserva íntegra más abajo — solo se retiran las reglas de estilo,
+   no el registro narrativo. Fuera de alcance de este TKT (deuda distinta, sin call site,
+   registrada aparte): .rsb-session-elapsed/.rsb-elapsed-warn · .rsb-ckpt-direct-btn. */
 /* [PP] mod:19 · autor:Nova · 2026-08-29 20:55 UTC-6 */
 /* TKT2 (ref_id CAEL-08292100-03, REQ ref_id CAEL-08292100-01): .rsb-wip-badge — neutro,
    --surface3/--text3 (mismo par ≥4.5:1 ya verificado en ambos temas, _Locus-css-ref
@@ -401,11 +412,6 @@
   background: linear-gradient(135deg, var(--green-dim) 0%, var(--radar-card-bg, rgb(255 255 255 / 4%)) 60%);
 }
 
-.rsb-card.interrupted-state {
-  border-left: 3px solid var(--purple);
-  background: linear-gradient(135deg, rgb(124 106 247 / 8%) 0%, var(--radar-card-bg, rgb(255 255 255 / 4%)) 60%);
-}
-
 /* ── Card internals ── */
 .rsb-card-row {
   display: flex;
@@ -596,17 +602,6 @@
   margin-left: 2px;
 }
 
-/* ── Interrupted badge — invertido en CAEL-0717-0X ── */
-.rsb-interrupted-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  color: var(--purple-text);
-  margin-top: 3px;
-}
-
 /* ── Pill proyecto ── */
 .rsb-card-proj {
   margin-top: 2px;
@@ -643,13 +638,12 @@
   color: var(--red);
 }
 
-.rsb-status-interrupted {
-  color: var(--purple-text);
-  background: rgb(124 106 247 / 10%);
-}
-
-/* TKT2 (CAEL-08292100-03): badge WIP — ortogonal a status/interrupted, nunca comparte
-   --purple/--purple-text con .rsb-status-interrupted (arriba). */
+/* TKT2 (ref_id CAEL-08301500-02, REQ-202608-207, origen_disc DISC-202608-237):
+   .rsb-status-interrupted retirada — sin call site tras TKT1 (locus-radar.js, ref_id
+   CAEL-08301500-01), que eliminó la rama isInterrupted de _buildSessionCard(). Nota
+   original (mod:9) conservada como historial en el header del archivo. */
+/* TKT2 (CAEL-08292100-03): badge WIP — ortogonal a status, nunca comparte --purple/
+   --purple-text (reservado en el header del archivo a la nota histórica de interrupted). */
 .rsb-wip-badge {
   display: inline-flex;
   align-items: center;
@@ -676,8 +670,10 @@
 /* .rsb-status-available y .rsb-status-session retiradas — mod:5 (CAEL-0717-04).
    Sin consumidor en locus-radar.js desde TKT2 (CAEL-0717-03): available e
    in-session-state renderizan .rsb-card-quick (+/⚡) en vez del dot/badge.
-   .rsb-status-badge base + .rsb-status-exhausted/.rsb-status-interrupted
-   siguen en uso — sin cambio. */
+   .rsb-status-badge base + .rsb-status-exhausted siguen en uso — sin cambio.
+   .rsb-status-interrupted retirada en TKT2 (ref_id CAEL-08301500-02,
+   REQ-202608-207) — sin consumidor tras el retiro del bucket `interrupted`
+   tanto de _buildSessionCard() (locus-radar.js) como del CSS (mod:20). */
 
 /* Header counts — R-202605-138: contadores en fila 2 */
 .rsb-hdr-counts {

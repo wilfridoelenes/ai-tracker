@@ -1,3 +1,9 @@
+// [PP] mod:24 · autor:Rune · 2026-08-30 15:00 UTC-6
+// TKT1 (ref_id CAEL-08301500-01, REQ-202608-207, origen_disc DISC-202608-237): _buildSessionCard()
+// pierde el parámetro isInterrupted — único call site (inSession.map) siempre pasó `false`,
+// el branch 'rsb-card interrupted-state' / '.rsb-status-interrupted' nunca fue alcanzable desde
+// el retiro del bucket `interrupted` en TKT2 (ref_id CAEL-08301400-02, mod:22). Ver TKT2 de este
+// mismo ciclo (Nova, locus-radar.css) para el retiro de las reglas CSS correspondientes.
 // [PP] mod:23 · autor:Rune · 2026-08-30 00:00 UTC-6
 // TKT2 (ref_id CAEL-08292100-03, REQ ref_id CAEL-08292100-01): badge .rsb-wip-badge en
 // _buildAvailableCard/_buildExhaustedCard — flag ortogonal a status/interrupted, nunca
@@ -198,20 +204,21 @@ function _projPill(ai, sessions) {
 // ── CARD BUILDERS ─────────────────────────────────────────────────────────────
 
 // Perf: acepta sessions pre-cacheadas para evitar múltiples calls a getAISessions por card
-function _buildSessionCard(ai, isInterrupted, sessions) {
+// TKT1 (ref_id CAEL-08301500-01, REQ-202608-207, origen_disc DISC-202608-237): parámetro
+// isInterrupted retirado — el único call site (renderGlobalRadarSidebar(), grupo "En sesión")
+// siempre invocaba esta función con `false`; el bucket `interrupted` que lo hacía `true` ya
+// fue eliminado en TKT2 (ref_id CAEL-08301400-02). in-session-state queda como único estado
+// visual de este card — mismo comportamiento observable, sin rama muerta.
+function _buildSessionCard(ai, sessions) {
   const pill = _projPill(ai, sessions);
 
-  const cls = isInterrupted ? 'rsb-card interrupted-state' : 'rsb-card in-session-state';
-  // TKT2 (CAEL-0717-01): interrupted-state conserva el badge — no_incluye. in-session-state
-  // reemplaza el badge "● sesión" por + (registrar CHKPT) y ⚡ (sesión rápida).
-  // TKT2 (REQ-restore-draft, Rune) AC1: badge de borrador — solo en la rama con botón +,
-  // antes de él. localStorage.getItem es síncrono, sin costo relevante por card.
-  const _draftBadge = (!isInterrupted && localStorage.getItem('draft-' + ai.id))
+  const cls = 'rsb-card in-session-state';
+  // TKT2 (REQ-restore-draft, Rune) AC1: badge de borrador — antes del botón +.
+  // localStorage.getItem es síncrono, sin costo relevante por card.
+  const _draftBadge = localStorage.getItem('draft-' + ai.id)
     ? `<span id="draft-${ai.id}" class="draft-dot visible" data-action="open-ingest" data-ai-id="${ai.id}" role="button" tabindex="0" title="Borrador pendiente — click para restaurar" aria-label="Borrador pendiente — click para restaurar"></span>`
     : '';
-  const meta = isInterrupted
-    ? `<span class="rsb-status-badge rsb-status-interrupted">⚡ en curso</span>`
-    : `${_draftBadge}<button class="rsb-card-quick" data-action="open-ingest" data-ai-id="${ai.id}" title="Pegar CHECKPOINT" aria-label="Pegar CHECKPOINT"><svg class="ti-svg" aria-hidden="true"><use href="#ti-plus"></use></svg></button>
+  const meta = `${_draftBadge}<button class="rsb-card-quick" data-action="open-ingest" data-ai-id="${ai.id}" title="Pegar CHECKPOINT" aria-label="Pegar CHECKPOINT"><svg class="ti-svg" aria-hidden="true"><use href="#ti-plus"></use></svg></button>
        <button class="rsb-card-quick" data-action="openQuickCapture" data-ai-id="${ai.id}" title="Sesión rápida" aria-label="Sesión rápida">⚡</button>`;
 
   return `<div class="${cls}" data-action="navigateToCard" data-ai-id="${ai.id}" id="rsb-card-${ai.id}">
@@ -353,7 +360,7 @@ export function renderGlobalRadarSidebar() {
     // concatena aparte ni se fuerza isInterrupted=true en _buildSessionCard. Un worker con
     // wip:true nunca llega aquí salvo que también tenga status:'in_session' real.
     if (inSession.length) {
-      const cards = inSession.map(a => _buildSessionCard(a, false, _getSessions(a))).join('');
+      const cards = inSession.map(a => _buildSessionCard(a, _getSessions(a))).join('');
       html += `<div class="radar-sb-section">
         <div class="radar-sb-section-label">● En sesión (${inSession.length})</div>
         <div class="rsb-section-body">${cards}</div>
