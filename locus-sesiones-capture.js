@@ -1,4 +1,8 @@
-// [PP] mod:27 · autor:Rune · 2026-08-18 22:30 UTC-6
+// [PP] mod:28 · autor:Rune · 2026-08-30 UTC-6
+// TKT-202608-491 (REQ-202608-207, TKT3): checkbox de Quick Capture escribe ai.wip = true
+// directo en vez de invocar interruptSession() — función retirada (sin más callers).
+// dismissInterrupted() migrada a ai.wip = false internamente, mantiene su nombre exportado
+// (data-action 'dismiss-interrupted' no se toca en este TKT — ver TKT4/TKT-202608-492).
 // INC-ref:CAEL-08151230-01: _qcAttemptSave() — status pasa a exhausted desde cualquier
 // status previo distinto de 'exhausted' (antes: solo desde 'available'). Reaplicado sobre
 // mod:25 real (base anterior usada era obsoleta — señalado por el founder). Ver comentario
@@ -339,10 +343,12 @@ function confirmQuickCapture() {
   _mutateSessions(activeProj, 'add', sess);
 
   // TKT2 (parent CAEL-08081500-01, ver _Locus-ux-ref Patrón A-10): mutación del worker
-  // (status/resetTime/resetEpoch) e interruptSession() no ocurren aquí — viajan como datos
-  // a _qcAttemptSave, que las aplica justo antes de llamar a saveImmediate() (mismo
-  // round-trip que `sess`) y las revierte en su catch() si el guardado falla — ver fix
-  // inline (triggered_by INC histórico — sin CHECKPOINT confirmado) dentro de _qcAttemptSave.
+  // (status/resetTime/resetEpoch/wip) no ocurre aquí — viaja como datos a _qcAttemptSave,
+  // que la aplica justo antes de llamar a saveImmediate() (mismo round-trip que `sess`)
+  // y la revierte en su catch() si el guardado falla — ver fix inline (triggered_by INC
+  // histórico — sin CHECKPOINT confirmado) dentro de _qcAttemptSave. TKT3 (REQ-202608-207):
+  // interruptSession() retirada — el checkbox de WIP ya no invoca un mutador propio, escribe
+  // ai.wip directo en _qcAttemptSave.
   const _qcWipEl = _qcEl('quick-wip');
   const wipChecked = !!(_qcWipEl && _qcWipEl.checked);
   _qcAttemptSave(ai, horaResult, wipChecked);
@@ -372,7 +378,7 @@ function _qcAttemptSave(ai, horaResult, wipChecked) {
   const _prevStatus = ai.status;
   const _prevResetTime = ai.resetTime;
   const _prevResetEpoch = ai.resetEpoch;
-  const _prevInterrupted = ai.interrupted;
+  const _prevWip = ai.wip;
 
   if (horaResult) {
     // Fix (INC-ref:CAEL-08151230-01): antes solo transicionaba a exhausted si el status
@@ -387,9 +393,10 @@ function _qcAttemptSave(ai, horaResult, wipChecked) {
     ai.resetTime = horaResult.hhmm;
     ai.resetEpoch = horaResult.epoch;
   }
-  // TKT1 (CAEL-0723-02): checkbox "Este worker tiene un WIP" — invoca interruptSession()
-  // (mutador puro, sin modal ni save propio).
-  if (wipChecked) interruptSession(ai.id);
+  // TKT3 (REQ-202608-207): checkbox "Este worker tiene un WIP" — escribe ai.wip = true
+  // directo, sin tocar ai.status/ai.interrupted (retirado del modelo). Reemplaza la
+  // invocación a interruptSession(), retirada por quedar sin más callers.
+  if (wipChecked) ai.wip = true;
 
   // B-202605-XXX: usar saveImmediate() para garantizar escritura en Supabase antes de
   // cualquier recarga. save() con debounce de 5s podía perder resetTime/resetEpoch/status
@@ -424,7 +431,7 @@ function _qcAttemptSave(ai, horaResult, wipChecked) {
     ai.status = _prevStatus;
     ai.resetTime = _prevResetTime;
     ai.resetEpoch = _prevResetEpoch;
-    ai.interrupted = _prevInterrupted;
+    ai.wip = _prevWip;
     _qcSaving = false;
     _qcSetSavingState(false);
     _qcShowError('No se pudo guardar. Revisa tu conexión.');
@@ -434,28 +441,18 @@ function _qcAttemptSave(ai, horaResult, wipChecked) {
 
 // ── END R histórico — sin CHECKPOINT confirmado Quick Capture ──
 
-// ── T-055: Sesión interrumpida ──
+// ── T-055: WIP de worker (ex-"Sesión interrumpida") ──
 // TKT3 (CAEL-0723-04): confirmInterruptInline/cancelInterruptInline retiradas — huérfanas
 // tras retirar 'Interrumpir' del dot-menu (index.html mod:154, locus-sesiones.js mod:53).
-// interruptSession(id) — contract_detail TKT3: firma sin cambio, mismos invariants
-// (status='exhausted' + interrupted=true). Simplificada a mutador puro: pierde el
-// _gconfirmOpen anidado (pedía hora aparte) y su propio save()/toast/setTimeout — el
-// nuevo punto de entrada es confirmQuickCapture(), que ya persiste y notifica una sola
-// vez para todo el flujo de Quick Capture. Llamar aquí a la versión con modal habría
-// abierto un segundo confirm dentro del propio modal de Quick Capture.
-function interruptSession(id) {
-  const ai = getAI(id);
-  ai.status = 'exhausted';
-  ai.interrupted = true;
-  // R-202604-061 AC-2: clase transitoria antes de interrupted-state — no-op si la card
-  // no está montada en este contexto (ej. invocada desde Quick Capture).
-  const _intCard = document.getElementById('card-' + id);
-  if (_intCard) _intCard.classList.add('tracker-card--interrupting');
-}
-
+// TKT3 (REQ-202608-207, TKT-202608-491): interruptSession(id) retirada — quedó sin
+// callers tras reemplazar su único call site (_qcAttemptSave) por `ai.wip = true` directo,
+// sin forzar ai.status ni depender de ai.interrupted (campo retirado del modelo). La clase
+// transitoria `.tracker-card--interrupting` que aplicaba se va con la función — Hallazgo
+// fuera de scope declarado en el CHECKPOINT de entrega: verificar en `_Locus-css-ref`/CSS
+// real si el selector queda huérfano (fuera de scope de Rune, no toca .css).
 export function dismissInterrupted(id) {
   const ai = getAI(id);
-  ai.interrupted = false;
+  ai.wip = false;
   save();
   // TKT2 (CAEL-08111815-01): save() ya no sube ais — persistir el Worker por su canal propio.
   saveWorker(ai);
@@ -463,8 +460,8 @@ export function dismissInterrupted(id) {
   if (getCurrentTab() === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
 }
 
-// T-058 ya maneja auto-disponible; al desbloquearse, si tenía interrupted, lo conservamos
-// Solo limpiamos interrupted cuando el usuario hace click en "Continuar →"
+// T-058 ya maneja auto-disponible; al desbloquearse, si tenía wip, lo conservamos —
+// solo lo limpiamos cuando el usuario hace click en "Continuar →" (dismissInterrupted).
 
 // T-056: Focus Zone — eliminada (deprecada)
 

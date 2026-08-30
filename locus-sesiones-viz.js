@@ -1,4 +1,7 @@
-// [PP] mod:15 · autor:Rune · 2026-08-18 22:30 UTC-6
+// [PP] mod:16 · autor:Rune · 2026-08-30 UTC-6
+// TKT-202608-491 (REQ-202608-207, TKT3): checkbox WIP en "Editar worker agotado"
+// (confirmCorrectHora) lee/escribe ai.wip en vez de ai.interrupted — dismissInterrupted()
+// (rama desmarcado) ya migrada a ai.wip internamente en TKT3, sin cambio de nombre exportado.
 // INC-ref:RUNE-08151405-01: openCorrectHora() no verificaba ai.status antes de abrir el modal
 //   "Editar worker agotado" — se abría (y confirmCorrectHora() forzaba status:'exhausted'
 //   incondicionalmente al guardar) sobre workers en cualquier estado, incluido in_session.
@@ -15,7 +18,8 @@
 //   real salvo que otra interacción previa ya hubiera dejado _trackerDirty en true. Fix: llamar
 //   _markTrackerDirty() antes de render() en ambos call sites (import ya existía, faltaba el uso).
 // TKT2 (CAEL-0723-03): openCorrectHora() renombrado a "Editar worker agotado" — checkbox de
-// WIP inyectado en msg.innerHTML, precargado con ai.interrupted, aplicado en confirmCorrectHora().
+// WIP inyectado en msg.innerHTML, precargado con ai.wip (antes ai.interrupted, ver TKT3
+// REQ-202608-207/TKT-202608-491), aplicado en confirmCorrectHora().
 // locus-sesiones-viz.js
 // INC histórico — sin CHECKPOINT confirmado: import de esc agregado (faltaba) — ReferenceError en openCorrectHora resuelto.
 //   esc local redundante en showCheckpointPanel eliminada — una sola fuente desde locus-ui-shell.js
@@ -57,7 +61,7 @@ export function openCorrectHora(id) {
   if (!modal) return;
 
   // TKT2 (CAEL-0723-03): rename — este modal deja de representar solo "corregir hora",
-  // ahora también edita ai.interrupted vía el checkbox de WIP.
+  // ahora también edita ai.wip vía el checkbox de WIP (antes ai.interrupted, ver TKT3).
   title.textContent = '⏰ Editar worker agotado';
   const inputWrap = document.getElementById('gconfirm-input-wrap');
   if (inputWrap) inputWrap.classList.add('is-hidden');
@@ -116,8 +120,9 @@ export function openCorrectHora(id) {
     _chUnlockBtn.addEventListener('click', function() { unlockNowFromCard(); });
   }
   // TKT2 (CAEL-0723-03) AC3: precargado con el valor actual de la IA
+  // TKT3 (REQ-202608-207, TKT-202608-491): precarga desde ai.wip — ai.interrupted retirado.
   const _chWip = document.getElementById('correct-hora-wip');
-  if (_chWip) _chWip.checked = !!ai.interrupted;
+  if (_chWip) _chWip.checked = !!ai.wip;
 
   okBtn.textContent = 'Guardar';
   okBtn.className = 'btn-primary';
@@ -170,13 +175,14 @@ function confirmCorrectHora() {
       lastSess.resetAt = result.label;
     }
     // TKT2 (CAEL-0723-03) AC4: aplicar el checkbox solo si cambió respecto al valor de apertura.
-    // Desmarcado→interrupted:false usa dismissInterrupted (única función que lo pone en false,
-    // contract_detail TKT3) — marcado→true se asigna directo, sin el modal propio de interruptSession
-    // (evita abrir un segundo confirm dentro de este mismo modal).
+    // TKT3 (REQ-202608-207, TKT-202608-491): ai.interrupted retirado — desmarcado→wip:false
+    // sigue usando dismissInterrupted (única función que lo pone en false, contract_detail TKT3,
+    // ahora opera sobre ai.wip) — marcado→true se asigna directo sobre ai.wip, sin el modal
+    // propio de interruptSession (retirada — evita abrir un segundo confirm en este mismo modal).
     const _chWipEl = document.getElementById('correct-hora-wip');
     const wipChecked = !!(_chWipEl && _chWipEl.checked);
-    if (!!ai.interrupted !== wipChecked) {
-      if (wipChecked) { ai.interrupted = true; }
+    if (!!ai.wip !== wipChecked) {
+      if (wipChecked) { ai.wip = true; }
       else { dismissInterrupted(id); }
     }
     _markTrackerDirty(); save();

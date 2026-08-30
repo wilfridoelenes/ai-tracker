@@ -1,3 +1,16 @@
+// [PP] mod:177 · autor:Rune · 2026-08-30 UTC-6
+// TKT-202608-491 (REQ-202608-207, TKT3): campo ai.interrupted retirado por completo de este
+// archivo — getWorkers()/saveWorker() dejan de leer/escribir la columna `interrupted` de
+// tracker_workers (columna en sí no se elimina vía DDL en este TKT, ver no_incluye del TKT
+// y Hallazgo fuera de scope declarado en el CHECKPOINT de entrega sobre el TKT que debía
+// cubrir ese DDL). Los 2 guards de auto-reset (_applyStateRow(), load()) pierden la condición
+// !ai.interrupted — un worker wip:true ahora SÍ se auto-resetea de exhausted a available.
+// Default de ai.interrupted en _applyStateData() eliminado sin reemplazo. Excepción declarada
+// y no tocada en este TKT: _isInSession() conserva su `!ai.interrupted` — no_incluye del TKT
+// lo marca explícitamente como defensivo sobre status:'in_session', condición que un worker
+// wip nunca alcanza por diseño (se marca desde exhausted); con ai.interrupted ya siempre
+// undefined tras este TKT, esa expresión evalúa `!undefined` === true de forma permanente —
+// no-op inerte, no readaptado a wip porque el no_incluye pide expresamente no tocar la función.
 // [PP] mod:176 · autor:Rune · 2026-08-29 20:40 UTC-6
 // TKT1 (ref_id CAEL-08292100-02, REQ ref_id CAEL-08292100-01): campo wip agregado a
 // getWorkers()/saveWorker() — mapeo boolean directo, mismo patrón que interrupted/archived.
@@ -3117,9 +3130,12 @@ async function _applyStateRow(stateRows) {
   state.ais = await getWorkers();
   let _resetChanged = false;
   for (const ai of (state?.ais || [])) {
-    // mod:169: !ai.interrupted — un worker interrumpido no se auto-resetea aunque su
-    // reset esté vencido. Ver comentario de header (INC-[pendiente-ID]).
-    if (ai.status === 'exhausted' && !ai.interrupted && ai.resetTime && _resetExpiredInternal(ai.resetTime, ai.resetEpoch)) {
+    // TKT3 (REQ-202608-207): guard !ai.interrupted retirado — ai.interrupted deja de
+    // existir en el modelo desde este TKT. AC de negocio: un worker con ai.wip:true SÍ
+    // debe auto-resetearse a available cuando su hora expira — wip permanece true tras
+    // el movimiento (badge no exclusivo con status, ver TKT4/492). Reemplaza el guard
+    // documentado en mod:169/188 — no se sustituye por !ai.wip.
+    if (ai.status === 'exhausted' && ai.resetTime && _resetExpiredInternal(ai.resetTime, ai.resetEpoch)) {
       _resetWorker(ai);
       // TKT2 (CAEL-08111815-01): persistir en tracker_workers — save() de abajo ya no
       // sube ais al blob, así que el reset debe escribirse por su propio canal.
@@ -3824,7 +3840,9 @@ function _applyStateData(raw) {
   // v3: IAs son globales — sin sessions, sin project
   (raw.ais || []).forEach(ai => {
     if (!ai.sessions) ai.sessions = [];
-    if (ai.interrupted === undefined) ai.interrupted = false;
+    // TKT3 (REQ-202608-207): default de ai.interrupted retirado — el campo se retira
+    // del modelo por completo, sin reemplazo. ai.wip ya trae su propio default vía
+    // getWorkers()/saveWorker() (!!row.wip / !!worker.wip), no requiere normalización aquí.
     if (ai.notes === undefined) ai.notes = '';
     if (ai.avatar === undefined) ai.avatar = '';
     if (ai.archived === undefined) ai.archived = false;
@@ -3869,10 +3887,10 @@ function load() {
     _applyStateData({ais: clone(DEFAULT_AIS), theme:'dark', tags:[]});
   }
   // B-202604-009: limpiar IAs expiradas antes del primer render — usar epoch cuando existe
-  // mod:169: !ai.interrupted — un worker interrumpido no se auto-resetea aunque su
-  // reset esté vencido. Ver comentario de header (INC-[pendiente-ID]).
+  // TKT3 (REQ-202608-207): guard !ai.interrupted retirado — mismo criterio que el guard
+  // equivalente de _applyStateRow() (ver comentario ahí, arriba en este mismo archivo).
   (state?.ais || []).forEach(ai => {
-    if (ai.status === 'exhausted' && !ai.interrupted && ai.resetTime) {
+    if (ai.status === 'exhausted' && ai.resetTime) {
       if (_resetExpiredInternal(ai.resetTime, ai.resetEpoch)) {
         _resetWorker(ai);
       }
@@ -4327,7 +4345,7 @@ export async function getWorkers() {
   try {
     const { data, error } = await _supabase
       .from('tracker_workers')
-      .select('id,name,avatar,status,reset_time,reset_epoch,available_since,archived,notes,interrupted,wip,show_all,created_at,updated_at')
+      .select('id,name,avatar,status,reset_time,reset_epoch,available_since,archived,notes,wip,show_all,created_at,updated_at')
       .eq('user_id', _supabaseUser.id);
     if (error) throw error;
     // AC: mapear columnas snake_case de tracker_workers al shape camelCase de ai en memoria
@@ -4343,7 +4361,6 @@ export async function getWorkers() {
       availableSince: row.available_since != null ? row.available_since : null,
       archived:       !!row.archived,
       notes:          row.notes || '',
-      interrupted:    !!row.interrupted,
       wip:            !!row.wip,
       showAll:        !!row.show_all,
       sessions:       [] // v3: sesiones nunca viven en el Worker — ver getAllSessions()/getAISessions()
@@ -4374,7 +4391,6 @@ export async function saveWorker(worker) {
     available_since: worker.availableSince != null ? worker.availableSince : null,
     archived:        !!worker.archived,
     notes:           worker.notes || null,
-    interrupted:     !!worker.interrupted,
     wip:             !!worker.wip,
     show_all:        !!worker.showAll,
     updated_at:      Date.now()

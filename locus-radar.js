@@ -1,4 +1,4 @@
-// [PP] mod:22 · autor:Nova · 2026-08-29 20:55 UTC-6
+// [PP] mod:23 · autor:Rune · 2026-08-30 00:00 UTC-6
 // TKT2 (ref_id CAEL-08292100-03, REQ ref_id CAEL-08292100-01): badge .rsb-wip-badge en
 // _buildAvailableCard/_buildExhaustedCard — flag ortogonal a status/interrupted, nunca
 // reutiliza --purple/--purple-text (reservado a interrupted). Orden dentro de cada grupo:
@@ -310,21 +310,26 @@ export function renderGlobalRadarSidebar() {
   active.forEach(a => { _sessionsCache[a.id] = getAISessions(a.id); });
   const _getSessions = (ai) => _sessionsCache[ai.id] || [];
 
-  const interrupted = active.filter(a => a.interrupted);
+  // TKT2 (REQ ref_id CAEL-08301400-01): bucket `interrupted` separado eliminado — un worker
+  // con wip:true ya no se excluye de available/exhausted ni se fuerza a un tercer grupo.
+  // inSession no requiere exclusión adicional por wip: _isInSession(a) ya evalúa false para
+  // cualquier status distinto de 'in_session', que es el único status real que un worker WIP
+  // no tiene por diseño (el flag se marca desde exhausted/available, nunca desde in_session).
   // Cambio (sesión 2026-07-27, founder): inSession ordenado alfabéticamente por nombre —
   // reemplaza el sort por recencia de última sesión (T-202606-037). Mismo criterio que
   // available (T-202606-038) — guardar un CHECKPOINT ya no mueve al worker al tope del grupo.
   const inSession   = active
-    .filter(a => !a.interrupted && _isInSession(a))
+    .filter(a => _isInSession(a))
     .sort((a, b) => a.name.localeCompare(b.name));
   // T-202606-038: available ordenado alfabéticamente por nombre — reemplaza sort por _hoyMsUntilReset
   // TKT2 (CAEL-08292100-03): wip como criterio primario — el founder ve primero a quién le
   // debe seguimiento, sin perder el orden que ya resolvía cada grupo dentro de cada subgrupo.
+  // TKT2 (CAEL-08301400-03): !a.interrupted retirado — wip ya no fuerza exclusión de bucket.
   const available   = active
-    .filter(a => a.status === 'available' && !a.interrupted && !_isInSession(a))
+    .filter(a => a.status === 'available' && !_isInSession(a))
     .sort((a, b) => (b.wip - a.wip) || a.name.localeCompare(b.name));
   const exhausted   = active
-    .filter(a => a.status === 'exhausted' && !a.interrupted)
+    .filter(a => a.status === 'exhausted')
     .sort((a, b) => (b.wip - a.wip) || (_hoyMsUntilReset(a) - _hoyMsUntilReset(b)));
 
   // Perf: _computeNotifications una sola vez por render — reutilizada en header y body
@@ -344,15 +349,13 @@ export function renderGlobalRadarSidebar() {
       <button class="rsb-empty-btn" data-action="openAddAI">+ Nueva IA</button>
     </div>`;
   } else {
-    // Grupo 1: En sesión (interrupted + inSession — orden fijo: interrupted primero)
-    const enSesionAll = [...interrupted, ...inSession];
-    if (enSesionAll.length) {
-      const cards = [
-        ...interrupted.map(a => _buildSessionCard(a, true, _getSessions(a))),
-        ...inSession.map(a => _buildSessionCard(a, false, _getSessions(a)))
-      ].join('');
+    // Grupo 1: En sesión — TKT2 (CAEL-08301400-03): bucket `interrupted` eliminado, ya no se
+    // concatena aparte ni se fuerza isInterrupted=true en _buildSessionCard. Un worker con
+    // wip:true nunca llega aquí salvo que también tenga status:'in_session' real.
+    if (inSession.length) {
+      const cards = inSession.map(a => _buildSessionCard(a, false, _getSessions(a))).join('');
       html += `<div class="radar-sb-section">
-        <div class="radar-sb-section-label">● En sesión (${enSesionAll.length})</div>
+        <div class="radar-sb-section-label">● En sesión (${inSession.length})</div>
         <div class="rsb-section-body">${cards}</div>
       </div>`;
     }
@@ -409,7 +412,10 @@ export function renderGlobalRadarSidebar() {
     titleEl.innerHTML = `Workers${notifBadge}`;
   }
   if (row2El) {
-    const sessionCount = interrupted.length + inSession.length;
+    // TKT2 (CAEL-08301400-03): sessionCount ya no suma el bucket `interrupted` (eliminado) —
+    // un worker con wip:true no cuenta como 'en sesión' salvo que también tenga
+    // status:'in_session' real, cubierto por inSession.length en solitario.
+    const sessionCount = inSession.length;
     // TKT2 (CAEL-08292100-03): conteo de wip es transversal a grupo (available + exhausted) —
     // visible siempre que exista al menos un worker con wip:true, independiente del toggle
     // de colapso de Agotadas (localStorage 'rsb-agotadas-collapsed', sin tocarlo).

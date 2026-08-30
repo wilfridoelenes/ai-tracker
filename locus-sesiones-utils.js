@@ -1,3 +1,7 @@
+// [PP] mod:12 · autor:Rune · 2026-08-30 UTC-6
+// TKT-202608-491 (REQ-202608-207, TKT3): guard ai.interrupted retirado del setInterval de
+// auto-reset (línea ~394) — ver comentario inline. Sin lectura ni escritura de ai.interrupted
+// restante en este archivo (verificado por grep).
 // [PP] mod:11 · autor:Rune · 2026-08-18 UTC-6
 // INC-[pendiente-ID]: setInterval de auto-reset (línea ~386) ganó guard !ai.interrupted —
 // mismo patrón ya corregido en locus-storage.js mod:169/188. Ver ese header para el
@@ -386,15 +390,14 @@ export function getCD(resetTime, resetEpoch) {
 }
 
 // T-058 + T-082: intervalo de reset de IAs — migrado desde locus-misc-ui.js
-// mod:11 (INC-[pendiente-ID]): !ai.interrupted — mismo guard ya aplicado en
-// locus-storage.js (mod:169/188, load() y _applyStateRow()). Este setInterval es
-// el tercer barrido automático exhausted→available detectado y no tenía el guard
-// — un worker interrumpido con reset expirado se auto-reseteaba a 'available' aquí
-// también, revirtiendo interrupted:true de forma contradictoria.
+// TKT3 (REQ-202608-207, TKT-202608-491): guard ai.interrupted retirado — ai.interrupted
+// deja de existir en el modelo. AC de negocio: un worker wip:true SÍ debe auto-resetearse
+// a available cuando su hora expira, aquí igual que en los otros dos barrido de
+// locus-storage.js (load()/_applyStateRow()) — wip permanece true tras el movimiento.
 setInterval(() => {
   let changed = false;
   (getState()?.ais || []).forEach(ai => {
-    if (ai.status !== 'exhausted' || ai.interrupted || !ai.resetTime) return;
+    if (ai.status !== 'exhausted' || !ai.resetTime) return;
     if (_resetExpired(ai.resetTime, ai.resetEpoch)) {
       _resetWorker(ai);
       changed = true;
