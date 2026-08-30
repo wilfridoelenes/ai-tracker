@@ -1,3 +1,14 @@
+// [PP] mod:22 · autor:Nova · 2026-08-29 20:55 UTC-6
+// TKT2 (ref_id CAEL-08292100-03, REQ ref_id CAEL-08292100-01): badge .rsb-wip-badge en
+// _buildAvailableCard/_buildExhaustedCard — flag ortogonal a status/interrupted, nunca
+// reutiliza --purple/--purple-text (reservado a interrupted). Orden dentro de cada grupo:
+// wip primero, luego el criterio ya vigente (alfabético en available, countdown ascendente
+// en exhausted). Label agregado "próxima en Nmin" de Agotadas sigue calculando sobre el
+// array completo antes del reorden por wip — nunca sobre exhausted[0] post-sort. Chip de
+// conteo "N con WIP" en fila de contadores del header, visible con Agotadas colapsado o no.
+// Trigger: data-action="toggleWip" en el badge — mismo delegador ya usado por
+// open-ingest/openQuickCapture en esta misma card, resuelve a toggleWip() (locus-workers.js
+// TKT1, ref_id CAEL-08292100-02).
 // [PP] mod:21 · autor:Rune · 2026-08-18 22:30 UTC-6
 // [CORRECCIÓN — Rune, revierte fix incorrecto de mod:19]: mod:19 cambió el botón
 // rsb-card-quick a webfont asumiendo símbolo inexistente. Falso — #ti-plus sí está
@@ -231,10 +242,16 @@ function _buildAvailableCard(ai, sessions) {
     ? `<span class="rsb-card-ts">${sinceLabel}</span>`
     : '';
 
+  // TKT2 (CAEL-08292100-03): badge ortogonal a status — nunca --purple/--purple-text.
+  const wipBadge = ai.wip
+    ? `<span class="rsb-wip-badge" data-action="toggleWip" data-ai-id="${ai.id}" role="button" tabindex="0" title="WIP — click para resolver" aria-label="WIP — click para resolver">WIP</span>`
+    : '';
+
   return `<div class="rsb-card available" data-action="navigateToCard" data-ai-id="${ai.id}" id="rsb-card-${ai.id}">
     <div class="rsb-card-row">
       <div class="rsb-card-name" title="${esc(ai.name)}">${esc(ai.name)}</div>
       <div class="rsb-card-meta">
+        ${wipBadge}
         ${tsSpan}
         ${localStorage.getItem('draft-' + ai.id) ? `<span id="draft-${ai.id}" class="draft-dot visible" data-action="open-ingest" data-ai-id="${ai.id}" role="button" tabindex="0" title="Borrador pendiente — click para restaurar" aria-label="Borrador pendiente — click para restaurar"></span>` : ''}
         <button class="rsb-card-quick" data-action="open-ingest" data-ai-id="${ai.id}" title="Pegar CHECKPOINT" aria-label="Pegar CHECKPOINT"><svg class="ti-svg" aria-hidden="true"><use href="#ti-plus"></use></svg></button>
@@ -248,10 +265,14 @@ function _buildAvailableCard(ai, sessions) {
 function _buildExhaustedCard(ai) {
   const cd = getCD(ai.resetTime, ai.resetEpoch);
   const resetLabel = ai.resetTime ? `hasta ${fmt12(ai.resetTime)}` : '';
+  // TKT2 (CAEL-08292100-03): badge ortogonal a status — nunca --purple/--purple-text.
+  const wipBadge = ai.wip
+    ? `<span class="rsb-wip-badge" data-action="toggleWip" data-ai-id="${ai.id}" role="button" tabindex="0" title="WIP — click para resolver" aria-label="WIP — click para resolver">WIP</span>`
+    : '';
   return `<div class="rsb-card exhausted rsb-compact" data-action="navigateToCard" data-ai-id="${ai.id}" id="rsb-card-${ai.id}">
     <div class="rsb-card-row">
       <div class="rsb-card-name" title="${esc(ai.name)}">${esc(ai.name)}</div>
-      <div class="rsb-card-meta"><span class="rsb-status-badge rsb-status-exhausted">🔴</span></div>
+      <div class="rsb-card-meta">${wipBadge}<span class="rsb-status-badge rsb-status-exhausted">🔴</span></div>
     </div>
     <div class="rsb-card-body">
       <div class="rsb-countdown" id="rsb-cd-${ai.id}">${cd || '--:--:--'}</div>
@@ -297,12 +318,14 @@ export function renderGlobalRadarSidebar() {
     .filter(a => !a.interrupted && _isInSession(a))
     .sort((a, b) => a.name.localeCompare(b.name));
   // T-202606-038: available ordenado alfabéticamente por nombre — reemplaza sort por _hoyMsUntilReset
+  // TKT2 (CAEL-08292100-03): wip como criterio primario — el founder ve primero a quién le
+  // debe seguimiento, sin perder el orden que ya resolvía cada grupo dentro de cada subgrupo.
   const available   = active
     .filter(a => a.status === 'available' && !a.interrupted && !_isInSession(a))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => (b.wip - a.wip) || a.name.localeCompare(b.name));
   const exhausted   = active
     .filter(a => a.status === 'exhausted' && !a.interrupted)
-    .sort((a, b) => _hoyMsUntilReset(a) - _hoyMsUntilReset(b));
+    .sort((a, b) => (b.wip - a.wip) || (_hoyMsUntilReset(a) - _hoyMsUntilReset(b)));
 
   // Perf: _computeNotifications una sola vez por render — reutilizada en header y body
   const _allNotifs = _computeNotifications();
@@ -344,7 +367,10 @@ export function renderGlobalRadarSidebar() {
 
     // Grupo 3: Agotadas — colapsado por defecto
     if (exhausted.length) {
-      const nextMs = _hoyMsUntilReset(exhausted[0]);
+      // TKT2 (CAEL-08292100-03) — AC de contrato: exhausted[0] ya no es necesariamente el
+      // reset más próximo (wip es ahora criterio primario de orden) — el mínimo real se
+      // calcula aparte, sobre el array completo, independiente del orden visual aplicado.
+      const nextMs = Math.min(...exhausted.map(a => _hoyMsUntilReset(a)));
       const nextMin = nextMs > 0 ? Math.ceil(nextMs / 60000) : 0;
       const metaLabel = nextMin > 0 ? `próxima en ${nextMin}min` : '';
       const isCollapsed = localStorage.getItem('rsb-agotadas-collapsed') !== '0';
@@ -384,10 +410,15 @@ export function renderGlobalRadarSidebar() {
   }
   if (row2El) {
     const sessionCount = interrupted.length + inSession.length;
+    // TKT2 (CAEL-08292100-03): conteo de wip es transversal a grupo (available + exhausted) —
+    // visible siempre que exista al menos un worker con wip:true, independiente del toggle
+    // de colapso de Agotadas (localStorage 'rsb-agotadas-collapsed', sin tocarlo).
+    const wipCount = active.filter(a => a.wip).length;
     const counts = [
       sessionCount     ? `<span class="rsb-hdr-count rsb-hdr-session"><span class="rsb-hdr-dot"></span>${sessionCount} en sesión</span>`    : '',
       available.length ? `<span class="rsb-hdr-count rsb-hdr-available"><span class="rsb-hdr-dot"></span>${available.length} disponibles</span>` : '',
       exhausted.length ? `<span class="rsb-hdr-count rsb-hdr-exhausted"><span class="rsb-hdr-dot"></span>${exhausted.length} agotadas</span>` : '',
+      wipCount          ? `<span class="rsb-hdr-count rsb-hdr-wip"><span class="rsb-hdr-dot"></span>${wipCount} con WIP</span>` : '',
     ].filter(Boolean).join('');
     row2El.innerHTML = counts ? `<span class="rsb-hdr-counts">${counts}</span>` : '';
   }

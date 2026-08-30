@@ -1,4 +1,4 @@
-// [PP] mod:97 · autor:Rune · 2026-08-27 14:45 UTC-6
+// [PP] mod:98 · autor:Rune · 2026-08-28 UTC-6
 // TKT1 (CAEL-08182200-02, DISC-202608-192): entrada de header mod:92 (línea abajo) no cumplía
 // el formato de timestamp de __BR-Execution §9 (YYYY-MM-DD HH:MM UTC-6) — la hora nunca quedó
 // registrada en esa entrega. Sin dato real que reponer, se anota explícitamente en vez de
@@ -998,6 +998,16 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
       const _real = getAnyItem(_c);
       if (_real && _real.sprint) { _flowSprint = _real.sprint; break; }
     }
+    // TKT-202608-482 (REQ-202608-201): saveCheckpointFlow() nunca recibía `files` en este path —
+    // tracker_checkpoint_flow.files (columna ARRAY) quedaba siempre [] vía el fallback de
+    // saveCheckpointFlow() (locus-storage.js), sin importar si el CHECKPOINT declaraba archivos.
+    // Reutiliza newSess.archivos — ya construido en _doSaveSession() vía _parseFilesField(),
+    // shape {nombre,mod,autor} por elemento (T-202606-070) — se toma solo `nombre`, sin tocar
+    // newSess ni su mapeo (no_incluye del TKT). Sin archivos declarados → [] explícito, nunca
+    // undefined ni excepción.
+    const _flowFiles = Array.isArray(newSess && newSess.archivos)
+      ? newSess.archivos.map(f => f && f.nombre).filter(Boolean)
+      : [];
     saveCheckpointFlow({
       projectId: activeProj.id,
       sprintId:  _flowSprint,
@@ -1006,7 +1016,8 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
       summary:   parsed.summary  || '',
       blockers:  parsed.blockers || 'n/a',
       learning:  parsed.learning || 'n/a',
-      decision:  parsed.decision || 'n/a'
+      decision:  parsed.decision || 'n/a',
+      files:     _flowFiles
     });
   }
 

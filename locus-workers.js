@@ -1,3 +1,10 @@
+// [PP] mod:8 · autor:Rune · 2026-08-29 20:40 UTC-6
+// TKT1 (ref_id CAEL-08292100-02, REQ ref_id CAEL-08292100-01): toggleWip(id) agregada — mismo
+// patrón que archiveAI(id): getAI → mutar ai.wip → saveImmediate() (dispara shell:mark-radar-dirty
+// + shell:render-radar automáticamente, locus-storage.js L1428-1430) → saveWorker(ai) persiste a
+// tracker_workers. Trigger de UI (click en el badge) se wirea en TKT2 (Nova, locus-radar.js) vía
+// data-action="toggleWip" — mismo delegador ya usado por open-ingest/openQuickCapture en radar
+// cards, sin mecanismo nuevo.
 // [PP] mod:7 · autor:Rune · 2026-08-18 22:30 UTC-6
 // TKT2 (CAEL-08111815-01): saveWorker()/deleteWorker() agregados en los 5 sitios de mutación
 // de Worker (avatar, alta, archived, y las dos bajas) — save()/saveImmediate() ya no persisten
@@ -272,6 +279,20 @@ export function archiveAI(id) {
   // TKT2 (CAEL-08111815-01): persistir el toggle de archived en tracker_workers.
   saveWorker(ai);
   showToast('info', ai.archived ? `${ai.name} archivada` : `${ai.name} restaurada`);
+}
+
+// ── TKT1 (ref_id CAEL-08292100-02): WIP desacoplado del estado real ──
+// wip es un flag ortogonal a status/interrupted — nunca cambia grupo/color del worker
+// (ver __BR-Ecosystem contrato de _isInSession — sin relación con wip). Mismo patrón de
+// mutación + persistencia que archiveAI(id) arriba.
+export function toggleWip(id) {
+  const ai = getAI(id);
+  if (!ai) return;
+  ai.wip = !ai.wip;
+  saveImmediate(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
+  // Persistir el toggle de wip en tracker_workers — mismo canal dedicado que archived/interrupted.
+  saveWorker(ai);
+  showToast('info', ai.wip ? `${ai.name} marcada con WIP` : `${ai.name} — WIP resuelto`);
 }
 
 export function toggleArchivedSection(btn) {

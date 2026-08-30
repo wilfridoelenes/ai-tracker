@@ -1,4 +1,10 @@
-// [PP] mod:175 · autor:Rune · 2026-08-23 15:10 UTC-6
+// [PP] mod:176 · autor:Rune · 2026-08-29 20:40 UTC-6
+// TKT1 (ref_id CAEL-08292100-02, REQ ref_id CAEL-08292100-01): campo wip agregado a
+// getWorkers()/saveWorker() — mapeo boolean directo, mismo patrón que interrupted/archived.
+// DDL pendiente de ejecución del founder: ALTER TABLE tracker_workers ADD COLUMN wip boolean
+// NOT NULL DEFAULT false; — Cael valida contra AC del TKT antes de esa ejecución. Sin la
+// columna real todavía aplicada, el mapeo cae a !!row.wip → false sin romper la carga ni el
+// resto de columnas ya existentes.
 // TKT-202608-424 (REQ-202608-171, TKT3): markLearningLogEvaluated(projectId, throughTs) agregada
 // — UPDATE puntual sobre tracker_checkpoint_flow, transiciona learning_log_evaluated false→true
 // para filas sin sprint (candidatos a Learning Log) con created_at <= throughTs. Requiere columna
@@ -4321,7 +4327,7 @@ export async function getWorkers() {
   try {
     const { data, error } = await _supabase
       .from('tracker_workers')
-      .select('id,name,avatar,status,reset_time,reset_epoch,available_since,archived,notes,interrupted,show_all,created_at,updated_at')
+      .select('id,name,avatar,status,reset_time,reset_epoch,available_since,archived,notes,interrupted,wip,show_all,created_at,updated_at')
       .eq('user_id', _supabaseUser.id);
     if (error) throw error;
     // AC: mapear columnas snake_case de tracker_workers al shape camelCase de ai en memoria
@@ -4338,6 +4344,7 @@ export async function getWorkers() {
       archived:       !!row.archived,
       notes:          row.notes || '',
       interrupted:    !!row.interrupted,
+      wip:            !!row.wip,
       showAll:        !!row.show_all,
       sessions:       [] // v3: sesiones nunca viven en el Worker — ver getAllSessions()/getAISessions()
     }));
@@ -4368,6 +4375,7 @@ export async function saveWorker(worker) {
     archived:        !!worker.archived,
     notes:           worker.notes || null,
     interrupted:     !!worker.interrupted,
+    wip:             !!worker.wip,
     show_all:        !!worker.showAll,
     updated_at:      Date.now()
   };

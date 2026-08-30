@@ -1,4 +1,4 @@
-// [PP] mod:1 · autor:Rune · 2026-08-27 UTC-6
+// [PP] mod:2 · autor:Rune · 2026-08-28 UTC-6
 // TKT-202608-477 (REQ-202608-198, TKT4 de "Partir parsePaste()/_processIngestBatch() en
 // unidades de responsabilidad única"): módulo nuevo — _BATCH_META_SIDE_EFFECTS/
 // _applyBatchMetaSideEffects(m, ctx) migran aquí desde locus-session-parse.js (mod:219→220).
@@ -62,6 +62,18 @@ export const _BATCH_META_SIDE_EFFECTS = [
     // el flujo single resuelve sobre mergeResult completo (un solo CHECKPOINT); el batch
     // necesita el filtro por idx porque batchMergeResult mezcla ítems de todos los bloques.
     run: (m, ctx) => {
+      // TKT-202608-482 (REQ-202608-201): saveCheckpointFlow() nunca recibía `files` en este
+      // path — mod:197 retiró `files`/`created_at` del shape pasado aquí al corregir el bug de
+      // snake_case/camelCase (INC-202608-104), sin verificar si `files` tenía efecto real.
+      // Diagnóstico confirmado: no lo tenía porque nunca se declaraba — tracker_checkpoint_flow.
+      // files (columna ARRAY) quedaba siempre [] vía el fallback de saveCheckpointFlow()
+      // (locus-storage.js). Reutiliza _batchParseFilesField(m.archivosRaw) — mismo helper ya
+      // importado, ya usado para sessionRegister.archivos (sin tocarlo, no_incluye del TKT) —
+      // shape {nombre,mod,autor} por elemento, se toma solo `nombre`. Sin archivos declarados →
+      // [] explícito (_batchParseFilesField retorna [] ante raw vacío/no-string).
+      const _flowFiles = _batchParseFilesField(m.archivosRaw || '')
+        .map(f => f && f.nombre)
+        .filter(Boolean);
       saveCheckpointFlow({
         projectId: ctx.activeProj && ctx.activeProj.id,
         sprintId:  _resolveBatchFlowSprintId(m.idx, ctx.batchMergeResult),
@@ -70,7 +82,8 @@ export const _BATCH_META_SIDE_EFFECTS = [
         summary:   m.resumen  || '',
         blockers:  m.bloqueantes || 'n/a',
         learning:  m.aprendizaje || 'n/a',
-        decision:  m.decision    || 'n/a'
+        decision:  m.decision    || 'n/a',
+        files:     _flowFiles
       });
     }
   },

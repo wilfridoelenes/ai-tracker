@@ -1,4 +1,4 @@
-// [PP] mod:180 · autor:Rune · 2026-08-27 11:20 UTC-6
+// [PP] mod:181 · autor:Rune · 2026-08-29 UTC-6
 // TKT-202608-480/481 (REQ-202608-200): dos gaps distintos de persistencia de campos declarados
 // por Cael en TKTs nuevos del mismo bloque de CHECKPOINT — devueltos por DISC-202608-227.
 // (1) depends_on con {ref_id,title}: _REF_OBJ_LISTS.forEach (mergeBacklogFromTG) operaba sobre
@@ -2540,7 +2540,15 @@ export function _buildCommonItemFields(item, ctx) {
     kill_criteria: item.kill_criteria || null,
     nextRole: item.nextRole || null,
     designIntent: item.designIntent || null,
-    blockedAt: item.blockedAt || null,
+    // TKT-202608-486 (REQ-202608-205): alias blocked_at→blockedAt agregado — este constructor
+    // solo leía item.blockedAt (camelCase), sin el fallback a item.blocked_at (snake_case,
+    // vocabulario del schema de CHECKPOINT, __BR-Ecosystem §8) que applyPatchesFromTG ya tiene
+    // desde mod:125/138 (ver _PATCH_FIELD_ALIASES más abajo en este archivo). Asimetría: un TKT
+    // patcheado con blocked_at ya funcionaba; un TKT nacido con blocked_at declarado en el mismo
+    // CHECKPOINT de creación lo perdía en silencio. Mismo criterio de precedencia snake_case-gana
+    // que triggered_by en _toItemColumns (locus-storage.js, mod:216) — si ambos presentes, gana
+    // item.blocked_at.
+    blockedAt: item.blocked_at !== undefined ? item.blocked_at : (item.blockedAt || null),
     contract_update: item.contract_update || null,
     createdAt: nowTs,
     statusChangedAt: nowTs,

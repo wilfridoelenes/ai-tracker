@@ -1,3 +1,9 @@
+/* [PP] mod:19 · autor:Nova · 2026-08-29 20:55 UTC-6 */
+/* TKT2 (ref_id CAEL-08292100-03, REQ ref_id CAEL-08292100-01): .rsb-wip-badge — neutro,
+   --surface3/--text3 (mismo par ≥4.5:1 ya verificado en ambos temas, _Locus-css-ref
+   §Tokens — Color). Nunca --purple/--purple-text — ese par queda reservado a interrupted
+   (mod:9 abajo). .rsb-hdr-wip reusa el patrón dimensional de .rsb-hdr-count existente,
+   dot propio en --text3 (no --amber/--purple, sin relación con sesión/interrupted). */
 /* [PP] mod:18 · autor:Nova · 2026-08-18 22:40 UTC-6 */
 /* Fix: .rsb-card-quick sin color declarado — el ícono SVG (#ti-plus, stroke=currentColor)
    caía al negro por defecto del navegador, invisible sobre fondo oscuro. color: var(--text)
@@ -642,6 +648,31 @@
   background: rgb(124 106 247 / 10%);
 }
 
+/* TKT2 (CAEL-08292100-03): badge WIP — ortogonal a status/interrupted, nunca comparte
+   --purple/--purple-text con .rsb-status-interrupted (arriba). */
+.rsb-wip-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  color: var(--text3);
+  background: var(--surface3);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.rsb-wip-badge:hover,
+.rsb-wip-badge:focus-visible {
+  color: var(--text);
+}
+
+.rsb-wip-badge:focus-visible {
+  outline: 2px solid var(--accent, var(--purple));
+  outline-offset: 1px;
+}
+
 /* .rsb-status-available y .rsb-status-session retiradas — mod:5 (CAEL-0717-04).
    Sin consumidor en locus-radar.js desde TKT2 (CAEL-0717-03): available e
    in-session-state renderizan .rsb-card-quick (+/⚡) en vez del dot/badge.
@@ -717,6 +748,19 @@
     opacity: 0.7;
     box-shadow: 0 0 0 3px rgb(245 158 11 / 0%);
   }
+}
+
+/* con WIP — TKT2 (CAEL-08292100-03). Neutro a propósito: no es señal de estado real
+   (available/exhausted/en sesión), es un flag transversal — var(--surface3)/var(--text3)
+   ya son variables por tema (locus-base.css), sin necesidad de override :root[data-theme]
+   como el resto de chips de esta sección (que usan rgb tinted fijo). */
+.rsb-hdr-wip {
+  background: var(--surface3);
+  color: var(--text3);
+}
+
+.rsb-hdr-wip .rsb-hdr-dot {
+  background: var(--text3);
 }
 
 /* light theme bg adjustments */
