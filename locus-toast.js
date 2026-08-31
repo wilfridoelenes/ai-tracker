@@ -1,4 +1,19 @@
-// [PP] mod:7 · autor:Rune · 2026-08-10 23:40 UTC-6
+// [PP] mod:10 · autor:Rune · 2026-08-31 11:05 UTC-6
+// TKT-202608-508 (REQ-202608-212): _TOAST_ICONS migrado de carácter Unicode a id de sprite
+// SVG para success/download/warning/error/confirm/copy — mismo patrón que .toast-dismiss
+// (<use href="#ti-*">). info y neutral quedan en Unicode — sin id semánticamente
+// equivalente en el sprite de index.html (31 símbolos, verificado en esta sesión), señalado
+// explícitamente en vez de forzar un ícono no relacionado (AC3). Detalle completo en el
+// comentario junto a la declaración de _TOAST_ICONS, más abajo.
+// TKT-202608-507 (REQ-202608-211): región aria-live assertive propia para error/warning —
+//   antes warning caía en role="status" (polite) y error dependía solo de role="alert"
+//   heredado del contenedor #toast-stack (aria-live="polite" a nivel de contenedor), con
+//   anuncio inconsistente entre lectores de pantalla. Ahora cada .toast-item declara
+//   aria-live/aria-atomic explícitos sobre sí mismo — región de urgencia propia por ítem,
+//   independiente del contenedor y de otros toasts coexistentes en el stack.
+// TKT-202608-506 (REQ-202608-211): keydown Enter/Space en el toast ejecuta onClick()
+//   antes de _dismissToast() cuando el toast lo tiene — paridad con click en .toast-msg
+//   (WCAG 2.1.1). Guard el._dismissed evita doble disparo por auto-repeat de teclado.
 // REQ CAEL-0724-02, TKT1: _TOAST_ICONS cubre los 8 tipos — confirm/copy/neutral
 // ya no caen al fallback 'ℹ'. TKT2: dismiss usa sprite SVG local (<use href="#ti-x">)
 // — mismo patrón que TKT-202608-286 (REQ-202608-117 TKT5) migró en 8 archivos del
@@ -13,7 +28,29 @@ import { esc } from './locus-ui-shell.js';
 // Carga antes que cualquier módulo que llame funciones toast.
 
 // Toast stack system — múltiples toasts simultáneos con spring animation
-const _TOAST_ICONS = { success: '✓', download: '↓', info: 'ℹ', warning: '⚠', error: '✕', confirm: '✔', copy: '⧉', neutral: '•' };
+// TKT-202608-508 (REQ-202608-212): migrado de carácter Unicode a id del sprite SVG de
+// index.html — mismo patrón que .toast-dismiss (<use href="#ti-x">). Verificado contra
+// index.html real en esta sesión (31 símbolos): success→ti-check · download→ti-backup
+// (flecha hacia abajo con línea — mismo semántico que el '↓' anterior) · warning→
+// ti-alert-triangle · error→ti-x · confirm→ti-check (mismo símbolo que success — ambos
+// eran variantes de check en Unicode: '✓'/'✔') · copy→ti-copy. info y neutral NO tienen
+// id semánticamente equivalente en el sprite (no existe ícono de información ni de punto
+// simple — ti-dots son 3 puntos de menú, no un bullet) — quedan en su carácter Unicode
+// original como excepción declarada (AC3 de TKT-202608-508), en vez de forzar un ícono
+// no relacionado. Valores 'ti-*' son ids de sprite; el resto ('ℹ', '•') son fallback
+// Unicode — _toastIconHtml() distingue por el prefijo 'ti-'.
+const _TOAST_ICONS = { success: 'ti-check', download: 'ti-backup', info: 'ℹ', warning: 'ti-alert-triangle', error: 'ti-x', confirm: 'ti-check', copy: 'ti-copy', neutral: '•' };
+// TKT-202608-508: único punto de traducción tipo→markup — usado por _toastRender()
+// (.toast-icon) y por showToastInline() (rama sin acciones), los dos consumidores
+// reales de _TOAST_ICONS en este archivo. Si el valor mapeado empieza con 'ti-' se
+// interpreta como id de sprite y renderiza <svg><use>; si no, es el fallback Unicode
+// tal cual (info/neutral, o cualquier tipo ausente del mapa → 'ℹ' por defecto).
+function _toastIconHtml(type) {
+  const icon = _TOAST_ICONS[type];
+  if (!icon) return 'ℹ';
+  if (icon.indexOf('ti-') === 0) return `<svg class="ti-svg" aria-hidden="true"><use href="#${icon}"></use></svg>`;
+  return icon;
+}
 // T-202604-229: duraciones base por tipo; 0 = sin auto-dismiss
 // T-202604-279: duraciones calibradas — base mínima + 40ms/char sobre el mínimo
 //   success : mín 2000ms + 40ms/char
@@ -51,9 +88,18 @@ export function _toastRender(type, title, body, base, onClick) {
 
   const el = document.createElement('div');
   el.className = 'toast-item t-' + type;
-  el.setAttribute('role', type === 'error' ? 'alert' : 'status');
+  // TKT-202608-507: error y warning son urgentes por igual — antes solo 'error' recibía
+  // role="alert", warning caía en 'status' (polite). Cada toast urgente declara aria-live
+  // y aria-atomic sobre sí mismo — no depende de que #toast-stack sea aria-live="polite"
+  // a nivel de contenedor, y no interfiere con otros toasts no-urgentes coexistiendo en
+  // el mismo stack (cada .toast-item es su propia región de urgencia).
+  const _isUrgent = type === 'error' || type === 'warning';
+  el.setAttribute('role', _isUrgent ? 'alert' : 'status');
+  el.setAttribute('aria-live', _isUrgent ? 'assertive' : 'polite');
+  el.setAttribute('aria-atomic', 'true');
 
-  const icon = _TOAST_ICONS[type] || 'ℹ';
+  // TKT-202608-508: ícono vía sprite SVG (o fallback Unicode declarado) — ver _toastIconHtml()
+  const icon = _toastIconHtml(type);
   // B-202605-043: regex estricto — requiere nombre de tag HTML válido seguido de espacio, '/' o '>'
   // Evita falsos positivos con expresiones como '<3', '<3 items', etc.
   const _isHtml = s => /<[a-z][a-z0-9]*[\s/>]/i.test(s) || /<\/[a-z][a-z0-9]*>/i.test(s);
@@ -137,9 +183,17 @@ export function _toastRender(type, title, body, base, onClick) {
   }
 
   // T-202604-221: accesibilidad teclado — Tab navega entre toasts, Enter/Space cierra
+  // TKT-202608-506 (REQ-202608-211): paridad mouse↔teclado — si el toast tiene onClick,
+  // Enter/Space lo ejecuta antes de descartar, mismo resultado que click en .toast-msg.
+  // Guard el._dismissed evita doble disparo de onClick() por auto-repeat del teclado —
+  // _dismissToast() ya marca el._dismissed de forma síncrona en su primera línea.
   el.setAttribute('tabindex', '0');
   el.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _dismissToast(el); }
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    if (el._dismissed) return;
+    if (onClick) onClick();
+    _dismissToast(el);
   });
 }
 
@@ -274,8 +328,13 @@ export function showToastInline(anchorEl, actionsOrType, title, opts = {}) {
     el._outsideHandler = _outsideHandler;
 
   } else {
-    const icon = _TOAST_ICONS[type] || 'ℹ';
-    el.textContent = `${icon} ${title}`;
+    // TKT-202608-508: _TOAST_ICONS ahora mezcla ids de sprite ('ti-*') y fallback Unicode
+    // (info/neutral) — _toastIconHtml() resuelve el markup correcto para ambos casos, así
+    // este consumidor no queda roto con un id de sprite crudo impreso como texto.
+    el.innerHTML = `${_toastIconHtml(type)} `;
+    const msgSpan = document.createElement('span');
+    msgSpan.textContent = title;
+    el.appendChild(msgSpan);
     el._inlineTimer = setTimeout(_hideInline, 2000);
   }
 

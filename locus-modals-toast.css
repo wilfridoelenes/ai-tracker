@@ -1,4 +1,15 @@
-/* [PP] mod:8 · autor:Nova · 2026-08-10 23:55 UTC-6 */
+/* [PP] mod:10 · autor:Nova · 2026-08-31 UTC-6 */
+/* TKT-202608-509 (REQ-202608-211): #ckpt-panel/.ckpt-section*/.ckpt-item-*/.ckpt-next/
+   .ckpt-section-label + las dos reglas #ckpt-panel/#ckpt-panel.open del @media
+   (prefers-reduced-motion) compartido con toast — reubicadas íntegras a
+   locus-sesiones.css (destino real de showCheckpointPanel(), locus-sesiones-viz.js),
+   scope propio confirmado contra _Locus-css-ref (este archivo declara solo Toast stack
+   system). Sin cambio de valor — deuda de organización, no de estilo. Este archivo
+   queda exclusivamente .toast-*/#toast-stack/.t-*. */
+/* TKT-202608-514 (REQ-202608-211): :focus-visible en .toast-item.t-error/.t-warning y en
+   .toast-dismiss, + :hover de opacidad en t-error/t-warning. Sin rediseño de layout del
+   stack, sin tocar contraste de progress bar, sin hover/focus nuevo en tipos sin onClick
+   (t-success/-download/-info/-confirm/-copy/-neutral) — ver detalle junto a cada bloque. */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* REQ CAEL-0724-02 (toast — corrección semántica + render): TKT1 tokens dedicados
    t-confirm (--blue-*)/t-copy (color-mix + --pink), title override incluye t-confirm.
@@ -151,6 +162,17 @@
   color: var(--text);
 }
 
+/* TKT-202608-514 (REQ-202608-211): outline-offset negativo — .toast-item declara
+   overflow:hidden (línea 55) que en motores WebKit recorta un outline dibujado hacia
+   afuera del elemento; -2px dibuja el anillo hacia adentro del borde, visible siempre,
+   sin tocar overflow ni el layout existente. */
+.toast-dismiss:focus-visible {
+  opacity: 1;
+  color: var(--text);
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 .toast-item.t-success {
   background: var(--c-low-bg);
   border-color: var(--c-low-border);
@@ -175,6 +197,28 @@
   border-color: var(--c-high-border);
   color: var(--c-high-text);
   cursor: pointer;
+}
+
+/* TKT-202608-514 (REQ-202608-211): affordance de clickeable — ambos son "toast-clickable"
+   en locus-toast.js (dismiss-on-click) independientemente de onClick. Hover ajusta la
+   opacidad del propio fondo ya declarado (mismo token, sin token de color nuevo) —
+   ver justificación de outline-offset en el bloque de .toast-dismiss:focus-visible. */
+.toast-item.t-error:hover {
+  background: color-mix(in srgb, var(--c-critical-bg) 88%, transparent);
+}
+
+.toast-item.t-warning:hover {
+  background: color-mix(in srgb, var(--c-high-bg) 88%, transparent);
+}
+
+.toast-item.t-error:focus-visible {
+  outline: 2px solid var(--c-critical-border);
+  outline-offset: -2px;
+}
+
+.toast-item.t-warning:focus-visible {
+  outline: 2px solid var(--c-high-border);
+  outline-offset: -2px;
 }
 
 /* AC-1: t-info — borde más visible, fondo diferenciado de surface2 */
@@ -261,214 +305,6 @@
   from { transform: scaleX(1); }
   to { transform: scaleX(0); }
 }
-
-#ckpt-panel {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  width: 340px;
-  max-width: calc(100vw - 2rem);
-  background: var(--surface);
-  border: 1.5px solid var(--border2);
-  border-radius: var(--radius-xl);
-  box-shadow: 0 12px 40px rgb(0 0 0 / 35%);
-  z-index: var(--z-top);
-  overflow: hidden;
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.22s, transform 0.22s;
-  pointer-events: none;
-  backdrop-filter: blur(12px);
-  display: flex;
-  flex-direction: column;
-  max-height: min(80vh, 560px);
-}
-
-#ckpt-panel.open {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: all;
-}
-
-.ckpt-header-close {
-  background: none; border: none; cursor: pointer;
-  color: var(--text3); font-size: var(--text-md); padding: 0 2px; line-height: 1;
-}
-
-.ckpt-header-close:hover {
-  color: var(--text);
-}
-
-.ckpt-body {
-  padding: 10px 14px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.ckpt-section {
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-
-.ckpt-section-header {
-  display: flex; align-items: center; gap: 6px;
-  padding: 6px 10px; font-size: var(--text-xs); font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.06em;
-}
-
-.ckpt-section.created .ckpt-section-header {
-  background: var(--green-dim);
-  color: var(--green-text);
-  border: 1px solid var(--green-border);
-  border-bottom: none;
-}
-
-.ckpt-section.updated .ckpt-section-header {
-  background: rgb(232 168 50 / 12%);
-  color: var(--amber-text);
-  border: 1px solid rgb(232 168 50 / 25%);
-  border-bottom: none;
-}
-
-.ckpt-section.advanced .ckpt-section-header {
-  background: var(--green-dim);
-  color: var(--green-text);
-  border: 1px solid var(--green-border);
-  border-bottom: none;
-}
-
-.ckpt-section.retroceso .ckpt-section-header {
-  background: rgb(230 100 30 / 12%);
-  color: var(--amber-text);
-  border: 1px solid rgb(230 100 30 / 30%);
-  border-bottom: none;
-}
-
-.ckpt-section.discarded .ckpt-section-header {
-  background: rgb(120 120 120 / 10%);
-  color: var(--text3);
-  border: 1px solid var(--border);
-  border-bottom: none;
-}
-
-.ckpt-section.ignored .ckpt-section-header {
-  background: var(--surface2);
-  color: var(--text3);
-  border: 1px solid var(--border);
-  border-bottom: none;
-}
-
-.ckpt-section.warning .ckpt-section-header {
-  background: rgb(232 60 60 / 10%);
-  color: var(--red);
-  border: 1px solid rgb(232 60 60 / 25%);
-  border-bottom: none;
-}
-
-.ckpt-section.notice .ckpt-section-header {
-  background: rgb(232 168 50 / 10%);
-  color: var(--amber-text);
-  border: 1px solid rgb(232 168 50 / 25%);
-  border-bottom: none;
-}
-
-.ckpt-section.context .ckpt-section-header {
-  background: rgb(139 195 74 / 10%);
-  color: var(--accent-text);
-  border: 1px solid var(--accent-border);
-  border-bottom: none;
-}
-
-.ckpt-section-body {
-  padding: 6px 10px 8px;
-  font-size: var(--text-xs);
-  line-height: 1.6;
-}
-
-.ckpt-section.created .ckpt-section-body {
-  background: var(--green-dim);
-  border: 1px solid var(--green-border);
-  border-top: none;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
-  color: var(--text2);
-}
-
-.ckpt-section.updated .ckpt-section-body {
-  background: rgb(232 168 50 / 7%);
-  border: 1px solid rgb(232 168 50 / 20%);
-  border-top: none;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
-  color: var(--text2);
-}
-
-.ckpt-section.advanced .ckpt-section-body {
-  background: var(--green-dim);
-  border: 1px solid var(--green-border);
-  border-top: none;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
-  color: var(--text2);
-}
-
-.ckpt-section.retroceso .ckpt-section-body {
-  background: rgb(230 100 30 / 7%);
-  border: 1px solid rgb(230 100 30 / 20%);
-  border-top: none;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
-  color: var(--text2);
-}
-
-.ckpt-section.discarded .ckpt-section-body {
-  background: rgb(120 120 120 / 6%);
-  border: 1px solid var(--border);
-  border-top: none;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
-  color: var(--text3);
-}
-
-.ckpt-section.ignored .ckpt-section-body {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-top: none;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
-  color: var(--text3);
-}
-
-.ckpt-section.warning .ckpt-section-body {
-  background: rgb(232 60 60 / 6%);
-  border: 1px solid rgb(232 60 60 / 18%);
-  border-top: none;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
-  color: var(--text2);
-}
-
-.ckpt-section.notice .ckpt-section-body {
-  background: rgb(232 168 50 / 6%);
-  border: 1px solid rgb(232 168 50 / 18%);
-  border-top: none;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
-  color: var(--text2);
-}
-
-.ckpt-section.context .ckpt-section-body {
-  background: rgb(139 195 74 / 6%);
-  border: 1px solid var(--accent-border);
-  border-top: none;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
-  color: var(--text2);
-}
-
-.ckpt-item-arrow {
-  font-size: var(--text-xs);
-  font-family: var(--mono);
-  opacity: 0.7;
-  color: var(--green-text);
-}
-
-.ckpt-item-arrow.retroceso {
-  color: var(--amber-text);
-}
-
 
 /* === locus-toast.js ===
    Funciones: showToastInline · _hideInline */
@@ -588,50 +424,6 @@
 /* ══ END T-202604-221 toast inline ══ */
 
 
-/* R-202605-005 · A4-b · ckpt-* */
-
-.ckpt-context {
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  padding: 4px 0;
-  line-height: 1.5;
-}
-
-.ckpt-decision {
-  font-size: var(--text-xs);
-  color: var(--text);
-  font-weight: 500;
-}
-
-.ckpt-item-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.ckpt-item-title {
-  font-size: var(--text-xs);
-  flex: 1;
-}
-
-.ckpt-next {
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  border-left: 3px solid var(--accent-border);
-  padding-left: 8px;
-  line-height: 1.5;
-}
-
-.ckpt-section-label {
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 2px;
-}
-
-
 .toast-inline-actions {
   display: flex;
   align-items: center;
@@ -708,16 +500,6 @@
   /* Progress bar auto-dismiss (toast-shrink) — sin scaleX animado */
   .toast-progress {
     animation: none;
-  }
-
-  /* CKPT panel — sin translateY en apertura; solo fade */
-  #ckpt-panel {
-    transform: none;
-    transition: opacity 0.18s var(--ease-out);
-  }
-
-  #ckpt-panel.open {
-    transform: none;
   }
 
   /* Toast inline — sin translate en entrada/salida; solo fade */
