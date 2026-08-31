@@ -1,3 +1,7 @@
+// [PP] mod:178 · autor:Rune · 2026-08-30 22:15 UTC-6
+// TKT (ref_id CAEL-08302200-01, origen_disc DISC-202608-241): _isInSession() pierde el
+// guard vestigial '&& !ai.interrupted' — inerte desde TKT-202608-491, ya documentado
+// como contrato objetivo en _Locus-module-contracts mod:230. Sin cambio de comportamiento.
 // [PP] mod:177 · autor:Rune · 2026-08-30 UTC-6
 // TKT-202608-491 (REQ-202608-207, TKT3): campo ai.interrupted retirado por completo de este
 // archivo — getWorkers()/saveWorker() dejan de leer/escribir la columna `interrupted` de
@@ -4534,8 +4538,12 @@ export function _getCurrentCheckpoint(aiId) { return _getCurrentSession(aiId); }
 // availableSince se conserva en el modelo solo como metadato informativo del momento de
 // reset (label "disponible desde" en locus-radar.js _buildAvailableCard) — no lo lee más
 // ninguna función de cálculo de estado. Ver _Locus-module-contracts §1.
+// TKT (ref_id CAEL-08302200-01, origen_disc DISC-202608-241): guard '&& !ai.interrupted'
+// retirado — quedaba inerte (siempre true) desde el retiro completo de ai.interrupted
+// del modelo en TKT-202608-491; ya documentado como contrato objetivo en
+// _Locus-module-contracts mod:230. Sin cambio de comportamiento observable.
 export function _isInSession(ai) {
-  return ai.status === 'in_session' && !ai.interrupted;
+  return ai.status === 'in_session';
 }
 
 // Busca una sesión por id en todos los proyectos — devuelve { proj, sess } o null
