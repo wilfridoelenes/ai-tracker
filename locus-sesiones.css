@@ -1,4 +1,4 @@
-/* [PP] mod:60 · autor:Nova · 2026-08-31 UTC-6 */
+/* [PP] mod:61 · autor:Nova · 2026-08-31 23:05 UTC-6 */
 /* TKT-202608-509 (REQ-202608-212): #ckpt-panel/.ckpt-section*/.ckpt-item-*/.ckpt-next/
    .ckpt-section-label + reduced-motion propio de #ckpt-panel — reubicados íntegros
    desde locus-modals-toast.css, junto a #ckpt-bar (T-202606-035, ya vivía aquí).
@@ -7932,6 +7932,37 @@ body.radar-sb-open .tracker-sidebar {
   letter-spacing: 0.06em;
   margin-bottom: 2px;
 }
+
+/* ── TKT ref:CAEL-08312300-02 (parent REQ ref:CAEL-08312300-01): CSS Purity —
+   .ckpt-item-code/.ckpt-item-row/.ckpt-inline-fix/.ckpt-info-text usadas en
+   showCheckpointPanel() (locus-sesiones-viz.js) sin definición propia — cierre
+   de DISC-202608-253. Mismo patrón de vecinos ya definidos (.ckpt-item-arrow,
+   .ckpt-item-title, .ckpt-context) — sin color hex nuevo, sin cambio de estructura. ── */
+.ckpt-item-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ckpt-item-code {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+.ckpt-inline-fix {
+  font-size: var(--text-xs);
+  color: var(--text2);
+  padding: 4px 0;
+  line-height: 1.5;
+}
+
+.ckpt-info-text {
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+/* ── END TKT ref:CAEL-08312300-02 ─────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
   /* CKPT panel — sin translateY en apertura; solo fade */
