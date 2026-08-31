@@ -1,3 +1,20 @@
+// [PP] mod:118 · autor:Rune · 2026-08-31 UTC-6
+// INC-202608-145 (fix — chevron de expand del panel DIFF no acciona el detalle del ítem):
+// los tres listeners delegados sobre #merge-diff-overlay que faltaban en el fix de
+// [código no confirmado — TKT-202607-212] (ver comentario original ~L2976, más abajo en
+// este archivo) — el dispatcher de click (mdiff-toggle-card/mdiff-toggle-zone/
+// mdiff-toggle-section/etc.) y los de input/change — ahora también declaran
+// { signal: _mdiffPanelAC.signal }. Causa raíz: #merge-diff-overlay es shell estático
+// compartido (no se destruye entre aperturas de showMergeDiffPanel()); sin signal, cada
+// reapertura apilaba un listener de click adicional sobre el mismo elemento. _mdiffToggleDrawer
+// (toggle puro sobre aria-expanded/hidden leído en el momento del click) revertía su propio
+// efecto cuando el dispatcher corría un número par de veces en el mismo click — el chevron
+// quedaba visible pero el drawer nunca cambiaba de estado, exactamente el síntoma reportado.
+// Mismo mecanismo de limpieza ya vigente para cancel/apply/keydown/storage:item-excluded —
+// _mdiffPanelAC.abort() en teardownMergeDiffPanel() ahora también retira estos tres.
+// contract_update: no — mismos listeners internos al closure de showMergeDiffPanel, sin
+// cambio de firma ni de comportamiento cuando el panel se abre una sola vez por sesión de
+// página (caso ya cubierto correctamente antes de este fix).
 // [PP] mod:117 · autor:Rune · 2026-08-28 UTC-6
 // DISC-202608-234: comentario stale de _rowCardShell (L1194-1199 original) corregido —
 // referenciaba "DISC pendiente de grooming" ya promovida a REQ-202608-199 (done). Sin
@@ -2949,7 +2966,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         }
       }
     }
-  });
+  }, { signal: _mdiffPanelAC.signal });
 
   // T-202606-008: delegation change — reemplaza onchange= inline en templates de pendingList y _sprintSelect
   // TKT2 (REQ CAEL-0720-02, AC1): filtrado en vivo del resolver — evento input, no change,
@@ -2958,7 +2975,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     if (e.target.dataset && e.target.dataset.action === 'mdiff-unresolved-search') {
       if (_mdiffUnresolvedFilter) _mdiffUnresolvedFilter(e.target);
     }
-  });
+  }, { signal: _mdiffPanelAC.signal });
 
   overlay.addEventListener('change', function(e) {
     // Retroceso checkbox — data-retroceso-idx (generado en _mdiffUpdateConfirmBtn)
@@ -2971,7 +2988,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       if (_mdiffUpdateConfirmBtn) _mdiffUpdateConfirmBtn();
       return;
     }
-  });
+  }, { signal: _mdiffPanelAC.signal });
 
   // [código no confirmado — TKT-202607-212] (INC — duplicación de ítem): los tres listeners de botón de este panel
   // (cancel/backlog/apply) no estaban scoped a _mdiffPanelAC.signal — a diferencia de keydown y

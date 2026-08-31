@@ -1,4 +1,7 @@
-// [PP] mod:12 · autor:Rune · 2026-08-31 11:32 UTC-6
+// [PP] mod:13 · autor:Rune · 2026-08-31 15:45 UTC-6
+// TKT-202608-519 (REQ-202608-216): showToastDigest() renderiza listado completo de
+// mensajes agrupados en vez de truncar a "y N más" — ver bloque junto a la función,
+// más abajo. Depende de .toast-digest-list (TKT-202608-518, locus-modals-toast.css).
 // TKT-202608-512 (REQ-202608-212): confirm/copy/neutral con prioridad explícita en
 // _TOAST_PRIORITY — ya no caen al fallback ?? 99. Orden relativo previo sin cambio.
 // TKT-202608-510 (REQ-202608-212): rama mobile muerta en showToastInline() retirada —
@@ -245,6 +248,12 @@ export function _toastNext() {
 }
 
 // T-202604-280: digest — agrupa múltiples mensajes del mismo tipo en un solo toast
+// TKT-202608-519 (REQ-202608-216): body deja de ser "y N más" — se reemplaza por el
+// listado completo de los mensajes restantes en .toast-digest-list (TKT1,
+// locus-modals-toast.css). msgs[0] se conserva como title, sin cambio. tabindex="0"
+// condicional: solo cuando rest.length supera 6 — mismo umbral que asume el
+// max-height de la clase (line-height 1.5 · text-xs ≈ 9em/6 líneas). Por debajo del
+// umbral no hay scroll real, así que no se agrega un tab-stop sin función.
 export function showToastDigest(type, msgs, duration = null) {
   if (!msgs || !msgs.length) return;
   if (msgs.length === 1) {
@@ -252,7 +261,10 @@ export function showToastDigest(type, msgs, duration = null) {
     return;
   }
   const title = msgs[0];
-  const body = `y ${msgs.length - 1} más`;
+  const rest = msgs.slice(1);
+  const needsScroll = rest.length > 6;
+  const itemsHtml = rest.map(m => `<li>${esc(m)}</li>`).join('');
+  const body = `<ul class="toast-digest-list"${needsScroll ? ' tabindex="0"' : ''}>${itemsHtml}</ul>`;
   showToast(type, title, body, duration);
 }
 
