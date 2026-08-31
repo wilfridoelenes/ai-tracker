@@ -1,4 +1,10 @@
-// [PP] mod:13 · autor:Rune · 2026-08-31 15:45 UTC-6
+// [PP] mod:14 · autor:Rune · 2026-08-31 17:20 UTC-6
+// TKT ref_id CAEL-08311620-02 (REQ ref_id CAEL-08311620-01, ex-DISC-202608-246):
+// _TOAST_EXIT_MS unifica los dos timers de salida — .toast-item (antes 160ms) y
+// .toast-inline (antes 200ms) — bajo un único valor de 150ms, alineado a
+// --transition-base (token canónico de microinteracciones, _Locus-css-ref.md).
+// .toast-inline.toast-hide ya estaba en 150ms de CSS (sin cambio); .toast-item.toast-hide
+// se corrige de 160ms a 150ms en locus-modals-toast.css (Nova, mismo TKT — CSS Purity).
 // TKT-202608-519 (REQ-202608-216): showToastDigest() renderiza listado completo de
 // mensajes agrupados en vez de truncar a "y N más" — ver bloque junto a la función,
 // más abajo. Depende de .toast-digest-list (TKT-202608-518, locus-modals-toast.css).
@@ -67,6 +73,10 @@ function _toastIconHtml(type) {
 //   download: Math.min(8000, 4000 + 40ms/char) — o hasta dismiss
 //   copy / neutral / confirm: planos (sin contenido variable largo)
 const _TOAST_DEFAULTS = { success: 2000, download: 4000, error: 0, warning: 3000, info: 2000, confirm: 3500, copy: 2000, neutral: 2500 };
+// TKT ref_id CAEL-08311620-02: único punto de verdad para la duración de salida de
+// cualquier toast (stack o inline) — 150ms, igual a --transition-base (_Locus-css-ref.md).
+// No confundir con _TOAST_DEFAULTS (duración de permanencia antes de iniciar la salida).
+const _TOAST_EXIT_MS = 150;
 // T-202604-279: calcula duración calibrada según tipo y longitud del texto visible
 function _toastDuration(type, title, body) {
   const base = _TOAST_DEFAULTS[type] ?? 2000;
@@ -236,7 +246,7 @@ export function _dismissToast(el) {
   setTimeout(() => {
     el.remove();
     _toastNext(); // T-202604-280: mostrar siguiente de queue al dismissear
-  }, 160); // T-202604-221: 150ms transición salida + 10ms buffer
+  }, _TOAST_EXIT_MS);
 }
 
 // T-202604-280: extrae el siguiente toast de queue (ya ordenado por prioridad) y lo renderiza
@@ -303,7 +313,7 @@ export function showToastInline(anchorEl, actionsOrType, title, opts = {}) {
     el._inlineDismissed = true;
     clearTimeout(el._inlineTimer);
     el.classList.add('toast-hide');
-    setTimeout(() => el.remove(), 200);
+    setTimeout(() => el.remove(), _TOAST_EXIT_MS);
   };
 
   if (isActionMode && actions.length) {
