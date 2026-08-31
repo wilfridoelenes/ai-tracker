@@ -1,5 +1,5 @@
-/* [PP] mod:59 · autor:Nova · 2026-08-31 UTC-6 */
-/* TKT-202608-509 (REQ-202608-211): #ckpt-panel/.ckpt-section*/.ckpt-item-*/.ckpt-next/
+/* [PP] mod:60 · autor:Nova · 2026-08-31 UTC-6 */
+/* TKT-202608-509 (REQ-202608-212): #ckpt-panel/.ckpt-section*/.ckpt-item-*/.ckpt-next/
    .ckpt-section-label + reduced-motion propio de #ckpt-panel — reubicados íntegros
    desde locus-modals-toast.css, junto a #ckpt-bar (T-202606-035, ya vivía aquí).
    showCheckpointPanel() (locus-sesiones-viz.js) es el único consumidor. Sin cambio de
@@ -7682,7 +7682,7 @@ body.radar-sb-open .tracker-sidebar {
 }
 /* ── END T-202606-035 ─────────────────────────────────────────────────────── */
 
-/* ── TKT-202608-509 (REQ-202608-211): #ckpt-panel/.ckpt-* — reubicado desde
+/* ── TKT-202608-509 (REQ-202608-212): #ckpt-panel/.ckpt-* — reubicado desde
    locus-modals-toast.css (CSS Purity — showCheckpointPanel() en locus-sesiones-viz.js
    no consume nada de toast). Contenido sin modificar, solo reubicación. ── */
 #ckpt-panel {

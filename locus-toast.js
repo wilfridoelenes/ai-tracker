@@ -1,4 +1,8 @@
-// [PP] mod:10 · autor:Rune · 2026-08-31 11:05 UTC-6
+// [PP] mod:12 · autor:Rune · 2026-08-31 11:32 UTC-6
+// TKT-202608-512 (REQ-202608-212): confirm/copy/neutral con prioridad explícita en
+// _TOAST_PRIORITY — ya no caen al fallback ?? 99. Orden relativo previo sin cambio.
+// TKT-202608-510 (REQ-202608-212): rama mobile muerta en showToastInline() retirada —
+// proyecto es desktop-only (_pp-strategy §6), sin viewport móvil soportado.
 // TKT-202608-508 (REQ-202608-212): _TOAST_ICONS migrado de carácter Unicode a id de sprite
 // SVG para success/download/warning/error/confirm/copy — mismo patrón que .toast-dismiss
 // (<use href="#ti-*">). info y neutral quedan en Unicode — sin id semánticamente
@@ -73,7 +77,7 @@ function _toastDuration(type, title, body) {
 
 // T-202604-280: stack rules — máximo 3 visibles, queue, prioridad, digest
 const _TOAST_MAX = 3;
-const _TOAST_PRIORITY = { error: 0, warning: 1, success: 2, info: 3, download: 4 };
+const _TOAST_PRIORITY = { error: 0, warning: 1, success: 2, info: 3, download: 4, confirm: 5, copy: 6, neutral: 7 };
 let _toastQueue = []; // { type, title, body, base, onClick }
 
 export function _toastVisibleCount() {
@@ -262,12 +266,6 @@ export function showToastInline(anchorEl, actionsOrType, title, opts = {}) {
   const actions = isActionMode ? actionsOrType : null;
 
   if (!anchorEl) { showToast(type, title); return; }
-
-  // Mobile: delegar al sistema global (sin botones de acción)
-  if (window.innerWidth <= 600) {
-    showToast(type, title);
-    return;
-  }
 
   // Limpiar inline anterior en el mismo anchor si existe
   const prev = anchorEl.querySelector('.toast-inline');

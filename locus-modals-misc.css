@@ -1,4 +1,8 @@
-/* [PP] mod:12 · autor:Nova · 2026-08-18 22:40 UTC-6 */
+/* [PP] mod:13 · autor:Nova · 2026-08-31 11:40 UTC-6 */
+/* TKT-202608-511 (REQ-202608-212): marcador de sección "T-202604-233" retirado — sin
+   bloque @media(max-width:560px) asociado en el código real (hallazgo: la regla ya no
+   existía, solo el título de sección sobrevivía como resto documental). Sin cambio de
+   ninguna otra regla del archivo. */
 /* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
 /* locus-modals-misc.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
 
@@ -1290,7 +1294,7 @@
 
 /* ══ END T-202604-164 ══ */
 
-/* ══ T-202604-233: Toast — mobile responsive (≤560px) — actualizado T-202604-221 ══ */
+/* ══ T-202604-233: retirado — ver TKT-202608-511 (REQ-202608-212) ══ */
 
 /* sprint-close: R histórico — sin CHECKPOINT confirmado sprint-close-overlay → locus-sprint-close.css */
 
