@@ -1,4 +1,8 @@
-// [PP] mod:42 · autor:Rune · 2026-08-19 21:10 UTC-6
+// [PP] mod:43 · autor:Rune · 2026-08-30 22:15 UTC-6
+// TKT1 (ref_id CAEL-08302200-02, REQ ref_id CAEL-08302200-01): applyDocUpdateResolution(key,
+// action) exportada — extrae la lógica antes inline en .du-btn-apply/.du-btn-discard. Punto de
+// entrada único para resolver un doc_update sin conflicto, reusado por TKT2/TKT3 (parser) vía
+// type: doc_update_patch. Sin cambio de comportamiento observable en la UI existente.
 // INC — renderLearningLog() sin await sobre getCheckpointFlowsWithoutSprint() (async): rows
 // quedaba siempre asignado al objeto Promise (truthy), rows.length era undefined, y !rows.length
 // evaluaba siempre true — el empty state se renderizaba sin importar cuántas filas existieran en
@@ -1041,6 +1045,9 @@ export function processDocUpdate(update, checkpointTitle) {
 // resolveDocUpdate — el dueño elige una propuesta; descarta las demás.
 // chosenIndex: índice dentro del array index[key] de la propuesta elegida.
 // Registra descarte en DocLog para cada entrada no elegida.
+// Nota de nombre — no confundir con applyDocUpdateResolution() (abajo): esta función resuelve
+// un CONFLICTO entre 2+ propuestas candidatas para la misma key (deja una sola, sin flag de
+// conflicto) — no marca la entrada como aplicada/descartada del ciclo de vida del DOC-UPDATE.
 export function resolveDocUpdate(key, chosenIndex) {
   const index = _getDocUpdateIndex();
   if (!index[key]) return;
@@ -1054,6 +1061,30 @@ export function resolveDocUpdate(key, chosenIndex) {
   const chosen = { ...entries[chosenIndex], conflicto: false };
   index[key] = [chosen];
   _setDocUpdateIndex(index);
+}
+
+// applyDocUpdateResolution — TKT1 (ref_id CAEL-08302200-02, REQ ref_id CAEL-08302200-01):
+// extrae la lógica antes duplicada e inline en los handlers .du-btn-apply/.du-btn-discard
+// (_initDocUpdatesUnifiedListeners) a una función reusable — punto de entrada único para
+// resolver una entrada de doc_updates ya sin conflicto, sea por click de UI o por instrucción
+// de CHECKPOINT (type: doc_update_patch, TKT2/TKT3). key: mismo formato 'doc::section' que
+// processDocUpdate() ya usa para indexar. action: 'aplicado' | 'descartado'.
+// Retorno: { resolved: true } en éxito, o { resolved: false, reason: 'no_pending_entry' | 'conflict' }
+// — nunca lanza excepción, mismo criterio que el resto de instrucciones sobre código inexistente
+// (__BR-Ecosystem §8). 'conflict' es defensivo — la UI nunca expone Aplicar/Descartar mientras
+// hasConflict (ver renderDocUpdatesUnified), pero una invocación programática puede llegar con
+// 2+ entradas sin pasar por ese gate visual.
+export function applyDocUpdateResolution(key, action) {
+  const index = _getDocUpdateIndex();
+  const entries = index[key];
+  if (!entries || !entries.length) return { resolved: false, reason: 'no_pending_entry' };
+  if (entries.length > 1) return { resolved: false, reason: 'conflict' };
+  const entry = entries[0];
+  _blogLog(action, key, entry.titulo || '', 'backlog');
+  _pushDocUpdateResolved(key, action);
+  delete index[key];
+  _setDocUpdateIndex(index);
+  return { resolved: true };
 }
 // ── END T-202606-032 ──────────────────────────────────────────────────────────
 
@@ -1529,36 +1560,30 @@ function _initDocUpdatesUnifiedListeners() {
       }
 
       // AC-1: "Aplicar" → marca como aplicado y elimina del índice
+      // TKT1 (ref_id CAEL-08302200-02): lógica extraída a applyDocUpdateResolution() — mismo
+      // comportamiento observable, sin cambio de AC. El guard 'conflict' es no-op aquí: la UI
+      // nunca renderiza este botón habilitado mientras hasConflict (ver renderDocUpdatesUnified).
       const btnApply = e.target.closest('.du-btn-apply');
       if (btnApply && !btnApply.disabled) {
         const key = btnApply.dataset.duKey;
-        const idx = _getDocUpdateIndex();
-        const entry = (idx[key] || [])[0];
-        if (entry) {
-          _blogLog('aplicado', key, entry.titulo || '', 'backlog');
+        const result = applyDocUpdateResolution(key, 'aplicado');
+        if (result.resolved) {
+          showToast('success', 'DOC-UPDATE aplicado y registrado en DocLog.');
+          renderDocUpdatesUnified();
         }
-        _pushDocUpdateResolved(key, 'aplicado');
-        delete idx[key];
-        _setDocUpdateIndex(idx);
-        showToast('success', 'DOC-UPDATE aplicado y registrado en DocLog.');
-        renderDocUpdatesUnified();
         return;
       }
 
       // "Descartar" → elimina del índice sin aplicar
+      // TKT1 (ref_id CAEL-08302200-02): lógica extraída a applyDocUpdateResolution().
       const btnDiscard = e.target.closest('.du-btn-discard');
       if (btnDiscard) {
         const key = btnDiscard.dataset.duKey;
-        const idx = _getDocUpdateIndex();
-        const entry = (idx[key] || [])[0];
-        if (entry) {
-          _blogLog('descartado', key, entry.titulo || '', 'backlog');
+        const result = applyDocUpdateResolution(key, 'descartado');
+        if (result.resolved) {
+          showToast('info', 'DOC-UPDATE descartado.');
+          renderDocUpdatesUnified();
         }
-        _pushDocUpdateResolved(key, 'descartado');
-        delete idx[key];
-        _setDocUpdateIndex(idx);
-        showToast('info', 'DOC-UPDATE descartado.');
-        renderDocUpdatesUnified();
       }
     });
   }

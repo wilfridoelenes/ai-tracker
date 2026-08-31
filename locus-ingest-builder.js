@@ -1,4 +1,7 @@
-// [PP] mod:1 · autor:Rune · 2026-08-27 UTC-6
+// [PP] mod:2 · autor:Rune · 2026-08-30 22:20 UTC-6
+// TKT2 (ref_id CAEL-08302200-06, REQ ref_id CAEL-08302200-01): docUpdatePatchItems agregado —
+// canal propio para type: doc_update_patch dentro de items[], mismo criterio de separación que
+// patchIntencionItems. Ver comentario completo en _buildTgItemsFromParsed().
 // TKT-202608-476 (REQ-202608-198, TKT3 de "Partir parsePaste()/_processIngestBatch() en
 // unidades de responsabilidad única"): módulo nuevo — construcción de tgItems/patchItems desde
 // un CHECKPOINT ya parseado, extraída de locus-session-parse.js. Contenido movido byte a byte,
@@ -118,6 +121,11 @@ export function _buildTgItemsFromParsed(ckpt, parsedJSON) {
   const tgItems = [];
   const patchItems = [];
   const patchIntencionItems = []; // TKT1 (REQ-202607-061): canal propio, separado de patchItems
+  const docUpdatePatchItems = []; // TKT2 (ref_id CAEL-08302200-06, REQ ref_id CAEL-08302200-01):
+  // canal propio para type: doc_update_patch — mismo criterio de separación que
+  // patchIntencionItems. Vive dentro de items[] (__BR-Ecosystem §8) pero no es un ítem de
+  // backlog ni un patch sobre código real: resuelve una entrada ya registrada de doc_updates
+  // por clave doc+section (locus-docs.js, applyDocUpdateResolution — TKT1).
   let itemError = null;
   // TKT3 (REQ-202608-107): gate de REQ sin AC — portado desde el loop inline de parsePaste
   // (_rsNoAc, retirado en TKT2 de este mismo REQ). BR-Ecosystem §5 + BR-Core §8 regla dura:
@@ -147,6 +155,21 @@ export function _buildTgItemsFromParsed(ckpt, parsedJSON) {
         showToast('warn', `patch-intencion descartado: falta founder_confirmado — ${it.code}.`);
       } else {
         patchIntencionItems.push(it);
+      }
+      continue;
+    }
+    // TKT2 (ref_id CAEL-08302200-06, REQ ref_id CAEL-08302200-01): doc_update_patch — resuelve
+    // (aplicado/descartado) una entrada pendiente real de doc_updates por doc+section. Sin `code`
+    // — direcciona por doc+section, misma clave que ya agrupa docUpdateIndex (locus-docs.js).
+    if (it.type === 'doc_update_patch') {
+      if (!it.doc || !it.section) {
+        _blogLog('doc-update-patch-ignorado', (it.doc || '') + '::' + (it.section || ''), 'doc_update_patch ignorado: faltan doc o section.', 'backlog');
+        showToast('warn', 'doc_update_patch descartado: faltan doc o section.');
+      } else if (it.resolution !== 'aplicado' && it.resolution !== 'descartado') {
+        _blogLog('doc-update-patch-ignorado', it.doc + '::' + it.section, 'doc_update_patch ignorado: resolution inválido "' + (it.resolution || '') + '" — válidos: aplicado | descartado.', 'backlog');
+        showToast('warn', `doc_update_patch descartado: resolution inválido — ${it.doc}§${it.section}.`);
+      } else {
+        docUpdatePatchItems.push(it);
       }
       continue;
     }
@@ -248,5 +271,5 @@ export function _buildTgItemsFromParsed(ckpt, parsedJSON) {
     tgItems.length = 0;
   }
 
-  return { tgItems, patchItems, patchIntencionItems, itemError };
+  return { tgItems, patchItems, patchIntencionItems, docUpdatePatchItems, itemError };
 }
