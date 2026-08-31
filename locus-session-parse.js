@@ -1,5 +1,5 @@
-// [PP] mod:221 · autor:Rune · 2026-08-30 23:10 UTC-6
-// TKT3 (ref_id CAEL-08302200-07, REQ ref_id CAEL-08302200-01): type: doc_update_patch —
+// [PP] mod:222 · autor:Rune · 2026-08-31 07:40 UTC-6
+// TKT-202608-502 (REQ-202608-209): type: doc_update_patch —
 // docUpdatePatchItems propagado por los 6 puntos del pipeline (build en locus-ingest-builder.js
 // TKT2 · destructure/reset atómico/combine en _resolveCheckpointBatch · destructure+gate en
 // _processIngestBatch · aplicación real vía applyDocUpdateResolution en ambos flujos, single
@@ -2195,7 +2195,7 @@ export function parsePaste(id) {
   // window[`_patchItems_${id}`]/window[`_patchIntencionItems_${id}`], con delete manual en cada punto
   // de salida. Sin necesidad de limpieza — el estado desaparece solo al terminar la ejecución.
   let _itemsJsonError = null, _patchItems = [], _patchIntencionItems = [];
-  // TKT3 (ref_id CAEL-08302200-07, REQ ref_id CAEL-08302200-01): canal propio para
+  // TKT-202608-502 (REQ-202608-209): canal propio para
   // type: doc_update_patch — a diferencia de _patchItems/_patchIntencionItems, no depende de
   // slugMap/refIdTitleMap (no referencia código de ítem), así que se resuelve inline en este
   // mismo flujo — no queda diferido a locus-session-save.js (ver nota sobre _pendingPatchIntencionItems
@@ -2310,7 +2310,7 @@ export function parsePaste(id) {
           const _activeProjForLLE = getActiveProject();
           if (_activeProjForLLE) _applyLearningLogEvaluated(_activeProjForLLE.id, ckpt._rawLearningLogEvaluatedThroughTs);
         }
-        // TKT3 (ref_id CAEL-08302200-07, REQ ref_id CAEL-08302200-01): flujo single — resolver
+        // TKT-202608-502 (REQ-202608-209): flujo single — resolver
         // cada type: doc_update_patch capturado en _docUpdatePatchItems, mismo punto de
         // confirmación de ingesta que doc_updates arriba. AC del REQ: sin entrada pendiente para
         // doc+section → advertencia DocLog, sin crash; 2+ entradas en conflicto → sin aplicar,
@@ -2978,7 +2978,7 @@ export async function _processIngestBatch(id) {
   // propagación que patchItems, ver comentario en _result más abajo en este archivo), pero no
   // se leía en este call site — mismo patrón de gap ya corregido para patchItems en TKT2
   // (REQ histórico — sin CHECKPOINT confirmado · CAEL-05, ver comentario en la línea de _result).
-  // TKT3 (ref_id CAEL-08302200-07, REQ ref_id CAEL-08302200-01): docUpdatePatchItems agregado a
+  // TKT-202608-502 (REQ-202608-209): docUpdatePatchItems agregado a
   // la destructuración — mismo gap ya corregido para patchIntencionItems (comentario arriba):
   // _resolveCheckpointBatch ya lo retorna, pero no se leía en este call site.
   const { tgItems, patchItems, patchIntencionItems, docUpdatePatchItems, skipped, metas } = _resolveCheckpointBatch(rawBlocks, syntheticSessId);
@@ -3035,7 +3035,7 @@ export async function _processIngestBatch(id) {
   // firma ni comportamiento nuevo para los casos ya cubiertos (tgItems/patchItems no vacíos, o
   // batch realmente sin ítems de ningún tipo).
   // [PP] mod:203 · autor:Rune · 2026-08-22 UTC-6
-  // TKT3 (ref_id CAEL-08302200-07): docUpdatePatchItems sumado a la condición — mismo criterio
+  // TKT-202608-502: docUpdatePatchItems sumado a la condición — mismo criterio
   // que patchIntencionItems arriba. Sin este OR, un batch de un único bloque con solo
   // doc_update_patch (tgItems:[], patchItems:[], patchIntencionItems:[]) caería en la rama de
   // éxito silencioso y nunca llegaría a _onApplyBatch, donde ahora se aplica.
@@ -3204,7 +3204,7 @@ export async function _processIngestBatch(id) {
       applyPatchesFromTG(patchItems, syntheticSessId, { slugMap: _batchMergeResult.slugMap, refIdTitleMap: _batchMergeResult.refIdTitleMap, roleByIdx: _roleByIdx, patchIntencionItems: patchIntencionItems || [] });
     }
 
-    // TKT3 (ref_id CAEL-08302200-07, REQ ref_id CAEL-08302200-01): batch — resolver cada
+    // TKT-202608-502 (REQ-202608-209): batch — resolver cada
     // type: doc_update_patch al momento de aplicar el batch, mismo punto que applyPatchesFromTG
     // arriba. Sin dependencia de slugMap/refIdTitleMap ni de _batchMergeResult — doc_update_patch
     // no referencia código de ítem, se resuelve por doc+section independientemente de si el
@@ -3575,7 +3575,7 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
   //   _extractCkptMeta por bloque válido, ver Paso 3 abajo. Antes de este TKT no existía en el
   //   shape de retorno — el flujo batch (_processIngestBatch) no tenía forma de mostrar narrativa
   //   por bloque, deuda declarada en mod:126/mod:127 (ckptMeta:{} hardcodeado).
-  const _result = { tgItems: [], patchItems: [], patchIntencionItems: [], docUpdatePatchItems: [], skipped: [], metas: [] }; // TKT2 (REQ histórico — sin CHECKPOINT confirmado · CAEL-05): patchItems agregado — antes se descartaba por completo, ningún patch se aplicaba jamás en el flujo batch // TKT1 (REQ-202607-061): patchIntencionItems agregado — mismo criterio de propagación que patchItems // TKT3 (ref_id CAEL-08302200-07, REQ ref_id CAEL-08302200-01): docUpdatePatchItems agregado, mismo criterio
+  const _result = { tgItems: [], patchItems: [], patchIntencionItems: [], docUpdatePatchItems: [], skipped: [], metas: [] }; // TKT2 (REQ histórico — sin CHECKPOINT confirmado · CAEL-05): patchItems agregado — antes se descartaba por completo, ningún patch se aplicaba jamás en el flujo batch // TKT1 (REQ-202607-061): patchIntencionItems agregado — mismo criterio de propagación que patchItems // TKT-202608-502 (REQ-202608-209): docUpdatePatchItems agregado, mismo criterio
   if (!blocks || !blocks.length) return _result;
 
   // Paso 1 (AC2 heredado de TKT3): parsear cada bloque — inválido se marca, no aborta el resto.
@@ -3596,7 +3596,7 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
     }
     // TKT1: r.ckpt capturado — fuente de _extractCkptMeta en Paso 3. _parseBatchBlock ya lo
     //   retornaba (línea del `return { ok: true, ckpt, ... }`), solo no se propagaba hasta aquí.
-    return { idx, valid: true, tgItems: r.tgItems, patchItems: r.patchItems || [], patchIntencionItems: r.patchIntencionItems || [], docUpdatePatchItems: r.docUpdatePatchItems || [], ckpt: r.ckpt }; // TKT2: patchItems capturado de _parseBatchBlock — ya lo retornaba (línea 1946), solo se descartaba aquí // TKT1 (REQ-202607-061): patchIntencionItems capturado, mismo criterio // TKT3 (ref_id CAEL-08302200-07): docUpdatePatchItems capturado, mismo criterio
+    return { idx, valid: true, tgItems: r.tgItems, patchItems: r.patchItems || [], patchIntencionItems: r.patchIntencionItems || [], docUpdatePatchItems: r.docUpdatePatchItems || [], ckpt: r.ckpt }; // TKT2: patchItems capturado de _parseBatchBlock — ya lo retornaba (línea 1946), solo se descartaba aquí // TKT1 (REQ-202607-061): patchIntencionItems capturado, mismo criterio // TKT-202608-502: docUpdatePatchItems capturado, mismo criterio
   });
 
   // Paso 2: gate de duplicados — [tmp:slug] como code de más de un ítem nuevo en el batch
@@ -3622,7 +3622,7 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
     _result.tgItems = [];
     _result.patchItems = []; // TKT2: rechazo atómico — ningún patch del batch se aplica cuando el batch completo se rechaza (AC del REQ)
     _result.patchIntencionItems = []; // TKT1 (REQ-202607-061): mismo criterio de rechazo atómico
-    _result.docUpdatePatchItems = []; // TKT3 (ref_id CAEL-08302200-07): mismo criterio de rechazo atómico
+    _result.docUpdatePatchItems = []; // TKT-202608-502: mismo criterio de rechazo atómico
     _result.skipped.push({ type: 'rejected', reason: _reason });
     _blogLog('checkpoint-batch-rechazado', '', _reason, 'backlog');
     return _result;
@@ -3642,7 +3642,7 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
       _result.tgItems.push(...b.tgItems.map(it => ({ ...it, idx: b.idx })));
       _result.patchItems.push(...b.patchItems.map(it => ({ ...it, idx: b.idx }))); // TKT2: mismo criterio de orden que tgItems
       _result.patchIntencionItems.push(...(b.patchIntencionItems || []).map(it => ({ ...it, idx: b.idx }))); // TKT1 (REQ-202607-061): mismo criterio de orden
-      _result.docUpdatePatchItems.push(...(b.docUpdatePatchItems || []).map(it => ({ ...it, idx: b.idx }))); // TKT3 (ref_id CAEL-08302200-07): mismo criterio de orden
+      _result.docUpdatePatchItems.push(...(b.docUpdatePatchItems || []).map(it => ({ ...it, idx: b.idx }))); // TKT-202608-502: mismo criterio de orden
       // TKT1 (REQ CAEL-0718-01 · AC1): un _extractCkptMeta por bloque válido — b.ckpt es el
       //   CHECKPOINT completo de ese bloque, no el tgItems combinado.
       // TKT-078 (REQ-202607-022, ref_id CAEL-0724-05): idx: b.idx agregado explícitamente.

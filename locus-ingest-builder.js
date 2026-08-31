@@ -1,5 +1,5 @@
-// [PP] mod:2 · autor:Rune · 2026-08-30 22:20 UTC-6
-// TKT2 (ref_id CAEL-08302200-06, REQ ref_id CAEL-08302200-01): docUpdatePatchItems agregado —
+// [PP] mod:3 · autor:Rune · 2026-08-31 07:40 UTC-6
+// TKT-202608-502 (REQ-202608-209): docUpdatePatchItems agregado —
 // canal propio para type: doc_update_patch dentro de items[], mismo criterio de separación que
 // patchIntencionItems. Ver comentario completo en _buildTgItemsFromParsed().
 // TKT-202608-476 (REQ-202608-198, TKT3 de "Partir parsePaste()/_processIngestBatch() en
@@ -121,7 +121,7 @@ export function _buildTgItemsFromParsed(ckpt, parsedJSON) {
   const tgItems = [];
   const patchItems = [];
   const patchIntencionItems = []; // TKT1 (REQ-202607-061): canal propio, separado de patchItems
-  const docUpdatePatchItems = []; // TKT2 (ref_id CAEL-08302200-06, REQ ref_id CAEL-08302200-01):
+  const docUpdatePatchItems = []; // TKT-202608-502 (REQ-202608-209):
   // canal propio para type: doc_update_patch — mismo criterio de separación que
   // patchIntencionItems. Vive dentro de items[] (__BR-Ecosystem §8) pero no es un ítem de
   // backlog ni un patch sobre código real: resuelve una entrada ya registrada de doc_updates
@@ -158,7 +158,7 @@ export function _buildTgItemsFromParsed(ckpt, parsedJSON) {
       }
       continue;
     }
-    // TKT2 (ref_id CAEL-08302200-06, REQ ref_id CAEL-08302200-01): doc_update_patch — resuelve
+    // TKT-202608-502 (REQ-202608-209): doc_update_patch — resuelve
     // (aplicado/descartado) una entrada pendiente real de doc_updates por doc+section. Sin `code`
     // — direcciona por doc+section, misma clave que ya agrupa docUpdateIndex (locus-docs.js).
     if (it.type === 'doc_update_patch') {
