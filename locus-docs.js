@@ -1,3 +1,11 @@
+// [PP] mod:44 · autor:Rune · 2026-08-31 08:40 UTC-6
+// TKT1 (ref_id CAEL-08310830-02, REQ ref_id CAEL-08310830-01, origen_disc DISC-202608-244):
+// texto copiado por .du-btn-copy-single/.du-btn-copy-group pasa de una línea narrativa
+// ("doc §seccion — titulo") a líneas clave:valor explícitas (doc:/section:/titulo:/contenido:)
+// — doc/section quedan idénticos byte-a-byte al valor real de docUpdateIndex/
+// docUpdateResolvedLog, listos para transcribir sin ambigüedad a un type: doc_update_patch.
+// Sin cambio de fuente de datos, sin cambio de render visual de las cards, sin cambio del
+// ciclo .is-copied/.is-copy-error ni del separador --- entre entradas del grupo.
 // [PP] mod:43 · autor:Rune · 2026-08-30 22:15 UTC-6
 // TKT1 (ref_id CAEL-08302200-02, REQ ref_id CAEL-08302200-01): applyDocUpdateResolution(key,
 // action) exportada — extrae la lógica antes inline en .du-btn-apply/.du-btn-discard. Punto de
@@ -1270,7 +1278,9 @@ export function renderDocUpdatesUnified() {
         ? new Date(e.resolvedAt).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
         : '—';
       const copyId = `r${i}`;
-      _duResolvedCopyMap[copyId] = e.content ?? null;
+      _duResolvedCopyMap[copyId] = (e.content === null || typeof e.content === 'undefined')
+        ? null
+        : _duCopyEntryText(doc, section, undefined, e.content);
       const entryHtml = `
         <div class="du-resolved-entry">
           <div class="du-resolved-meta">
@@ -1458,6 +1468,17 @@ function _pushDocUpdateResolved(key, action) {
 // copiar-grupo sobre #du-unified-list (antes #doc-updates-list), agrega listeners de las
 // pills de filtro (antes inexistentes) y de la búsqueda unificada #du-unified-search
 // (antes #du-resolved-search-input, exclusiva de resueltos).
+// _duCopyEntryText — TKT1 (ref_id CAEL-08310830-02, REQ ref_id CAEL-08310830-01, origen_disc
+// DISC-202608-244): fuente única del texto que producen .du-btn-copy-single/.du-btn-copy-group.
+// doc/section van en líneas propias, clave:valor, con el valor literal exacto recibido — sin
+// transformación, sin el separador visual "§" que mezclaba display con dato. Mismo criterio que
+// __BR-Ecosystem §8 exige para doc/section de type: doc_update_patch (coincidencia exacta,
+// case-sensitive). titulo cae a '—' si no viene (mismo fallback que el código anterior);
+// contenido cae a '' si no viene (mismo fallback que el código anterior) — sin AC de error nuevo.
+function _duCopyEntryText(doc, section, titulo, contenido) {
+  return `doc: ${doc}\nsection: ${section}\ntitulo: ${titulo || '—'}\ncontenido:\n${contenido || ''}`;
+}
+
 function _initDocUpdatesUnifiedListeners() {
   const list = document.getElementById('du-unified-list');
   if (list) {
@@ -1490,7 +1511,7 @@ function _initDocUpdatesUnifiedListeners() {
           const [doc, seccion] = key.split('::');
           const index = _getDocUpdateIndex();
           const entry = (index[key] || [])[0];
-          text = `${doc} §${seccion} — ${entry?.titulo || '—'}\n${entry?.contenido || ''}`;
+          text = _duCopyEntryText(doc, seccion, entry?.titulo, entry?.contenido);
         } else if (btnCopySingle.dataset.duCopyResolved) {
           const copyId = btnCopySingle.dataset.duCopyResolved;
           text = _duResolvedCopyMap[copyId] || '';
@@ -1529,7 +1550,7 @@ function _initDocUpdatesUnifiedListeners() {
             const docLiteral = key.split('::')[0] || '—';
             const [, seccion] = key.split('::');
             const entry = (index[key] || [])[0];
-            return `${docLiteral} §${seccion} — ${entry?.titulo || '—'}\n${entry?.contenido || ''}`;
+            return _duCopyEntryText(docLiteral, seccion, entry?.titulo, entry?.contenido);
           })
           .join('\n\n---\n\n');
         const _duCopyFeedback = ok => {

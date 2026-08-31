@@ -1,4 +1,7 @@
-// [PP] mod:3 · autor:Rune · 2026-08-31 07:40 UTC-6
+// [PP] mod:4 · autor:Rune · 2026-08-31 09:15 UTC-6
+// TKT-202608-505 (REQ-202608-210): corrige tipo inválido 'warn' → 'warning' en showToast(...)
+//   en L141/L152/L155/L167/L170 — tipo inválido no declarado en locus-toast.js,
+//   silenciaba ícono, estilo y duración calibrada.
 // TKT-202608-502 (REQ-202608-209): docUpdatePatchItems agregado —
 // canal propio para type: doc_update_patch dentro de items[], mismo criterio de separación que
 // patchIntencionItems. Ver comentario completo en _buildTgItemsFromParsed().
@@ -138,7 +141,7 @@ export function _buildTgItemsFromParsed(ckpt, parsedJSON) {
     if (it.type === 'patch') {
       if (!it.code || _isPlaceholderCode(it.code)) {
         _blogLog('patch-ignorado', it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (it.code || '(vacío)'), 'backlog');
-        showToast('warn', `Patch descartado: código placeholder no patcheable — ${it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
+        showToast('warning', `Patch descartado: código placeholder no patcheable — ${it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
       } else {
         patchItems.push(it);
       }
@@ -149,10 +152,10 @@ export function _buildTgItemsFromParsed(ckpt, parsedJSON) {
     if (it.type === 'patch-intencion') {
       if (!it.code || _isPlaceholderCode(it.code)) {
         _blogLog('patch-ignorado', it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (it.code || '(vacío)'), 'backlog');
-        showToast('warn', `Patch descartado: código placeholder no patcheable — ${it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
+        showToast('warning', `Patch descartado: código placeholder no patcheable — ${it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
       } else if (!it.founder_confirmado || typeof it.founder_confirmado !== 'string' || it.founder_confirmado.trim() === '') {
         _blogLog('patch-intencion-sin-confirmacion', it.code, 'patch-intencion sin founder_confirmado — no aplicado. Declarar confirmación explícita del founder.', 'backlog');
-        showToast('warn', `patch-intencion descartado: falta founder_confirmado — ${it.code}.`);
+        showToast('warning', `patch-intencion descartado: falta founder_confirmado — ${it.code}.`);
       } else {
         patchIntencionItems.push(it);
       }
@@ -164,10 +167,10 @@ export function _buildTgItemsFromParsed(ckpt, parsedJSON) {
     if (it.type === 'doc_update_patch') {
       if (!it.doc || !it.section) {
         _blogLog('doc-update-patch-ignorado', (it.doc || '') + '::' + (it.section || ''), 'doc_update_patch ignorado: faltan doc o section.', 'backlog');
-        showToast('warn', 'doc_update_patch descartado: faltan doc o section.');
+        showToast('warning', 'doc_update_patch descartado: faltan doc o section.');
       } else if (it.resolution !== 'aplicado' && it.resolution !== 'descartado') {
         _blogLog('doc-update-patch-ignorado', it.doc + '::' + it.section, 'doc_update_patch ignorado: resolution inválido "' + (it.resolution || '') + '" — válidos: aplicado | descartado.', 'backlog');
-        showToast('warn', `doc_update_patch descartado: resolution inválido — ${it.doc}§${it.section}.`);
+        showToast('warning', `doc_update_patch descartado: resolution inválido — ${it.doc}§${it.section}.`);
       } else {
         docUpdatePatchItems.push(it);
       }

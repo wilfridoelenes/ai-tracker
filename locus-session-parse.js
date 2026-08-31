@@ -1,4 +1,13 @@
-// [PP] mod:222 · autor:Rune · 2026-08-31 07:40 UTC-6
+// [PP] mod:225 · autor:Rune · 2026-08-31 09:15 UTC-6
+// TKT-202608-505 (REQ-202608-210): corrige tipo inválido 'warn' → 'warning' en showToast(...)
+//   en L2291/L2333/L2714/L3232/L3268 — tipo inválido no declarado en locus-toast.js,
+//   silenciaba ícono, estilo y duración calibrada. Módulo crítico (locus-storage.js,
+//   verificación de regresiones obligatoria en Finn).
+// origen: CAEL-08311030-01 (DISC-202608-243): _resetIngestValidationPanel() agregada al
+// inicio de _processIngestBatch() — banner de error de un pegado anterior ya no sobrevive
+// si el flujo pasa por el path batch. Ver header de la función para el detalle. Corrección
+// de mod:223: comentario inline citaba el literal [pendiente-ID] — reemplazado por ref_id
+// (Gap de código detectado por Finn, __BR-Execution §7 Momento 1).
 // TKT-202608-502 (REQ-202608-209): type: doc_update_patch —
 // docUpdatePatchItems propagado por los 6 puntos del pipeline (build en locus-ingest-builder.js
 // TKT2 · destructure/reset atómico/combine en _resolveCheckpointBatch · destructure+gate en
@@ -2283,7 +2292,7 @@ export function parsePaste(id) {
           const _ckptTitleForDu = ckpt.titulo || '';
           ckpt._rawDocUpdates.forEach(du => {
             const { conflicto, msg } = processDocUpdate(du, _ckptTitleForDu);
-            if (conflicto && msg) showToast('warn', msg);
+            if (conflicto && msg) showToast('warning', msg);
             // TKT-202607-033 (REQ-202607-005 AC3): doc_updates dirigido a doc de infraestructura —
             // alerta en DocLog, no bloquea el ingest. AC4: doc ausente o vacío → sin alerta.
             const _duDocNorm = (du.doc || '').toLowerCase().trim();
@@ -2325,7 +2334,7 @@ export function parsePaste(id) {
                 ? 'conflicto sin resolver para esta combinación doc+section — requiere resolución manual en UI'
                 : 'sin entrada pendiente de doc_updates para esta combinación doc+section';
               _blogLog('doc-update-patch-sin-aplicar', _dupKey, `doc_update_patch no aplicado — ${_dupReasonMsg}.`, 'backlog');
-              if (_dupResult.reason === 'conflict') showToast('warn', `doc_update_patch: conflicto sin resolver — ${_dupKey}.`);
+              if (_dupResult.reason === 'conflict') showToast('warning', `doc_update_patch: conflicto sin resolver — ${_dupKey}.`);
             }
           });
         }
@@ -2706,7 +2715,7 @@ export function parsePaste(id) {
         const _infraDoc = parseInt(_infraMatch[1], 10);
         if (_infraDoc !== (getInfraVersionData()?.infraVersion ?? _infraDoc)) {
           const _docName = (ckpt && ckpt.titulo) ? ckpt.titulo : (ckpt && ckpt.proyecto) ? ckpt.proyecto : 'doc';
-          showToast('warn', `infra_version desactualizada: ${_docName} declara infra_version:${_infraDoc}, valor activo es infra_version:${getInfraVersionData()?.infraVersion ?? '?'}. Verificar consistencia antes de continuar.`);
+          showToast('warning', `infra_version desactualizada: ${_docName} declara infra_version:${_infraDoc}, valor activo es infra_version:${getInfraVersionData()?.infraVersion ?? '?'}. Verificar consistencia antes de continuar.`);
         }
       }
     }
@@ -2957,6 +2966,11 @@ export async function _processIngestBatch(id) {
   // tenía, sin caller vivo que lo ejercite.
   const ta = document.getElementById('ingest-ta') /* CAEL-22 */;
   if (!ta) return;
+
+  // origen: CAEL-08311030-01 (DISC-202608-243): _resetIngestValidationPanel() nunca se invocaba
+  // en el path batch — un banner de error de un pegado anterior sobrevivía aunque el batch actual
+  // fuera válido. Mismo criterio ya vigente en parsePaste() (líneas ~2502/2520, path single).
+  _resetIngestValidationPanel();
 
   const rawBlocks = _splitCheckpointBlocks(ta.value);
   if (!rawBlocks.length) {
@@ -3219,7 +3233,7 @@ export async function _processIngestBatch(id) {
             ? 'conflicto sin resolver para esta combinación doc+section — requiere resolución manual en UI'
             : 'sin entrada pendiente de doc_updates para esta combinación doc+section';
           _blogLog('doc-update-patch-sin-aplicar', _dupKey, `doc_update_patch no aplicado — ${_dupReasonMsg}.`, 'backlog');
-          if (_dupResult.reason === 'conflict') showToast('warn', `doc_update_patch: conflicto sin resolver — ${_dupKey}.`);
+          if (_dupResult.reason === 'conflict') showToast('warning', `doc_update_patch: conflicto sin resolver — ${_dupKey}.`);
         }
       });
     }
@@ -3255,7 +3269,7 @@ export async function _processIngestBatch(id) {
       const _blockTitle = m.titulo || '';
       (m.docUpdates || []).forEach(update => {
         const { conflicto, msg } = processDocUpdate(update, _blockTitle);
-        if (conflicto && msg) showToast('warn', msg);
+        if (conflicto && msg) showToast('warning', msg);
         _docUpdatesApplied++;
       });
       if (Array.isArray(m.inlineFixes) && m.inlineFixes.length) _allInlineFixes.push(...m.inlineFixes);

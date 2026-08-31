@@ -1,4 +1,8 @@
-// [PP] mod:11 · autor:Rune · 2026-08-18 22:30 UTC-6
+// [PP] mod:12 · autor:Rune · 2026-08-31 09:15 UTC-6
+// TKT-202608-505 (REQ-202608-210): corrige tipo inválido 'warn' → 'warning' en showToast(...)
+//   en L269 — único call site de este archivo con el tipo inválido. 'warn' no existe en
+//   _TOAST_DEFAULTS/_TOAST_ICONS/_TOAST_PRIORITY (locus-toast.js), lo que silenciaba
+//   ícono, estilo y duración calibrada de este toast.
 // TKT-202608-296 (REQ-202608-118): onContratosSearch()/clearContratosSearch() y su wiring
 //   (#ctr-search-input/#ctr-search-clear) eliminados — buscador local reemplazado por ⌘K.
 //   _ctrSearchQuery se conserva como filtro consumido por renderContratos() — sin fuente
@@ -266,7 +270,7 @@ function _renderContratoDetail(mod, el) {
 function exportContratosMd() {
   const data = _ctrLoad();
   const modules = Object.values(data);
-  if (!modules.length) { showToast('warn', 'Sin contratos para exportar'); return; }
+  if (!modules.length) { showToast('warning', 'Sin contratos para exportar'); return; }
 
   // padEnd definida a nivel de módulo — T3.bis
   let md = `# Contratos de Módulo\n\n`;

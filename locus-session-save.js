@@ -1,4 +1,7 @@
-// [PP] mod:98 · autor:Rune · 2026-08-28 UTC-6
+// [PP] mod:99 · autor:Rune · 2026-08-31 09:15 UTC-6
+// TKT-202608-505 (REQ-202608-210): corrige tipo inválido 'warn' → 'warning' en showToast(...)
+//   en L1058/L1073 — tipo inválido no declarado en locus-toast.js, silenciaba ícono,
+//   estilo y duración calibrada.
 // TKT1 (CAEL-08182200-02, DISC-202608-192): entrada de header mod:92 (línea abajo) no cumplía
 // el formato de timestamp de __BR-Execution §9 (YYYY-MM-DD HH:MM UTC-6) — la hora nunca quedó
 // registrada en esa entrega. Sin dato real que reponer, se anota explícitamente en vez de
@@ -1055,7 +1058,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
       const _mdDocUpdates = extractDocUpdates(raw);
       _mdDocUpdates.forEach(update => {
         const { conflicto, msg } = processDocUpdate(update, _ckptTitleMd);
-        if (conflicto && msg) showToast('warn', msg);
+        if (conflicto && msg) showToast('warning', msg);
       });
     }
   }
@@ -1070,7 +1073,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
     const _docUpdates = (parsed && Array.isArray(parsed.docUpdates)) ? parsed.docUpdates : [];
     _docUpdates.forEach(update => {
       const { conflicto, msg } = processDocUpdate(update, _ckptTitle);
-      if (conflicto && msg) showToast('warn', msg);
+      if (conflicto && msg) showToast('warning', msg);
     });
   }
   // ── END T-202606-017 / T-202606-073 AC-2 ──
