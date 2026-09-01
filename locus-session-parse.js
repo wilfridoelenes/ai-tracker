@@ -1,4 +1,12 @@
-// [PP] mod:225 · autor:Rune · 2026-08-31 09:15 UTC-6
+// [PP] mod:226 · autor:Rune · 2026-08-31 UTC-6
+// TKT-202608-515 (REQ-202608-214): _checkCascadeCloseGap(tgItems, patchItems) — nueva, llamada
+// al final de _resolveCheckpointBatch() antes de su return. Detecta CHG/REQ que llega a
+// status:'done' en el bloque pegado completo sin que el INC/PRB de origen (resuelto vía
+// triggeredBy del derivado + derivedItems de cualquier INC/PRB visible en el bloque o ya
+// persistido) reciba patch de cierre (incident_status:closed) en el mismo bloque — alerta
+// DocLog no bloqueante, gap confirmado en __BR-Ecosystem §8 (Regla dura de cierre en cascada,
+// infra_version 114) contra el repo real. Sin cambio de firma pública de ninguna función
+// existente — _resolveCheckpointBatch conserva su shape de retorno.
 // TKT-202608-505 (REQ-202608-210): corrige tipo inválido 'warn' → 'warning' en showToast(...)
 //   en L2291/L2333/L2714/L3232/L3268 — tipo inválido no declarado en locus-toast.js,
 //   silenciaba ícono, estilo y duración calibrada. Módulo crítico (locus-storage.js,
@@ -3674,7 +3682,127 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
     }
   });
 
+  // TKT-202608-515 (REQ-202608-214): backstop de detección automática — gap confirmado en
+  //   __BR-Ecosystem §8 (tabla "Reglas identificadas como contrato con Locus"): no existía
+  //   ninguna verificación de que el patch de cierre del INC/PRB de origen viajara en el mismo
+  //   bloque que el CHG/REQ derivado llegando a `done` (Regla dura de cierre en cascada,
+  //   infra_version 114). No bloquea la ingesta — mismo tratamiento no-bloqueante que el
+  //   chequeo ya vigente de `origen_disc` sin patch de promoción (mergeBacklogFromTG,
+  //   locus-backlog-item.js): la Regla dura real es responsabilidad de quien emite el
+  //   CHECKPOINT, esto es solo visibilidad en DocLog. Corre aquí (sobre tgItems/patchItems ya
+  //   combinados del bloque pegado completo) y no dentro del forEach por bloque de arriba —
+  //   AC4 del TKT exige evaluación sobre el bloque completo, no por CHECKPOINT individual.
+  _checkCascadeCloseGap(_result.tgItems, _result.patchItems);
+
   return _result;
+}
+
+// TKT-202608-515 (REQ-202608-214): alerta DocLog cuando un CHG o REQ derivado de un INC/PRB
+//   escalado (__BR-Core §6) llega a status:'done' dentro del bloque pegado sin que el mismo
+//   bloque incluya el patch de cierre (`incident_status: closed`) del INC/PRB de origen.
+// Invariants:
+//   - Recibe tgItems/patchItems ya combinados de _resolveCheckpointBatch — nunca llamada por
+//     CHECKPOINT individual dentro de un bloque multi-CHECKPOINT (AC4).
+//   - Un CHG/REQ "llega a done" vía tgItem nuevo con status:'done', o vía patchItem con
+//     status:'done' sobre un código cuyo tipo real (CHG/REQ) se resuelve con getAnyItem() —
+//     patchItem.type es siempre el literal 'patch' (marcador de instrucción, __BR-Ecosystem
+//     §8), nunca el tipo real del ítem parcheado — no se usa como fuente de tipo.
+//   - El INC/PRB de origen se resuelve combinando dos fuentes, sin exigir que coincidan:
+//     (a) triggeredBy del propio CHG/REQ — declarado en el CHECKPOINT como trazabilidad de
+//     origen de la escalación (__BR-Ecosystem §5, campo `triggered_by`); (b) cualquier INC/PRB
+//     — ya persistido (getIncidents()) o visible en este mismo bloque (nuevo o patcheado) —
+//     cuyo derivedItems incluya el código del CHG/REQ. Cada par (origen, derivado) se loguea
+//     como máximo una vez aunque ambas fuentes lo resuelvan.
+//   - Huérfano (AC edge case): triggeredBy declarado que no corresponde a ningún ítem real en
+//     getIncidents() ni en el bloque actual — igual se evalúa contra el bloque (no se encuentra
+//     patch de cierre para un código inexistente) y se loguea con ese código tal cual, sin
+//     lanzar excepción ni intentar resolverlo de otra forma.
+//   - "Cierre en el mismo bloque" = algún patchItem con code === código origen y
+//     (incident_status === 'closed' || incidentStatus === 'closed' || status === 'closed') —
+//     patchItems llegan a esta función sin el alias snake→camelCase que aplica
+//     applyPatchesFromTG() (locus-backlog-item.js) más adelante en el pipeline, por eso se
+//     verifican ambas formas.
+// sideEffects:
+//   - Emite `_blogLog('inc-prb-cierre-cascada-pendiente', códigoOrigen, mensaje, 'backlog')`
+//     por cada par sin cierre detectado. No muta tgItems/patchItems ni bloquea la ingesta.
+function _checkCascadeCloseGap(tgItems, patchItems) {
+  const _tg = tgItems || [];
+  const _pt = patchItems || [];
+
+  // Códigos de CHG/REQ que alcanzan 'done' en este bloque — vía ítem nuevo o vía patch.
+  const _closedDerived = [];
+  _tg.forEach(it => {
+    if (it && (it.type === 'CHG' || it.type === 'REQ') && it.status === 'done' && it.code) {
+      _closedDerived.push({ code: it.code, triggeredBy: it.triggeredBy || it.triggered_by || null });
+    }
+  });
+  _pt.forEach(it => {
+    if (!it || typeof it.code !== 'string' || it.status !== 'done') return;
+    const _existing = getAnyItem(it.code);
+    const _realType = _existing && _existing.type; // it.type es siempre 'patch' — nunca el tipo real
+    if (_realType === 'CHG' || _realType === 'REQ') {
+      _closedDerived.push({
+        code: it.code,
+        triggeredBy: it.triggeredBy || it.triggered_by || _existing.triggeredBy || null
+      });
+    }
+  });
+  if (!_closedDerived.length) return;
+
+  // Candidatos de origen INC/PRB visibles en este bloque (nuevos o patcheados) — para resolver
+  // derivedItems declarado dentro del mismo bloque, sin depender solo de lo ya persistido.
+  const _blockOrigins = [];
+  _tg.forEach(it => {
+    if (it && (it.type === 'INC' || it.type === 'PRB')) {
+      _blockOrigins.push({ code: it.code, derivedItems: Array.isArray(it.derivedItems) ? it.derivedItems : [] });
+    }
+  });
+  _pt.forEach(it => {
+    if (!it || typeof it.code !== 'string') return;
+    const _existing = getAnyItem(it.code);
+    const _realType = _existing && _existing.type;
+    if (_realType === 'INC' || _realType === 'PRB') {
+      const _derived = Array.isArray(it.derivedItems) ? it.derivedItems
+        : (Array.isArray(it.derived_items) ? it.derived_items
+        : (Array.isArray(_existing.derivedItems) ? _existing.derivedItems : []));
+      _blockOrigins.push({ code: it.code, derivedItems: _derived });
+    }
+  });
+
+  // Origen persistido — INC/PRB reales ya en backlog (getIncidents()).
+  const _persistedOrigins = getIncidents().filter(i => i && (i.type === 'INC' || i.type === 'PRB'));
+
+  const _loggedPairs = new Set(); // evita doble entrada por el mismo par si ambas vías lo resuelven
+
+  _closedDerived.forEach(_derivedItem => {
+    const _derivedCode = _derivedItem.code;
+    const _origins = new Set();
+
+    if (_derivedItem.triggeredBy) _origins.add(_derivedItem.triggeredBy);
+
+    _blockOrigins.forEach(o => { if (o.derivedItems.includes(_derivedCode)) _origins.add(o.code); });
+    _persistedOrigins.forEach(o => {
+      const _dArr = Array.isArray(o.derivedItems) ? o.derivedItems : [];
+      if (_dArr.includes(_derivedCode)) _origins.add(o.code);
+    });
+
+    _origins.forEach(_originCode => {
+      const _pairKey = _originCode + '::' + _derivedCode;
+      if (_loggedPairs.has(_pairKey)) return;
+
+      const _closedInBlock = _pt.some(p => p && p.code === _originCode &&
+        (p.incident_status === 'closed' || p.incidentStatus === 'closed' || p.status === 'closed'));
+      if (_closedInBlock) return;
+
+      _loggedPairs.add(_pairKey);
+      _blogLog(
+        'inc-prb-cierre-cascada-pendiente',
+        _originCode,
+        `INC/PRB ${_originCode} en escalated_to_* sin cierre pese a derived_items en done — verificar patch de cierre.`,
+        'backlog'
+      );
+    });
+  });
 }
 
 

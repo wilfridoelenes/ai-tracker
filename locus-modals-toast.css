@@ -1,4 +1,10 @@
-/* [PP] mod:13 · autor:Nova · 2026-08-31 17:25 UTC-6 */
+/* [PP] mod:14 · autor:Nova · 2026-08-31 18:10 UTC-6 */
+/* TKT-202608-518 (Bug menor, QA Finn — Momento 1): .toast-digest-list li retira
+   opacity propio (componía 0.80×0.80=0.64 contra .toast-body) y .toast-digest-list
+   resetea margin/padding nativo del <ul>. :focus-visible retira el opacity:1 inerte
+   — un hijo no puede exceder el techo de opacidad de su ancestro por esa vía, el
+   outline ya es el indicador de foco real (WCAG 2.4.7). Ver bloques junto a cada
+   regla, más abajo. */
 /* TKT ref_id CAEL-08311620-02 (REQ ref_id CAEL-08311620-01, ex-DISC-202608-246):
    .toast-item.toast-hide 0.16s→0.15s — alinea a --transition-base, converge con
    el timer JS unificado (_TOAST_EXIT_MS, locus-toast.js). .toast-inline sin cambio
@@ -164,23 +170,35 @@
   display: block;
   max-height: 9em;
   overflow-y: auto;
-  margin-top: 4px;
-  padding-right: 2px;
+  margin: 4px 0 0;
+  padding: 0 2px 0 0;
 }
 
+/* TKT-202608-518 (Bug menor, QA Finn): .toast-digest-list vive dentro de .toast-body
+   (opacity:0.80, línea 149) — un opacity propio en li componía multiplicativamente
+   (0.80 × 0.80 = 0.64 real), más apagado que el resto de .toast-body sin razón
+   declarada en los AC. Retirado — la lista hereda el mismo 0.80 que cualquier otro
+   contenido de .toast-body, sin dimming adicional. `padding-inline-start` nativo del
+   <ul> (~40px) también reseteado arriba — list-style:none no lo retira por sí solo. */
 .toast-digest-list li {
   list-style: none;
   font-size: var(--text-xs);
   font-weight: 400;
   color: inherit;
-  opacity: 0.80;
   line-height: 1.5;
 }
 
+/* TKT-202608-518 (Bug menor, QA Finn): opacity:1 aquí no cancela la opacidad ya
+   fijada por el ancestro .toast-body (0.80) — un hijo no puede superar el techo de
+   opacidad de su ancestro vía su propio opacity, la composición ya ocurrió en la capa
+   del padre. El indicador de foco real es el outline (WCAG 2.4.7) — mismo patrón que
+   .toast-item.t-error/.t-warning:focus-visible — retirado el opacity que no producía
+   ningún efecto visual. Contraste de .toast-body a 0.80 es convención ya existente del
+   componente, no verificada en esta sesión contra locus-base.css real — sin archivo
+   adjunto, no se declara como confirmado (ver CHECKPOINT). */
 .toast-digest-list:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: -2px;
-  opacity: 1;
 }
 
 .toast-dismiss {

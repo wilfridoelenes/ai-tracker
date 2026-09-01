@@ -1,4 +1,9 @@
-// [PP] mod:14 · autor:Rune · 2026-08-31 17:20 UTC-6
+// [PP] mod:15 · autor:Rune · 2026-08-31 18:10 UTC-6
+// TKT-202608-518 (Bug mayor, QA Finn — Momento 1): el listener keydown de .toast-item
+// cerraba el toast aunque el foco estuviera en .toast-digest-list (Enter/Espacio
+// burbujeaban sin condicionar target) — corregido, ver bloque junto al listener,
+// más abajo. Fix acotado a este archivo; el componente CSS de .toast-digest-list
+// (opacidad compuesta) se corrige en locus-modals-toast.css, mismo TKT, Nova.
 // TKT ref_id CAEL-08311620-02 (REQ ref_id CAEL-08311620-01, ex-DISC-202608-246):
 // _TOAST_EXIT_MS unifica los dos timers de salida — .toast-item (antes 160ms) y
 // .toast-inline (antes 200ms) — bajo un único valor de 150ms, alineado a
@@ -207,6 +212,12 @@ export function _toastRender(type, title, body, base, onClick) {
   el.setAttribute('tabindex', '0');
   el.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
+    // TKT-202608-518 (Bug mayor, QA Finn) — si el foco está en un descendiente
+    // enfocable propio del toast (.toast-digest-list, tabindex="0" cuando el listado
+    // excede 6 líneas — TKT-202608-519), Enter/Espacio deben navegar/hacer scroll
+    // dentro de ese elemento, no cerrar el toast contenedor. El keydown bubblea
+    // igual hasta este listener; se descarta salvo que el target sea el toast mismo.
+    if (e.target !== el) return;
     e.preventDefault();
     if (el._dismissed) return;
     if (onClick) onClick();
