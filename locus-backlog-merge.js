@@ -1,4 +1,4 @@
-// [PP] mod:118 · autor:Rune · 2026-08-31 UTC-6
+// [PP] mod:119 · autor:Rune · 2026-09-01 UTC-6
 // INC-202608-145 (fix — chevron de expand del panel DIFF no acciona el detalle del ítem):
 // los tres listeners delegados sobre #merge-diff-overlay que faltaban en el fix de
 // [código no confirmado — TKT-202607-212] (ver comentario original ~L2976, más abajo en
@@ -900,7 +900,16 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
                 (diff.invalidTransition || []).length + // T-202606-020
                 _patchItems.length; // TKT-202607-048: patches no generan diff visual pero son ítems del CHECKPOINT — badge debe contarlos
 
-  const _criticalReasons = ['duplicado', 'sin-status', 'tipo-invalido'];
+  const _criticalReasons = [
+    'duplicado', 'sin-status', 'tipo-invalido',
+    // TKT1 (REQ ref_id CAEL-09011530-01, origen DISC-202608-265 / PRB-202608-004):
+    // los 4 gates de cierre de REQ (locus-backlog-item.js applyPatchesFromTG, L3838-3930)
+    // caían en ignoredOk — sección "Sin cambios" colapsada por defecto, indistinguibles
+    // de un patch trivialmente redundante. Se reclasifican como críticos para que el
+    // founder los vea en "⚠ Requieren atención" con su reason real en el pill.
+    'rol-no-autorizado-done', 'req-done-tkt-hijo-pendiente',
+    'req-done-sin-hijos-done', 'req-done-sin-verified-by'
+  ];
   const _hasCriticalIgnored = (diff.ignored || []).some(i => _criticalReasons.includes(i.reason));
 
   // Todo CHECKPOINT válido abre el DIFF — sin excepción por total=0 ni por ausencia de narrativa.
@@ -1501,6 +1510,13 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
         if (i.reason === 'duplicado')     { pill = _pill('warn', '⚠ duplicado'); hint = i.existingCode ? `<div class="mdiff-change-hint">existe como ${esc(i.existingCode)}</div>` : ''; }
         else if (i.reason === 'sin-status')    { pill = _pill('warn', '⚠ sin status'); }
         else if (i.reason === 'tipo-invalido') { pill = _pill('warn', '⚠ tipo inválido'); }
+        // TKT1 (REQ ref_id CAEL-09011530-01): gates de cierre de REQ — pill muestra el
+        // reason real, sin literal fijo, ya que su texto ya es legible para el founder.
+        else if (i.reason === 'rol-no-autorizado-done')        { pill = _pill('warn', '⚠ rol no autorizado para cerrar REQ'); }
+        else if (i.reason === 'req-done-tkt-hijo-pendiente')   { pill = _pill('warn', '⚠ TKT hijo pendiente'); }
+        else if (i.reason === 'req-done-sin-hijos-done')       { pill = _pill('warn', '⚠ sin hijos done'); }
+        else if (i.reason === 'req-done-sin-verified-by')      { pill = _pill('warn', '⚠ verified_by ausente'); }
+        else { pill = _pill('warn', esc(i.reason || '⚠ revisar')); }
         return _card(i.code, i.desc, 'warn', pill, hint, undefined, undefined, i.type || _itemKindFn({ code: i.code }));
       }).join('');
       sectionsRevisarHtml += _section('attention', 'warn', `⚠ Requieren atención <span class="mdiff-sec-count">${ignoredCritical.length}</span>`, rows);
