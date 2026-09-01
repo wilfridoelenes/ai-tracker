@@ -1,4 +1,19 @@
-/* [PP] mod:34 · autor:Nova · 2026-08-18 UTC-6 */
+/* [PP] mod:35 · autor:Nova · 2026-08-31 UTC-6 */
+/* TKT-202608-524 (auditoría WCAG de severity colors): tres tokens *-text fallaban AA
+   (4.5:1) contra el peor caso de superficie compuesta — --c-critical-text dark 4.18:1
+   (worst vs --surface3) → #f16476 (4.57:1); --c-high-text light 4.10:1 (worst vs
+   --bg2) → #a34a1e (4.63:1); --c-low-text light 3.46:1 (worst vs --bg2) → #3e730d
+   (4.66:1). Metodología: rgb(hue / alpha%) de --c-*-bg compuesto sobre --bg/--bg2/
+   --surface/--surface2/--surface3 de ese tema (mismo criterio que --blue-text/
+   --red-text/--green-text ya documentados en este archivo), luminancia relativa WCAG,
+   peor caso de los 5. --c-critical-text light (4.51:1) y --c-high-text/--c-low-text
+   dark ya pasaban — sin cambio. Se agregan dos tokens faltantes consumidos por
+   locus-incidents.css sin declarar (bug real, no de contraste): --bg-success/
+   --text-success (alias a --green-dim/--green-text, ya auditados WCAG) y
+   --amber-border (mismo delta de lightness/saturación que --red-border respecto a
+   --red, para consistencia visual — sin auditar 1.4.11, ver Hallazgo fuera de scope
+   en CHECKPOINT: --red-border tampoco pasa 3:1 contra --surface3 hoy, deuda
+   preexistente no resuelta en este TKT). */
 /* TKT1 (REQ CAEL-08180630-01, origen_disc DISC-202608-183): retira --on-fill-muted
    (bloque dark L305 y light L454 en mod:32) — huérfano confirmado por grep en los
    22 CSS y 58 JS del proyecto, sin consumidor desde que su único uso migró a
@@ -335,7 +350,7 @@
   /* severity colors */
   --c-critical-bg:     rgb(240 86 106 / 10%);
   --c-critical-border: rgb(240 86 106 / 25%);
-  --c-critical-text:   #f0566a;
+  --c-critical-text:   #f16476;  /* TKT-202608-524: 4.18:1→4.57:1 worst-case vs --surface3, WCAG AA */
   --c-high-bg:         rgb(230 100 30 / 10%);
   --c-high-border:     rgb(230 100 30 / 30%);
   --c-high-text:       #e8742e;
@@ -398,6 +413,11 @@
 
   /* Numérico raw */
   --amber-rgb: 245,200,66;
+
+  /* TKT-202608-524: tokens faltantes — consumidos en locus-incidents.css sin declarar. */
+  --amber-border: #30270b;    /* mismo delta HSL que --red-border respecto a --red — sin auditar 1.4.11, ver Hallazgo fuera de scope */
+  --bg-success:   var(--green-dim);   /* alias — .qinc-empty-success (locus-incidents.css), mismo criterio ya WCAG-auditado que --green-text */
+  --text-success: var(--green-text);
 }
 
 /* ── LIGHT THEME OVERRIDE ── */
@@ -492,7 +512,7 @@
   --c-critical-text:   #c42040;
   --c-high-bg:         rgb(192 76 16 / 7%);
   --c-high-border:     rgb(192 76 16 / 18%);
-  --c-high-text:       #b05020;
+  --c-high-text:       #a34a1e;  /* TKT-202608-524: 4.10:1→4.63:1 worst-case vs --bg2, WCAG AA */
   --c-severity-high-bg:      rgb(196 122 8 / 9%);
   --c-severity-high-border:  rgb(196 122 8 / 22%);
   --c-severity-high-text:    var(--orange);
@@ -503,7 +523,7 @@
   --c-amber-retro-border: rgb(245 200 66 / 25%);
   --c-low-bg:          rgb(109 184 33 / 7%);
   --c-low-border:      rgb(109 184 33 / 18%);
-  --c-low-text:        #4a8a10;
+  --c-low-text:        #3e730d;  /* TKT-202608-524: 3.46:1→4.66:1 worst-case vs --bg2, WCAG AA */
 
   /* ── Variables de uso extendido ── */
   --text-secondary: var(--text2);
@@ -512,6 +532,11 @@
   --bg-subtle:      rgb(0 0 0 / 3%);
   --accent-subtle:  rgb(109 184 33 / 10%);
   --accent-rgb:     109,184,33;
+
+  /* TKT-202608-524: tokens faltantes — consumidos en locus-incidents.css sin declarar. */
+  --amber-border: #f6d083;    /* mismo delta HSL que --red-border respecto a --red — sin auditar 1.4.11, ver Hallazgo fuera de scope */
+  --bg-success:   var(--green-dim);   /* alias — .qinc-empty-success (locus-incidents.css) */
+  --text-success: var(--green-text);
 
   /* ── Aliases Cluster A — tokens fantasma mapeados a canónicos ── */
   --text-muted:  var(--text2);
