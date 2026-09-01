@@ -1,4 +1,15 @@
-/* [PP] mod:35 · autor:Nova · 2026-08-31 UTC-6 */
+/* [PP] mod:36 · autor:Nova · 2026-08-31 UTC-6 */
+/* TKT-202608-524 (retomada — grep de proyecto completo, 23/23 archivos .css):
+   la primera pasada (mod:35) nunca auditó la familia --c-medium-text — cubrió
+   solo critical/high/low. Verificado ahora: --c-medium-text light fallaba AA
+   (3.74:1 worst-case vs --bg2) → corregido a #8e6400 (4.53:1), mismo hue que el
+   original (#a07000, h≈42°), metodología idéntica a los tres fixes de mod:35.
+   --c-medium-text dark (#f5c842) ya pasaba (9.91:1 worst-case) — sin cambio.
+   Corrección adicional: --c-medium-bg/-border/-text NO es token huérfano — la
+   auditoría original (QA con solo 3/23 archivos adjuntos) lo declaró huérfano
+   por error de grep parcial. Consumidores reales confirmados: locus-backlog.css,
+   locus-layout.css, locus-sprint-close.css, locus-sprint.css — ver
+   _Locus-css-ref.md §Tokens — Color para el inventario completo. */
 /* TKT-202608-524 (auditoría WCAG de severity colors): tres tokens *-text fallaban AA
    (4.5:1) contra el peor caso de superficie compuesta — --c-critical-text dark 4.18:1
    (worst vs --surface3) → #f16476 (4.57:1); --c-high-text light 4.10:1 (worst vs
@@ -518,7 +529,7 @@
   --c-severity-high-text:    var(--orange);
   --c-medium-bg:       rgb(180 120 0 / 7%);
   --c-medium-border:   rgb(180 120 0 / 18%);
-  --c-medium-text:     #a07000;
+  --c-medium-text:     #8e6400;  /* TKT-202608-524: 3.74:1→4.53:1 worst-case vs --bg2, WCAG AA — familia medium no auditada en la primera pasada de este TKT */
   --c-amber-retro-bg:     rgb(245 200 66 / 8%);
   --c-amber-retro-border: rgb(245 200 66 / 25%);
   --c-low-bg:          rgb(109 184 33 / 7%);
