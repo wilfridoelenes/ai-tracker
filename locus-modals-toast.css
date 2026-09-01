@@ -1,4 +1,13 @@
-/* [PP] mod:14 · autor:Nova · 2026-08-31 18:10 UTC-6 */
+/* [PP] mod:15 · autor:Nova · 2026-08-31 19:00 UTC-6 */
+/* TKT-202608-521 (REQ-202608-218): profundidad visual por posición en el stack —
+   .toast-item.show:nth-last-child(2)/(3) atenúan opacity/scale, nth-last-child(1)
+   sin cambio. `:not(.toast-hide)` en el selector — sin él, la especificidad de
+   :nth-last-child (0,0,3) supera a .toast-item.toast-hide (0,0,2, más abajo) y
+   rompería la animación de salida de un toast en 2ª/3ª posición al ser dismisseado;
+   con la exclusión, .toast-hide vuelve a ser el único selector que aplica en ese
+   estado, sin regresión. Sin `transition` propia — hereda la ya declarada en
+   .toast-item (0.24s, regla base de arriba), cumpliendo AC4 sin duplicar valor.
+   Bajo prefers-reduced-motion, ver bloque @media al final del archivo. */
 /* TKT-202608-518 (Bug menor, QA Finn — Momento 1): .toast-digest-list li retira
    opacity propio (componía 0.80×0.80=0.64 contra .toast-body) y .toast-digest-list
    resetea margin/padding nativo del <ul>. :focus-visible retira el opacity:1 inerte
@@ -114,6 +123,20 @@
 .toast-item.show {
   opacity: 1;
   transform: translateX(0) scale(1);
+}
+
+/* TKT-202608-521 (REQ-202608-218) — ver header. translateX(0) de .show no aporta
+   nada visualmente en estas dos posiciones, se reemplaza por scale puro. */
+.toast-item.show:not(.toast-hide):nth-last-child(2) {
+  opacity: 0.72;
+  transform: scale(0.95);
+  transform-origin: bottom right;
+}
+
+.toast-item.show:not(.toast-hide):nth-last-child(3) {
+  opacity: 0.45;
+  transform: scale(0.90);
+  transform-origin: bottom right;
 }
 
 .toast-item.toast-hide {
@@ -559,6 +582,14 @@
   }
 
   .toast-item.show {
+    transform: none;
+  }
+
+  /* TKT-202608-521: profundidad se conserva solo vía opacity bajo reduced-motion —
+     transform se resetea a none, igual que el resto de .toast-item en este bloque.
+     Opacity 0.72/0.45 no se toca aquí — se hereda de la regla fuera de este @media. */
+  .toast-item.show:not(.toast-hide):nth-last-child(2),
+  .toast-item.show:not(.toast-hide):nth-last-child(3) {
     transform: none;
   }
 
