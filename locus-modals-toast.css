@@ -1,58 +1,4 @@
-/* [PP] mod:15 · autor:Nova · 2026-08-31 19:00 UTC-6 */
-/* TKT-202608-521 (REQ-202608-218): profundidad visual por posición en el stack —
-   .toast-item.show:nth-last-child(2)/(3) atenúan opacity/scale, nth-last-child(1)
-   sin cambio. `:not(.toast-hide)` en el selector — sin él, la especificidad de
-   :nth-last-child (0,0,3) supera a .toast-item.toast-hide (0,0,2, más abajo) y
-   rompería la animación de salida de un toast en 2ª/3ª posición al ser dismisseado;
-   con la exclusión, .toast-hide vuelve a ser el único selector que aplica en ese
-   estado, sin regresión. Sin `transition` propia — hereda la ya declarada en
-   .toast-item (0.24s, regla base de arriba), cumpliendo AC4 sin duplicar valor.
-   Bajo prefers-reduced-motion, ver bloque @media al final del archivo. */
-/* TKT-202608-518 (Bug menor, QA Finn — Momento 1): .toast-digest-list li retira
-   opacity propio (componía 0.80×0.80=0.64 contra .toast-body) y .toast-digest-list
-   resetea margin/padding nativo del <ul>. :focus-visible retira el opacity:1 inerte
-   — un hijo no puede exceder el techo de opacidad de su ancestro por esa vía, el
-   outline ya es el indicador de foco real (WCAG 2.4.7). Ver bloques junto a cada
-   regla, más abajo. */
-/* TKT ref_id CAEL-08311620-02 (REQ ref_id CAEL-08311620-01, ex-DISC-202608-246):
-   .toast-item.toast-hide 0.16s→0.15s — alinea a --transition-base, converge con
-   el timer JS unificado (_TOAST_EXIT_MS, locus-toast.js). .toast-inline sin cambio
-   — ya estaba en 0.15s. */
-/* REQ ref_id CAEL-08311600-01 (TKT1 ref_id CAEL-08311600-02) — .toast-progress opacity
-   0.36→0.90. AC1: ≥3:1 (WCAG SC 1.4.11, componente gráfico no textual — no 4.5:1/SC 1.4.3,
-   corrección de clasificación respecto a la convención general de _Locus-css-ref §Tokens —
-   Color). Verificado contra locus-base.css real (mod:34), composite sobre el fondo real de
-   .toast-item (c-*-bg sobre --bg), no el token aislado. Peor caso: light/t-success 3.22:1.
-   Fix local al selector — no toca --c-*-text compartidos con otros consumidores
-   (.qinc-type-badge, badges de prioridad) — verificado sin regresión, ningún otro selector
-   de este archivo ni grep cruzado consume .toast-progress fuera de sí mismo. */
-/* TKT-202608-518 (REQ-202608-216): .toast-digest-list — contenedor de listado completo para
-   showToastDigest(). Reemplaza el truncado "y N más" en JS (TKT2, Rune, depends_on este TKT).
-   max-height equivalente a 6 líneas (line-height 1.5, text-xs) — sobre eso, scroll interno con
-   :focus-visible propio (outline-offset:-2px), mismo patrón ya usado en .toast-item.t-error/
-   .t-warning. No toca .toast-item base, no agrega íconos, no cambia el límite de 3 toasts. */
-/* TKT-202608-509 (REQ-202608-211): #ckpt-panel/.ckpt-section*/.ckpt-item-*/.ckpt-next/
-   .ckpt-section-label + las dos reglas #ckpt-panel/#ckpt-panel.open del @media
-   (prefers-reduced-motion) compartido con toast — reubicadas íntegras a
-   locus-sesiones.css (destino real de showCheckpointPanel(), locus-sesiones-viz.js),
-   scope propio confirmado contra _Locus-css-ref (este archivo declara solo Toast stack
-   system). Sin cambio de valor — deuda de organización, no de estilo. Este archivo
-   queda exclusivamente .toast-*/#toast-stack/.t-*. */
-/* TKT-202608-514 (REQ-202608-211): :focus-visible en .toast-item.t-error/.t-warning y en
-   .toast-dismiss, + :hover de opacidad en t-error/t-warning. Sin rediseño de layout del
-   stack, sin tocar contraste de progress bar, sin hover/focus nuevo en tipos sin onClick
-   (t-success/-download/-info/-confirm/-copy/-neutral) — ver detalle junto a cada bloque. */
-/* TKT-202608-301 (REQ-202608-121, DISC-202608-116): reemplaza referencias a los 4 alias retirados de locus-base.css — --text-3xs→--text-2xs, --text-2xs-plus→--text-xs, --text-sm→--text-xs, --text-2xl→--text-xl. Sin cambio de valor computado (mismo px que el alias resolvía antes). Fallbacks numéricos embebidos preexistentes no se tocan (candidato aparte, priority: low). */
-/* REQ CAEL-0724-02 (toast — corrección semántica + render): TKT1 tokens dedicados
-   t-confirm (--blue-*)/t-copy (color-mix + --pink), title override incluye t-confirm.
-   TKT2 .toast-icon como chip (color-mix currentColor), .toast-progress 2px→3px/opacity .20→.36. */
-/* mod:6 — TKT correctivo (t-copy → --pink): mod:5 dejó .toast-item.t-copy (bg/border/color) en
-   --pink pero .toast-item.t-copy::before seguía en --purple (borrowed) — hallazgo de Finn en QA.
-   Corregido: ::before también en --pink. Fix completo en las 4 declaraciones de t-copy. */
-/* TKT1 (REQ corregir-css-purity): header corregido — mod:1 declaraba autor:Rune sobre split
-   mecánico de locus-modals.css mod:7 (TKT1 de REQ split, 2026-07-05), sin decisión de estilo
-   nueva. Contenido auditado y adoptado sin cambios — solo corrección de atribución. */
-/* locus-modals-toast.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
+/* [PP] mod:17 · autor:Nova · 2026-08-31 20:45 UTC-6 */
 
 /* === locus-toast.js ===
    Funciones: showToast · showToastInline · showToastDigest · _toastRender · _dismissToast */
@@ -69,7 +15,7 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-sm);
   align-items: flex-end;
   pointer-events: none;
   max-width: min(340px, calc(100vw - 3rem));
@@ -78,8 +24,13 @@
 .toast-item {
   display: flex;
   align-items: flex-start;
+  /* TKT-202608-523: sin token exacto equivalente en _Locus-css-ref §Tokens —
+     9px (gap) y 10px/18px (padding, valores 1º/3º/4º) no coinciden con ningún
+     paso de la escala --space-* (2/4/6/8/12/16/24/32px). 12px (padding, 2º
+     valor) sí coincide — tokenizado. Documentado, no bloquea el resto del
+     archivo. */
   gap: 9px;
-  padding: 10px 12px 10px 18px;
+  padding: 10px var(--space-md) 10px 18px;
   border-radius: var(--radius-md-plus);
   border: 1px solid var(--border2);
   background: var(--surface);
@@ -116,7 +67,7 @@
   top: 0;
   bottom: 0;
   width: 4px;
-  border-radius: var(--radius-sm) 0 0 4px;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
   background: var(--border2);
 }
 
@@ -181,7 +132,7 @@
   color: inherit;
   opacity: 0.80;
   line-height: 1.5;
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   display: block;
 }
 
@@ -193,8 +144,8 @@
   display: block;
   max-height: 9em;
   overflow-y: auto;
-  margin: 4px 0 0;
-  padding: 0 2px 0 0;
+  margin: var(--space-2xs) 0 0;
+  padding: 0 var(--space-3xs) 0 0;
 }
 
 /* TKT-202608-518 (Bug menor, QA Finn): .toast-digest-list vive dentro de .toast-body
@@ -241,8 +192,11 @@
   justify-content: center;
   transition: var(--trans-color);
   align-self: flex-start;
-  margin-top: -2px;
-  margin-right: -4px;
+  /* TKT-202608-523: sin token negativo declarado en _Locus-css-ref — magnitud
+     exacta vía calc(-1 * var(...)), mismo valor computado, sin convención
+     nueva. */
+  margin-top: calc(-1 * var(--space-3xs));
+  margin-right: calc(-1 * var(--space-2xs));
   border-radius: var(--radius-sm);
 }
 
@@ -420,8 +374,8 @@
   pointer-events: none;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-md);
   border: 1px solid var(--border2);
   background: var(--surface);
@@ -516,8 +470,8 @@
 .toast-inline-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 6px;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
   flex-wrap: wrap;
 }
 
@@ -525,7 +479,9 @@
 .toast-inline-btn {
   display: inline-flex;
   align-items: center;
-  padding: 2px 10px;
+  /* TKT-202608-523: 10px (2º valor) sin token exacto equivalente en la escala
+     --space-* — documentado, no bloquea. 2px (1º valor) sí coincide. */
+  padding: var(--space-3xs) 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface);
@@ -564,7 +520,7 @@
   transform-origin: left;
   background: currentcolor;
   opacity: 0.90;
-  border-radius: 0 2px 2px 0;
+  border-radius: 0 var(--radius-2xs) var(--radius-2xs) 0;
   animation: toast-shrink var(--toast-duration, 3s) linear forwards;
   animation-play-state: var(--toast-play-state, running);
 }
