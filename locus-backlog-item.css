@@ -1,4 +1,4 @@
-/* [PP] mod:120 · autor:Nova · 2026-08-27 03:22 UTC-6 */
+/* [PP] mod:124 · autor:Nova · 2026-09-01 15:35 UTC-6 */
 /* TKT-202608-463 (REQ-202608-191, TKT4 · Barra de composición + banner de atención): estructura
    visual únicamente — el wiring de conteo/click (TKT5, Rune, bloqueado por este TKT) consume
    estas clases sobre datos ya agregados por chipTonesFromDiff, sin lógica CSS de conteo.
@@ -1002,7 +1002,8 @@
 }
 
 .bitem-discard-reason-save:hover {
-  background: var(--c-low-border);
+  /* TKT-202609-527: mismo criterio que .item-inline-confirm__accept:hover (locus-backlog.css) — confirmado en css-ref mod:241 */
+  background: var(--c-low-text);
 }
 
 .bitem-discard-reason-save:focus-visible {
@@ -1349,6 +1350,61 @@
   background: color-mix(in srgb, var(--purple) 12%, transparent);
   color: var(--purple-text);
   white-space: nowrap;
+}
+
+/* TKT-202608-528 (REQ-202609-225): status de solo lectura para ítems tipo REQ en el IDP —
+   Locus deriva el status de REQ automáticamente de sus hijos (done/bloqueado exclusivos
+   del juicio de Finn, __BR-Core §4) — reemplaza el control interactivo _openStatusPopover()
+   sin ofrecer una acción que el ítem no soporta. Mismo par neutro --surface2/--text2 ya
+   validado en .mdiff-status-chip--borrador (L5475) — sin token nuevo.
+   Renombrado de .idp-status-readonly-chip a bitem-* en TKT-202609-529 (patch de Cael) —
+   el componente vive en buildBacklogItem() (locus-backlog-item.js), no en el modal IDP
+   (locus-backlog-panel.js); el prefijo idp-* inducía a confusión de archivo consumidor.
+   Reimplementación (Finn, Momento 1 — bug: 3/4 AC no cumplidos contra el original): agrega
+   badge 'auto' + divisor vertical, ícono ti-info-circle, hint condicional done/bloqueado.
+   Badge y hint heredan el mismo par --text2/--surface2 ya validado en el chip base — sin
+   auditoría de contraste independiente (mismo criterio ya vigente en este doc para -text
+   como fill no-textual, ver §Tokens — Color mod:242: válido ≥4.5:1 como texto ⇒ válido
+   sobre la misma superficie sin volver a medir). Símbolo #ti-info-circle agregado al sprite
+   de index.html en el mismo movimiento (mod:222, Rune) — no existía antes de este TKT. */
+.bitem-status-readonly-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text2);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  cursor: default;
+}
+
+.bitem-status-readonly-chip .ti-svg {
+  width: var(--text-xs);
+  height: var(--text-xs);
+  flex-shrink: 0;
+}
+
+.bitem-status-readonly-chip-badge {
+  display: inline-flex;
+  align-items: center;
+  padding-left: var(--space-2xs);
+  margin-left: 2px;
+  border-left: 1px solid var(--border);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.bitem-status-readonly-hint {
+  display: block;
+  font-size: var(--text-2xs);
+  font-weight: 400;
+  color: var(--text2);
+  margin-top: 2px;
 }
 
 .idp-divider {

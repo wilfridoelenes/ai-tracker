@@ -1,4 +1,4 @@
-/* [PP] mod:80 · autor:Nova · 2026-08-24 15:10 UTC-6 */
+/* [PP] mod:81 · autor:Rune · 2026-09-01 UTC-6 */
 /* TKT-202608-458 (REQ-202608-190, TKT1): .sph-header pasa a estado único — sin chevron
    ni rama colapsada (Patrón A-13 retirado de este archivo: .sph-collapse-btn +
    .sph-header.is-collapsed + .sph-collapsed-summary/-goal/-version/-pct eliminados sin
@@ -318,7 +318,9 @@
 .sph-bd-fill {
   height: 100%;
   width: var(--sph-bd-width, 0%);
-  background: var(--c-low-border);
+  /* TKT-202609-527: fill de progreso es no-textual — -border fallaba 3:1, -text ya auditado.
+     Coherente con .sph-bd-fill.is-complete/.is-ready (abajo), que ya usaban -text. */
+  background: var(--c-low-text);
   /* B-202606-026: border-radius eliminado — el track tiene overflow:hidden, el border-radius en el fill producía clip en extremo derecho al llegar a 100% */
   transition: width var(--trans-medium);
 }
@@ -1323,7 +1325,8 @@
 .sml-bar-fill {
   height: 100%;
   width: var(--sml-bar-width, 0%);
-  background: var(--c-low-border);
+  /* TKT-202609-527: mismo criterio que .sph-bd-fill — -text en vez de -border para fill no-textual */
+  background: var(--c-low-text);
   /* B-202606-026: border-radius eliminado — el track tiene overflow:hidden, el border-radius en el fill producía clip en extremo derecho al llegar a 100% */
   transition: width var(--trans-medium);
 }

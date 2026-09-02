@@ -1,4 +1,4 @@
-/* [PP] mod:17 · autor:Nova · 2026-08-31 20:45 UTC-6 */
+/* [PP] mod:18 · autor:Rune · 2026-09-01 UTC-6 */
 
 /* === locus-toast.js ===
    Funciones: showToast · showToastInline · showToastDigest · _toastRender · _dismissToast */
@@ -300,7 +300,8 @@
 }
 
 .toast-item.t-success::before {
-  background: var(--c-low-border);
+  /* TKT-202609-527: -border (fill no-textual) fallaba 3:1 en ambos temas — reasignado a -text, ya auditado ≥4.5:1 (Cluster B) */
+  background: var(--c-low-text);
 }
 
 .toast-item.t-download::before {
@@ -308,11 +309,11 @@
 }
 
 .toast-item.t-error::before {
-  background: var(--c-critical-border);
+  background: var(--c-critical-text);
 }
 
 .toast-item.t-warning::before {
-  background: var(--c-high-border);
+  background: var(--c-high-text);
 }
 
 .toast-item.t-info::before {
@@ -448,15 +449,16 @@
 }
 
 .toast-inline.t-success::before {
-  background: var(--c-low-border);
+  /* TKT-202609-527: mismo criterio que .toast-item — -text en vez de -border para fill no-textual */
+  background: var(--c-low-text);
 }
 
 .toast-inline.t-error::before {
-  background: var(--c-critical-border);
+  background: var(--c-critical-text);
 }
 
 .toast-inline.t-warning::before {
-  background: var(--c-high-border);
+  background: var(--c-high-text);
 }
 
 .toast-inline.t-info::before {

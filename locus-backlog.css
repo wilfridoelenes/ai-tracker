@@ -1,4 +1,4 @@
-/* [PP] mod:172 · autor:Nova · 2026-08-24 UTC-6 */
+/* [PP] mod:173 · autor:Rune · 2026-09-01 UTC-6 */
 /* TKT-202608-415 (REQ-202608-168): swap DISC↔REQ en .stat-type-chip/.filter-type-btn (tc-DISC/
    tc-REQ base+active+all-active, filter-type-btn.active-DISC/-REQ) — cierra el gap de mod:55
    ya registrado en _Locus-css-ref y en el comentario junto a .stat-type-chip--qdisc-discovery.
@@ -4915,7 +4915,8 @@
 }
 
 .item-inline-confirm__accept:hover {
-  background: var(--c-low-border);
+  /* TKT-202609-527: -border como fill fallaba 3:1 — -text ya auditado ≥4.5:1 como texto, cubre 3:1 como fill contra la misma superficie (css-ref mod:241) */
+  background: var(--c-low-text);
 }
 
 .item-inline-confirm__accept:active {

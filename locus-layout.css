@@ -1,4 +1,4 @@
-/* [PP] mod:39 · autor:Nova · 2026-08-18 22:40 UTC-6 */
+/* [PP] mod:40 · autor:Rune · 2026-09-01 UTC-6 */
 /* DISC-202608-152: .hdr-menu-infra-current/.hdr-menu-textarea/.hdr-menu-error-msg/
    .hdr-menu-apply-btn renombradas a prefijo .infra-sync-* propio del modal — el nombre
    "hdr-menu" venía del subpanel legacy retirado del DOM (T-206-009). Textarea consolidada
@@ -1210,13 +1210,14 @@ header {
 }
 
 .sync-pill.sync-ok::before {
-  background: var(--c-low-border, var(--green));
+  /* TKT-202609-527: dot es fill no-textual — -border fallaba 3:1, -text ya auditado */
+  background: var(--c-low-text, var(--green));
   animation: none;
   box-shadow: 0 0 0 2px var(--c-low-bg, rgb(46 204 120 / 15%));
 }
 
 .sync-pill.sync-error::before {
-  background: var(--c-critical-border, var(--red));
+  background: var(--c-critical-text, var(--red));
   animation: none;
   box-shadow: 0 0 0 2px var(--c-critical-bg, rgb(232 85 85 / 15%));
 }
