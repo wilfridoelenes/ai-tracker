@@ -1025,8 +1025,13 @@ function _renderItemPanel(item) {
 
     if (!activeChildren.length) {
       return `<div class="idp-section idp-section--done-reqs">
-        <div class="idp-section-label">Requisitos para done</div>
-        <div class="idp-done-req-row idp-done-req-row--warn">Sin hijos activos — REQ huérfano</div>
+        <div class="idp-done-reqs-label">Requisitos para done</div>
+        <div class="idp-done-reqs-rows">
+          <div class="idp-done-req-row idp-done-req-row--warn">
+            <span class="idp-done-req-row-icon">!</span>
+            <span class="idp-done-req-row-status">Sin hijos activos — REQ huérfano</span>
+          </div>
+        </div>
       </div>`;
     }
 
@@ -1037,23 +1042,36 @@ function _renderItemPanel(item) {
 
     if (allResolved) {
       return `<div class="idp-section idp-section--done-reqs">
-        <div class="idp-section-label">Requisitos para done</div>
-        <div class="idp-done-req-row idp-done-req-row--ok">✓ Todos los hijos done y avalados</div>
+        <div class="idp-done-reqs-label">Requisitos para done</div>
+        <div class="idp-done-reqs-rows">
+          <div class="idp-done-req-row idp-done-req-row--ok">
+            <span class="idp-done-req-row-icon">✓</span>
+            <span class="idp-done-req-row-status">Todos los hijos done y avalados</span>
+          </div>
+        </div>
       </div>`;
     }
 
     const pendingRowsHtml = pendingChildren.map(c =>
-      `<div class="idp-done-req-row idp-done-req-row--pending">${esc(c.code)} · ${esc(c.status)}</div>`
+      `<div class="idp-done-req-row idp-done-req-row--pending">
+        <span class="idp-done-req-row-code">${esc(c.code)}</span>
+        <span class="idp-done-req-row-status">${esc(c.status)}</span>
+      </div>`
     ).join('');
 
     const warnRowHtml = doneWithoutVerified.length
-      ? `<div class="idp-done-req-row idp-done-req-row--warn">verified_by ausente en ${doneWithoutVerified.length} de ${doneChildren.length} hijos done</div>`
+      ? `<div class="idp-done-req-row idp-done-req-row--warn">
+          <span class="idp-done-req-row-icon">!</span>
+          <span class="idp-done-req-row-status">verified_by ausente en ${doneWithoutVerified.length} de ${doneChildren.length} hijos done</span>
+        </div>`
       : '';
 
     return `<div class="idp-section idp-section--done-reqs">
-      <div class="idp-section-label">Requisitos para done</div>
-      ${pendingRowsHtml}
-      ${warnRowHtml}
+      <div class="idp-done-reqs-label">Requisitos para done</div>
+      <div class="idp-done-reqs-rows">
+        ${pendingRowsHtml}
+        ${warnRowHtml}
+      </div>
     </div>`;
   };
   const doneRequirementsHtml = _buildIdpDoneRequirements(item, type);

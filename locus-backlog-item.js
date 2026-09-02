@@ -1,10 +1,13 @@
-// [PP] mod:182 · autor:Rune · 2026-09-01 UTC-6
+// [PP] mod:183 · autor:Rune · 2026-09-01 17:10 UTC-6
 // TKT-202609-529 (REQ-202609-225): _statusChipHtml() diferencia REQ de TKT/CHG — REQ nunca
 // expone el popover de cambio de status inline (ciclo de vida auto-gestionado por self-heal
-// o exclusivo del juicio de Finn, __BR-Core §4). Clase .idp-status-readonly-chip alineada al
-// nombre real ya entregado y verificado por Finn en TKT-202609-528 (CSS, done) — el AC original
-// de este TKT citaba .bitem-status-readonly-chip, corregido por Cael en el mismo ciclo (gap de
-// especificación, no bug de Rune).
+// o exclusivo del juicio de Finn, __BR-Core §4). Clase .bitem-status-readonly-chip — corrección
+// (Finn, QA Momento 1): la entrega original citaba .idp-status-readonly-chip, sin match en
+// locus-backlog-item.css (que solo define .bitem-status-readonly-chip, L1370). Evidencia contra
+// ambos archivos reales: el chip hermano de esta misma función (bitem-status-chip, línea
+// siguiente) usa el mismo namespace bitem-*, y el prefijo idp- es propiedad exclusiva de
+// locus-backlog-panel.js (IDP) — nunca de buildBacklogItem(). Bug de implementación de Rune,
+// no gap de especificación de Cael.
 // TKT-202608-480/481 (REQ-202608-200): dos gaps distintos de persistencia de campos declarados
 // por Cael en TKTs nuevos del mismo bloque de CHECKPOINT — devueltos por DISC-202608-227.
 // (1) depends_on con {ref_id,title}: _REF_OBJ_LISTS.forEach (mergeBacklogFromTG) operaba sobre
@@ -1550,7 +1553,7 @@ export function buildBacklogItem(item, opts = {}) {
   // 'bloqueado', mismo criterio que el resto de statuses no-terminales de REQ.
   const _statusChipHtml = (!isDone && !isDiscarded && !isIdea)
     ? (type === 'REQ'
-        ? `<span class="idp-status-readonly-chip">${statusLabel(item.status || 'pendiente')}</span>`
+        ? `<span class="bitem-status-readonly-chip">${statusLabel(item.status || 'pendiente')}</span>`
         : `<button class="bitem-status-chip bitem-status-chip--${esc(item.status || 'pendiente')}" data-action="open-status-popover" data-code="${esc(item.code)}" title="Cambiar status" type="button">${statusLabel(item.status || 'pendiente')}</button>`)
     : '';
   // TKT-202608-472 (REQ-202608-196, TKT2): badge de alerta — REQ done con al menos un TKT
