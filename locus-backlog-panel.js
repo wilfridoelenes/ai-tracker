@@ -1,4 +1,4 @@
-// [PP] mod:39 · autor:Rune · 2026-08-18 22:30 UTC-6
+// [PP] mod:40 · autor:Rune · 2026-09-01 15:05 UTC-6
 // TKT5 (TKT-202608-376, REQ-202608-149): render de archivos[] (TKT/INC/PRB/CHG, grupo
 // Relaciones, dentro de depsHtml), queue (INC/PRB/CHG) y zona (DISC) (ambos grupo
 // Ubicación, dentro de metaHtml) — cierra el gap de integración detectado por Finn en
@@ -70,7 +70,7 @@
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-toast.js
 
-import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshotItems, itemKind, renderStats, setItemStatus, undoBacklog, getItems, getAnyItem, INCIDENT_TYPES, _registerCoreCallback, _ECOSYSTEM_ROLES } from './locus-backlog-core.js'; // TKT-202607-045: getAnyItem agregada — chip 'Generado desde' puede resolver ITIL · [tmp:tkt4-status-guard]: INCIDENT_TYPES agregada — status cell readonly para ITIL
+import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshotItems, itemKind, renderStats, setItemStatus, undoBacklog, getItems, getAnyItem, INCIDENT_TYPES, _registerCoreCallback, _ECOSYSTEM_ROLES, statusLabel } from './locus-backlog-core.js'; // TKT-202607-045: getAnyItem agregada — chip 'Generado desde' puede resolver ITIL · [tmp:tkt4-status-guard]: INCIDENT_TYPES agregada — status cell readonly para ITIL · TKT (REQ-202609-225, gap de integración): statusLabel agregada — chip readonly de status para REQ
 import { exportBacklogMd } from './locus-backlog-generator.js';
 import { _getActiveProjectFilter, getAI, getActiveSprints, _sprintDisplay, getAllSessions, getProjectById, save, saveImmediate } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
@@ -773,8 +773,16 @@ function _renderItemPanel(item) {
   // de _buildIdpSlotReactiva. Alineado a incIncidentStatus(), con fallback a item.status
   // preservado (el getter retorna null para CHG, que usa status — mismo comportamiento
   // observable, sin regresión).
+  // TKT (REQ-202609-225, gap de integración — Momento 2 de Finn): REQ agregado a la rama
+  // readonly, mismo patrón que DISC/INCIDENT_TYPES — el ciclo de vida de REQ (__BR-Core §4:
+  // pendiente/en-proceso/en-revision/bloqueado/orphaned/descartado) no es editable por el
+  // founder vía IDP, las transiciones son automáticas o exclusivas del juicio de Finn.
+  // statusLabel() cubre el label correcto para cualquier status real de REQ — el <select>
+  // genérico anterior solo declaraba 4 de los 6 valores válidos.
   const statusCellHtml = type === 'DISC'
     ? `<span class="idp-meta-value idp-meta-value--readonly">${_discStatusLabels[item.status] || esc(item.status || '—')}</span>`
+    : type === 'REQ'
+    ? `<span class="idp-meta-value idp-meta-value--readonly">${esc(statusLabel(item.status) || item.status || '—')}</span>`
     : _ITIL_SCRUM_INCOMPATIBLE.includes(type)
     ? `<span class="idp-meta-value idp-meta-value--readonly">${_incidentStatusLabels[incIncidentStatus(item) || item.status] || esc(incIncidentStatus(item) || item.status || '—')}</span>`
     : `<select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="status"${_roDisabled}>
