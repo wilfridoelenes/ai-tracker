@@ -1,3 +1,10 @@
+// [PP] mod:41 · autor:Rune · 2026-09-01 16:20 UTC-6
+// TKT2 (TKT-202609-531, REQ-202609-226): _buildIdpDoneRequirements(item, type) — checklist
+// derivado de solo lectura, visible únicamente en REQ en-revision. Espeja los gates ya
+// vigentes en applyPatchesFromTG (hijo activo no-done, o done sin verified_by:'QA · Finn')
+// sin escribir ningún campo — depends_on TKT-202609-530 (familia .idp-done-req-*/
+// .idp-section--done-reqs en locus-backlog-item.css) resuelto. Filas sin data-action —
+// no_incluye del TKT excluye botón de acción, a diferencia de childrenChipsHtml.
 // [PP] mod:40 · autor:Rune · 2026-09-01 15:05 UTC-6
 // TKT5 (TKT-202608-376, REQ-202608-149): render de archivos[] (TKT/INC/PRB/CHG, grupo
 // Relaciones, dentro de depsHtml), queue (INC/PRB/CHG) y zona (DISC) (ambos grupo
@@ -1007,12 +1014,57 @@ function _renderItemPanel(item) {
     return `<div class="idp-meta-row idp-children-row">${chips}</div>`;
   })();
 
+  // TKT2 (TKT-202609-531, REQ-202609-226): checklist derivado "Requisitos para done" —
+  // solo lectura, sin ningún control que fuerce status. Visible únicamente en REQ
+  // en-revision, para hacer visible por qué el gate de applyPatchesFromTG rechaza (o
+  // aceptaría) un patch de done, sin introducir mecanismo de mutación nuevo.
+  const _buildIdpDoneRequirements = (it, t) => {
+    if (t !== 'REQ' || it.status !== 'en-revision') return '';
+
+    const activeChildren = (getItems() || []).filter(i => i.parentId === it.code && i.status !== 'descartado');
+
+    if (!activeChildren.length) {
+      return `<div class="idp-section idp-section--done-reqs">
+        <div class="idp-section-label">Requisitos para done</div>
+        <div class="idp-done-req-row idp-done-req-row--warn">Sin hijos activos — REQ huérfano</div>
+      </div>`;
+    }
+
+    const doneChildren = activeChildren.filter(c => c.status === 'done');
+    const pendingChildren = activeChildren.filter(c => c.status !== 'done');
+    const doneWithoutVerified = doneChildren.filter(c => c.verified_by !== 'QA · Finn');
+    const allResolved = !pendingChildren.length && !doneWithoutVerified.length;
+
+    if (allResolved) {
+      return `<div class="idp-section idp-section--done-reqs">
+        <div class="idp-section-label">Requisitos para done</div>
+        <div class="idp-done-req-row idp-done-req-row--ok">✓ Todos los hijos done y avalados</div>
+      </div>`;
+    }
+
+    const pendingRowsHtml = pendingChildren.map(c =>
+      `<div class="idp-done-req-row idp-done-req-row--pending">${esc(c.code)} · ${esc(c.status)}</div>`
+    ).join('');
+
+    const warnRowHtml = doneWithoutVerified.length
+      ? `<div class="idp-done-req-row idp-done-req-row--warn">verified_by ausente en ${doneWithoutVerified.length} de ${doneChildren.length} hijos done</div>`
+      : '';
+
+    return `<div class="idp-section idp-section--done-reqs">
+      <div class="idp-section-label">Requisitos para done</div>
+      ${pendingRowsHtml}
+      ${warnRowHtml}
+    </div>`;
+  };
+  const doneRequirementsHtml = _buildIdpDoneRequirements(item, type);
+
   panel.innerHTML = `
     <div class="idp-inner">
       ${headerHtml}
       ${draftStripHtml}
       ${metaHtml}
       ${childrenChipsHtml}
+      ${doneRequirementsHtml}
       ${discSlotHtml}
       ${planeadaSlotHtml}
       ${contractSlotHtml}
