@@ -1,4 +1,4 @@
-// [PP] mod:187 · autor:Rune · 2026-09-02 20:15 UTC-6
+// [PP] mod:188 · autor:Rune · 2026-09-02 20:45 UTC-6
 // TKT-202609-529 (REQ-202609-225, fix post-QA de Finn — AC-4 no cubierto en mod:185): la
 // entrega anterior gateaba _statusChipHtml() detrás de (!isDone && !isDiscarded && !isIdea) —
 // un REQ con status 'done' o 'descartado' nunca alcanzaba la rama type==='REQ' del chip
@@ -3493,6 +3493,29 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
         'origen-disc-sin-promocion',
         c.code,
         `origen_disc ${_newItem.origenDisc} sin patch de promoción — DISC permanece en discovery. Ver __BR-Ecosystem §8.`,
+        'backlog'
+      );
+    }
+  });
+
+  // TKT2 (REQ-202609-229, TKT-202609-540): duplicado potencial — señal no bloqueante post-batch,
+  // mismo punto que origen-disc-sin-promocion (después del batch completo, antes del return) —
+  // getItems() ya refleja los ítems nuevos porque saveBacklog() corrió antes en este mismo
+  // bloque (ver comentario del chequeo anterior). Evalúa solo `created` (no createdAndClosed,
+  // ver AC del TKT) — no bloquea la ingesta bajo ninguna condición. duplicateWarning es campo
+  // aditivo y opcional sobre el shape ya documentado de created en _Locus-module-contracts §2
+  // (mod:32/77) — ausente si no hay match, nunca null ni {} vacío.
+  created.forEach(c => {
+    const _createdItem = getItems().find(it => it.code === c.code);
+    if (!_createdItem) return;
+    const _pool = getItems().filter(it => it.code !== c.code);
+    const _dup = _findPotentialDuplicate(_createdItem, _pool);
+    if (_dup) {
+      c.duplicateWarning = { code: _dup.item.code, reason: _dup.reason, score: _dup.score };
+      _blogLog(
+        'duplicado-potencial',
+        c.code,
+        `Posible duplicado de ${_dup.item.code} (${_dup.reason}, score:${_dup.score}) — no bloqueante.`,
         'backlog'
       );
     }
