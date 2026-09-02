@@ -1,4 +1,4 @@
-/* [PP] mod:124 · autor:Nova · 2026-09-01 15:35 UTC-6 */
+/* [PP] mod:126 · autor:Nova · 2026-09-01 16:35 UTC-6 */
 /* TKT-202608-463 (REQ-202608-191, TKT4 · Barra de composición + banner de atención): estructura
    visual únicamente — el wiring de conteo/click (TKT5, Rune, bloqueado por este TKT) consume
    estas clases sobre datos ya agregados por chipTonesFromDiff, sin lógica CSS de conteo.
@@ -1587,6 +1587,89 @@
   margin-top: 5px;
   opacity: 0.6;
   background: var(--_type-color, var(--purple));
+}
+
+/* TKT-202609-530 (REQ-202609-226, TKT1): .idp-section--done-reqs / .idp-done-req-row — reusa
+   la estructura y valores literales reales de .idp-section--deps / .idp-deps-label
+   (locus-sesiones.css mod:62, L5015-5029, adjunto y verificado en esta sesión) —
+   corrección sobre la primera entrega (mod:125), que asumió el token de espaciado
+   canónico local (.idp-section-label) sin el archivo real disponible: valores
+   distintos en ambos ejes (padding y tratamiento del label), señalado por Finn en QA
+   Momento 1. `.idp-done-reqs-label` agrega `display:block` + `margin-bottom` — ausentes
+   en `.idp-deps-label` porque ese label es inline dentro de `.idp-deps-row` (precede a
+   los chips en el mismo flex row); aquí actúa como encabezado de sección sobre las filas,
+   no como label inline — única desviación deliberada, declarada, sobre los valores reales
+   copiados sin cambio (font-size/color/padding-top). Sin token de color nuevo — reusa
+   --green-*/--amber-* ya vigentes (.mdiff-pill--created / .mdiff-docrel-badge). Sin tocar
+   .idp-section--deps. */
+.idp-section--done-reqs {
+  padding: 10px 0 2px;
+}
+
+.idp-done-reqs-label {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--text-muted, rgb(255 255 255 / 40%));
+  padding-top: 3px;
+  margin-bottom: var(--space-sm);
+}
+
+.idp-done-reqs-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.idp-done-req-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-xs);
+  padding: var(--space-2xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  line-height: 1.5;
+}
+
+/* Estado resuelto — mismo tono que .mdiff-pill--created */
+.idp-done-req-row--ok {
+  color: var(--green-text);
+  border-color: var(--green-border);
+  background: var(--green-dim);
+}
+
+/* Estado pendiente — mismo criterio visual que .bitem-effort-dots--unset / .effort-dots--unset */
+.idp-done-req-row--pending {
+  color: var(--text2);
+  border-style: dashed;
+  border-color: var(--hint);
+  background: transparent;
+}
+
+/* Estado warning — mismo tono que .mdiff-docrel-badge */
+.idp-done-req-row--warn {
+  color: var(--amber-text);
+  border-color: color-mix(in srgb, var(--amber) 28%, transparent);
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
+}
+
+.idp-done-req-row-icon {
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+.idp-done-req-row-code {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.idp-done-req-row-status {
+  color: var(--text3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
 }
 
 /* Timeline */
