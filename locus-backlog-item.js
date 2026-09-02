@@ -1,4 +1,4 @@
-// [PP] mod:186 · autor:Rune · 2026-09-01 19:10 UTC-6
+// [PP] mod:187 · autor:Rune · 2026-09-02 20:15 UTC-6
 // TKT-202609-529 (REQ-202609-225, fix post-QA de Finn — AC-4 no cubierto en mod:185): la
 // entrega anterior gateaba _statusChipHtml() detrás de (!isDone && !isDiscarded && !isIdea) —
 // un REQ con status 'done' o 'descartado' nunca alcanzaba la rama type==='REQ' del chip
@@ -2263,6 +2263,42 @@ function _findTmpMatch(tmpCode, desc, existingItems, incomingType) {
     if (score > 0.5 && score > bestScore) { best = item; bestScore = score; }
   });
   return best ? { item: best, score: bestScore } : null;
+}
+
+// TKT-202609-539 (REQ-202609-229, TKT1): _findPotentialDuplicate — detección de duplicado
+// potencial contra el backlog activo, para señal no bloqueante en ingesta (TKT2 la invoca).
+// Standalone — no comparte código ejecutable ni caller con _findTmpMatch()/[tmp:slug]: motor
+// distinto, aunque el criterio de score de título se inspira en el mismo algoritmo (reescrito
+// aquí, no importado). No muta item/existingItems, no llama _blogLog (eso es TKT2).
+// Prioridad: origen_disc exacto (score:1, determinístico) gana sobre título — si hay match por
+// origen_disc, título no se evalúa. Sin origenDisc y sin title → retorna null sin iterar.
+function _findPotentialDuplicate(item, existingItems) {
+  if (!item || (!item.origenDisc && !item.title)) return null;
+
+  if (item.origenDisc) {
+    const match = existingItems.find(
+      it => it.origenDisc === item.origenDisc && it.status !== 'descartado'
+    );
+    if (match) return { item: match, reason: 'origen_disc', score: 1 };
+  }
+
+  if (!item.title) return null;
+  const needle = item.title.trim().toLowerCase();
+  if (!needle) return null;
+  const needleWords = needle.split(/\s+/).filter(w => w.length > 3);
+  if (!needleWords.length) return null;
+
+  let best = null, bestScore = 0;
+  existingItems.forEach(it => {
+    if (item.type && it.type && it.type !== item.type) return;
+    const haystack = (it.title || '').trim().toLowerCase();
+    if (!haystack) return;
+    const haystackWords = haystack.split(/\s+/);
+    const common = needleWords.filter(w => haystackWords.includes(w)).length;
+    const score = common / Math.max(needleWords.length, haystackWords.length);
+    if (score > 0.5 && score > bestScore) { best = it; bestScore = score; }
+  });
+  return best ? { item: best, reason: 'titulo', score: bestScore } : null;
 }
 
 // B-202605-guardar-sesion: _assignPendingIds — convierte [pendiente-ID] en código real.

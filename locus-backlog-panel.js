@@ -1,3 +1,9 @@
+// [PP] mod:42 · autor:Rune · 2026-09-02 UTC-6
+// TKT (TKT-202609-544, REQ-202609-225): botón 'Descartar' para REQ en el mismo idp-meta-cell
+// de Status — visible cuando status no es terminal (≠done, ≠descartado). setItemStatus(code,
+// 'descartado') ya existente, mismo mecanismo que idp-mark-done. .btn-danger-ghost (canónico,
+// locus-layout.css) — sin CSS nuevo, restricción de Nova (refs_consultados: css_ref/ux_ref/
+// ui_inventory: sí).
 // [PP] mod:41 · autor:Rune · 2026-09-01 16:20 UTC-6
 // TKT2 (TKT-202609-531, REQ-202609-226): _buildIdpDoneRequirements(item, type) — checklist
 // derivado de solo lectura, visible únicamente en REQ en-revision. Espeja los gates ya
@@ -799,6 +805,15 @@ function _renderItemPanel(item) {
           <option value="descartado"${item.status === 'descartado' ? ' selected' : ''}>🗑 descartado</option>
         </select>`;
 
+  // TKT (REQ-202609-225, TKT-202609-544, gap de integración detectado por Finn — AC2 del
+  // REQ pendiente de implementación): botón 'Descartar' — visible cuando el status de REQ
+  // no es terminal (≠done, ≠descartado). AC4: cualquier status no-terminal lo muestra,
+  // incluidos bloqueado/orphaned — sin lista cerrada. Mismo mecanismo que idp-mark-done
+  // (setItemStatus ya cubre los gates de validación existentes, sin reimplementar la llamada).
+  const discardReqBtnHtml = (type === 'REQ' && item.status !== 'done' && item.status !== 'descartado')
+    ? `<button class="btn-danger-ghost idp-discard-req-btn" data-action="idp-discard-req" data-code="${esc(item.code)}" title="Descartar REQ">Descartar</button>`
+    : '';
+
   // Fix directo en sesión: Sprint/Priority/Effort no aplican a INC/PRB/KE/CHG (usan
   // sla_priority, no declaran effort, y viven en Q-INC — no en sprint). Extiende el
   // patrón ya usado para DISC (INC histórico — sin CHECKPOINT confirmado AC2) vía INCIDENT_TYPES, ya importado.
@@ -852,7 +867,7 @@ function _renderItemPanel(item) {
     <div class="idp-meta-grid">
       <div class="idp-meta-cell">
         <span class="idp-meta-label">Status</span>
-        ${statusCellHtml}
+        ${statusCellHtml}${discardReqBtnHtml}
       </div>${priorityMetaCellHtml}${sprintMetaCellHtml}${effortMetaCellHtml}${queueMetaCellHtml}${zonaMetaCellHtml}
       <div class="idp-meta-cell idp-meta-cell--wide">
         <span class="idp-meta-label">Area</span>
@@ -1393,6 +1408,16 @@ function _idpMarkDone(code) {
   if (item && _itemPanelCode === code) _renderItemPanel(item);
 }
 
+// TKT (REQ-202609-225, TKT-202609-544): descartar REQ desde botón rápido en panel — mismo
+// patrón que _idpMarkDone; setItemStatus() ya cubre los gates de validación existentes,
+// sin reimplementar la llamada.
+function _idpDiscardReq(code) {
+  const item = getAnyItem(code);
+  setItemStatus(code, 'descartado');
+  // Re-renderizar panel para ocultar el botón (mismo criterio que _idpMarkDone)
+  if (item && _itemPanelCode === code) _renderItemPanel(item);
+}
+
 // T-202604-307: desvincular sesión desde chip en panel
 function _idpUnlinkSession(itemCode, sessId) {
   const allSessions = getAllSessions();
@@ -1573,6 +1598,10 @@ function _toggleIdpSection(el) {
 
     if (act === 'idp-mark-done') {
       _idpMarkDone(action.dataset.code);
+      return;
+    }
+    if (act === 'idp-discard-req') {
+      _idpDiscardReq(action.dataset.code);
       return;
     }
     if (act === 'idp-start-edit-title') {

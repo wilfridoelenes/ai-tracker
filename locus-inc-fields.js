@@ -1,3 +1,10 @@
+// [PP] mod:5 · autor:Rune · 2026-09-02 09:15 UTC-6
+// TKT-202609-545 (REQ-202609-230): incDerivedItems() ahora filtra elementos no-string antes
+// de retornar el array — cierra DISC-202609-274. _toIncidentRow() (locus-storage.js) delega
+// íntegramente en este getter para construir la columna derived_items, así que el filtro
+// cubre lectura y escritura sin tocar locus-storage.js (TKT-202609-544, alcance original,
+// descartado — reemplazado por este fix único).
+
 // [PP] mod:4 · autor:Rune · 2026-08-18 22:30 UTC-6
 // TKT histórico — sin CHECKPOINT confirmado (parent: REQ CAEL-0721-01 · "_PP-incidents.md — alineación con
 // _ob-DocStandards §3b v1.16"): agrega incDiscardReason() — mismo patrón de los 6 getters
@@ -64,9 +71,13 @@ function incOriginModule(item) {
 
 function incDerivedItems(item) {
   if (!item) return null;
-  if (Array.isArray(item.derivedItems)) return item.derivedItems;
-  if (Array.isArray(item.derived_items)) return item.derived_items;
-  return null;
+  const arr = Array.isArray(item.derivedItems)
+    ? item.derivedItems
+    : Array.isArray(item.derived_items)
+      ? item.derived_items
+      : null;
+  if (!arr) return null;
+  return arr.filter((el) => typeof el === 'string');
 }
 
 function incIncidentStatus(item) {
