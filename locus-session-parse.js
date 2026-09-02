@@ -1,3 +1,14 @@
+// [PP] mod:227 · autor:Rune · 2026-09-02 UTC-6
+// TKT-202609-541 (REQ-202609-229, TKT3): guard de hash exacto extendido al path batch —
+// _processIngestBatch() ahora consulta _processedCheckpointHashes (mismo Set global, mismo
+// criterio de coincidencia exacta que ya usa parsePaste() desde T-202606-210) antes de abrir el
+// panel DIFF; si algún bloque válido del batch ya fue procesado, aviso no bloqueante con
+// "Continuar de todas formas" (mismo patrón warn-key por id que _dupWarnKey del path single).
+// El registro del hash se mueve al punto real de persistencia dentro de _onApplyBatch — un
+// _markCheckpointProcessed(rawBlocks[m.idx]) por bloque válido aplicado, justo después de que
+// _applyCheckpointBatch() completa sin excepción — mismo criterio de "marcar solo tras
+// persistencia confirmada" que ya rige _markCheckpointProcessed() en el path single. Ver
+// comentarios inline en ambos puntos de inserción para el detalle completo.
 // [PP] mod:226 · autor:Rune · 2026-08-31 UTC-6
 // TKT-202608-515 (REQ-202608-214): _checkCascadeCloseGap(tgItems, patchItems) — nueva, llamada
 // al final de _resolveCheckpointBatch() antes de su return. Detecta CHG/REQ que llega a
@@ -3183,6 +3194,34 @@ export async function _processIngestBatch(id) {
     return;
   }
 
+  // TKT-202609-541 (REQ-202609-229, TKT3 — extiende guard de hash exacto al path batch): antes
+  // de este TKT, _processIngestBatch() nunca consultaba _processedCheckpointHashes — el mismo
+  // criterio de detección de duplicado exacto ya vigente en parsePaste() (línea ~2758, hash =
+  // texto completo del CHECKPOINT trimmed) no tenía equivalente en el path batch, así que un
+  // mismo batch pegado dos veces se aplicaba sin ningún aviso. Evalúa el hash crudo de cada
+  // bloque válido (rawBlocks[m.idx].trim(), m.idx viene de metas — ver _resolveCheckpointBatch)
+  // contra el mismo Set global _processedCheckpointHashes que usa el path single — no un hash
+  // nuevo ni una estructura paralela. Edge case (AC4 del TKT): en un batch de 2+ bloques, solo
+  // los bloques cuyo hash ya fue procesado entran a _dupBlocks — los demás bloques del mismo
+  // batch no generan aviso propio ni quedan bloqueados por separado; si el founder confirma
+  // "Continuar de todas formas", el batch completo (duplicados y no-duplicados) sigue su curso
+  // normal hasta showMergeDiffPanel/_onApplyBatch, sin interrupción adicional. Mismo patrón
+  // warn-key por id que _dupWarnKey de parsePaste — se limpia al confirmar, re-invoca
+  // _processIngestBatch(id) para que la segunda pasada atraviese este guard sin reabrir el aviso.
+  const _dupBatchWarnKey = `_dupBatchWarnSeen_${id}`;
+  if (!window[_dupBatchWarnKey]) {
+    const _dupBlocks = (metas || []).filter(m => m && rawBlocks[m.idx] !== undefined && _processedCheckpointHashes.has(rawBlocks[m.idx].trim()));
+    if (_dupBlocks.length) {
+      const _dupCount = _dupBlocks.length;
+      _showIngestValidationWarning(
+        `⚠ ${_dupCount} CHECKPOINT${_dupCount !== 1 ? 's' : ''} de este batch ya fue${_dupCount !== 1 ? 'ron' : ''} procesado${_dupCount !== 1 ? 's' : ''}. ¿Continuar de todas formas?`,
+        () => { window[_dupBatchWarnKey] = true; _processIngestBatch(id); }
+      );
+      return;
+    }
+  }
+  if (window[_dupBatchWarnKey]) delete window[_dupBatchWarnKey];
+
   // TKT3 (REQ-202607-046, depends_on TKT-202607-145): mecanismo de acoplamiento por CSS
   // retirado de este call site — showMergeDiffPanel (locus-backlog-merge.js, TKT2) abre
   // #modal-split-shell directamente, sin necesitar que este flujo batch coordine el overlay
@@ -3207,6 +3246,19 @@ export async function _processIngestBatch(id) {
       showToast('error', '✗ No se pudo aplicar el batch');
       return;
     }
+
+    // TKT-202609-541 (REQ-202609-229, TKT3): registro de hash — mismo mecanismo que
+    // _markCheckpointProcessed() ya usa el path single (invocado desde _doApplyMergeAndFinish,
+    // locus-session-save.js, en el punto donde la persistencia real ya ocurrió — nunca antes de
+    // intentar guardar, ver comentario junto a _markCheckpointProcessed más arriba en este
+    // archivo). _applyCheckpointBatch() ya completó sin excepción en este punto — mismo criterio
+    // de "persistencia real confirmada" que el path single exige antes de marcar. Se registra un
+    // hash por bloque válido de este batch (rawBlocks[m.idx]) — no el batch completo como una
+    // sola unidad, para que la detección de duplicado de TKT3 (arriba, antes de
+    // showMergeDiffPanel) opere por bloque en una ingesta futura, igual que ya opera por
+    // CHECKPOINT individual en el path single.
+    (metas || []).forEach(m => { if (m && rawBlocks[m.idx] !== undefined) _markCheckpointProcessed(rawBlocks[m.idx]); });
+
     // TKT2 (REQ-202607-061): guard extendido — un batch puede traer solo instrucciones
     // patch-intencion sin ningún patch ordinario (ej. Cael corrigiendo intencion de un REQ tras
     // Pausa de Ciclo, sin otro trabajo en el mismo bloque). Sin este OR, ese batch nunca
