@@ -1,4 +1,7 @@
-/* [PP] mod:36 · autor:Nova · 2026-08-31 UTC-6 */
+/* [PP] mod:37 · autor:Nova · 2026-09-02 UTC-6 */
+/* TKT-202609-538: retirados --c-severity-high-bg/-border/-text (ambos temas) —
+   huérfanos confirmados sin consumidor real en los 23 .css del proyecto
+   (verificación de origen: TKT-202609-533, css-ref mod:244). */
 /* TKT-202608-524 (retomada — grep de proyecto completo, 23/23 archivos .css):
    la primera pasada (mod:35) nunca auditó la familia --c-medium-text — cubrió
    solo critical/high/low. Verificado ahora: --c-medium-text light fallaba AA
@@ -365,9 +368,6 @@
   --c-high-bg:         rgb(230 100 30 / 10%);
   --c-high-border:     rgb(230 100 30 / 30%);
   --c-high-text:       #e8742e;
-  --c-severity-high-bg:      rgb(245 158 11 / 10%);
-  --c-severity-high-border:  rgb(245 158 11 / 30%);
-  --c-severity-high-text:    var(--orange);
   --c-medium-bg:       rgb(245 200 66 / 10%);
   --c-medium-border:   rgb(245 200 66 / 25%);
   --c-medium-text:     #f5c842;
@@ -524,9 +524,6 @@
   --c-high-bg:         rgb(192 76 16 / 7%);
   --c-high-border:     rgb(192 76 16 / 18%);
   --c-high-text:       #a34a1e;  /* TKT-202608-524: 4.10:1→4.63:1 worst-case vs --bg2, WCAG AA */
-  --c-severity-high-bg:      rgb(196 122 8 / 9%);
-  --c-severity-high-border:  rgb(196 122 8 / 22%);
-  --c-severity-high-text:    var(--orange);
   --c-medium-bg:       rgb(180 120 0 / 7%);
   --c-medium-border:   rgb(180 120 0 / 18%);
   --c-medium-text:     #8e6400;  /* TKT-202608-524: 3.74:1→4.53:1 worst-case vs --bg2, WCAG AA — familia medium no auditada en la primera pasada de este TKT */

@@ -1,4 +1,37 @@
-// [PP] mod:183 · autor:Rune · 2026-09-01 17:10 UTC-6
+// [PP] mod:186 · autor:Rune · 2026-09-01 19:10 UTC-6
+// TKT-202609-529 (REQ-202609-225, fix post-QA de Finn — AC-4 no cubierto en mod:185): la
+// entrega anterior gateaba _statusChipHtml() detrás de (!isDone && !isDiscarded && !isIdea) —
+// un REQ con status 'done' o 'descartado' nunca alcanzaba la rama type==='REQ' del chip
+// readonly, porque headerRight() cortocircuitaba antes a los íconos legacy (✓/🗑), mismos que
+// usan TKT/CHG. AC-4 exige precedencia del chequeo itemKind==='REQ' sobre isDone/isDiscarded —
+// no implementado en mod:185, detectado por Finn contra código real, devuelto como bug (AC
+// escrito no cumplido, no gap de especificación — __BR-Core §4).
+// Fix: _statusChipHtml ahora se calcula cuando type==='REQ' sin importar isDone/isDiscarded;
+// headerRight() excluye REQ de las ramas de ícono legacy (isDiscarded && type!=='REQ' /
+// isDone && type!=='REQ') para que un REQ terminal caiga en la rama del div con el chip
+// readonly en vez de ✓/🗑. _statusChipReadonlyHint extendido: 'done' ahora comparte hint con
+// 'bloqueado' ('Definido por QA · Finn') — ambos son exclusivos del juicio de Finn (__BR-Core
+// §4); 'descartado' no tiene juicio exclusivo declarado (cualquier rol, con justificación) y
+// queda en el fallback 'Derivado de sus hijos' — fuera de scope de AC-4, que solo exige texto
+// 'Done' visible, no el copy exacto del hint para ese caso.
+// Efecto colateral cerrado (INC-202609-XXX, detectado por Finn durante la misma auditoría,
+// mismo archivo, triggered_by: TKT-202609-529): _doneInconsistencyBadge (TKT-202608-472,
+// REQ-202608-196) quedaba muerto desde su introducción — headerRight() nunca alcanzaba el div
+// que lo contiene para un REQ isDone, porque la rama isDone cortocircuitaba a `✓` antes. El
+// badge de inconsistencia (REQ done con TKT hijos activos no-done) nunca se renderizaba en
+// producción pese a estar implementado y documentado. Mismo fix de headerRight() lo resuelve
+// sin cambio propio — el div ahora es alcanzable para REQ isDone, _doneInconsistencyBadge se
+// evalúa igual que antes (opts.doneInconsistencyCount, sin cambio de firma).
+// [PP] mod:185 · autor:Rune · 2026-09-01 18:20 UTC-6
+// TKT-202609-529 (REQ-202609-225): copy del hint confirmada por el founder como definitiva —
+// sin cambio de texto ('Derivado de sus hijos' / 'Definido por QA · Finn' se mantienen), solo
+// se retira la marca de 'provisional/no confirmado' del comentario. TKT cerrado sin gaps.
+// [PP] mod:184 · autor:Rune · 2026-09-01 18:05 UTC-6
+// TKT-202609-529 (REQ-202609-225): gap #2 cerrado — badge 'auto' + ícono ti-info-circle +
+// hint condicional agregados al chip readonly de REQ (ver bloque más abajo, línea ~1554).
+// Copy del hint es provisional, sin AC textual confirmado — señalado explícitamente en el
+// comentario local. Los 3 componentes que faltaban contra el CSS ya documentado (mod:242)
+// quedan implementados; nombre de clase ya venía correcto desde mod:183.
 // TKT-202609-529 (REQ-202609-225): _statusChipHtml() diferencia REQ de TKT/CHG — REQ nunca
 // expone el popover de cambio de status inline (ciclo de vida auto-gestionado por self-heal
 // o exclusivo del juicio de Finn, __BR-Core §4). Clase .bitem-status-readonly-chip — corrección
@@ -1551,9 +1584,20 @@ export function buildBacklogItem(item, opts = {}) {
   // juicio de Finn (done/bloqueado, __BR-Core §4). Chip de solo lectura, mismo label que
   // statusLabel(), sin data-action ni trigger de _openStatusPopover() — sin caso especial para
   // 'bloqueado', mismo criterio que el resto de statuses no-terminales de REQ.
-  const _statusChipHtml = (!isDone && !isDiscarded && !isIdea)
+  // TKT-202609-529 (REQ-202609-225) — reimplementación (Momento 1, gap #2): badge 'auto' +
+  // ícono ti-info-circle + hint condicional, contra .bitem-status-readonly-chip-badge/-hint
+  // ya definidos en locus-backlog-item.css (mod:242), sin caller hasta este cambio. Copy del
+  // hint confirmada por el founder como definitiva — sin AC textual formal de Cael, decisión
+  // directa sobre texto trivial de UI de solo lectura.
+  const _statusChipReadonlyHint = (item.status === 'bloqueado' || item.status === 'done')
+    ? 'Definido por QA · Finn'
+    : 'Derivado de sus hijos';
+  // TKT-202609-529 (REQ-202609-225, AC-4): itemKind==='REQ' tiene precedencia sobre
+  // isDone/isDiscarded — un REQ siempre usa el chip readonly, sin importar su status terminal.
+  // TKT/CHG conservan el criterio previo (chip solo en statuses no-terminales).
+  const _statusChipHtml = (type === 'REQ' || (!isDone && !isDiscarded && !isIdea))
     ? (type === 'REQ'
-        ? `<span class="bitem-status-readonly-chip">${statusLabel(item.status || 'pendiente')}</span>`
+        ? `<span class="bitem-status-readonly-chip"><svg class="ti-svg" aria-hidden="true"><use href="#ti-info-circle"></use></svg>${statusLabel(item.status || 'pendiente')}<span class="bitem-status-readonly-chip-badge">auto</span><span class="bitem-status-readonly-hint">${esc(_statusChipReadonlyHint)}</span></span>`
         : `<button class="bitem-status-chip bitem-status-chip--${esc(item.status || 'pendiente')}" data-action="open-status-popover" data-code="${esc(item.code)}" title="Cambiar status" type="button">${statusLabel(item.status || 'pendiente')}</button>`)
     : '';
   // TKT-202608-472 (REQ-202608-196, TKT2): badge de alerta — REQ done con al menos un TKT
@@ -1575,11 +1619,16 @@ export function buildBacklogItem(item, opts = {}) {
     ? `<span class="item-p-badge item-p-badge--promovida" title="Idea promovida${_pPromovidaRef ? ' a ' + _pPromovidaRef : ''}">↗ promovida${_pPromovidaRef ? '<span class="item-p-badge-ref"> ' + esc(_pPromovidaRef) + '</span>' : ''}</span>`
     : '';
 
+  // TKT-202609-529 (REQ-202609-225, AC-4): REQ excluido de las ramas de ícono legacy — un REQ
+  // isDone/isDiscarded cae en la rama del div de abajo, donde vive _statusChipHtml (chip
+  // readonly). Efecto colateral cerrado en el mismo movimiento: _doneInconsistencyBadge
+  // (TKT-202608-472) queda alcanzable para REQ isDone — antes la rama isDone cortocircuitaba
+  // antes de llegar al div que lo contiene, dejándolo muerto pese a estar implementado.
   const headerRight = _isPPromovida
     ? `<div class="bitem-header-right">${_pPromovidaBadge}</div>`
-    : isDiscarded
+    : (isDiscarded && type !== 'REQ')
     ? `<span class="bitem-discarded-icon">🗑</span>`
-    : isDone
+    : (isDone && type !== 'REQ')
       ? `<span class="bitem-done-check">✓</span>`
       : isIdea
         ? `<div class="bitem-header-right">${prioBadgeHtml}${_ideaQuickActions}</div>`
