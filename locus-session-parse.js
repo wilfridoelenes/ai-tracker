@@ -1,4 +1,6 @@
-// [PP] mod:227 · autor:Rune · 2026-09-02 UTC-6
+// [PP] mod:228 · autor:Rune · 2026-09-02 UTC-6
+// TKT-202609-548 (REQ-202609-231, TKT1): comparación de hash exacto entre bloques del mismo
+// batch — ver comentario junto a _processIngestBatch() más abajo para el detalle completo.
 // TKT-202609-541 (REQ-202609-229, TKT3): guard de hash exacto extendido al path batch —
 // _processIngestBatch() ahora consulta _processedCheckpointHashes (mismo Set global, mismo
 // criterio de coincidencia exacta que ya usa parsePaste() desde T-202606-210) antes de abrir el
@@ -2995,6 +2997,38 @@ export async function _processIngestBatch(id) {
   if (!rawBlocks.length) {
     showToast('warning', 'Sin batch procesado — pega CHECKPOINTs y presiona Procesar batch.');
     return;
+  }
+
+  // TKT-202609-548 (REQ-202609-231, TKT1): comparación de hash exacto entre bloques del mismo
+  // batch — hasta este TKT, el único guard de duplicado en el path batch (TKT-202609-541,
+  // _processedCheckpointHashes más abajo) compara contra pasteos ya confirmados en sesiones
+  // anteriores; dos bloques idénticos dentro del mismo pegado nunca se comparaban entre sí y
+  // generaban dos ítems duplicados. Set local (no_incluye del TKT — vive solo dentro de esta
+  // llamada, nunca persiste entre invocaciones ni entre sesiones, a diferencia de
+  // _processedCheckpointHashes): recorre rawBlocks en orden, conserva la primera aparición de
+  // cada texto trimmed y descarta cualquier repetición posterior dentro del mismo batch — antes
+  // de que _resolveCheckpointBatch() los convierta en ítems, así el bloque duplicado nunca llega
+  // a producir un ítem propio (AC1/AC2: con 2 bloques idénticos entre sí, sobrevive 1; con
+  // bloque1≡bloque3≠bloque2, sobreviven bloque1 y bloque2). Sin duplicados intra-batch, el
+  // filtro no cambia rawBlocks (AC3 — sin falso positivo). Aviso reutiliza la misma familia de
+  // UI que el hash ya-procesado (_showIngestValidationWarning) para consistencia visual, pero
+  // no bloquea el batch — no hay nada que "forzar": el batch ya se resuelve sin los bloques
+  // descartados, por eso onForce es un no-op en vez de re-invocar _processIngestBatch().
+  // [PP] mod:228 · autor:Rune · 2026-09-02 UTC-6
+  const _seenBatchBlockHashes = new Set();
+  let _intraBatchDupCount = 0;
+  const _dedupedBlocks = rawBlocks.filter(block => {
+    const _h = block.trim();
+    if (_seenBatchBlockHashes.has(_h)) { _intraBatchDupCount++; return false; }
+    _seenBatchBlockHashes.add(_h);
+    return true;
+  });
+  if (_intraBatchDupCount) {
+    rawBlocks.splice(0, rawBlocks.length, ..._dedupedBlocks);
+    _showIngestValidationWarning(
+      `⚠ ${_intraBatchDupCount} bloque${_intraBatchDupCount !== 1 ? 's' : ''} de este batch ${_intraBatchDupCount !== 1 ? 'son' : 'es'} idéntico${_intraBatchDupCount !== 1 ? 's' : ''} a otro ya presente en el mismo pegado — se descartó automáticamente.`,
+      () => {}
+    );
   }
 
   // TKT2 (REQ CAEL-0718-01): pre-chequeo JSON.parse(rawBlocks[i]) retirado — abortaba el batch
