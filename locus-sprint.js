@@ -1025,6 +1025,11 @@ const _SPS_GROUP_COLLAPSED = new Set(['programados', 'pausados', 'cerrados']);
 // Fix FINN-08161900-01: nacía en false — AC exige colapsado por default, no expandido.
 let _SPS_ACTIVO_DETAIL_COLLAPSED = true;
 
+// count se conserva como parámetro — sigue siendo la cifra real de cada sección y
+// _spsAttachGroupToggle()/otros call sites la siguen pasando sin cambio de firma — pero
+// TKT-202609-549 (REQ-202609-232) retira su render del header: la cifra vive únicamente
+// en las hero KPI cards (#sph-kpi-*-value, ver _renderSpsStatsBlock()), evitando el
+// "ACTIVO 0" duplicado que _spsGroupHtml ya no debe mostrar.
 function _spsGroupHtml(key, title, count, headerModifier, bodyHtml) {
   const collapsed = _SPS_GROUP_COLLAPSED.has(key);
   return (
@@ -1033,7 +1038,6 @@ function _spsGroupHtml(key, title, count, headerModifier, bodyHtml) {
         'aria-expanded="' + (!collapsed) + '" aria-controls="sps-status-body-' + key + '" data-sps-group-toggle="' + key + '">' +
         '<div class="sps-status-header-meta">' +
           '<span class="sps-status-title">' + _escHtml(title) + '</span>' +
-          '<span class="sps-status-count">' + count + '</span>' +
         '</div>' +
         '<span class="sps-status-chevron" aria-hidden="true">▼</span>' +
       '</div>' +
@@ -1090,6 +1094,38 @@ function _spsAttachGroupToggle(container) {
 }
 // ── END status-group wrapper ─────────────────────────────────────────────────
 
+// ── TKT-202609-549 (REQ-202609-232): hero KPI cards — scroll + expand ───────
+// Botones reales (<button type="button">, TKT-202609-552) — Enter/Space llegan
+// gratis vía click nativo, sin keydown propio, mismo criterio ya declarado para
+// .sps-card-detail-toggle (Patrón A-13).
+function _spsKpiCardHandler(e) {
+  const card = e.target.closest('[data-kpi-section]');
+  if (!card) return;
+  const section = card.dataset.kpiSection;
+  const container = document.getElementById('sps-' + section);
+  if (!container) return;
+  const group = container.querySelector('.sps-status-group');
+  if (group && group.classList.contains('is-collapsed')) {
+    group.classList.remove('is-collapsed');
+    const header = group.querySelector('[data-sps-group-toggle]');
+    if (header) header.setAttribute('aria-expanded', 'true');
+    _SPS_GROUP_COLLAPSED.delete(section);
+  }
+  container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Idempotente — mismo patrón remove/add. #sph-kpi-grid es shell estático de
+// index.html (invariante, nunca regenerado vía innerHTML) — se adjunta una sola
+// vez por switch a subtab 'sprints', igual que el resto de listeners de esta
+// sección (_spnpAttachListeners, etc.).
+function _spsAttachKpiCards() {
+  const grid = document.getElementById('sph-kpi-grid');
+  if (!grid) return;
+  grid.removeEventListener('click', _spsKpiCardHandler);
+  grid.addEventListener('click', _spsKpiCardHandler);
+}
+// ── END hero KPI cards — scroll + expand ─────────────────────────────────────
+
 // ── Bloque de métricas #sps-stats-block — cierra bloqueo parcial declarado en
 // mod:111 (index.html no estaba adjunto en esa sesión). Shell estático ya vive
 // en index.html (BR-Execution §5 — elemento invariante, nunca se genera por JS);
@@ -1113,6 +1149,20 @@ function _renderSpsStatsBlock() {
   if (elProgramados) elProgramados.textContent = String(nProgramados);
   if (elPausados)     elPausados.textContent     = String(nPausados);
   if (elCerrados)     elCerrados.textContent     = String(nCerrados);
+
+  // TKT-202609-549 (REQ-202609-232): mismas 4 cifras, mismo origen (getActiveSprints()),
+  // hacia las hero KPI cards de TKT-202609-552 (#sph-kpi-grid, is-hidden por default —
+  // escribir texto en un contenedor oculto no tiene efecto visible hasta que se muestre).
+  // Fuente única deliberada — ver CHECKPOINT de Cael, corrección de AC: evita duplicar
+  // este mismo filtro dentro de cada _renderSpsX().
+  const elKpiActivo      = document.getElementById('sph-kpi-activo-value');
+  const elKpiProgramados = document.getElementById('sph-kpi-programados-value');
+  const elKpiPausados    = document.getElementById('sph-kpi-pausados-value');
+  const elKpiCerrados    = document.getElementById('sph-kpi-cerrados-value');
+  if (elKpiActivo)      elKpiActivo.textContent      = String(nActivo);
+  if (elKpiProgramados) elKpiProgramados.textContent = String(nProgramados);
+  if (elKpiPausados)    elKpiPausados.textContent    = String(nPausados);
+  if (elKpiCerrados)    elKpiCerrados.textContent    = String(nCerrados);
 }
 // ── END #sps-stats-block ─────────────────────────────────────────────────────
 

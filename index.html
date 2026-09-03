@@ -1,4 +1,4 @@
-<!-- [PP] mod:222 · autor:Rune · 2026-09-01 15:30 UTC-6 -->
+<!-- [PP] mod:223 · autor:Nova · 2026-09-02 UTC-6 -->
 <!-- TKT-202608-461 (REQ-202608-191, TKT2 · Ícono de operación por tipo — integración en
      card): gap de sprite declarado en el TKT — 3 símbolos nuevos agregados al sprite
      (#ti-square-rounded-plus, #ti-arrow-big-right-lines, #ti-arrow-back-up), consumidos
@@ -1319,6 +1319,32 @@
         </div>
       </div>
       <!-- T-202606-042: botón Cerrar sprint eliminado de .sph-header — acción vive en .sps-actions (sub-tab Sprints) -->
+      <!-- TKT-202609-552 (REQ-202609-232, Nova): Hero KPI cards — 4 <button> reales, shell
+           estático (mismo criterio que .sph-goal/.sph-burndown de este mismo bloque —
+           no regenerado por innerHTML). is-hidden por default: renderSprintTab()
+           (locus-sprint.js) lo destapa solo con sprint activo, mismo mecanismo que
+           #sph-burndown. Cifra y label los inyecta JS en #sph-kpi-*-value/-label —
+           el markup no asume ningún conteo. Sin wiring de click/keydown en este TKT
+           (ver TKT-202609-549, depends_on este TKT, Rune) — type="button" solo por
+           semántica correcta, sin handler todavía. -->
+      <div class="sph-kpi-grid is-hidden" id="sph-kpi-grid">
+        <button class="sph-kpi-card" type="button" id="sph-kpi-activo" data-kpi-section="activo">
+          <span class="sph-kpi-value" id="sph-kpi-activo-value">0</span>
+          <span class="sph-kpi-label">Activo</span>
+        </button>
+        <button class="sph-kpi-card" type="button" id="sph-kpi-programados" data-kpi-section="programados">
+          <span class="sph-kpi-value" id="sph-kpi-programados-value">0</span>
+          <span class="sph-kpi-label">Programados</span>
+        </button>
+        <button class="sph-kpi-card" type="button" id="sph-kpi-pausados" data-kpi-section="pausados">
+          <span class="sph-kpi-value" id="sph-kpi-pausados-value">0</span>
+          <span class="sph-kpi-label">Pausados</span>
+        </button>
+        <button class="sph-kpi-card" type="button" id="sph-kpi-cerrados" data-kpi-section="cerrados">
+          <span class="sph-kpi-value" id="sph-kpi-cerrados-value">0</span>
+          <span class="sph-kpi-label">Cerrados</span>
+        </button>
+      </div>
     </div>
   </div>
 

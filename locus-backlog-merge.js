@@ -1,4 +1,12 @@
-// [PP] mod:119 · autor:Rune · 2026-09-01 UTC-6
+// [PP] mod:120 · autor:Rune · 2026-09-02 UTC-6
+// TKT-202609-550 (huérfano, origen DISC-202609-280): badge no bloqueante '.mdiff-dup-warning-badge'
+// en cards de diff.created cuando mergeBacklogFromTG (locus-backlog-item.js L3508-3520, verificado
+// contra archivo real) anexa duplicateWarning:{code,reason,score}. Mismo patrón de mapa code->dato
+// + helper que ya usa _docRelBadgeHtml (líneas ~953-995 de este archivo) — _dupWarningMap se
+// construye desde diff.created (no desde tgItems, el campo no existe hasta el dry-run) y el
+// helper se inyecta en _card() junto a _docRelBadgeHtml(code). No incluye: no toca
+// _findPotentialDuplicate ni mergeBacklogFromTG (locus-backlog-item.js, fuera de scope) — no
+// agrega persistencia, el badge solo lee el objeto de retorno del dry-run vigente en este render.
 // INC-202608-145 (fix — chevron de expand del panel DIFF no acciona el detalle del ítem):
 // los tres listeners delegados sobre #merge-diff-overlay que faltaban en el fix de
 // [código no confirmado — TKT-202607-212] (ver comentario original ~L2976, más abajo en
@@ -994,6 +1002,18 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     return `<span class="mdiff-docrel-badge" title="Confirmar doc_relevance_confirmada al cerrar el TKT">doc_relevance sin confirmar — ${esc(missing.join(', '))}</span>`;
   };
 
+  // TKT-202609-550: code -> duplicateWarning ({code,reason,score}) — solo diff.created lo trae
+  // (mergeBacklogFromTG, locus-backlog-item.js L3508-3520), createdAndClosed no está en ese
+  // forEach del lado real — mismo scope que el AC declara. Campo ausente si no hubo match.
+  const _dupWarningMap = {};
+  (diff.created || []).forEach(i => {
+    if (i && i.code && i.duplicateWarning) _dupWarningMap[i.code] = i.duplicateWarning;
+  });
+  const _dupWarningBadgeHtml = code => {
+    if (!_dupWarningMap[code]) return '';
+    return `<span class="mdiff-dup-warning-badge"><svg class="ti-svg" aria-hidden="true"><use href="#ti-copy"></use></svg>duplicado-potencial — verificar antes de aplicar</span>`;
+  };
+
   // TKT ref_id CAEL-08271600-01: _OP_ICON_MAP/_opIcon ahora importados de locus-ckpt-render.js
   // (ver import al inicio del archivo) — _pill sigue resolviendo contra ellos sin cambio de firma.
   const _pill = (cls, label) =>
@@ -1206,6 +1226,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
           <span class="mdiff-code mdiff-card-title">${esc(code)}</span>
           ${pillsHtml}
           ${_docRelBadgeHtml(code)}
+          ${_dupWarningBadgeHtml(code)}
           ${_sprintSelect(code, sprintOverride, itemType)}
           <button class="mdiff-card-toggle" type="button" data-action="mdiff-toggle-card"
                   aria-expanded="false" aria-label="Ver detalle de ${esc(code)}"><svg class="ti-svg chevron" aria-hidden="true"><use href="#ti-chevron-right"></use></svg></button>

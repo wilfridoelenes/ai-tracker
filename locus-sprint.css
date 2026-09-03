@@ -1,4 +1,4 @@
-/* [PP] mod:81 · autor:Rune · 2026-09-01 UTC-6 */
+/* [PP] mod:82 · autor:Nova · 2026-09-02 UTC-6 */
 /* TKT-202608-458 (REQ-202608-190, TKT1): .sph-header pasa a estado único — sin chevron
    ni rama colapsada (Patrón A-13 retirado de este archivo: .sph-collapse-btn +
    .sph-header.is-collapsed + .sph-collapsed-summary/-goal/-version/-pct eliminados sin
@@ -281,6 +281,65 @@
 }
 
 /* ══ END T-202605-057 ══ */
+
+/* ══ TKT-202609-552 (REQ-202609-232): Hero KPI cards — Activo/Programados/Pausados/Cerrados.
+   .sph-kpi-* vive junto al resto del header hero (.sph-*), mismo prefijo de módulo.
+   Reemplaza el conteo duplicado en headers de acordeón (.sps-status-count) — la cifra
+   vive únicamente acá; TKT-202609-549 retira el número de los headers y agrega el
+   listener de click/keydown. Este TKT solo entrega markup + CSS: 4 <button> reales
+   (foco/activación nativos, sin tabindex/role manual — mismo criterio que
+   .sph-collapse-btn, Patrón A-13), sin wiring de evento.
+   Hover/focus-visible: mismo mecanismo ya vigente de .sph-sprint-pill (arriba en este
+   archivo, TKT-202608-458) — no una clase ni un token nuevo.
+   Estado vacío de sprint: .sph-header ya tiene is-hidden sin sprint activo — el CTA
+   primario existente cubre ese caso, sin CSS adicional acá. ══ */
+
+.sph-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.sph-kpi-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border);
+  background: var(--surface3);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color var(--trans-fast), background var(--trans-fast);
+}
+
+/* Mismo tratamiento que .sph-sprint-pill:hover — no se introduce token nuevo */
+.sph-kpi-card:hover {
+  border-color: var(--hint, var(--border2, var(--border)));
+}
+
+/* Mismo tratamiento que .sph-sprint-pill:focus-visible — outline 2px accent, offset 2px */
+.sph-kpi-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sph-kpi-value {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.sph-kpi-label {
+  font-size: var(--text-xs);
+  color: var(--text2);
+}
+
+/* ══ END TKT-202609-552 ══ */
 
 /* ══ T-202605-058: Tab Sprint — burndown mini (TKT-202608-458, REQ-202608-190) ══ */
 /* Antes: stack de 3 filas (labels effort/pct + track 10px + warn) en columna,
