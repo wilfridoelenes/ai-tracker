@@ -1,4 +1,4 @@
-<!-- [PP] mod:224 · autor:Rune · 2026-09-03 UTC-6 -->
+<!-- [PP] mod:226 · autor:Rune · 2026-09-03 UTC-6 -->
 <!-- TKT-202608-461 (REQ-202608-191, TKT2 · Ícono de operación por tipo — integración en
      card): gap de sprite declarado en el TKT — 3 símbolos nuevos agregados al sprite
      (#ti-square-rounded-plus, #ti-arrow-big-right-lines, #ti-arrow-back-up), consumidos
@@ -464,6 +464,14 @@
     <path d="M8 3v1" />
     <path d="M4 11h7m4 0h5" />
     <path d="M3 3l18 18" />
+  </symbol>
+  <symbol id="ti-calendar-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11.5 21h-5.5a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+    <path d="M16 3v4" />
+    <path d="M8 3v4" />
+    <path d="M4 11h16" />
+    <path d="M16 19h6" />
+    <path d="M19 16v6" />
   </symbol>
   <symbol id="ti-changelog" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M5.333 4.667h13.333v14.667l-2.667 -1.867 -2 1.867 -2 -1.867 -2 1.867 -2 -1.867 -2.667 1.867z" />
@@ -1524,9 +1532,10 @@
          DOM. .spt-content-empty-title sin cambio — fuera del scope autorizado por el CSS
          dependencies block de Nova para este TKT. -->
     <div class="spt-content-empty is-hidden" id="sps-content-empty">
-      <svg class="ti-svg spt-content-empty-icon" aria-hidden="true"><use href="#ti-calendar-off"></use></svg>
+      <svg class="ti-svg spt-content-empty-icon" aria-hidden="true"><use href="#ti-calendar-plus"></use></svg>
       <div class="spt-content-empty-title">Sin sprint activo</div>
       <div class="spt-content-empty-hint">La apertura de sprint se propone desde Cael (sprint_proposal) — pegá la propuesta en el panel de abajo para aprobarla.</div>
+      <button class="btn-primary" type="button" data-action="open-ingest" data-ai-id="">Pegar propuesta de sprint</button>
     </div>
 
     <!-- TKT2 (REQ histórico — sin CHECKPOINT confirmado · migración Step 0 DIFF → panel Sprint subtab): shell estático —
