@@ -1,4 +1,4 @@
-/* [PP] mod:82 · autor:Nova · 2026-09-02 UTC-6 */
+/* [PP] mod:83 · autor:Rune · 2026-09-03 UTC-6 */
 /* TKT-202608-458 (REQ-202608-190, TKT1): .sph-header pasa a estado único — sin chevron
    ni rama colapsada (Patrón A-13 retirado de este archivo: .sph-collapse-btn +
    .sph-header.is-collapsed + .sph-collapsed-summary/-goal/-version/-pct eliminados sin
@@ -4014,3 +4014,37 @@ Variables CSS consumidas (todas ya existen en locus-base.css):
 Archivos CSS que deben estar adjuntos para integrar este entregable:
 - locus-sprint.css (este archivo — mod:74)
 */
+
+/* ══ TKT-202609-553 (REQ-202609-232, TKT4): jerarquía visual Activo+Programados /
+   Pausados+Cerrados — envuelve los 4 <div> estáticos ya existentes en index.html
+   (#sps-activo/#sps-programados/#sps-pausados/#sps-cerrados, sin cambio de ID ni de
+   anidamiento salvo el wrapper) en dos grupos: "en curso" y "archivo", separados por
+   un divisor. Sin JS nuevo — .sps-group-label/.sps-group-divider/.sps-archive-group
+   son puramente de shell estático, consumidos vía HTML de Rune. ══ */
+.sps-group-label {
+  display: block;
+  font-size: 11px;
+  /* AC declara var(--text-muted) — variable inexistente en este proyecto (verificado
+     por grep contra locus-sprint.css/index.html reales). --text3 es el token de menor
+     jerarquía ya vigente en el sistema (mismo uso que .sps-status-title y labels
+     equivalentes de este archivo) — discrepancia de nombre, no de comportamiento. */
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0 0 8px;
+}
+
+.sps-group-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 14px 0;
+  border: 0;
+}
+
+/* .sps-archive-group aplica a #sps-pausados+#sps-cerrados juntos — AC pide opacity en
+   el contenedor, nunca en filas individuales (.sps-card/.sps-status-group conservan
+   su opacity propia sin tocar). */
+.sps-archive-group {
+  opacity: 0.8;
+}
+/* ══ END TKT-202609-553 ══ */

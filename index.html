@@ -1,4 +1,4 @@
-<!-- [PP] mod:223 · autor:Nova · 2026-09-02 UTC-6 -->
+<!-- [PP] mod:224 · autor:Rune · 2026-09-03 UTC-6 -->
 <!-- TKT-202608-461 (REQ-202608-191, TKT2 · Ícono de operación por tipo — integración en
      card): gap de sprite declarado en el TKT — 3 símbolos nuevos agregados al sprite
      (#ti-square-rounded-plus, #ti-arrow-big-right-lines, #ti-arrow-back-up), consumidos
@@ -1541,10 +1541,20 @@
     <div class="spnp-panel is-hidden" id="spnp-panel" role="region" aria-label="Aprobación de sprint pendiente"></div>
     <!-- END TKT2 shell -->
     <!-- T-202606-034: 4 secciones canónicas del sub-tab Sprints -->
+    <!-- TKT-202609-553 (REQ-202609-232, TKT4): envuelve las 4 secciones en dos grupos
+         jerárquicos — "en curso" (Activo+Programados) y "archivo" (Pausados+Cerrados,
+         opacity:0.8 vía .sps-archive-group) — separados por un divisor estático. Los
+         4 IDs internos no cambian — ningún JS requiere modificación. -->
+    <span class="sps-group-label">En curso</span>
     <div id="sps-activo"></div>
     <div id="sps-programados"></div>
-    <div id="sps-pausados"></div>
-    <div id="sps-cerrados"></div>
+    <hr class="sps-group-divider">
+    <span class="sps-group-label">Archivo</span>
+    <div class="sps-archive-group">
+      <div id="sps-pausados"></div>
+      <div id="sps-cerrados"></div>
+    </div>
+    <!-- END TKT-202609-553 -->
     <!-- END T-202606-034 -->
   </div>
   <!-- END Panel Sprints — T-202606-034 -->
