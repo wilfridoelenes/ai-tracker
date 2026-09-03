@@ -1,4 +1,14 @@
-/* [PP] mod:18 · autor:Rune · 2026-09-01 UTC-6 */
+/* [PP] mod:19 · autor:Nova · 2026-09-03 14:30 UTC-6 */
+/* TKT ref_id CAEL-09031430-02 (REQ ref_id CAEL-09031430-01): #toast-stack reancla de
+   inferior-derecha a inferior-izquierda — causa raíz de la colisión recurrente con
+   Radar Sidebar (siempre anclado a la derecha) y con el shell de Split View
+   (.mss-shell, CTAs agrupadas a la derecha). Ningún panel de Locus ancla nunca a la
+   izquierda — el toast deja de necesitar cómputo de offset por panel. Token
+   `--toast-right-offset` retirado (única consumidor era este selector); el mecanismo
+   de compensación en locus-radar.js (`_applyToastOffset()`) se retira en el TKT
+   dependiente de éste (Rune). Animación de entrada/salida y transform-origin de
+   profundidad de stack invertidos para reflejar el nuevo lado de anclaje — ver
+   comentarios junto a cada regla. */
 
 /* === locus-toast.js ===
    Funciones: showToast · showToastInline · showToastDigest · _toastRender · _dismissToast */
@@ -10,16 +20,16 @@
 #toast-stack {
   position: fixed;
   bottom: 1.5rem;
-  right: var(--toast-right-offset, 1.5rem);
+  left: var(--toast-left-offset, 1.5rem);
   z-index: var(--z-absolute);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   gap: var(--space-sm);
-  align-items: flex-end;
+  align-items: flex-start;
   pointer-events: none;
   max-width: min(340px, calc(100vw - 3rem));
-  transition: right 0.25s var(--ease-out);
+  transition: left 0.25s var(--ease-out);
 }
 .toast-item {
   display: flex;
@@ -41,7 +51,7 @@
   cursor: default;
   width: 100%;
   opacity: 0;
-  transform: translateX(16px) scale(0.97);
+  transform: translateX(-16px) scale(0.97);
   transition: opacity 0.24s var(--ease-out),
               transform 0.24s var(--ease-out);
   will-change: opacity, transform;
@@ -81,18 +91,18 @@
 .toast-item.show:not(.toast-hide):nth-last-child(2) {
   opacity: 0.72;
   transform: scale(0.95);
-  transform-origin: bottom right;
+  transform-origin: bottom left;
 }
 
 .toast-item.show:not(.toast-hide):nth-last-child(3) {
   opacity: 0.45;
   transform: scale(0.90);
-  transform-origin: bottom right;
+  transform-origin: bottom left;
 }
 
 .toast-item.toast-hide {
   opacity: 0;
-  transform: translateX(16px) scale(0.97);
+  transform: translateX(-16px) scale(0.97);
   /* TKT ref_id CAEL-08311620-02: 0.16s→0.15s, alineado a --transition-base
      (token canónico de microinteracciones, _Locus-css-ref.md §Tokens). Antes
      desviaba del token sin justificación documentada — el timer JS de salida
@@ -528,7 +538,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* Toast stack — sin slide al desplazar posición por Radar Sidebar */
+  /* Toast stack — sin slide de posición. Anclaje fijo en inferior-izquierda
+     (TKT ref_id CAEL-09031430-02) — ya no hay offset dinámico que animar. */
   #toast-stack {
     transition: none;
   }

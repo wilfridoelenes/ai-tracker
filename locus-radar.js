@@ -1,4 +1,12 @@
-// [PP] mod:24 · autor:Rune · 2026-08-30 15:00 UTC-6
+// [PP] mod:25 · autor:Rune · 2026-09-03 14:35 UTC-6
+// TKT ref_id CAEL-09031430-03 (REQ ref_id CAEL-09031430-01, depends_on TKT ref_id
+// CAEL-09031430-02 — Nova, locus-modals-toast.css): _applyToastOffset() y sus 3 call
+// sites retirados. El toast ya no comparte borde con Radar Sidebar (#toast-stack
+// reanclado a inferior-izquierda) — el mecanismo de compensación de offset queda sin
+// propósito. Único consumidor de la custom property que escribía (--toast-right-offset)
+// ya fue retirado del CSS en el TKT dependido. Sin código muerto remanente: grep en
+// esta sesión confirma que ningún otro módulo referencia _applyToastOffset ni
+// --toast-right-offset.
 // TKT1 (ref_id CAEL-08301500-01, REQ-202608-207, origen_disc DISC-202608-237): _buildSessionCard()
 // pierde el parámetro isInterrupted — único call site (inSession.map) siempre pasó `false`,
 // el branch 'rsb-card interrupted-state' / '.rsb-status-interrupted' nunca fue alcanzable desde
@@ -502,18 +510,6 @@ function _rsbIsPinned() {
   return localStorage.getItem('rsb-pinned') === '1';
 }
 
-// R-202605-173: Centralizar aplicación de --toast-right-offset
-function _applyToastOffset(isCollapsed) {
-  try {
-    if (!document.documentElement) return;
-    if (isCollapsed) {
-      document.documentElement.style.removeProperty('--toast-right-offset');
-    } else {
-      document.documentElement.style.setProperty('--toast-right-offset', '300px');
-    }
-  } catch(e) {}
-}
-
 // T-202604-254: Toggle sidebar Radar
 export function toggleRadarSidebar() {
   const sidebar = document.getElementById('global-radar-sidebar');
@@ -522,7 +518,6 @@ export function toggleRadarSidebar() {
   document.body.classList.toggle('radar-sb-collapsed', isCollapsed);
   document.body.classList.toggle('radar-sb-open', !isCollapsed);
   localStorage.setItem('radar-sidebar-collapsed', isCollapsed ? '1' : '0');
-  _applyToastOffset(isCollapsed);
 }
 
 // T-202604-254: Init sidebar state from localStorage
@@ -534,12 +529,10 @@ export function _initRadarSidebarState() {
     sidebar.classList.add('collapsed');
     document.body.classList.remove('radar-sb-open');
     document.body.classList.add('radar-sb-collapsed');
-    _applyToastOffset(true);
   } else {
     sidebar.classList.remove('collapsed');
     document.body.classList.remove('radar-sb-collapsed');
     document.body.classList.add('radar-sb-open');
-    _applyToastOffset(false);
   }
 
   // Restaurar estado pin
