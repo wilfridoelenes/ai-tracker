@@ -1,3 +1,10 @@
+// [PP] mod:26 · autor:Rune · 2026-09-04 07:00 UTC-6
+// TKT ref_id CAEL-09040650-01 (origen_disc DISC-202609-285): comentario de sección
+// "── PIN / OFFSET / TOGGLE / INIT ──" renombrado a "── PIN / TOGGLE / INIT ──" —
+// la mención a OFFSET quedó huérfana desde el retiro de _applyToastOffset() en
+// mod:25 (TKT ref_id CAEL-09031430-03); ninguna función de esta sección
+// (rsbTogglePin, _rsbIsPinned, toggleRadarSidebar, _initRadarSidebarState) maneja
+// offset. Sin cambio de comportamiento — solo el comentario de encabezado de sección.
 // [PP] mod:25 · autor:Rune · 2026-09-03 14:35 UTC-6
 // TKT ref_id CAEL-09031430-03 (REQ ref_id CAEL-09031430-01, depends_on TKT ref_id
 // CAEL-09031430-02 — Nova, locus-modals-toast.css): _applyToastOffset() y sus 3 call
@@ -494,7 +501,7 @@ function _rsbToggleAgotadas() {
   localStorage.setItem('rsb-agotadas-collapsed', isNowCollapsed ? '1' : '0');
 }
 
-// ── PIN / OFFSET / TOGGLE / INIT ──────────────────────────────────────────────
+// ── PIN / TOGGLE / INIT ────────────────────────────────────────────────────────
 
 // R-202605-113: Pin toggle — desactiva auto-hide cuando está fijado
 export function rsbTogglePin() {

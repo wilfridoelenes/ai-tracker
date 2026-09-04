@@ -1,4 +1,4 @@
-/* [PP] mod:83 · autor:Rune · 2026-09-03 UTC-6 */
+/* [PP] mod:84 · autor:Rune · 2026-09-04 UTC-6 */
 /* TKT-202608-458 (REQ-202608-190, TKT1): .sph-header pasa a estado único — sin chevron
    ni rama colapsada (Patrón A-13 retirado de este archivo: .sph-collapse-btn +
    .sph-header.is-collapsed + .sph-collapsed-summary/-goal/-version/-pct eliminados sin
@@ -3588,18 +3588,11 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   letter-spacing: 0.06em;
 }
 
-.sps-status-count {
-  font-family: var(--mono);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
 .sps-status-header--activo {
   background: var(--green-dim);
   border-color: var(--green-border);
 }
-.sps-status-header--activo .sps-status-title,
-.sps-status-header--activo .sps-status-count {
+.sps-status-header--activo .sps-status-title {
   color: var(--green-text);
 }
 
@@ -3607,8 +3600,7 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   background: var(--blue-dim);
   border-color: var(--blue-border);
 }
-.sps-status-header--programados .sps-status-title,
-.sps-status-header--programados .sps-status-count {
+.sps-status-header--programados .sps-status-title {
   color: var(--blue-text);
 }
 
@@ -3621,9 +3613,7 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   border-color: var(--border);
 }
 .sps-status-header--pausados .sps-status-title,
-.sps-status-header--pausados .sps-status-count,
-.sps-status-header--cerrados .sps-status-title,
-.sps-status-header--cerrados .sps-status-count {
+.sps-status-header--cerrados .sps-status-title {
   color: var(--text3);
 }
 
