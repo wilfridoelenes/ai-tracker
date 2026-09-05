@@ -1,3 +1,17 @@
+// [PP] mod:139 · autor:Rune · 2026-09-05 15:05 UTC-6
+// TKT2+TKT3 (REQ-202609-235): _spsGroupEmptyHtml() gana 3er parámetro opcional
+// (extraHtml) inyectado antes del cierre de .sps-status-empty — el botón
+// .sps-empty-cta pasa de vivir como hermano suelto de .sps-status-body (sin
+// centrado) a hijo real de .sps-status-empty (flex + align-items:center ya
+// declarado en locus-sprint.css), heredando el centrado sin CSS nuevo. Hint de
+// copy retirado del empty-state ("La apertura de sprint se propone desde
+// Cael..."). #spnp-trigger-btn se oculta (is-hidden) cuando el CTA inline está
+// visible (sin sprint activo) y se muestra cuando hay sprint activo — evita
+// redundancia de dos entradas al mismo panel. Si el panel #spnp-panel estaba
+// abierto al ocultar el trigger, se cierra también (edge case, evita panel
+// huérfano sin trigger visible). contract_update: no — _spsGroupEmptyHtml es
+// interna al módulo, 3er arg opcional no rompe los 3 call sites vecinos
+// (Programados/Pausados/Cerrados, sin 3er arg → fallback '').
 // [PP] mod:138 · autor:Rune · 2026-09-05 14:20 UTC-6
 // Corrección de header de identidad (DISC-202609-288): mod anterior (136,
 // 2026-08-24) quedó desactualizado pese a contenido real posterior de
@@ -1053,11 +1067,12 @@ function _spsGroupHtml(key, title, count, headerModifier, bodyHtml) {
 
 // Empty state — mismo patrón textual que .sps-empty/.qc-empty (título + hint
 // opcional), sin ícono — ninguna de las dos referencias declara clase de ícono.
-function _spsGroupEmptyHtml(title, hint) {
+function _spsGroupEmptyHtml(title, hint, extraHtml) {
   return (
     '<div class="sps-status-empty">' +
       '<p class="sps-status-empty-title">' + _escHtml(title) + '</p>' +
       (hint ? '<p class="sps-status-empty-hint">' + _escHtml(hint) + '</p>' : '') +
+      (extraHtml || '') +
     '</div>'
   );
 }
@@ -1193,20 +1208,46 @@ function _renderSpsActivo() {
   const sprint = _getActiveSprint();
 
   if (!sprint) {
-    // TKT (ref_id CAEL-09051500-02, parent REQ ref_id CAEL-09051500-01): botón
-    // .sps-empty-cta (locus-sprint.css, antes sin consumidor) — invoca el mismo
-    // panel que "+ Sprint nuevo" (#spnp-trigger-btn/_spnpHandleTriggerClick),
-    // sin mecanismo de apertura nuevo. design_intent: sprint_empty_state_cta_propuesta.
+    // TKT2 (REQ-202609-235): botón .sps-empty-cta ahora vive dentro de
+    // .sps-status-empty (extraHtml) — hereda su centrado (flex +
+    // align-items:center) sin CSS nuevo. Antes vivía como hermano suelto de
+    // .sps-status-body (sin centrado), causa del desalineamiento reportado.
+    // Hint retirado (copy). Invoca el mismo panel que "+ Sprint nuevo"
+    // (#spnp-trigger-btn/_spnpHandleTriggerClick), sin mecanismo de apertura
+    // nuevo. design_intent: sprint_empty_state_cta_propuesta.
     container.innerHTML = _spsGroupHtml('activo', 'Activo', 0, 'activo',
       _spsGroupEmptyHtml(
         'No hay sprint activo.',
-        'La apertura de sprint se propone desde Cael (sprint_proposal) — no hay creación manual.'
-      ) + '<button class="sps-empty-cta" type="button" data-spnp-empty-trigger>Pegar propuesta de sprint</button>'
+        null,
+        '<button class="sps-empty-cta" type="button" data-spnp-empty-trigger>Pegar propuesta de sprint</button>'
+      )
     );
     container.removeEventListener('click', _spsEmptyCtaHandleClick);
     container.addEventListener('click', _spsEmptyCtaHandleClick);
     _spsAttachGroupToggle(container);
+    // TKT3 (REQ-202609-235): sin sprint activo, el CTA inline ya cubre la
+    // acción — ocultar #spnp-trigger-btn evita una segunda entrada redundante
+    // al mismo panel. Si el panel estaba abierto, se cierra también (evita
+    // panel huérfano sin trigger visible).
+    const spnpTriggerBtn = document.getElementById('spnp-trigger-btn');
+    if (spnpTriggerBtn) {
+      spnpTriggerBtn.classList.add('is-hidden');
+      const spnpPanel = document.getElementById('spnp-panel');
+      if (spnpPanel && !spnpPanel.classList.contains('is-hidden')) {
+        spnpPanel.classList.add('is-hidden');
+        spnpTriggerBtn.setAttribute('aria-expanded', 'false');
+      }
+    }
     return;
+  }
+
+  // TKT3 (REQ-202609-235): con sprint activo, el CTA inline no se renderiza —
+  // #spnp-trigger-btn vuelve a ser el único punto de entrada para proponer el
+  // siguiente sprint (incluye trabajo adelantado en sprint programado,
+  // __BR-Ecosystem §5).
+  {
+    const spnpTriggerBtn = document.getElementById('spnp-trigger-btn');
+    if (spnpTriggerBtn) spnpTriggerBtn.classList.remove('is-hidden');
   }
 
   const id    = sprint.id || '';
