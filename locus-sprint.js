@@ -1,4 +1,9 @@
-// [PP] mod:136 · autor:Rune · 2026-08-24 16:05 UTC-6
+// [PP] mod:138 · autor:Rune · 2026-09-05 14:20 UTC-6
+// Corrección de header de identidad (DISC-202609-288): mod anterior (136,
+// 2026-08-24) quedó desactualizado pese a contenido real posterior de
+// TKT-202609-549/552 (REQ-202609-232, PP-S-53) — entregas de ese sprint no
+// incrementaron el header. Este bump refleja el estado real acumulado, sin
+// cambio de comportamiento.
 // TKT-202608-459 (REQ-202608-190, TKT2, depends_on: TKT-202608-458 en-revision): tres
 // correcciones sobre el entregable de mod anterior de este mismo TKT — ninguna requirió
 // CHECKPOINT propio porque el TKT nunca había pasado por en-revision (Backlog declara
@@ -1114,6 +1119,14 @@ function _spsKpiCardHandler(e) {
   container.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// TKT (ref_id CAEL-09051500-02): delegado sobre #sps-activo — nunca duplica la
+// lógica de _spnpHandleTriggerClick() (toggle-safe, ya maneja foco), solo la invoca.
+function _spsEmptyCtaHandleClick(e) {
+  const btn = e.target.closest('[data-spnp-empty-trigger]');
+  if (!btn) return;
+  _spnpHandleTriggerClick();
+}
+
 // Idempotente — mismo patrón remove/add. #sph-kpi-grid es shell estático de
 // index.html (invariante, nunca regenerado vía innerHTML) — se adjunta una sola
 // vez por switch a subtab 'sprints', igual que el resto de listeners de esta
@@ -1180,12 +1193,18 @@ function _renderSpsActivo() {
   const sprint = _getActiveSprint();
 
   if (!sprint) {
+    // TKT (ref_id CAEL-09051500-02, parent REQ ref_id CAEL-09051500-01): botón
+    // .sps-empty-cta (locus-sprint.css, antes sin consumidor) — invoca el mismo
+    // panel que "+ Sprint nuevo" (#spnp-trigger-btn/_spnpHandleTriggerClick),
+    // sin mecanismo de apertura nuevo. design_intent: sprint_empty_state_cta_propuesta.
     container.innerHTML = _spsGroupHtml('activo', 'Activo', 0, 'activo',
       _spsGroupEmptyHtml(
         'No hay sprint activo.',
         'La apertura de sprint se propone desde Cael (sprint_proposal) — no hay creación manual.'
-      )
+      ) + '<button class="sps-empty-cta" type="button" data-spnp-empty-trigger>Pegar propuesta de sprint</button>'
     );
+    container.removeEventListener('click', _spsEmptyCtaHandleClick);
+    container.addEventListener('click', _spsEmptyCtaHandleClick);
     _spsAttachGroupToggle(container);
     return;
   }
