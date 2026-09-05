@@ -1,3 +1,23 @@
+// [PP] mod:141 · autor:Rune · 2026-09-05 16:35 UTC-6
+// TKT5 (REQ-202609-235): rama 'rechazar' de _spnpHandlePanelClick() sincroniza
+// aria-expanded del CTA además de #spnp-trigger-btn al cerrar el panel — sin
+// sprint creado no hay re-render de _renderSpsActivo(), así que el nodo CTA
+// (si originó la apertura) quedaba con aria-expanded="true" stale mientras el
+// panel ya estaba oculto. Mismo guard if(ctaTrigger) de TKT4, segundo punto de
+// cierre. Branches aprobar/mover/omitir no requieren el mismo fix — todos
+// disparan _renderSpsActivo() (directa o vía creación de sprint), que
+// reemplaza el nodo CTA por la card de sprint activo. contract_update: no.
+// [PP] mod:140 · autor:Rune · 2026-09-05 16:10 UTC-6
+// TKT4 (REQ-202609-235): .sps-empty-cta declara aria-controls="spnp-panel" +
+// aria-expanded inicial calculado contra el estado real de #spnp-panel al
+// renderizar (no hardcodeado false) — cubre el caso de trabajo adelantado
+// donde el panel ya estaba abierto. _spnpHandleTriggerClick() sincroniza
+// aria-expanded en #spnp-trigger-btn Y en [data-spnp-empty-trigger] tras cada
+// toggle — antes solo tocaba el trigger del header, dejando al CTA sin
+// feedback de estado para lectores de pantalla pese a ser el control que el
+// usuario activó. Guard sin excepción cuando el CTA no está en el DOM (rama
+// con sprint activo). Sin cambio al ciclo de apertura/cierre del panel ni CSS
+// nuevo. contract_update: no.
 // [PP] mod:139 · autor:Rune · 2026-09-05 15:05 UTC-6
 // TKT2+TKT3 (REQ-202609-235): _spsGroupEmptyHtml() gana 3er parámetro opcional
 // (extraHtml) inyectado antes del cierre de .sps-status-empty — el botón
@@ -543,15 +563,22 @@ function _spnpHandleTriggerClick() {
   const triggerBtn = document.getElementById('spnp-trigger-btn');
   const panel = document.getElementById('spnp-panel');
   if (!triggerBtn || !panel) return;
+  // TKT4 (REQ-202609-235): el CTA inline (.sps-empty-cta) y el trigger del
+  // header comparten el mismo panel — ambos deben reflejar aria-expanded tras
+  // cada toggle, sin importar cuál originó el click. Guard: el CTA no existe
+  // en el DOM cuando hay sprint activo (rama sin CTA, ver _renderSpsActivo).
+  const ctaTrigger = document.querySelector('[data-spnp-empty-trigger]');
   const isOpen = !panel.classList.contains('is-hidden');
   if (isOpen) {
     panel.classList.add('is-hidden');
     triggerBtn.setAttribute('aria-expanded', 'false');
+    if (ctaTrigger) ctaTrigger.setAttribute('aria-expanded', 'false');
     return;
   }
   _renderSpnpPanel();
   panel.classList.remove('is-hidden');
   triggerBtn.setAttribute('aria-expanded', 'true');
+  if (ctaTrigger) ctaTrigger.setAttribute('aria-expanded', 'true');
   // AC — foco se mueve al primer campo real del panel al abrir (D-02, __Role-Nova §Reglas de conversación 6)
   // TKT (CAEL-0803-02): antes enfocaba el contenedor #spnp-panel — nunca el campo real
   // (textarea o botón). _spnpFocusFirstField() resuelve el primer elemento focosable
@@ -653,8 +680,13 @@ function _spnpHandlePanelClick(e) {
     clearPendingSprintProposal(proj.id);
     const panel = document.getElementById('spnp-panel');
     const triggerBtn = document.getElementById('spnp-trigger-btn');
+    // TKT5 (REQ-202609-235): sin sprint creado (a diferencia de aprobar/mover/
+    // omitir), _renderSpsActivo() no se re-invoca — el nodo CTA sigue en el
+    // DOM y debe reflejar el cierre igual que el trigger del header.
+    const ctaTrigger = document.querySelector('[data-spnp-empty-trigger]');
     if (panel) panel.classList.add('is-hidden');
     if (triggerBtn) triggerBtn.setAttribute('aria-expanded', 'false');
+    if (ctaTrigger) ctaTrigger.setAttribute('aria-expanded', 'false');
     return;
   }
 
@@ -1215,11 +1247,19 @@ function _renderSpsActivo() {
     // Hint retirado (copy). Invoca el mismo panel que "+ Sprint nuevo"
     // (#spnp-trigger-btn/_spnpHandleTriggerClick), sin mecanismo de apertura
     // nuevo. design_intent: sprint_empty_state_cta_propuesta.
+    // TKT4 (REQ-202609-235): aria-controls/aria-expanded — el estado inicial
+    // se lee del panel real en el momento del render, no se asume cerrado
+    // (cubre trabajo adelantado con el panel ya abierto).
+    const _spnpPanelEl = document.getElementById('spnp-panel');
+    const _spnpPanelOpenAtRender = !!(_spnpPanelEl && !_spnpPanelEl.classList.contains('is-hidden'));
     container.innerHTML = _spsGroupHtml('activo', 'Activo', 0, 'activo',
       _spsGroupEmptyHtml(
         'No hay sprint activo.',
         null,
-        '<button class="sps-empty-cta" type="button" data-spnp-empty-trigger>Pegar propuesta de sprint</button>'
+        '<button class="sps-empty-cta" type="button" data-spnp-empty-trigger ' +
+          'aria-controls="spnp-panel" ' +
+          'aria-expanded="' + (_spnpPanelOpenAtRender ? 'true' : 'false') + '">' +
+          'Pegar propuesta de sprint</button>'
       )
     );
     container.removeEventListener('click', _spsEmptyCtaHandleClick);
